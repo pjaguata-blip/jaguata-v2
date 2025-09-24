@@ -1,0 +1,245 @@
+# =========================
+# GITIGNORE - JAGUATA
+# =========================
+
+# Archivos de configuración sensibles
+.env
+config.env
+*.env.local
+*.env.production
+
+# Archivos de base de datos
+*.sql
+*.db
+*.sqlite
+
+# Archivos de log
+*.log
+logs/
+storage/logs/
+
+# Archivos de cache
+cache/
+storage/cache/
+bootstrap/cache/
+
+# Archivos de sesión
+storage/sessions/
+
+# Archivos de uploads (excepto estructura)
+assets/uploads/*
+!assets/uploads/.gitkeep
+
+# Archivos de backup
+backups/
+*.backup
+*.bak
+
+# Archivos de IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Archivos del sistema operativo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Archivos de dependencias
+vendor/
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Archivos de testing
+tests/coverage/
+.phpunit.result.cache
+phpunit.xml
+
+# Archivos de documentación generada
+docs/build/
+docs/_build/
+
+# Archivos de configuración local
+config/local.php
+config/database.local.php
+
+# Archivos de SSL
+*.pem
+*.key
+*.crt
+*.csr
+
+# Archivos de deployment
+deploy/
+deployment/
+.docker/
+docker-compose.override.yml
+
+# Archivos de monitoreo
+monitoring/
+metrics/
+
+# Archivos temporales
+tmp/
+temp/
+*.tmp
+
+# Archivos de configuración de servidor
+.htaccess.local
+nginx.conf.local
+apache.conf.local
+
+# Archivos de configuración de base de datos local
+database/local/
+migrations/local/
+
+# Archivos de configuración de email local
+mail/local/
+
+# Archivos de configuración de storage local
+storage/local/
+
+# Archivos de configuración de cache local
+cache/local/
+
+# Archivos de configuración de sesión local
+sessions/local/
+
+# Archivos de configuración de logs local
+logs/local/
+
+# Archivos de configuración de backup local
+backups/local/
+
+# Archivos de configuración de testing local
+tests/local/
+
+# Archivos de configuración de API local
+api/local/
+
+# Archivos de configuración de assets local
+assets/local/
+
+# Archivos de configuración de public local
+public/local/
+
+# Archivos de configuración de features local
+features/local/
+
+# Archivos de configuración de src local
+src/local/
+
+# Archivos de configuración de docs local
+docs/local/
+
+# Archivos de configuración de tests local
+tests/local/
+
+# Archivos de configuración de vendor local
+vendor/local/
+
+# Archivos de configuración de node_modules local
+node_modules/local/
+
+# Archivos de configuración de composer local
+composer.local.json
+
+# Archivos de configuración de package local
+package.local.json
+
+# Archivos de configuración de bower local
+bower.local.json
+
+# Archivos de configuración de yarn local
+yarn.local.lock
+
+# Archivos de configuración de npm local
+package-lock.local.json
+
+# Archivos de configuración de git local
+.git/local/
+
+# Archivos de configuración de hg local
+.hg/local/
+
+# Archivos de configuración de svn local
+.svn/local/
+
+# Archivos de configuración de cvs local
+CVS/local/
+
+# Archivos de configuración de rcs local
+RCS/local/
+
+# Archivos de configuración de sccs local
+SCCS/local/
+
+# Archivos de configuración de bitkeeper local
+BitKeeper/local/
+
+# Archivos de configuración de darcs local
+_darcs/local/
+
+# Archivos de configuración de monotone local
+_monotone/local/
+
+# Archivos de configuración de bazaar local
+.bzr/local/
+
+# Archivos de configuración de arch local
+.arch-ids/local/
+
+# Archivos de configuración de fossil local
+.fossil/local/
+
+# Archivos de configuración de pijul local
+.pijul/local/
+
+# Archivos de configuración de jujutsu local
+.jj/local/
+
+# Archivos de configuración de git local
+.git/local/
+
+# Archivos de configuración de hg local
+.hg/local/
+
+# Archivos de configuración de svn local
+.svn/local/
+
+# Archivos de configuración de cvs local
+CVS/local/
+
+# Archivos de configuración de rcs local
+RCS/local/
+
+# Archivos de configuración de sccs local
+SCCS/local/
+
+# Archivos de configuración de bitkeeper local
+BitKeeper/local/
+
+# Archivos de configuración de darcs local
+_darcs/local/
+
+# Archivos de configuración de monotone local
+_monotone/local/
+
+# Archivos de configuración de bazaar local
+.bzr/local/
+
+# Archivos de configuración de arch local
+.arch-ids/local/
+
+# Archivos de configuración de fossil local
+.fossil/local/
+
+# Archivos de configuración de pijul local
+.pijul/local/
+
+# Archivos de configuración de jujutsu local
+.jj/local/

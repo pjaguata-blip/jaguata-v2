@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Rutas de Pagos - API Jaguata
  */
@@ -11,14 +12,14 @@ $pagoRoutes = [
         'action' => 'apiIndex',
         'middleware' => ['auth']
     ],
-    
+
     // GET /api/pagos/{id}
     'GET /{id}' => [
         'controller' => 'PagoController',
         'action' => 'apiShow',
         'middleware' => ['auth']
     ],
-    
+
     // POST /api/pagos
     'POST /' => [
         'controller' => 'PagoController',
@@ -28,28 +29,28 @@ $pagoRoutes = [
             'metodo_id' => ['required' => true, 'type' => 'integer']
         ]]
     ],
-    
+
     // PUT /api/pagos/{id}
     'PUT /{id}' => [
         'controller' => 'PagoController',
         'action' => 'apiUpdate',
         'middleware' => ['auth']
     ],
-    
+
     // DELETE /api/pagos/{id}
     'DELETE /{id}' => [
         'controller' => 'PagoController',
         'action' => 'apiDestroy',
         'middleware' => ['auth']
     ],
-    
+
     // GET /api/pagos/metodos
     'GET /metodos' => [
         'controller' => 'PagoController',
         'action' => 'apiGetMetodos',
         'middleware' => ['auth']
     ],
-    
+
     // POST /api/pagos/metodos
     'POST /metodos' => [
         'controller' => 'PagoController',
@@ -61,35 +62,35 @@ $pagoRoutes = [
             'is_default' => ['required' => false, 'type' => 'boolean']
         ]]
     ],
-    
+
     // PUT /api/pagos/metodos/{id}
     'PUT /metodos/{id}' => [
         'controller' => 'PagoController',
         'action' => 'apiUpdateMetodo',
         'middleware' => ['auth']
     ],
-    
+
     // DELETE /api/pagos/metodos/{id}
     'DELETE /metodos/{id}' => [
         'controller' => 'PagoController',
         'action' => 'apiDeleteMetodo',
         'middleware' => ['auth']
     ],
-    
+
     // GET /api/pagos/estadisticas
     'GET /estadisticas' => [
         'controller' => 'PagoController',
         'action' => 'apiGetEstadisticas',
         'middleware' => ['auth']
     ],
-    
+
     // POST /api/pagos/{id}/reembolsar
     'POST /{id}/reembolsar' => [
         'controller' => 'PagoController',
         'action' => 'apiReembolsar',
         'middleware' => ['auth', 'role' => 'admin']
     ],
-    
+
     // GET /api/pagos/reportes
     'GET /reportes' => [
         'controller' => 'PagoController',
@@ -99,9 +100,10 @@ $pagoRoutes = [
 ];
 
 // Función para validar datos de pago
-function validatePagoData($data) {
+function validatePagoData($data)
+{
     $errors = [];
-    
+
     // Validar paseo_id
     if (empty($data['paseo_id'])) {
         $errors[] = 'El ID de paseo es requerido';
@@ -116,57 +118,59 @@ function validatePagoData($data) {
             $errors[] = 'El paseo debe estar confirmado para poder pagarlo';
         }
     }
-    
+
     // Validar metodo_id
     if (empty($data['metodo_id'])) {
         $errors[] = 'El método de pago es requerido';
     } else {
-        $metodoModel = new \App\Models\MetodoPago();
+        $metodoModel = new \Jaguata\Models\MetodoPago();
         $metodo = $metodoModel->find($data['metodo_id']);
         if (!$metodo || $metodo['usu_id'] != $_SESSION['usuario_id']) {
             $errors[] = 'Método de pago no válido';
         }
     }
-    
+
     return $errors;
 }
 
 // Función para validar datos de método de pago
-function validateMetodoPagoData($data) {
+function validateMetodoPagoData($data)
+{
     $errors = [];
-    
+
     // Validar tipo
     if (empty($data['tipo'])) {
         $errors[] = 'El tipo de método de pago es requerido';
     } elseif (!in_array($data['tipo'], ['transferencia', 'efectivo'])) {
         $errors[] = 'El tipo debe ser transferencia o efectivo';
     }
-    
+
     // Validar alias
     if (empty($data['alias'])) {
         $errors[] = 'El alias es requerido';
     } elseif (strlen($data['alias']) > 50) {
         $errors[] = 'El alias no puede tener más de 50 caracteres';
     }
-    
+
     // Validar expiración para transferencias
     if ($data['tipo'] === 'transferencia' && empty($data['expiracion'])) {
         $errors[] = 'La fecha de expiración es requerida para transferencias';
     }
-    
+
     // Validar formato de expiración
     if (!empty($data['expiracion']) && !preg_match('/^\d{2}\/\d{4}$/', $data['expiracion'])) {
         $errors[] = 'La fecha de expiración debe tener el formato MM/YYYY';
     }
-    
+
     return $errors;
 }
 
 // Función para verificar permisos de pago
-function checkPagoPermissions($pagoId, $usuarioId, $rol) {
+function checkPagoPermissions($pagoId, $usuarioId, $rol)
+{
     $pagoModel = new \Jaguata\Models\Pago();
     $pago = $pagoModel->find($pagoId);
-    
+
     if (!$pago) {
         return [
             'success' => false,
@@ -174,7 +178,7 @@ function checkPagoPermissions($pagoId, $usuarioId, $rol) {
             'code' => 'NOT_FOUND'
         ];
     }
-    
+
     // Verificar permisos según rol
     if ($rol === 'dueno') {
         if ($pago['dueno_id'] != $usuarioId) {
@@ -193,15 +197,16 @@ function checkPagoPermissions($pagoId, $usuarioId, $rol) {
             ];
         }
     }
-    
+
     return null;
 }
 
 // Función para verificar permisos de método de pago
-function checkMetodoPagoPermissions($metodoId, $usuarioId) {
-    $metodoModel = new \App\Models\MetodoPago();
+function checkMetodoPagoPermissions($metodoId, $usuarioId)
+{
+    $metodoModel = new \Jaguata\Models\MetodoPago();
     $metodo = $metodoModel->find($metodoId);
-    
+
     if (!$metodo) {
         return [
             'success' => false,
@@ -209,7 +214,7 @@ function checkMetodoPagoPermissions($metodoId, $usuarioId) {
             'code' => 'NOT_FOUND'
         ];
     }
-    
+
     if ($metodo['usu_id'] != $usuarioId) {
         return [
             'success' => false,
@@ -217,52 +222,54 @@ function checkMetodoPagoPermissions($metodoId, $usuarioId) {
             'code' => 'FORBIDDEN'
         ];
     }
-    
+
     return null;
 }
 
 // Función para validar estado de pago
-function validatePagoEstado($estadoActual, $nuevoEstado) {
+function validatePagoEstado($estadoActual, $nuevoEstado)
+{
     $transicionesValidas = [
         'pendiente' => ['procesado', 'fallido'],
         'procesado' => ['reembolsado'],
         'fallido' => ['pendiente'],
         'reembolsado' => []
     ];
-    
+
     if (!isset($transicionesValidas[$estadoActual])) {
         return 'Estado actual no válido';
     }
-    
+
     if (!in_array($nuevoEstado, $transicionesValidas[$estadoActual])) {
         return 'Transición de estado no válida';
     }
-    
+
     return null;
 }
 
 // Función para manejar rutas de pagos
-function handlePagoRoute($method, $path, $params = []) {
+function handlePagoRoute($method, $path, $params = [])
+{
     global $pagoRoutes;
-    
+
     // Construir clave de ruta
     $routeKey = $method . ' /';
-    
+
     // Buscar ruta específica
     $matchedRoute = null;
     $routeParams = [];
-    
+
     foreach ($pagoRoutes as $route => $config) {
         $routeParts = explode(' ', $route);
         $routeMethod = $routeParts[0];
         $routePath = $routeParts[1];
-        
+
         if ($routeMethod !== $method) continue;
-        
+
         // Convertir ruta a patrón regex
         $pattern = str_replace(['{id}', '/'], ['([0-9]+)', '\/'], $routePath);
         $pattern = '/^' . $pattern . '$/';
-        
+
         if (preg_match($pattern, $path, $matches)) {
             $matchedRoute = $config;
             if (isset($matches[1])) {
@@ -271,7 +278,7 @@ function handlePagoRoute($method, $path, $params = []) {
             break;
         }
     }
-    
+
     if (!$matchedRoute) {
         return [
             'success' => false,
@@ -279,12 +286,12 @@ function handlePagoRoute($method, $path, $params = []) {
             'code' => 'NOT_FOUND'
         ];
     }
-    
+
     // Ejecutar middleware
     if (!empty($matchedRoute['middleware'])) {
         foreach ($matchedRoute['middleware'] as $middleware) {
             $result = null;
-            
+
             if ($middleware === 'auth') {
                 if (!isset($_SESSION['usuario_id'])) {
                     return [
@@ -319,7 +326,7 @@ function handlePagoRoute($method, $path, $params = []) {
             }
         }
     }
-    
+
     // Verificar permisos para operaciones específicas
     if (in_array($method, ['GET', 'PUT', 'DELETE']) && isset($routeParams['id'])) {
         if (strpos($path, '/metodos') !== false) {
@@ -331,11 +338,11 @@ function handlePagoRoute($method, $path, $params = []) {
             return $permissionResult;
         }
     }
-    
+
     // Ejecutar controlador
     $controllerName = $matchedRoute['controller'];
     $action = $matchedRoute['action'];
-    
+
     if (!class_exists($controllerName)) {
         return [
             'success' => false,
@@ -343,9 +350,9 @@ function handlePagoRoute($method, $path, $params = []) {
             'code' => 'CONTROLLER_NOT_FOUND'
         ];
     }
-    
+
     $controller = new $controllerName();
-    
+
     if (!method_exists($controller, $action)) {
         return [
             'success' => false,
@@ -353,7 +360,7 @@ function handlePagoRoute($method, $path, $params = []) {
             'code' => 'ACTION_NOT_FOUND'
         ];
     }
-    
+
     try {
         // Pasar parámetros a la acción
         if (isset($routeParams['id'])) {
@@ -361,7 +368,7 @@ function handlePagoRoute($method, $path, $params = []) {
         } else {
             $result = $controller->$action();
         }
-        
+
         return $result;
     } catch (Exception $e) {
         error_log('Pago Route Error: ' . $e->getMessage());

@@ -11,6 +11,9 @@ require_once __DIR__ . '/../src/Controllers/MascotaController.php';
 require_once __DIR__ . '/../src/Controllers/PaseoController.php';
 require_once __DIR__ . '/../src/Controllers/PagoController.php';
 require_once __DIR__ . '/../src/Controllers/NotificacionController.php';
+require_once __DIR__ . '/../src/Controllers/PaseadorController.php';
+require_once __DIR__ . '/../src/Controllers/CalificacionController.php';
+require_once __DIR__ . '/../src/Controllers/ReporteController.php';
 
 use Jaguata\Config\AppConfig;
 use Jaguata\Controllers\AuthController;
@@ -18,10 +21,14 @@ use Jaguata\Controllers\MascotaController;
 use Jaguata\Controllers\PaseoController;
 use Jaguata\Controllers\PagoController;
 use Jaguata\Controllers\NotificacionController;
-use Exception; // <-- Importar Exception
 
 // Inicializar aplicación
 AppConfig::init();
+
+// Iniciar sesión si no está iniciada
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 // Configurar headers para API
 header('Content-Type: application/json');
@@ -47,8 +54,8 @@ function sendResponse($data, $statusCode = 200)
 function handleError($message, $statusCode = 400)
 {
     sendResponse([
-        'success' => false,
-        'error' => $message,
+        'success'   => false,
+        'error'     => $message,
         'timestamp' => date('Y-m-d H:i:s')
     ], $statusCode);
 }
@@ -72,7 +79,7 @@ function validateRole($requiredRole)
 
 // Obtener método HTTP y ruta
 $method = $_SERVER['REQUEST_METHOD'];
-$path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+$path   = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 
 // Ajuste dinámico: elimina el directorio base
 $scriptName = dirname($_SERVER['SCRIPT_NAME']);
@@ -87,8 +94,8 @@ $segments = explode('/', $path);
 
 // Obtener recurso principal
 $resource = $segments[0] ?? '';
-$id = $segments[1] ?? null;
-$action = $segments[2] ?? null;
+$id       = $segments[1] ?? null;
+$action   = $segments[2] ?? null;
 
 try {
     // Enrutamiento principal
@@ -123,29 +130,23 @@ try {
         case 'mascotas':
             $controller = new MascotaController();
             validateAuth();
-
             switch ($method) {
                 case 'GET':
-                    if ($id) {
-                        $result = $controller->show($id);
-                        sendResponse(['success' => true, 'data' => $result]);
-                    } else {
-                        $result = $controller->index();
-                        sendResponse(['success' => true, 'data' => $result]);
-                    }
+                    $result = $id ? $controller->show($id) : $controller->index();
+                    sendResponse(['success' => true, 'data' => $result]);
                     break;
                 case 'POST':
-                    $result = $controller->Store();
+                    $result = $controller->store();
                     sendResponse(['success' => true, 'data' => $result]);
                     break;
                 case 'PUT':
                     if (!$id) handleError('ID requerido', 400);
-                    $result = $controller->Update($id);
+                    $result = $controller->update($id);
                     sendResponse(['success' => true, 'data' => $result]);
                     break;
                 case 'DELETE':
                     if (!$id) handleError('ID requerido', 400);
-                    $result = $controller->Destroy($id);
+                    $result = $controller->destroy($id);
                     sendResponse(['success' => true, 'data' => $result]);
                     break;
                 default:
@@ -156,25 +157,19 @@ try {
         case 'paseos':
             $controller = new PaseoController();
             validateAuth();
-
             switch ($method) {
                 case 'GET':
-                    if ($id) {
-                        $result = $controller->show($id);
-                        sendResponse(['success' => true, 'data' => $result]);
-                    } else {
-                        $result = $controller->index();
-                        sendResponse(['success' => true, 'data' => $result]);
-                    }
+                    $result = $id ? $controller->show($id) : $controller->index();
+                    sendResponse(['success' => true, 'data' => $result]);
                     break;
                 case 'POST':
-                    $result = $controller->Store();
+                    $result = $controller->store();
                     sendResponse(['success' => true, 'data' => $result]);
                     break;
                 case 'PUT':
                     if (!$id) handleError('ID requerido', 400);
                     if ($action === 'confirmar') {
-                        $result = $controller->Confirmar($id);
+                        $result = $controller->confirmar($id);
                     } elseif ($action === 'iniciar') {
                         $result = $controller->apiIniciar($id);
                     } elseif ($action === 'completar') {
@@ -182,13 +177,13 @@ try {
                     } elseif ($action === 'cancelar') {
                         $result = $controller->apiCancelar($id);
                     } else {
-                        $result = $controller->Update($id);
+                        $result = $controller->update($id);
                     }
                     sendResponse(['success' => true, 'data' => $result]);
                     break;
                 case 'DELETE':
                     if (!$id) handleError('ID requerido', 400);
-                    $result = $controller->Destroy($id);
+                    $result = $controller->destroy($id);
                     sendResponse(['success' => true, 'data' => $result]);
                     break;
                 default:
@@ -199,16 +194,10 @@ try {
         case 'pagos':
             $controller = new PagoController();
             validateAuth();
-
             switch ($method) {
                 case 'GET':
-                    if ($id) {
-                        $result = $controller->show($id);
-                        sendResponse(['success' => true, 'data' => $result]);
-                    } else {
-                        $result = $controller->index();
-                        sendResponse(['success' => true, 'data' => $result]);
-                    }
+                    $result = $id ? $controller->show($id) : $controller->index();
+                    sendResponse(['success' => true, 'data' => $result]);
                     break;
                 case 'POST':
                     $result = $controller->apiStore();
@@ -232,7 +221,6 @@ try {
         case 'notificaciones':
             $controller = new NotificacionController();
             validateAuth();
-
             switch ($method) {
                 case 'GET':
                     if ($action === 'contador') {
@@ -257,7 +245,7 @@ try {
                     } elseif ($action === 'leer-todas') {
                         $result = $controller->marcarTodasLeidas();
                     } else {
-                        $result = $controller->update($id); // corregido
+                        $result = $controller->update($id);
                     }
                     sendResponse(['success' => true, 'data' => $result]);
                     break;
@@ -274,14 +262,9 @@ try {
         case 'paseadores':
             $controller = new \Jaguata\Controllers\PaseadorController();
             validateAuth();
-
             switch ($method) {
                 case 'GET':
-                    if ($id) {
-                        $result = $controller->show($id);
-                    } else {
-                        $result = $controller->index();
-                    }
+                    $result = $id ? $controller->show($id) : $controller->index();
                     sendResponse(['success' => true, 'data' => $result]);
                     break;
                 case 'POST':
@@ -303,14 +286,9 @@ try {
         case 'calificaciones':
             $controller = new \Jaguata\Controllers\CalificacionController();
             validateAuth();
-
             switch ($method) {
                 case 'GET':
-                    if ($id) {
-                        $result = $controller->show($id);
-                    } else {
-                        $result = $controller->index();
-                    }
+                    $result = $id ? $controller->show($id) : $controller->index();
                     sendResponse(['success' => true, 'data' => $result]);
                     break;
                 case 'POST':
@@ -335,7 +313,6 @@ try {
         case 'reportes':
             $controller = new \Jaguata\Controllers\ReporteController();
             validateAuth();
-
             switch ($method) {
                 case 'GET':
                     if ($action === 'ganancias') {
@@ -355,17 +332,17 @@ try {
 
         case 'health':
             sendResponse([
-                'success' => true,
-                'status' => 'OK',
+                'success'   => true,
+                'status'    => 'OK',
                 'timestamp' => date('Y-m-d H:i:s'),
-                'version' => '1.0.0'
+                'version'   => '1.0.0'
             ]);
             break;
 
         default:
             handleError('Recurso no encontrado', 404);
     }
-} catch (Exception $e) {
+} catch (\Exception $e) {
     error_log('API Error: ' . $e->getMessage());
     handleError('Error interno del servidor', 500);
 }

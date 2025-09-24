@@ -4,6 +4,10 @@ namespace Jaguata\Models;
 
 use Jaguata\Services\DatabaseService;
 
+/**
+ * Clase base para todos los modelos
+ * Provee operaciones CRUD genéricas
+ */
 abstract class BaseModel
 {
     protected DatabaseService $db;
@@ -15,12 +19,18 @@ abstract class BaseModel
         $this->db = DatabaseService::getInstance();
     }
 
-    public function find($id): ?array
+    /**
+     * Buscar un registro por ID
+     */
+    public function find(int|string $id): ?array
     {
         $sql = "SELECT * FROM {$this->table} WHERE {$this->primaryKey} = :id";
         return $this->db->fetchOne($sql, ['id' => $id]);
     }
 
+    /**
+     * Obtener todos los registros con condiciones opcionales
+     */
     public function findAll(array $conditions = [], string $orderBy = ''): array
     {
         $sql = "SELECT * FROM {$this->table}";
@@ -42,24 +52,40 @@ abstract class BaseModel
         return $this->db->fetchAll($sql, $params);
     }
 
+    /**
+     * Insertar un registro
+     */
     public function create(array $data): int
     {
         $fields = implode(', ', array_keys($data));
         $placeholders = ':' . implode(', :', array_keys($data));
+
         $sql = "INSERT INTO {$this->table} ($fields) VALUES ($placeholders)";
         $this->db->executeQuery($sql, $data);
+
         return (int) $this->db->getConnection()->lastInsertId();
     }
 
-    public function update($id, array $data): bool
+    /**
+     * Actualizar un registro por ID
+     */
+    public function update(int|string $id, array $data): bool
     {
+        if (empty($data)) {
+            return false;
+        }
+
         $fields = implode(', ', array_map(fn($f) => "$f = :$f", array_keys($data)));
         $sql = "UPDATE {$this->table} SET $fields WHERE {$this->primaryKey} = :{$this->primaryKey}";
         $data[$this->primaryKey] = $id;
+
         return $this->db->executeQuery($sql, $data);
     }
 
-    public function delete($id): bool
+    /**
+     * Eliminar un registro por ID
+     */
+    public function delete(int|string $id): bool
     {
         $sql = "DELETE FROM {$this->table} WHERE {$this->primaryKey} = :{$this->primaryKey}";
         return $this->db->executeQuery($sql, [$this->primaryKey => $id]);

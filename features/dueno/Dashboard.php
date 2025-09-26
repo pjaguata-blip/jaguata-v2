@@ -4,6 +4,7 @@ require_once __DIR__ . '/../../src/Controllers/AuthController.php';
 require_once __DIR__ . '/../../src/Controllers/MascotaController.php';
 require_once __DIR__ . '/../../src/Controllers/PaseoController.php';
 require_once __DIR__ . '/../../src/Controllers/NotificacionController.php';
+require_once __DIR__ . '/../../vendor/autoload.php';
 
 use Jaguata\Config\AppConfig;
 use Jaguata\Controllers\AuthController;
@@ -30,13 +31,13 @@ $notificaciones = $notificacionController->getRecientes();
 
 // Estadísticas
 $totalMascotas = count($mascotas);
-$paseosPendientes = array_filter($paseos, function($paseo) {
+$paseosPendientes = array_filter($paseos, function ($paseo) {
     return in_array($paseo['estado'], ['solicitado', 'confirmado']);
 });
-$paseosCompletados = array_filter($paseos, function($paseo) {
+$paseosCompletados = array_filter($paseos, function ($paseo) {
     return $paseo['estado'] === 'completo';
 });
-$paseosCancelados = array_filter($paseos, function($paseo) {
+$paseosCancelados = array_filter($paseos, function ($paseo) {
     return $paseo['estado'] === 'cancelado';
 });
 
@@ -59,6 +60,7 @@ $mascotasRecientes = array_slice($mascotas, 0, 3);
 
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -67,6 +69,7 @@ $mascotasRecientes = array_slice($mascotas, 0, 3);
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="../../assets/css/style.css" rel="stylesheet">
 </head>
+
 <body>
     <?php include __DIR__ . '/../../src/Templates/Header.php'; ?>
     <?php include __DIR__ . '/../../src/Templates/Navbar.php'; ?>
@@ -256,17 +259,17 @@ $mascotasRecientes = array_slice($mascotas, 0, 3);
                                             </thead>
                                             <tbody>
                                                 <?php foreach ($paseosRecientes as $paseo): ?>
-                                                <tr>
-                                                    <td><?php echo htmlspecialchars($paseo['nombre_mascota']); ?></td>
-                                                    <td><?php echo htmlspecialchars($paseo['nombre_paseador']); ?></td>
-                                                    <td><?php echo date('d/m/Y H:i', strtotime($paseo['inicio'])); ?></td>
-                                                    <td>
-                                                        <span class="badge badge-<?php echo $paseo['estado'] === 'completo' ? 'success' : ($paseo['estado'] === 'cancelado' ? 'danger' : 'warning'); ?>">
-                                                            <?php echo ucfirst($paseo['estado']); ?>
-                                                        </span>
-                                                    </td>
-                                                    <td>₲<?php echo number_format($paseo['precio_total'], 0, ',', '.'); ?></td>
-                                                </tr>
+                                                    <tr>
+                                                        <td><?php echo htmlspecialchars($paseo['nombre_mascota']); ?></td>
+                                                        <td><?php echo htmlspecialchars($paseo['nombre_paseador']); ?></td>
+                                                        <td><?php echo date('d/m/Y H:i', strtotime($paseo['inicio'])); ?></td>
+                                                        <td>
+                                                            <span class="badge badge-<?php echo $paseo['estado'] === 'completo' ? 'success' : ($paseo['estado'] === 'cancelado' ? 'danger' : 'warning'); ?>">
+                                                                <?php echo ucfirst($paseo['estado']); ?>
+                                                            </span>
+                                                        </td>
+                                                        <td>₲<?php echo number_format($paseo['precio_total'], 0, ',', '.'); ?></td>
+                                                    </tr>
                                                 <?php endforeach; ?>
                                             </tbody>
                                         </table>
@@ -295,15 +298,15 @@ $mascotasRecientes = array_slice($mascotas, 0, 3);
                                     </div>
                                 <?php else: ?>
                                     <?php foreach ($mascotasRecientes as $mascota): ?>
-                                    <div class="d-flex align-items-center mb-3">
-                                        <div class="mr-3">
-                                            <i class="fas fa-paw fa-2x text-primary"></i>
+                                        <div class="d-flex align-items-center mb-3">
+                                            <div class="mr-3">
+                                                <i class="fas fa-paw fa-2x text-primary"></i>
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                <h6 class="mb-0"><?php echo htmlspecialchars($mascota['nombre']); ?></h6>
+                                                <small class="text-muted"><?php echo ucfirst($mascota['tamano']); ?> • <?php echo $mascota['edad']; ?> años</small>
+                                            </div>
                                         </div>
-                                        <div class="flex-grow-1">
-                                            <h6 class="mb-0"><?php echo htmlspecialchars($mascota['nombre']); ?></h6>
-                                            <small class="text-muted"><?php echo ucfirst($mascota['tamano']); ?> • <?php echo $mascota['edad']; ?> años</small>
-                                        </div>
-                                    </div>
                                     <?php endforeach; ?>
                                     <div class="text-center">
                                         <a href="MisMascotas.php" class="btn btn-outline-primary btn-sm">
@@ -327,16 +330,16 @@ $mascotasRecientes = array_slice($mascotas, 0, 3);
                                     </div>
                                 <?php else: ?>
                                     <?php foreach ($notificaciones as $notificacion): ?>
-                                    <div class="d-flex align-items-start mb-3">
-                                        <div class="mr-3">
-                                            <i class="fas fa-<?php echo $notificacion['tipo'] === 'nuevo_paseo' ? 'walking' : 'info-circle'; ?> fa-lg text-primary"></i>
+                                        <div class="d-flex align-items-start mb-3">
+                                            <div class="mr-3">
+                                                <i class="fas fa-<?php echo $notificacion['tipo'] === 'nuevo_paseo' ? 'walking' : 'info-circle'; ?> fa-lg text-primary"></i>
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                <h6 class="mb-0"><?php echo htmlspecialchars($notificacion['titulo']); ?></h6>
+                                                <p class="text-muted mb-0"><?php echo htmlspecialchars($notificacion['mensaje']); ?></p>
+                                                <small class="text-muted"><?php echo date('d/m/Y H:i', strtotime($notificacion['created_at'])); ?></small>
+                                            </div>
                                         </div>
-                                        <div class="flex-grow-1">
-                                            <h6 class="mb-0"><?php echo htmlspecialchars($notificacion['titulo']); ?></h6>
-                                            <p class="text-muted mb-0"><?php echo htmlspecialchars($notificacion['mensaje']); ?></p>
-                                            <small class="text-muted"><?php echo date('d/m/Y H:i', strtotime($notificacion['created_at'])); ?></small>
-                                        </div>
-                                    </div>
                                     <?php endforeach; ?>
                                 <?php endif; ?>
                             </div>
@@ -352,4 +355,5 @@ $mascotasRecientes = array_slice($mascotas, 0, 3);
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="../../assets/js/main.js"></script>
 </body>
+
 </html>

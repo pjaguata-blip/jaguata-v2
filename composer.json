@@ -32,6 +32,9 @@
         },
         "files": [
             "src/Config/Constantes.php"
+        ],
+        "classmap": [
+            "src/Services/"
         ]
     },
     "autoload-dev": {

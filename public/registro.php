@@ -1,14 +1,13 @@
 <?php
 require_once __DIR__ . '/../vendor/autoload.php';
 
-
 use Jaguata\Config\AppConfig;
 use Jaguata\Helpers\Session;
 use Jaguata\Helpers\Validaciones;
 use Jaguata\Models\Usuario;
 use Jaguata\Models\Paseador;
 use Jaguata\Models\Historial;
-
+use Jaguata\Services\DatabaseService;
 // Inicializar configuración
 AppConfig::init();
 

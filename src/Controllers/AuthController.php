@@ -77,7 +77,7 @@ class AuthController
         }
 
         try {
-            $usuario = $this->usuarioModel->findByEmail($email);
+            $usuario = $this->usuarioModel->getByEmail($email);
 
             // Evitar filtraciones de timing en comparación de password:
             // si no existe usuario, aún así realiza un password_verify contra un hash dummy
@@ -172,7 +172,7 @@ class AuthController
         }
 
         try {
-            if ($this->usuarioModel->findByEmail($email)) {
+            if ($this->usuarioModel->getByEmail($email)) {
                 return ['success' => false, 'error' => 'El email ya está registrado'];
             }
 

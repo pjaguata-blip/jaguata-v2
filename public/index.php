@@ -31,7 +31,7 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 // Configurar headers para API
-header('Content-Type: application/json');
+header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization, X-CSRF-TOKEN');
@@ -42,16 +42,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
 
-// Función para enviar respuesta JSON
-function sendResponse($data, $statusCode = 200)
+// ------------------- Helpers -------------------
+
+function sendResponse($data, int $statusCode = 200): void
 {
     http_response_code($statusCode);
-    echo json_encode($data);
+    echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     exit;
 }
 
-// Función para manejar errores
-function handleError($message, $statusCode = 400)
+function handleError(string $message, int $statusCode = 400): void
 {
     sendResponse([
         'success'   => false,
@@ -60,16 +60,14 @@ function handleError($message, $statusCode = 400)
     ], $statusCode);
 }
 
-// Función para validar autenticación
-function validateAuth()
+function validateAuth(): void
 {
     if (!isset($_SESSION['usuario_id'])) {
         handleError('No autorizado', 401);
     }
 }
 
-// Función para validar rol
-function validateRole($requiredRole)
+function validateRole(string $requiredRole): void
 {
     validateAuth();
     if ($_SESSION['rol'] !== $requiredRole) {
@@ -77,28 +75,60 @@ function validateRole($requiredRole)
     }
 }
 
-// Obtener método HTTP y ruta
+// ------------------- Router -------------------
+
 $method = $_SERVER['REQUEST_METHOD'];
 $path   = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 
-// Ajuste dinámico: elimina el directorio base
+// Ajustar base path
 $scriptName = dirname($_SERVER['SCRIPT_NAME']);
 if ($scriptName !== '/' && str_starts_with($path, $scriptName)) {
     $path = substr($path, strlen($scriptName));
 }
-
 $path = trim($path, '/');
 
-// Dividir la ruta en segmentos
+// Dividir segmentos
 $segments = explode('/', $path);
-
-// Obtener recurso principal
 $resource = $segments[0] ?? '';
 $id       = $segments[1] ?? null;
 $action   = $segments[2] ?? null;
 
 try {
-    // Enrutamiento principal
+    // ------------------- Root redirect (frontend) -------------------
+    if ($resource === '' || $resource === 'index.php') {
+        if (!isset($_SESSION['usuario_id'])) {
+            // No hay sesión → redirigir al login
+            header('Location: /jaguata/public/login.php');
+            exit;
+        } else {
+            // Usuario logueado → redirigir al home/dashboard
+            header('Location: /jaguata/public/home.php');
+            exit;
+        }
+    }
+
+    // ------------------- Root endpoint -------------------
+    if ($resource === '' || $resource === 'index.php') {
+        sendResponse([
+            'success'   => true,
+            'message'   => 'API Jaguata funcionando',
+            'version'   => '1.0.0',
+            'endpoints' => [
+                '/auth/login',
+                '/auth/register',
+                '/mascotas',
+                '/paseos',
+                '/pagos',
+                '/notificaciones',
+                '/paseadores',
+                '/calificaciones',
+                '/reportes',
+                '/health'
+            ]
+        ]);
+    }
+
+    // ------------------- Routing -------------------
     switch ($resource) {
         case 'auth':
             $controller = new AuthController();

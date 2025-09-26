@@ -1,378 +1,207 @@
 <?php
+// Cargar autoload de Composer
+require_once __DIR__ . '/../vendor/autoload.php';
 
-/**
- * API Router Principal - Jaguata
- * Maneja todas las peticiones a la API REST
- */
-
-require_once __DIR__ . '/../src/Config/AppConfig.php';
-require_once __DIR__ . '/../src/Controllers/AuthController.php';
-require_once __DIR__ . '/../src/Controllers/MascotaController.php';
-require_once __DIR__ . '/../src/Controllers/PaseoController.php';
-require_once __DIR__ . '/../src/Controllers/PagoController.php';
-require_once __DIR__ . '/../src/Controllers/NotificacionController.php';
-require_once __DIR__ . '/../src/Controllers/PaseadorController.php';
-require_once __DIR__ . '/../src/Controllers/CalificacionController.php';
-require_once __DIR__ . '/../src/Controllers/ReporteController.php';
 
 use Jaguata\Config\AppConfig;
-use Jaguata\Controllers\AuthController;
-use Jaguata\Controllers\MascotaController;
-use Jaguata\Controllers\PaseoController;
-use Jaguata\Controllers\PagoController;
-use Jaguata\Controllers\NotificacionController;
+use Jaguata\Helpers\Session;
+use Jaguata\Helpers\Validaciones;
+use Jaguata\Models\Usuario;
 
-// Inicializar aplicación
+// Inicializar configuración
 AppConfig::init();
 
-// Iniciar sesión si no está iniciada
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-// Configurar headers para API
-header('Content-Type: application/json; charset=utf-8');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization, X-CSRF-TOKEN');
-
-// Manejar preflight requests
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
+// Verificar si el usuario ya está logueado
+if (Session::isLoggedIn()) {
+    $rol = Session::getUsuarioRol();
+    header('Location: ' . BASE_URL . '/features/' . $rol . '/Dashboard.php');
     exit;
 }
 
-// ------------------- Helpers -------------------
+$titulo = 'Iniciar Sesión - Jaguata';
+$error = '';
+$success = '';
 
-function sendResponse($data, int $statusCode = 200): void
-{
-    http_response_code($statusCode);
-    echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-    exit;
-}
+// Procesar formulario de login
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $email = trim($_POST['email'] ?? '');
+    $password = $_POST['password'] ?? '';
+    $remember_me = isset($_POST['remember_me']);
 
-function handleError(string $message, int $statusCode = 400): void
-{
-    sendResponse([
-        'success'   => false,
-        'error'     => $message,
-        'timestamp' => date('Y-m-d H:i:s')
-    ], $statusCode);
-}
+    // Validar datos
+    $validacionEmail = Validaciones::validarEmail($email);
+    $validacionPassword = Validaciones::validarPassword($password);
 
-function validateAuth(): void
-{
-    if (!isset($_SESSION['usuario_id'])) {
-        handleError('No autorizado', 401);
-    }
-}
+    if (!$validacionEmail['valido']) {
+        $error = $validacionEmail['mensaje'];
+    } elseif (!$validacionPassword['valido']) {
+        $error = $validacionPassword['mensaje'];
+    } else {
+        // Intentar autenticar
+        $usuarioModel = new Usuario();
+        $usuario = $usuarioModel->authenticate($email, $password);
 
-function validateRole(string $requiredRole): void
-{
-    validateAuth();
-    if ($_SESSION['rol'] !== $requiredRole) {
-        handleError('Acceso denegado', 403);
-    }
-}
+        if ($usuario) {
+            // Login exitoso
+            $usuario['remember_me'] = $remember_me;
+            Session::login($usuario);
 
-// ------------------- Router -------------------
-
-$method = $_SERVER['REQUEST_METHOD'];
-$path   = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-
-// Ajustar base path
-$scriptName = dirname($_SERVER['SCRIPT_NAME']);
-if ($scriptName !== '/' && str_starts_with($path, $scriptName)) {
-    $path = substr($path, strlen($scriptName));
-}
-$path = trim($path, '/');
-
-// Dividir segmentos
-$segments = explode('/', $path);
-$resource = $segments[0] ?? '';
-$id       = $segments[1] ?? null;
-$action   = $segments[2] ?? null;
-
-try {
-    // ------------------- Root redirect (frontend) -------------------
-    if ($resource === '' || $resource === 'index.php') {
-        if (!isset($_SESSION['usuario_id'])) {
-            // No hay sesión → redirigir al login
-            header('Location: /jaguata/public/login.php');
+            // Redirigir según el rol
+            $rol = $usuario['rol'];
+            header('Location: ' . BASE_URL . '/features/' . $rol . '/Dashboard.php');
             exit;
         } else {
-            // Usuario logueado → redirigir al home/dashboard
-            header('Location: /jaguata/public/home.php');
-            exit;
+            $error = 'Credenciales incorrectas. Verifica tu email y contraseña.';
         }
     }
-
-    // ------------------- Root endpoint -------------------
-    if ($resource === '' || $resource === 'index.php') {
-        sendResponse([
-            'success'   => true,
-            'message'   => 'API Jaguata funcionando',
-            'version'   => '1.0.0',
-            'endpoints' => [
-                '/auth/login',
-                '/auth/register',
-                '/mascotas',
-                '/paseos',
-                '/pagos',
-                '/notificaciones',
-                '/paseadores',
-                '/calificaciones',
-                '/reportes',
-                '/health'
-            ]
-        ]);
-    }
-
-    // ------------------- Routing -------------------
-    switch ($resource) {
-        case 'auth':
-            $controller = new AuthController();
-            switch ($method) {
-                case 'POST':
-                    if ($action === 'login') {
-                        $controller->apiLogin();
-                    } elseif ($action === 'register') {
-                        $controller->apiRegister();
-                    } elseif ($action === 'logout') {
-                        $controller->apiLogout();
-                    } else {
-                        handleError('Acción no válida', 400);
-                    }
-                    break;
-                case 'GET':
-                    if ($action === 'profile') {
-                        validateAuth();
-                        $controller->apiGetProfile();
-                    } else {
-                        handleError('Acción no válida', 400);
-                    }
-                    break;
-                default:
-                    handleError('Método no permitido', 405);
-            }
-            break;
-
-        case 'mascotas':
-            $controller = new MascotaController();
-            validateAuth();
-            switch ($method) {
-                case 'GET':
-                    $result = $id ? $controller->show($id) : $controller->index();
-                    sendResponse(['success' => true, 'data' => $result]);
-                    break;
-                case 'POST':
-                    $result = $controller->store();
-                    sendResponse(['success' => true, 'data' => $result]);
-                    break;
-                case 'PUT':
-                    if (!$id) handleError('ID requerido', 400);
-                    $result = $controller->update($id);
-                    sendResponse(['success' => true, 'data' => $result]);
-                    break;
-                case 'DELETE':
-                    if (!$id) handleError('ID requerido', 400);
-                    $result = $controller->destroy($id);
-                    sendResponse(['success' => true, 'data' => $result]);
-                    break;
-                default:
-                    handleError('Método no permitido', 405);
-            }
-            break;
-
-        case 'paseos':
-            $controller = new PaseoController();
-            validateAuth();
-            switch ($method) {
-                case 'GET':
-                    $result = $id ? $controller->show($id) : $controller->index();
-                    sendResponse(['success' => true, 'data' => $result]);
-                    break;
-                case 'POST':
-                    $result = $controller->store();
-                    sendResponse(['success' => true, 'data' => $result]);
-                    break;
-                case 'PUT':
-                    if (!$id) handleError('ID requerido', 400);
-                    if ($action === 'confirmar') {
-                        $result = $controller->confirmar($id);
-                    } elseif ($action === 'iniciar') {
-                        $result = $controller->apiIniciar($id);
-                    } elseif ($action === 'completar') {
-                        $result = $controller->apiCompletar($id);
-                    } elseif ($action === 'cancelar') {
-                        $result = $controller->apiCancelar($id);
-                    } else {
-                        $result = $controller->update($id);
-                    }
-                    sendResponse(['success' => true, 'data' => $result]);
-                    break;
-                case 'DELETE':
-                    if (!$id) handleError('ID requerido', 400);
-                    $result = $controller->destroy($id);
-                    sendResponse(['success' => true, 'data' => $result]);
-                    break;
-                default:
-                    handleError('Método no permitido', 405);
-            }
-            break;
-
-        case 'pagos':
-            $controller = new PagoController();
-            validateAuth();
-            switch ($method) {
-                case 'GET':
-                    $result = $id ? $controller->show($id) : $controller->index();
-                    sendResponse(['success' => true, 'data' => $result]);
-                    break;
-                case 'POST':
-                    $result = $controller->apiStore();
-                    sendResponse(['success' => true, 'data' => $result]);
-                    break;
-                case 'PUT':
-                    if (!$id) handleError('ID requerido', 400);
-                    $result = $controller->apiUpdate($id);
-                    sendResponse(['success' => true, 'data' => $result]);
-                    break;
-                case 'DELETE':
-                    if (!$id) handleError('ID requerido', 400);
-                    $result = $controller->apiDestroy($id);
-                    sendResponse(['success' => true, 'data' => $result]);
-                    break;
-                default:
-                    handleError('Método no permitido', 405);
-            }
-            break;
-
-        case 'notificaciones':
-            $controller = new NotificacionController();
-            validateAuth();
-            switch ($method) {
-                case 'GET':
-                    if ($action === 'contador') {
-                        $result = $controller->getContadorNoLeidas();
-                    } elseif ($action === 'recientes') {
-                        $result = $controller->getRecientes();
-                    } elseif ($action === 'estadisticas') {
-                        $result = $controller->getEstadisticas();
-                    } else {
-                        $result = $controller->index();
-                    }
-                    sendResponse(['success' => true, 'data' => $result]);
-                    break;
-                case 'POST':
-                    $result = $controller->crear();
-                    sendResponse(['success' => true, 'data' => $result]);
-                    break;
-                case 'PUT':
-                    if (!$id) handleError('ID requerido', 400);
-                    if ($action === 'leer') {
-                        $result = $controller->marcarLeida($id);
-                    } elseif ($action === 'leer-todas') {
-                        $result = $controller->marcarTodasLeidas();
-                    } else {
-                        $result = $controller->update($id);
-                    }
-                    sendResponse(['success' => true, 'data' => $result]);
-                    break;
-                case 'DELETE':
-                    if (!$id) handleError('ID requerido', 400);
-                    $result = $controller->eliminar($id);
-                    sendResponse(['success' => true, 'data' => $result]);
-                    break;
-                default:
-                    handleError('Método no permitido', 405);
-            }
-            break;
-
-        case 'paseadores':
-            $controller = new \Jaguata\Controllers\PaseadorController();
-            validateAuth();
-            switch ($method) {
-                case 'GET':
-                    $result = $id ? $controller->show($id) : $controller->index();
-                    sendResponse(['success' => true, 'data' => $result]);
-                    break;
-                case 'POST':
-                    validateRole('paseador');
-                    $result = $controller->apiStore();
-                    sendResponse(['success' => true, 'data' => $result]);
-                    break;
-                case 'PUT':
-                    if (!$id) handleError('ID requerido', 400);
-                    validateRole('paseador');
-                    $result = $controller->apiUpdate($id);
-                    sendResponse(['success' => true, 'data' => $result]);
-                    break;
-                default:
-                    handleError('Método no permitido', 405);
-            }
-            break;
-
-        case 'calificaciones':
-            $controller = new \Jaguata\Controllers\CalificacionController();
-            validateAuth();
-            switch ($method) {
-                case 'GET':
-                    $result = $id ? $controller->show($id) : $controller->index();
-                    sendResponse(['success' => true, 'data' => $result]);
-                    break;
-                case 'POST':
-                    $result = $controller->apiStore();
-                    sendResponse(['success' => true, 'data' => $result]);
-                    break;
-                case 'PUT':
-                    if (!$id) handleError('ID requerido', 400);
-                    $result = $controller->apiUpdate($id);
-                    sendResponse(['success' => true, 'data' => $result]);
-                    break;
-                case 'DELETE':
-                    if (!$id) handleError('ID requerido', 400);
-                    $result = $controller->apiDestroy($id);
-                    sendResponse(['success' => true, 'data' => $result]);
-                    break;
-                default:
-                    handleError('Método no permitido', 405);
-            }
-            break;
-
-        case 'reportes':
-            $controller = new \Jaguata\Controllers\ReporteController();
-            validateAuth();
-            switch ($method) {
-                case 'GET':
-                    if ($action === 'ganancias') {
-                        validateRole('paseador');
-                        $result = $controller->getGanancias();
-                    } elseif ($action === 'estadisticas') {
-                        $result = $controller->getEstadisticas();
-                    } else {
-                        handleError('Acción no válida', 400);
-                    }
-                    sendResponse(['success' => true, 'data' => $result]);
-                    break;
-                default:
-                    handleError('Método no permitido', 405);
-            }
-            break;
-
-        case 'health':
-            sendResponse([
-                'success'   => true,
-                'status'    => 'OK',
-                'timestamp' => date('Y-m-d H:i:s'),
-                'version'   => '1.0.0'
-            ]);
-            break;
-
-        default:
-            handleError('Recurso no encontrado', 404);
-    }
-} catch (\Exception $e) {
-    error_log('API Error: ' . $e->getMessage());
-    handleError('Error interno del servidor', 500);
 }
+
+// Obtener mensajes flash
+$error = $error ?: Session::getError();
+$success = $success ?: Session::getSuccess();
+?>
+
+<?php include __DIR__ . '/../src/Templates/Header.php'; ?>
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="card shadow-lg border-0">
+                <div class="card-body p-5">
+                    <!-- Logo y título -->
+                    <div class="text-center mb-4">
+                        <img src="<?php echo ASSETS_URL; ?>/images/logo.png" alt="Jaguata" height="60" class="mb-3">
+                        <h2 class="fw-bold text-primary">Iniciar Sesión</h2>
+                        <p class="text-muted">Accede a tu cuenta de Jaguata</p>
+                    </div>
+
+                    <!-- Mostrar mensajes -->
+                    <?php if ($error): ?>
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <i class="fas fa-exclamation-circle me-2"></i>
+                            <?php echo htmlspecialchars($error); ?>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    <?php endif; ?>
+
+                    <?php if ($success): ?>
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            <i class="fas fa-check-circle me-2"></i>
+                            <?php echo htmlspecialchars($success); ?>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    <?php endif; ?>
+
+                    <!-- Formulario de login -->
+                    <form method="POST" action="" novalidate>
+                        <input type="hidden" name="csrf_token" value="<?php echo Validaciones::generarCSRF(); ?>">
+
+                        <!-- Email -->
+                        <div class="mb-3">
+                            <label for="email" class="form-label">
+                                <i class="fas fa-envelope me-1"></i>Email
+                            </label>
+                            <input type="email"
+                                class="form-control form-control-lg <?php echo $error && strpos($error, 'email') !== false ? 'is-invalid' : ''; ?>"
+                                id="email"
+                                name="email"
+                                value="<?php echo htmlspecialchars($email ?? ''); ?>"
+                                required
+                                autocomplete="email"
+                                placeholder="tu@email.com">
+                            <div class="invalid-feedback">
+                                Por favor ingresa un email válido.
+                            </div>
+                        </div>
+
+                        <!-- Contraseña -->
+                        <div class="mb-3">
+                            <label for="password" class="form-label">
+                                <i class="fas fa-lock me-1"></i>Contraseña
+                            </label>
+                            <div class="input-group">
+                                <input type="password"
+                                    class="form-control form-control-lg <?php echo $error && strpos($error, 'contraseña') !== false ? 'is-invalid' : ''; ?>"
+                                    id="password"
+                                    name="password"
+                                    required
+                                    autocomplete="current-password"
+                                    placeholder="Tu contraseña">
+                                <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <div class="invalid-feedback">
+                                Por favor ingresa tu contraseña.
+                            </div>
+                        </div>
+
+                        <!-- Recordar sesión -->
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="remember_me" name="remember_me">
+                            <label class="form-check-label" for="remember_me">
+                                Recordar mi sesión
+                            </label>
+                        </div>
+
+                        <!-- Botón de login -->
+                        <div class="d-grid mb-3">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-sign-in-alt me-2"></i>Iniciar Sesión
+                            </button>
+                        </div>
+
+                        <!-- Enlaces adicionales -->
+                        <div class="text-center">
+                            <p class="mb-2">
+                                <a href="<?php echo BASE_URL; ?>/recuperar-password.php" class="text-decoration-none">
+                                    ¿Olvidaste tu contraseña?
+                                </a>
+                            </p>
+                            <p class="mb-0">
+                                ¿No tienes cuenta?
+                                <a href="<?php echo BASE_URL; ?>/registro.php" class="text-primary fw-bold text-decoration-none">
+                                    Regístrate aquí
+                                </a>
+                            </p>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Información adicional -->
+            <div class="text-center mt-4">
+                <div class="row g-3">
+                    <div class="col-4">
+                        <div class="d-flex flex-column align-items-center">
+                            <i class="fas fa-shield-alt text-primary fa-2x mb-2"></i>
+                            <small class="text-muted">100% Seguro</small>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="d-flex flex-column align-items-center">
+                            <i class="fas fa-clock text-primary fa-2x mb-2"></i>
+                            <small class="text-muted">Disponible 24/7</small>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="d-flex flex-column align-items-center">
+                            <i class="fas fa-star text-primary fa-2x mb-2"></i>
+                            <small class="text-muted">Paseadores Verificados</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Tus estilos inline */
+</style>
+
+<script>
+    /* Tu JS inline */
+</script>
+
+<?php include __DIR__ . '/../src/Templates/Footer.php'; ?>

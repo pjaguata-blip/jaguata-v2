@@ -6,7 +6,7 @@ use Jaguata\Services\DatabaseService;
 
 /**
  * Clase base para todos los modelos
- * Provee operaciones CRUD genéricas
+ * Provee operaciones CRUD genéricas y helpers de consulta
  */
 abstract class BaseModel
 {
@@ -89,5 +89,21 @@ abstract class BaseModel
     {
         $sql = "DELETE FROM {$this->table} WHERE {$this->primaryKey} = :{$this->primaryKey}";
         return $this->db->executeQuery($sql, [$this->primaryKey => $id]);
+    }
+
+    /**
+     * Helper: fetchOne (atajo a DatabaseService)
+     */
+    public function fetchOne(string $sql, array $params = []): ?array
+    {
+        return $this->db->fetchOne($sql, $params);
+    }
+
+    /**
+     * Helper: fetchAll (atajo a DatabaseService)
+     */
+    public function fetchAll(string $sql, array $params = []): array
+    {
+        return $this->db->fetchAll($sql, $params);
     }
 }

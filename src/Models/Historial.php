@@ -2,6 +2,8 @@
 
 namespace Jaguata\Models;
 
+require_once __DIR__ . '/BaseModel.php';
+
 /**
  * Modelo Historial
  * Gestiona el historial de actividades y puntos de un usuario

@@ -1,11 +1,6 @@
 <?php
-require_once __DIR__ . '/../src/Config/AppConfig.php';
-require_once __DIR__ . '/../src/Helpers/Session.php';
-require_once __DIR__ . '/../src/Helpers/Validaciones.php';
-require_once __DIR__ . '/../src/Models/Usuario.php';
-require_once __DIR__ . '/../src/Models/Paseador.php';
-require_once __DIR__ . '/../src/Models/Historial.php';
-require_once __DIR__ . '/../src/Models/BaseModel.php';
+require_once __DIR__ . '/../vendor/autoload.php';
+
 
 use Jaguata\Config\AppConfig;
 use Jaguata\Helpers\Session;

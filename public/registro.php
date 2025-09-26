@@ -5,7 +5,7 @@ require_once __DIR__ . '/../src/Helpers/Validaciones.php';
 require_once __DIR__ . '/../src/Models/Usuario.php';
 require_once __DIR__ . '/../src/Models/Paseador.php';
 require_once __DIR__ . '/../src/Models/Historial.php';
-require_once __DIR__ . '/BaseModel.php';
+require_once __DIR__ . '/../src/Models/BaseModel.php';
 
 use Jaguata\Config\AppConfig;
 use Jaguata\Helpers\Session;
@@ -57,7 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         // Verificar si el email ya existe
         $usuarioModel = new Usuario();
-        $usuarioExistente = $usuarioModel->findByEmail($email);
+        $usuarioExistente = $usuarioModel->getByEmail($email);
 
         if ($usuarioExistente) {
             $errores['email'] = 'Este email ya está registrado';
@@ -88,7 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 // Registrar actividad en historial
                 $historialModel = new Historial();
-                $historialModel->registrarRegistro($usuarioId);
+                $historialModel->registrarActividad($usuarioId, 0, 0);
 
                 // Login automático
                 $usuario = $usuarioModel->find($usuarioId);
@@ -107,6 +107,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // Obtener mensajes flash
 $error = $error ?: ($_SESSION['error'] ?? '');
 $success = $success ?: ($_SESSION['success'] ?? '');
+$rol = Session::getUsuarioRol();
 ?>
 
 <?php include __DIR__ . '/../src/Templates/Header.php'; ?>

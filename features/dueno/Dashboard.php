@@ -131,6 +131,12 @@ $mascotasRecientes = array_slice($mascotas, 0, 3);
                 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                     <h1 class="h2">Dashboard</h1>
                     <div class="btn-toolbar mb-2 mb-md-0">
+                        <a href="<?php echo BASE_URL; ?>/public/logout.php"
+                            class="btn btn-sm btn-outline-danger ms-2">
+                            <i class="fas fa-sign-out-alt me-1"></i>
+                            Cerrar Sesión
+                        </a>
+
                         <div class="btn-group me-2">
                             <button type="button" class="btn btn-sm btn-outline-secondary">
                                 <i class="fas fa-download me-1"></i>

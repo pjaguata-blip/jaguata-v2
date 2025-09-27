@@ -2,20 +2,25 @@
 
 namespace Jaguata\Models;
 
-use Jaguata\Models\BaseModel;
-
+require_once __DIR__ . '/BaseModel.php';
 class Usuario extends BaseModel
 {
-    protected string $table = 'usuario';
+    protected string $table = 'usuarios';
     protected string $primaryKey = 'usu_id';
 
-    public function getByEmail(string $email)
+    /**
+     * Buscar un usuario por email
+     */
+    public function getByEmail(string $email): ?array
     {
         $sql = "SELECT * FROM {$this->table} WHERE email = :email LIMIT 1";
-        return $this->fetchOne($sql, ['email' => strtolower(trim($email))]);
+        return $this->fetchOne($sql, ['email' => strtolower(trim($email))]) ?: null;
     }
 
-    public function authenticate(string $email, string $password)
+    /**
+     * Autenticar un usuario
+     */
+    public function authenticate(string $email, string $password): ?array
     {
         $usuario = $this->getByEmail($email);
         if (!$usuario) {
@@ -33,7 +38,10 @@ class Usuario extends BaseModel
         return $usuario;
     }
 
-    public function createUsuario(array $data)
+    /**
+     * Crear un usuario
+     */
+    public function createUsuario(array $data): int
     {
         if (isset($data['password'])) {
             $data['password'] = password_hash($data['password'], PASSWORD_BCRYPT);
@@ -41,7 +49,10 @@ class Usuario extends BaseModel
         return $this->create($data);
     }
 
-    public function updateUsuario(int $id, array $data)
+    /**
+     * Actualizar un usuario
+     */
+    public function updateUsuario(int $id, array $data): bool
     {
         if (isset($data['password'])) {
             $data['password'] = password_hash($data['password'], PASSWORD_BCRYPT);
@@ -49,23 +60,32 @@ class Usuario extends BaseModel
         return $this->update($id, $data);
     }
 
-    public function deleteUsuario(int $id)
+    /**
+     * Eliminar un usuario
+     */
+    public function deleteUsuario(int $id): bool
     {
         return $this->delete($id);
     }
 
-    public function getAllUsuarios(int $limite = null)
+    /**
+     * Obtener todos los usuarios (con límite opcional)
+     */
+    public function getAllUsuarios(?int $limite = null): array
     {
         $sql = "SELECT * FROM {$this->table}";
-        if ($limite) {
+        if ($limite !== null) {
             $sql .= " LIMIT :limite";
             return $this->fetchAll($sql, ['limite' => $limite]);
         }
         return $this->fetchAll($sql);
     }
 
-    public function getById(int $id)
+    /**
+     * Buscar usuario por ID
+     */
+    public function getById(int $id): ?array
     {
-        return $this->find($id);
+        return $this->find($id) ?: null;
     }
 }

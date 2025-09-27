@@ -1,4 +1,5 @@
 <?php
+
 namespace Jaguata\Helpers;
 
 class Session
@@ -6,7 +7,7 @@ class Session
     private static function start(): void
     {
         if (session_status() === PHP_SESSION_NONE) {
-            session_name(defined('SESSION_NAME') ? SESSION_NAME : 'JAGUATA_SESSION');
+            \session_name(defined('SESSION_NAME') ? SESSION_NAME : 'JAGUATA_SESSION');
             session_start();
         }
     }
@@ -38,6 +39,13 @@ class Session
     {
         self::start();
         return $_SESSION['rol'] ?? null;
+    }
+
+    public static function getUsuarioRolSeguro(): ?string
+    {
+        self::start();
+        $rol = $_SESSION['rol'] ?? null;
+        return ($rol && in_array($rol, ['dueno', 'paseador'], true)) ? $rol : null;
     }
 
     public static function getUsuarioNombre(): ?string

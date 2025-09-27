@@ -17,28 +17,56 @@ class AuthController
         $this->usuarioModel = new Usuario();
     }
 
+    /**
+     * Verifica que el usuario tenga un rol específico
+     */
     public function checkRole(string $role)
     {
-        // Evitar notices y confiar en Session helper
         if (!Session::isLoggedIn() || Session::get('rol') !== $role) {
-            header('Location: /jaguata/public/login.php', true, 302);
-            exit;
+            $this->safeRedirect('/jaguata/public/login.php');
         }
     }
 
+    /**
+     * Verifica que el usuario esté autenticado
+     */
     public function checkAuth()
     {
         if (!Session::isLoggedIn()) {
-            header('Location: /jaguata/public/login.php', true, 302);
-            exit;
+            Session::logout();
+            $this->safeRedirect('/jaguata/public/login.php');
         }
     }
+
+    /**
+     * Redirección segura que evita loops
+     */
+    private function safeRedirect(string $target): void
+    {
+        $current = $_SERVER['PHP_SELF'] ?? '';
+        // Evitar loop: si ya estamos en login o registro, no volver a redirigir
+        if (strpos($current, 'login.php') !== false || strpos($current, 'registro.php') !== false) {
+            return;
+        }
+
+        header("Location: {$target}", true, 302);
+        exit;
+    }
+
+    // =====================
+    // Vistas
+    // =====================
 
     public function showLogin()
     {
         if (Session::isLoggedIn()) {
-            header('Location: /jaguata/features/' . Session::get('rol') . '/Dashboard.php', true, 302);
-            exit;
+            $rol = Session::getUsuarioRol();
+            if ($rol && in_array($rol, ['dueno', 'paseador'], true)) {
+                header('Location: /jaguata/features/' . $rol . '/Dashboard.php', true, 302);
+                exit;
+            } else {
+                Session::logout();
+            }
         }
         include __DIR__ . '/../../public/login.php';
     }
@@ -46,8 +74,13 @@ class AuthController
     public function showRegister()
     {
         if (Session::isLoggedIn()) {
-            header('Location: /jaguata/features/' . Session::get('rol') . '/Dashboard.php', true, 302);
-            exit;
+            $rol = Session::getUsuarioRol();
+            if ($rol && in_array($rol, ['dueno', 'paseador'], true)) {
+                header('Location: /jaguata/features/' . $rol . '/Dashboard.php', true, 302);
+                exit;
+            } else {
+                Session::logout();
+            }
         }
         include __DIR__ . '/../../public/registro.php';
     }
@@ -55,40 +88,33 @@ class AuthController
     // =====================
     // API: LOGIN
     // =====================
+
     public function apiLogin(): array
     {
-        // 1) CSRF
         $csrf = $_POST['csrf_token'] ?? null;
         if (!Validaciones::verificarCSRF($csrf)) {
             return ['success' => false, 'error' => 'CSRF inválido'];
         }
 
-        // 2) Inputs
-        $email = \trim($_POST['email'] ?? '');
+        $email = trim($_POST['email'] ?? '');
         $password = $_POST['password'] ?? '';
 
         if ($email === '' || $password === '') {
             return ['success' => false, 'error' => 'Email y contraseña requeridos'];
         }
 
-        // 3) Email válido (usar bool)
         if (!Validaciones::isEmail($email)) {
             return ['success' => false, 'error' => 'Email inválido'];
         }
 
         try {
             $usuario = $this->usuarioModel->getByEmail($email);
-
-            // Evitar filtraciones de timing en comparación de password:
-            // si no existe usuario, aún así realiza un password_verify contra un hash dummy
             $hash = $usuario['pass'] ?? password_hash('dummy', PASSWORD_DEFAULT);
 
             if (!$usuario || !password_verify($password, $hash)) {
-                // (Opcional) contar intentos fallidos por IP/usuario para backoff
                 return ['success' => false, 'error' => 'Credenciales inválidas'];
             }
 
-            // Regenerar ID de sesión y setear datos
             Session::login($usuario);
 
             return [
@@ -109,42 +135,44 @@ class AuthController
     public function login()
     {
         if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
-            header('Location: /jaguata/public/login.php', true, 302);
-            exit;
+            $this->safeRedirect('/jaguata/public/login.php');
         }
 
         $result = $this->apiLogin();
 
         if ($result['success']) {
             $rol = Session::get('rol');
-            $redirectUrl = '/jaguata/features/' . $rol . '/Dashboard.php';
-            header('Location: ' . $redirectUrl, true, 302);
-            exit;
+            if ($rol && in_array($rol, ['dueno', 'paseador'], true)) {
+                header('Location: /jaguata/features/' . $rol . '/Dashboard.php', true, 302);
+                exit;
+            } else {
+                Session::logout();
+                $_SESSION['error'] = 'Rol inválido. Contacta con soporte.';
+                $this->safeRedirect('/jaguata/public/login.php');
+            }
         }
 
         $_SESSION['error'] = $result['error'] ?? 'Error de autenticación';
-        header('Location: /jaguata/public/login.php', true, 302);
-        exit;
+        $this->safeRedirect('/jaguata/public/login.php');
     }
 
     // =====================
     // API: REGISTER
     // =====================
+
     public function apiRegister(): array
     {
-        // 1) CSRF
         $csrf = $_POST['csrf_token'] ?? null;
         if (!Validaciones::verificarCSRF($csrf)) {
             return ['success' => false, 'error' => 'CSRF inválido'];
         }
 
-        // 2) Inputs
-        $nombre   = \trim($_POST['nombre'] ?? '');
-        $email    = \trim($_POST['email'] ?? '');
+        $nombre   = trim($_POST['nombre'] ?? '');
+        $email    = trim($_POST['email'] ?? '');
         $password = $_POST['password'] ?? '';
         $confirmPassword = $_POST['confirm_password'] ?? '';
         $rol      = $_POST['rol'] ?? 'dueno';
-        $telefono = \trim($_POST['telefono'] ?? '');
+        $telefono = trim($_POST['telefono'] ?? '');
 
         if ($nombre === '' || $email === '' || $password === '') {
             return ['success' => false, 'error' => 'Todos los campos son obligatorios'];
@@ -164,10 +192,10 @@ class AuthController
         }
 
         if ($telefono !== '' && !Validaciones::validarTelefono($telefono)) {
-            return ['success' => false, 'error' => 'Teléfono inválido (ej: 0981-123-456 o solo dígitos)'];
+            return ['success' => false, 'error' => 'Teléfono inválido'];
         }
 
-        if (!\in_array($rol, ['dueno', 'paseador'], true)) {
+        if (!in_array($rol, ['dueno', 'paseador'], true)) {
             return ['success' => false, 'error' => 'Rol inválido'];
         }
 
@@ -209,26 +237,24 @@ class AuthController
     public function register()
     {
         if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
-            header('Location: /jaguata/public/registro.php', true, 302);
-            exit;
+            $this->safeRedirect('/jaguata/public/registro.php');
         }
 
         $result = $this->apiRegister();
 
         if ($result['success']) {
             $_SESSION['success'] = 'Usuario registrado exitosamente. Inicia sesión para continuar.';
-            header('Location: /jaguata/public/login.php', true, 302);
-            exit;
+            $this->safeRedirect('/jaguata/public/login.php');
         }
 
         $_SESSION['error'] = $result['error'] ?? 'No se pudo registrar';
-        header('Location: /jaguata/public/registro.php', true, 302);
-        exit;
+        $this->safeRedirect('/jaguata/public/registro.php');
     }
 
     // =====================
-    // API: LOGOUT
+    // LOGOUT
     // =====================
+
     public function apiLogout(): array
     {
         Session::logout();
@@ -243,8 +269,9 @@ class AuthController
     }
 
     // =====================
-    // API: GET PROFILE
+    // GET PROFILE
     // =====================
+
     public function apiGetProfile(): array
     {
         if (!Session::isLoggedIn()) {

@@ -76,7 +76,7 @@ class Paseo
     }
 
     // ================================================
-    // 🚀 Métodos agregados con JOINs (solo una vez)
+    // 🚀 Métodos agregados con JOINs
     // ================================================
 
     public function allWithRelations(): array
@@ -106,6 +106,23 @@ class Paseo
         $stmt->execute(['dueno_id' => $duenoId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+
+    // 🚀 NUEVO: traer paseos asignados a un paseador
+    public function findByPaseador(int $paseadorId): array
+    {
+        $sql = "SELECT p.*, 
+                   d.nombre AS nombre_dueno,
+                   m.nombre AS nombre_mascota
+            FROM paseos p
+            LEFT JOIN mascotas m ON m.mascota_id = p.mascota_id
+            LEFT JOIN usuarios d ON d.usu_id = m.dueno_id
+            WHERE p.paseador_id = :paseador_id
+            ORDER BY p.inicio DESC";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute(['paseador_id' => $paseadorId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
 
     public function findWithRelations(int $id): ?array
     {

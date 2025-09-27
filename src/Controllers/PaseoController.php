@@ -93,8 +93,17 @@ class PaseoController
     {
         return $this->paseoModel->cambiarEstado($id, 'cancelado');
     }
+
+    // === Métodos de consulta ===
+
     public function indexByDueno(int $duenoId)
     {
         return $this->paseoModel->findByDueno($duenoId);
+    }
+
+    public function indexForPaseador(int $paseadorId): array
+    {
+        // 🔹 Usamos el método del modelo Paseo
+        return $this->paseoModel->findByPaseador($paseadorId);
     }
 }

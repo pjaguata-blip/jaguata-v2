@@ -8,6 +8,7 @@ use Jaguata\Models\Usuario;
 use Jaguata\Models\Paseador;
 use Jaguata\Models\Historial;
 use Jaguata\Services\DatabaseService;
+
 // Inicializar configuración
 AppConfig::init();
 
@@ -22,6 +23,7 @@ $titulo = 'Registrarse - Jaguata';
 $error = '';
 $success = '';
 $errores = [];
+$acepto_terminos = false; // 🔹 Inicializar siempre para evitar warning
 
 // Procesar formulario de registro
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -31,7 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $confirm_password = $_POST['confirm_password'] ?? '';
     $telefono = trim($_POST['telefono'] ?? '');
     $rol = $_POST['rol'] ?? '';
-    $acepto_terminos = isset($_POST['acepto_terminos']);
+    $acepto_terminos = isset($_POST['acepto_terminos']); // 🔹 se reasigna si se marcó el checkbox
 
     // Validar datos
     $validacion = Validaciones::validarDatosUsuario([
@@ -393,7 +395,6 @@ $rol = Session::getUsuarioRol();
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Toggle password visibility
         const togglePassword = document.getElementById('togglePassword');
         const toggleConfirmPassword = document.getElementById('toggleConfirmPassword');
         const passwordInput = document.getElementById('password');
@@ -402,7 +403,6 @@ $rol = Session::getUsuarioRol();
         togglePassword.addEventListener('click', function() {
             const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
             passwordInput.setAttribute('type', type);
-
             const icon = this.querySelector('i');
             icon.classList.toggle('fa-eye');
             icon.classList.toggle('fa-eye-slash');
@@ -411,13 +411,11 @@ $rol = Session::getUsuarioRol();
         toggleConfirmPassword.addEventListener('click', function() {
             const type = confirmPasswordInput.getAttribute('type') === 'password' ? 'text' : 'password';
             confirmPasswordInput.setAttribute('type', type);
-
             const icon = this.querySelector('i');
             icon.classList.toggle('fa-eye');
             icon.classList.toggle('fa-eye-slash');
         });
 
-        // Form validation
         const form = document.querySelector('form');
         form.addEventListener('submit', function(e) {
             const password = document.getElementById('password').value;
@@ -436,13 +434,11 @@ $rol = Session::getUsuarioRol();
                 return;
             }
 
-            // Show loading state
             const submitBtn = form.querySelector('button[type="submit"]');
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Creando cuenta...';
             submitBtn.disabled = true;
         });
 
-        // Password strength indicator
         const passwordStrengthInput = document.getElementById('password');
         passwordStrengthInput.addEventListener('input', function() {
             const password = this.value;
@@ -452,19 +448,16 @@ $rol = Session::getUsuarioRol();
 
         function getPasswordStrength(password) {
             let strength = 0;
-
             if (password.length >= 8) strength++;
             if (/[a-z]/.test(password)) strength++;
             if (/[A-Z]/.test(password)) strength++;
             if (/[0-9]/.test(password)) strength++;
             if (/[^A-Za-z0-9]/.test(password)) strength++;
-
             return strength;
         }
 
         function updatePasswordStrengthIndicator(strength) {
-            // This would update a visual indicator
-            // Implementation depends on UI requirements
+            // Aquí podrías mostrar una barra de fuerza de contraseña
         }
     });
 </script>

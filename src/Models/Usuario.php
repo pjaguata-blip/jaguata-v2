@@ -14,9 +14,14 @@ class Usuario extends BaseModel
      */
     public function getByEmail(string $email): ?array
     {
-        $sql = "SELECT * FROM {$this->table} WHERE email = :email LIMIT 1";
+        $sql = "SELECT usu_id, nombre, email, pass, rol, telefono, puntos 
+            FROM {$this->table} 
+            WHERE email = :email 
+            LIMIT 1";
         return $this->fetchOne($sql, ['email' => strtolower(trim($email))]) ?: null;
     }
+
+
 
     /**
      * Autenticar un usuario
@@ -28,16 +33,13 @@ class Usuario extends BaseModel
             return null;
         }
 
-        if (!password_verify($password, $usuario['password'])) {
+        if (!password_verify($password, $usuario['pass'])) {
             return null;
-        }
-
-        if (password_needs_rehash($usuario['password'], PASSWORD_BCRYPT)) {
-            $this->updateUsuario($usuario['usu_id'], ['password' => $password]);
         }
 
         return $usuario;
     }
+
 
     /**
      * Crear un usuario

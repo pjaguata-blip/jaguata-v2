@@ -31,7 +31,7 @@ if ($estadoFiltro) {
 
 // Agrupar paseos por estado
 $paseosPorEstado = [
-    'solicitado' => array_filter($paseos, fn($p) => $p['estado'] === 'solicitado'),
+    'Pendiente' => array_filter($paseos, fn($p) => $p['estado'] === 'Pendiente'),
     'confirmado' => array_filter($paseos, fn($p) => $p['estado'] === 'confirmado'),
     'en_curso'   => array_filter($paseos, fn($p) => $p['estado'] === 'en_curso'),
     'completo'   => array_filter($paseos, fn($p) => $p['estado'] === 'completo'),
@@ -40,7 +40,7 @@ $paseosPorEstado = [
 
 // Estadísticas
 $totalPaseos = count($paseos);
-$paseosPendientes = count($paseosPorEstado['solicitado']) + count($paseosPorEstado['confirmado']);
+$paseosPendientes = count($paseosPorEstado['Pendiente']) + count($paseosPorEstado['confirmado']);
 $paseosCompletados = count($paseosPorEstado['completo']);
 $paseosCancelados = count($paseosPorEstado['cancelado']);
 
@@ -147,7 +147,7 @@ foreach ($paseosPorEstado['completo'] as $paseo) {
                                 <label for="estado" class="form-label">Estado</label>
                                 <select class="form-select" id="estado" onchange="filtrarPorEstado()">
                                     <option value="">Todos los estados</option>
-                                    <option value="solicitado" <?php echo $estadoFiltro === 'solicitado' ? 'selected' : ''; ?>>Solicitado</option>
+                                    <option value="Pendiente" <?php echo $estadoFiltro === 'Pendiente' ? 'selected' : ''; ?>>Pendiente</option>
                                     <option value="confirmado" <?php echo $estadoFiltro === 'confirmado' ? 'selected' : ''; ?>>Confirmado</option>
                                     <option value="en_curso" <?php echo $estadoFiltro === 'en_curso' ? 'selected' : ''; ?>>En Curso</option>
                                     <option value="completo" <?php echo $estadoFiltro === 'completo' ? 'selected' : ''; ?>>Completo</option>
@@ -215,7 +215,7 @@ foreach ($paseosPorEstado['completo'] as $paseo) {
                                                         <a href="VerPaseo.php?id=<?php echo $paseo['paseo_id']; ?>" class="btn btn-sm btn-outline-primary">
                                                             <i class="fas fa-eye"></i>
                                                         </a>
-                                                        <?php if ($paseo['estado'] === 'solicitado'): ?>
+                                                        <?php if ($paseo['estado'] === 'Pendiente'): ?>
                                                             <a href="AceptarPaseo.php?id=<?php echo $paseo['paseo_id']; ?>" class="btn btn-sm btn-outline-success">
                                                                 <i class="fas fa-check"></i>
                                                             </a>

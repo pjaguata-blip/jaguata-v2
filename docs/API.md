@@ -387,7 +387,7 @@ X-RateLimit-Reset: 1640995200
 
 ### Eventos Disponibles
 
-- `paseo.solicitado`
+- `paseo.Pendiente`
 - `paseo.confirmado`
 - `paseo.iniciado`
 - `paseo.completado`

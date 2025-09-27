@@ -137,4 +137,20 @@ class Paseo
         $stmt->execute(['id' => $id]);
         return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
     }
+    public function findSolicitudesPendientes(int $paseadorId): array
+    {
+        $sql = "SELECT p.paseo_id, p.inicio, p.duracion, p.precio_total, p.estado,
+                   m.nombre AS nombre_mascota,
+                   u.nombre AS nombre_dueno
+            FROM paseos p
+            INNER JOIN mascotas m ON p.mascota_id = m.mascota_id
+            INNER JOIN usuarios u ON m.dueno_id = u.usu_id
+            WHERE p.paseador_id = :paseador_id
+              AND p.estado = 'Pendiente'
+            ORDER BY p.inicio ASC";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute(['paseador_id' => $paseadorId]);
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    }
 }

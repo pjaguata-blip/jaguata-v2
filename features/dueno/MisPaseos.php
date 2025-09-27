@@ -30,8 +30,8 @@ if ($estadoFiltro) {
 
 // Agrupar paseos por estado
 $paseosPorEstado = [
-    'solicitado' => array_filter($paseos, function ($p) {
-        return $p['estado'] === 'solicitado';
+    'Pendiente' => array_filter($paseos, function ($p) {
+        return $p['estado'] === 'Pendiente';
     }),
     'confirmado' => array_filter($paseos, function ($p) {
         return $p['estado'] === 'confirmado';
@@ -49,7 +49,7 @@ $paseosPorEstado = [
 
 // Estadísticas
 $totalPaseos = count($paseos);
-$paseosPendientes = count($paseosPorEstado['solicitado']) + count($paseosPorEstado['confirmado']);
+$paseosPendientes = count($paseosPorEstado['Pendiente']) + count($paseosPorEstado['confirmado']);
 $paseosCompletados = count($paseosPorEstado['completo']);
 $paseosCancelados = count($paseosPorEstado['cancelado']);
 
@@ -234,11 +234,14 @@ foreach ($paseosPorEstado['completo'] as $paseo) {
                                 <label for="estado" class="form-label">Estado</label>
                                 <select class="form-select" id="estado" onchange="filtrarPorEstado()">
                                     <option value="">Todos los estados</option>
-                                    <option value="solicitado" <?php echo $estadoFiltro === 'solicitado' ? 'selected' : ''; ?>>
-                                        Solicitado
+                                    <option value="Pendiente" <?php echo $estadoFiltro === 'Pendiente' ? 'selected' : ''; ?>>
+                                        Pendiente
                                     </option>
                                     <option value="confirmado" <?php echo $estadoFiltro === 'confirmado' ? 'selected' : ''; ?>>
                                         Confirmado
+                                    </option>
+                                    <option value="Pendiente" <?php echo $estadoFiltro === 'confirmado' ? 'selected' : ''; ?>>
+                                        Pendiente
                                     </option>
                                     <option value="en_curso" <?php echo $estadoFiltro === 'en_curso' ? 'selected' : ''; ?>>
                                         En Curso
@@ -340,11 +343,19 @@ foreach ($paseosPorEstado['completo'] as $paseo) {
                                                         <a href="VerPaseo.php?id=<?php echo $paseo['paseo_id']; ?>" class="btn btn-sm btn-outline-primary">
                                                             <i class="fas fa-eye"></i>
                                                         </a>
-                                                        <?php if (in_array($paseo['estado'], ['solicitado', 'confirmado'])): ?>
+                                                        <?php if (in_array($paseo['estado'], ['Pendiente', 'confirmado'])): ?>
                                                             <a href="CancelarPaseo.php?id=<?php echo $paseo['paseo_id']; ?>"
                                                                 class="btn btn-sm btn-outline-danger"
                                                                 onclick="return confirm('¿Estás seguro de que quieres cancelar este paseo?')">
                                                                 <i class="fas fa-times"></i>
+                                                            </a>
+                                                        <?php endif; ?>
+
+                                                        <?php if ($paseo['estado'] === 'en_curso'): ?>
+                                                            <a href="CompletarPaseo.php?id=<?php echo $paseo['paseo_id']; ?>"
+                                                                class="btn btn-sm btn-outline-success"
+                                                                onclick="return confirm('¿Confirmas que este paseo fue completado?')">
+                                                                <i class="fas fa-check"></i>
                                                             </a>
                                                         <?php endif; ?>
                                                     </div>
@@ -352,7 +363,6 @@ foreach ($paseosPorEstado['completo'] as $paseo) {
                                             </tr>
                                         <?php endforeach; ?>
                                     </tbody>
-
                                 </table>
                             </div>
                         </div>

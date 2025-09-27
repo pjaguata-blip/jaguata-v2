@@ -202,7 +202,7 @@ function checkPaseoPermissions($paseoId, $usuarioId, $rol)
 function validateEstadoTransition($estadoActual, $nuevoEstado, $rol)
 {
     $transicionesValidas = [
-        'solicitado' => ['confirmado', 'cancelado'],
+        'Pendiente' => ['confirmado', 'cancelado'],
         'confirmado' => ['en_curso', 'cancelado'],
         'en_curso' => ['completo', 'cancelado'],
         'completo' => [],

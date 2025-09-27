@@ -1,4 +1,5 @@
 <?php
+
 namespace Jaguata\Models;
 
 use PDO;
@@ -74,7 +75,7 @@ class Reporte
                 case 'dueno':
                     $sql = "
                         SELECT 
-                            COUNT(*) AS paseos_solicitados,
+                            COUNT(*) AS paseos_Pendientes,
                             SUM(CASE WHEN estado = 'completado' THEN 1 ELSE 0 END) AS paseos_completados
                         FROM paseos
                         WHERE dueno_id IS NOT NULL

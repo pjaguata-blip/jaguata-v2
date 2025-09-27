@@ -143,7 +143,7 @@ if (!defined('TAMANO_EXTRA_GRANDE')) {
 
 // Estados de paseo (individuales para compatibilidad)
 if (!defined('PASEO_PENDIENTE')) {
-    define('PASEO_PENDIENTE', 'solicitado');
+    define('PASEO_PENDIENTE', 'Pendiente');
 }
 if (!defined('PASEO_CONFIRMADO')) {
     define('PASEO_CONFIRMADO', 'confirmado');
@@ -180,7 +180,7 @@ if (!defined('PAGO_REEMBOLSADO')) {
 // Configuración de notificaciones
 if (!defined('NOTIFICATION_TYPES')) {
     define('NOTIFICATION_TYPES', [
-        'paseo_solicitado' => 'Paseo Solicitado',
+        'paseo_Pendiente' => 'Paseo Pendiente',
         'paseo_confirmado' => 'Paseo Confirmado',
         'paseo_iniciado' => 'Paseo Iniciado',
         'paseo_completado' => 'Paseo Completado',
@@ -205,7 +205,7 @@ if (!defined('ROLES')) {
 // Configuración de estados de paseo (array para UI)
 if (!defined('PASEO_ESTADOS')) {
     define('PASEO_ESTADOS', [
-        'solicitado' => 'Solicitado',
+        'Pendiente' => 'Pendiente',
         'confirmado' => 'Confirmado',
         'en_curso' => 'En Curso',
         'completo' => 'Completo',
@@ -655,7 +655,7 @@ if (!defined('MESSAGES')) {
         'success' => [
             'usuario_creado' => 'Usuario creado exitosamente',
             'mascota_agregada' => 'Mascota agregada exitosamente',
-            'paseo_solicitado' => 'Paseo solicitado exitosamente',
+            'paseo_Pendiente' => 'Paseo Pendiente exitosamente',
             'pago_procesado' => 'Pago procesado exitosamente',
             'perfil_actualizado' => 'Perfil actualizado exitosamente'
         ],

@@ -14,14 +14,12 @@ class Usuario extends BaseModel
      */
     public function getByEmail(string $email): ?array
     {
-        $sql = "SELECT usu_id, nombre, email, pass, rol, telefono, puntos 
-            FROM {$this->table} 
-            WHERE email = :email 
-            LIMIT 1";
+        $sql = "SELECT usu_id, nombre, email, pass, rol, telefono, direccion, experiencia, zona, puntos 
+                FROM {$this->table} 
+                WHERE email = :email 
+                LIMIT 1";
         return $this->fetchOne($sql, ['email' => strtolower(trim($email))]) ?: null;
     }
-
-
 
     /**
      * Autenticar un usuario
@@ -40,7 +38,6 @@ class Usuario extends BaseModel
         return $usuario;
     }
 
-
     /**
      * Crear un usuario
      */
@@ -48,6 +45,9 @@ class Usuario extends BaseModel
     {
         if (isset($data['password'])) {
             $data['password'] = password_hash($data['password'], PASSWORD_BCRYPT);
+            // 🔹 guardar en la columna "pass"
+            $data['pass'] = $data['password'];
+            unset($data['password']);
         }
         return $this->create($data);
     }
@@ -59,8 +59,16 @@ class Usuario extends BaseModel
     {
         if (isset($data['password'])) {
             $data['password'] = password_hash($data['password'], PASSWORD_BCRYPT);
+            // 🔹 guardar en la columna "pass"
+            $data['pass'] = $data['password'];
+            unset($data['password']);
         }
-        return $this->update($id, $data);
+
+        // 🔹 Campos válidos que se pueden actualizar
+        $allowed = ['nombre', 'email', 'pass', 'rol', 'telefono', 'direccion', 'experiencia', 'zona', 'puntos'];
+        $filteredData = array_intersect_key($data, array_flip($allowed));
+
+        return $this->update($id, $filteredData);
     }
 
     /**
@@ -76,7 +84,8 @@ class Usuario extends BaseModel
      */
     public function getAllUsuarios(?int $limite = null): array
     {
-        $sql = "SELECT * FROM {$this->table}";
+        $sql = "SELECT usu_id, nombre, email, rol, telefono, direccion, experiencia, zona, puntos 
+                FROM {$this->table}";
         if ($limite !== null) {
             $sql .= " LIMIT :limite";
             return $this->fetchAll($sql, ['limite' => $limite]);
@@ -89,7 +98,11 @@ class Usuario extends BaseModel
      */
     public function getById(int $id): ?array
     {
-        return $this->find($id) ?: null;
+        $sql = "SELECT usu_id, nombre, email, rol, telefono, direccion, experiencia, zona, puntos 
+                FROM {$this->table} 
+                WHERE {$this->primaryKey} = :id 
+                LIMIT 1";
+        return $this->fetchOne($sql, ['id' => $id]) ?: null;
     }
 
     /**
@@ -107,7 +120,9 @@ class Usuario extends BaseModel
      */
     public function sumarPuntos(int $id, int $puntos): bool
     {
-        $sql = "UPDATE {$this->table} SET puntos = puntos + :puntos WHERE {$this->primaryKey} = :id";
+        $sql = "UPDATE {$this->table} 
+                SET puntos = puntos + :puntos 
+                WHERE {$this->primaryKey} = :id";
         return $this->db->executeQuery($sql, ['puntos' => $puntos, 'id' => $id]);
     }
 
@@ -116,7 +131,9 @@ class Usuario extends BaseModel
      */
     public function restarPuntos(int $id, int $puntos): bool
     {
-        $sql = "UPDATE {$this->table} SET puntos = GREATEST(puntos - :puntos, 0) WHERE {$this->primaryKey} = :id";
+        $sql = "UPDATE {$this->table} 
+                SET puntos = GREATEST(puntos - :puntos, 0) 
+                WHERE {$this->primaryKey} = :id";
         return $this->db->executeQuery($sql, ['puntos' => $puntos, 'id' => $id]);
     }
 }

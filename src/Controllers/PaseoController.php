@@ -106,4 +106,8 @@ class PaseoController
         // 🔹 Usamos el método del modelo Paseo
         return $this->paseoModel->findByPaseador($paseadorId);
     }
+    public function getSolicitudesPendientes(int $paseadorId): array
+    {
+        return $this->paseoModel->findSolicitudesPendientes($paseadorId);
+    }
 }

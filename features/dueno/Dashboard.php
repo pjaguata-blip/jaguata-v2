@@ -42,7 +42,7 @@ $notificaciones = $notificacionController->getRecientes();
 // Estadísticas
 $totalMascotas = count($mascotas);
 $paseosPendientes = array_filter($paseos, function ($paseo) {
-    return in_array($paseo['estado'], ['solicitado', 'confirmado']);
+    return in_array($paseo['estado'], ['Pendiente', 'confirmado']);
 });
 $paseosCompletados = array_filter($paseos, function ($paseo) {
     return $paseo['estado'] === 'completo';

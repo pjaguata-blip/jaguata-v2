@@ -34,7 +34,8 @@
             "src/Config/Constantes.php"
         ],
         "classmap": [
-            "src/Services/"
+            "src/Services/",
+            "src/Models/"
         ]
     },
     "autoload-dev": {

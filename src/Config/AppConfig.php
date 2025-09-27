@@ -15,6 +15,13 @@ class AppConfig
             return;
         }
 
+        // === Composer Autoload ===
+        // Asegura que el autoload de Composer esté disponible
+        $vendorAutoload = __DIR__ . '/../../vendor/autoload.php';
+        if (file_exists($vendorAutoload)) {
+            require_once $vendorAutoload;
+        }
+
         // Detectar protocolo
         $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? "https://" : "http://";
         $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
@@ -61,12 +68,12 @@ class AppConfig
             define('DEBUG_MODE', $host === 'localhost');
         }
 
-        // === Configuración de BD ===
-        if (!defined('DB_HOST')) define('DB_HOST', '127.0.0.1');
-        if (!defined('DB_NAME')) define('DB_NAME', 'jaguata');
-        if (!defined('DB_USER')) define('DB_USER', 'root');
-        if (!defined('DB_PASS')) define('DB_PASS', '');
-        if (!defined('DB_CHARSET')) define('DB_CHARSET', 'utf8mb4');
+        // === Configuración de BD (usar env si existe) ===
+        if (!defined('DB_HOST')) define('DB_HOST', getenv('DB_HOST') ?: '127.0.0.1');
+        if (!defined('DB_NAME')) define('DB_NAME', getenv('DB_NAME') ?: 'jaguata');
+        if (!defined('DB_USER')) define('DB_USER', getenv('DB_USER') ?: 'root');
+        if (!defined('DB_PASS')) define('DB_PASS', getenv('DB_PASS') ?: '');
+        if (!defined('DB_CHARSET')) define('DB_CHARSET', getenv('DB_CHARSET') ?: 'utf8mb4');
 
         // === Conexión a la base de datos ===
         try {

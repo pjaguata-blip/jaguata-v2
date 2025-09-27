@@ -2,11 +2,11 @@
 
 namespace Jaguata\Models;
 
-require_once __DIR__ . '/BaseModel.php';
+use Jaguata\Models\BaseModel;
 
 class Usuario extends BaseModel
 {
-    protected string $table = 'usuarios';
+    protected string $table = 'usuario';
     protected string $primaryKey = 'usu_id';
 
     public function getByEmail(string $email)

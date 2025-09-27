@@ -3,6 +3,7 @@
 namespace Jaguata\Models;
 
 require_once __DIR__ . '/BaseModel.php';
+
 class Usuario extends BaseModel
 {
     protected string $table = 'usuarios';
@@ -87,5 +88,33 @@ class Usuario extends BaseModel
     public function getById(int $id): ?array
     {
         return $this->find($id) ?: null;
+    }
+
+    /**
+     * Obtener puntos del usuario
+     */
+    public function getPuntos(int $id): int
+    {
+        $sql = "SELECT puntos FROM {$this->table} WHERE {$this->primaryKey} = :id LIMIT 1";
+        $result = $this->fetchOne($sql, ['id' => $id]);
+        return $result ? (int)$result['puntos'] : 0;
+    }
+
+    /**
+     * Sumar puntos al usuario
+     */
+    public function sumarPuntos(int $id, int $puntos): bool
+    {
+        $sql = "UPDATE {$this->table} SET puntos = puntos + :puntos WHERE {$this->primaryKey} = :id";
+        return $this->db->executeQuery($sql, ['puntos' => $puntos, 'id' => $id]);
+    }
+
+    /**
+     * Restar puntos al usuario
+     */
+    public function restarPuntos(int $id, int $puntos): bool
+    {
+        $sql = "UPDATE {$this->table} SET puntos = GREATEST(puntos - :puntos, 0) WHERE {$this->primaryKey} = :id";
+        return $this->db->executeQuery($sql, ['puntos' => $puntos, 'id' => $id]);
     }
 }

@@ -71,4 +71,34 @@ class DatabaseService
     {
         return $this->connection->lastInsertId();
     }
+
+    // 🔹 Nuevos métodos sin romper nada
+
+    /**
+     * Ejecutar y devolver un único valor escalar
+     */
+    public function executeScalar(string $sql, array $params = []): mixed
+    {
+        $stmt = $this->connection->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchColumn();
+    }
+
+    /**
+     * Manejo de transacciones
+     */
+    public function beginTransaction(): bool
+    {
+        return $this->connection->beginTransaction();
+    }
+
+    public function commit(): bool
+    {
+        return $this->connection->commit();
+    }
+
+    public function rollBack(): bool
+    {
+        return $this->connection->rollBack();
+    }
 }

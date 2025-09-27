@@ -11,6 +11,7 @@ use Jaguata\Controllers\AuthController;
 use Jaguata\Controllers\MascotaController;
 use Jaguata\Controllers\PaseoController;
 use Jaguata\Controllers\NotificacionController;
+use Jaguata\Helpers\Session;
 
 // Inicializar aplicación
 AppConfig::init();
@@ -18,6 +19,15 @@ AppConfig::init();
 // Verificar autenticación
 $authController = new AuthController();
 $authController->checkRole('dueno');
+
+// 🔹 Definir URL dinámico de Inicio
+$usuarioLogueado = Session::isLoggedIn();
+$rolUsuario      = Session::getUsuarioRol();
+if ($usuarioLogueado && $rolUsuario) {
+    $homeUrl = BASE_URL . "/features/{$rolUsuario}/Dashboard.php";
+} else {
+    $homeUrl = BASE_URL . "/public/login.php";
+}
 
 // Obtener controladores
 $mascotaController = new MascotaController();
@@ -80,6 +90,13 @@ $mascotasRecientes = array_slice($mascotas, 0, 3);
             <div class="col-md-3 col-lg-2 d-md-block bg-light sidebar">
                 <div class="position-sticky pt-3">
                     <ul class="nav flex-column">
+                        <!-- 🔹 Nuevo link de Inicio dinámico -->
+                        <li class="nav-item">
+                            <a class="nav-link" href="<?= $homeUrl ?>">
+                                <i class="fas fa-home me-2"></i>
+                                Inicio
+                            </a>
+                        </li>
                         <li class="nav-item">
                             <a class="nav-link active" href="Dashboard.php">
                                 <i class="fas fa-tachometer-alt me-2"></i>
@@ -152,6 +169,7 @@ $mascotasRecientes = array_slice($mascotas, 0, 3);
 
                 <!-- Estadísticas -->
                 <div class="row mb-4">
+                    <!-- Total Mascotas -->
                     <div class="col-xl-3 col-md-6 mb-4">
                         <div class="card border-left-primary shadow h-100 py-2">
                             <div class="card-body">
@@ -171,7 +189,7 @@ $mascotasRecientes = array_slice($mascotas, 0, 3);
                             </div>
                         </div>
                     </div>
-
+                    <!-- Paseos Completados -->
                     <div class="col-xl-3 col-md-6 mb-4">
                         <div class="card border-left-success shadow h-100 py-2">
                             <div class="card-body">
@@ -191,7 +209,7 @@ $mascotasRecientes = array_slice($mascotas, 0, 3);
                             </div>
                         </div>
                     </div>
-
+                    <!-- Paseos Pendientes -->
                     <div class="col-xl-3 col-md-6 mb-4">
                         <div class="card border-left-warning shadow h-100 py-2">
                             <div class="card-body">
@@ -211,7 +229,7 @@ $mascotasRecientes = array_slice($mascotas, 0, 3);
                             </div>
                         </div>
                     </div>
-
+                    <!-- Gastos Totales -->
                     <div class="col-xl-3 col-md-6 mb-4">
                         <div class="card border-left-info shadow h-100 py-2">
                             <div class="card-body">
@@ -267,7 +285,12 @@ $mascotasRecientes = array_slice($mascotas, 0, 3);
                                                 <?php foreach ($paseosRecientes as $paseo): ?>
                                                     <tr>
                                                         <td><?php echo htmlspecialchars($paseo['nombre_mascota']); ?></td>
-                                                        <td><?php echo htmlspecialchars($paseo['nombre_paseador']); ?></td>
+                                                        <td>
+                                                            <?php echo isset($paseo['nombre_paseador'])
+                                                                ? htmlspecialchars($paseo['nombre_paseador'])
+                                                                : '<span class="text-muted">-</span>'; ?>
+                                                        </td>
+
                                                         <td><?php echo date('d/m/Y H:i', strtotime($paseo['inicio'])); ?></td>
                                                         <td>
                                                             <span class="badge badge-<?php echo $paseo['estado'] === 'completo' ? 'success' : ($paseo['estado'] === 'cancelado' ? 'danger' : 'warning'); ?>">

@@ -23,18 +23,28 @@ $paseos = $paseoController->index();
 // Filtrar por estado si se especifica
 $estadoFiltro = $_GET['estado'] ?? '';
 if ($estadoFiltro) {
-    $paseos = array_filter($paseos, function($paseo) use ($estadoFiltro) {
+    $paseos = array_filter($paseos, function ($paseo) use ($estadoFiltro) {
         return $paseo['estado'] === $estadoFiltro;
     });
 }
 
 // Agrupar paseos por estado
 $paseosPorEstado = [
-    'solicitado' => array_filter($paseos, function($p) { return $p['estado'] === 'solicitado'; }),
-    'confirmado' => array_filter($paseos, function($p) { return $p['estado'] === 'confirmado'; }),
-    'en_curso' => array_filter($paseos, function($p) { return $p['estado'] === 'en_curso'; }),
-    'completo' => array_filter($paseos, function($p) { return $p['estado'] === 'completo'; }),
-    'cancelado' => array_filter($paseos, function($p) { return $p['estado'] === 'cancelado'; })
+    'solicitado' => array_filter($paseos, function ($p) {
+        return $p['estado'] === 'solicitado';
+    }),
+    'confirmado' => array_filter($paseos, function ($p) {
+        return $p['estado'] === 'confirmado';
+    }),
+    'en_curso' => array_filter($paseos, function ($p) {
+        return $p['estado'] === 'en_curso';
+    }),
+    'completo' => array_filter($paseos, function ($p) {
+        return $p['estado'] === 'completo';
+    }),
+    'cancelado' => array_filter($paseos, function ($p) {
+        return $p['estado'] === 'cancelado';
+    })
 ];
 
 // Estadísticas
@@ -52,6 +62,7 @@ foreach ($paseosPorEstado['completo'] as $paseo) {
 
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -60,6 +71,7 @@ foreach ($paseosPorEstado['completo'] as $paseo) {
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="../../assets/css/style.css" rel="stylesheet">
 </head>
+
 <body>
     <?php include __DIR__ . '/../../src/Templates/Header.php'; ?>
     <?php include __DIR__ . '/../../src/Templates/Navbar.php'; ?>
@@ -275,62 +287,72 @@ foreach ($paseosPorEstado['completo'] as $paseo) {
                                     </thead>
                                     <tbody>
                                         <?php foreach ($paseos as $paseo): ?>
-                                        <tr>
-                                            <td>
-                                                <div class="d-flex align-items-center">
-                                                    <i class="fas fa-paw text-primary me-2"></i>
-                                                    <?php echo htmlspecialchars($paseo['nombre_mascota']); ?>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <div class="d-flex align-items-center">
-                                                    <i class="fas fa-user text-secondary me-2"></i>
-                                                    <?php echo htmlspecialchars($paseo['nombre_paseador']); ?>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <div>
-                                                    <strong><?php echo date('d/m/Y', strtotime($paseo['inicio'])); ?></strong>
-                                                    <br>
-                                                    <small class="text-muted"><?php echo date('H:i', strtotime($paseo['inicio'])); ?></small>
-                                                </div>
-                                            </td>
-                                            <td><?php echo $paseo['duracion']; ?> min</td>
-                                            <td>
-                                                <span class="badge bg-<?php 
-                                                    echo $paseo['estado'] === 'completo' ? 'success' : 
-                                                        ($paseo['estado'] === 'cancelado' ? 'danger' : 
-                                                        ($paseo['estado'] === 'en_curso' ? 'info' : 'warning')); 
-                                                ?>">
-                                                    <?php echo ucfirst($paseo['estado']); ?>
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <strong>₲<?php echo number_format($paseo['precio_total'], 0, ',', '.'); ?></strong>
-                                                <?php if ($paseo['estado_pago'] === 'pendiente'): ?>
-                                                    <br><small class="text-warning">Pago pendiente</small>
-                                                <?php elseif ($paseo['estado_pago'] === 'procesado'): ?>
-                                                    <br><small class="text-success">Pagado</small>
-                                                <?php endif; ?>
-                                            </td>
-                                            <td>
-                                                <div class="btn-group" role="group">
-                                                    <a href="VerPaseo.php?id=<?php echo $paseo['paseo_id']; ?>" 
-                                                       class="btn btn-sm btn-outline-primary">
-                                                        <i class="fas fa-eye"></i>
-                                                    </a>
-                                                    <?php if (in_array($paseo['estado'], ['solicitado', 'confirmado'])): ?>
-                                                    <a href="CancelarPaseo.php?id=<?php echo $paseo['paseo_id']; ?>" 
-                                                       class="btn btn-sm btn-outline-danger"
-                                                       onclick="return confirm('¿Estás seguro de que quieres cancelar este paseo?')">
-                                                        <i class="fas fa-times"></i>
-                                                    </a>
+                                            <tr>
+                                                <!-- Mascota -->
+                                                <td>
+                                                    <div class="d-flex align-items-center">
+                                                        <i class="fas fa-paw text-primary me-2"></i>
+                                                        <?php echo htmlspecialchars($paseo['nombre_mascota']); ?>
+                                                    </div>
+                                                </td>
+
+                                                <!-- Paseador -->
+                                                <td>
+                                                    <div class="d-flex align-items-center">
+                                                        <i class="fas fa-user text-secondary me-2"></i>
+                                                        <?php echo htmlspecialchars($paseo['nombre_paseador']); ?>
+                                                    </div>
+                                                </td>
+
+                                                <!-- Fecha -->
+                                                <td>
+                                                    <div>
+                                                        <strong><?php echo date('d/m/Y', strtotime($paseo['inicio'])); ?></strong><br>
+                                                        <small class="text-muted"><?php echo date('H:i', strtotime($paseo['inicio'])); ?></small>
+                                                    </div>
+                                                </td>
+
+                                                <!-- Duración -->
+                                                <td><?php echo htmlspecialchars($paseo['duracion']); ?> min</td>
+
+                                                <!-- Estado -->
+                                                <td>
+                                                    <span class="badge bg-<?php
+                                                                            echo $paseo['estado'] === 'completo' ? 'success' : ($paseo['estado'] === 'cancelado' ? 'danger' : ($paseo['estado'] === 'en_curso' ? 'info' : 'warning'));
+                                                                            ?>">
+                                                        <?php echo ucfirst($paseo['estado']); ?>
+                                                    </span>
+                                                </td>
+
+                                                <!-- Precio -->
+                                                <td>
+                                                    <strong>₲<?php echo number_format($paseo['precio_total'], 0, ',', '.'); ?></strong>
+                                                    <?php if ($paseo['estado_pago'] === 'pendiente'): ?>
+                                                        <br><small class="text-warning">Pago pendiente</small>
+                                                    <?php elseif ($paseo['estado_pago'] === 'procesado'): ?>
+                                                        <br><small class="text-success">Pagado</small>
                                                     <?php endif; ?>
-                                                </div>
-                                            </td>
-                                        </tr>
+                                                </td>
+
+                                                <!-- Acciones -->
+                                                <td>
+                                                    <div class="btn-group" role="group">
+                                                        <a href="VerPaseo.php?id=<?php echo $paseo['paseo_id']; ?>" class="btn btn-sm btn-outline-primary">
+                                                            <i class="fas fa-eye"></i>
+                                                        </a>
+                                                        <?php if (in_array($paseo['estado'], ['solicitado', 'confirmado'])): ?>
+                                                            <a href="CancelarPaseo.php?id=<?php echo $paseo['paseo_id']; ?>"
+                                                                class="btn btn-sm btn-outline-danger"
+                                                                onclick="return confirm('¿Estás seguro de que quieres cancelar este paseo?')">
+                                                                <i class="fas fa-times"></i>
+                                                            </a>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                </td>
+                                            </tr>
                                         <?php endforeach; ?>
                                     </tbody>
+
                                 </table>
                             </div>
                         </div>
@@ -348,15 +370,16 @@ foreach ($paseosPorEstado['completo'] as $paseo) {
         function filtrarPorEstado() {
             const estado = document.getElementById('estado').value;
             const url = new URL(window.location);
-            
+
             if (estado) {
                 url.searchParams.set('estado', estado);
             } else {
                 url.searchParams.delete('estado');
             }
-            
+
             window.location.href = url.toString();
         }
     </script>
 </body>
+
 </html>

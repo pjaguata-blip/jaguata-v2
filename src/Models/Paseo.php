@@ -34,10 +34,10 @@ class Paseo
             VALUES (:mascota_id, :paseador_id, :inicio, :duracion, :precio_total)
         ");
         $stmt->execute([
-            ':mascota_id' => $data['mascota_id'],
-            ':paseador_id' => $data['paseador_id'],
-            ':inicio' => $data['inicio'],
-            ':duracion' => $data['duracion'],
+            ':mascota_id'   => $data['mascota_id'],
+            ':paseador_id'  => $data['paseador_id'],
+            ':inicio'       => $data['inicio'],
+            ':duracion'     => $data['duracion'],
             ':precio_total' => $data['precio_total']
         ]);
         return $this->db->lastInsertId();
@@ -51,10 +51,10 @@ class Paseo
             WHERE paseo_id = :id
         ");
         return $stmt->execute([
-            ':inicio' => $data['inicio'],
-            ':duracion' => $data['duracion'],
+            ':inicio'       => $data['inicio'],
+            ':duracion'     => $data['duracion'],
             ':precio_total' => $data['precio_total'],
-            ':id' => $id
+            ':id'           => $id
         ]);
     }
 
@@ -71,14 +71,13 @@ class Paseo
         ");
         return $stmt->execute([
             ':estado' => $estado,
-            ':id' => $id
+            ':id'     => $id
         ]);
     }
 
     // ================================================
     // 🚀 Métodos agregados con JOINs
     // ================================================
-
     public function allWithRelations(): array
     {
         $sql = "SELECT p.*, 
@@ -107,22 +106,20 @@ class Paseo
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    // 🚀 NUEVO: traer paseos asignados a un paseador
     public function findByPaseador(int $paseadorId): array
     {
         $sql = "SELECT p.*, 
-                   d.nombre AS nombre_dueno,
-                   m.nombre AS nombre_mascota
-            FROM paseos p
-            LEFT JOIN mascotas m ON m.mascota_id = p.mascota_id
-            LEFT JOIN usuarios d ON d.usu_id = m.dueno_id
-            WHERE p.paseador_id = :paseador_id
-            ORDER BY p.inicio DESC";
+                       d.nombre AS nombre_dueno,
+                       m.nombre AS nombre_mascota
+                FROM paseos p
+                LEFT JOIN mascotas m ON m.mascota_id = p.mascota_id
+                LEFT JOIN usuarios d ON d.usu_id = m.dueno_id
+                WHERE p.paseador_id = :paseador_id
+                ORDER BY p.inicio DESC";
         $stmt = $this->db->prepare($sql);
         $stmt->execute(['paseador_id' => $paseadorId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
-
 
     public function findWithRelations(int $id): ?array
     {
@@ -137,20 +134,70 @@ class Paseo
         $stmt->execute(['id' => $id]);
         return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
     }
+
     public function findSolicitudesPendientes(int $paseadorId): array
     {
         $sql = "SELECT p.paseo_id, p.inicio, p.duracion, p.precio_total, p.estado,
-                   m.nombre AS nombre_mascota,
-                   u.nombre AS nombre_dueno
-            FROM paseos p
-            INNER JOIN mascotas m ON p.mascota_id = m.mascota_id
-            INNER JOIN usuarios u ON m.dueno_id = u.usu_id
-            WHERE p.paseador_id = :paseador_id
-              AND p.estado = 'Pendiente'
-            ORDER BY p.inicio ASC";
-
+                       m.nombre AS nombre_mascota,
+                       u.nombre AS nombre_dueno
+                FROM paseos p
+                INNER JOIN mascotas m ON p.mascota_id = m.mascota_id
+                INNER JOIN usuarios u ON m.dueno_id = u.usu_id
+                WHERE p.paseador_id = :paseador_id
+                  AND p.estado = 'Pendiente'
+                ORDER BY p.inicio ASC";
         $stmt = $this->db->prepare($sql);
         $stmt->execute(['paseador_id' => $paseadorId]);
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    }
+
+    // ================================================
+    // 🚀 NUEVOS MÉTODOS para ganancias y reportes
+    // ================================================
+    public function getGananciasPorPaseador(int $paseadorId): float
+    {
+        $sql = "SELECT SUM(precio_total) as total
+                FROM paseos
+                WHERE paseador_id = :paseador_id
+                  AND estado = 'completo'";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute(['paseador_id' => $paseadorId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row && $row['total'] ? (float)$row['total'] : 0.0;
+    }
+
+    public function contarPorEstado(int $paseadorId, string $estado): int
+    {
+        $sql = "SELECT COUNT(*) as total
+                FROM paseos
+                WHERE paseador_id = :paseador_id
+                  AND estado = :estado";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([
+            'paseador_id' => $paseadorId,
+            'estado'      => $estado
+        ]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return (int)($row['total'] ?? 0);
+    }
+
+    public function historialCompletados(int $paseadorId): array
+    {
+        $sql = "SELECT p.*, 
+                       m.nombre AS nombre_mascota,
+                       u.nombre AS nombre_dueno
+                FROM paseos p
+                INNER JOIN mascotas m ON m.mascota_id = p.mascota_id
+                INNER JOIN usuarios u ON m.dueno_id = u.usu_id
+                WHERE p.paseador_id = :paseador_id
+                  AND p.estado = 'completo'
+                ORDER BY p.inicio DESC";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute(['paseador_id' => $paseadorId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+    public function getByPaseador(int $paseadorId): array
+    {
+        return $this->findByPaseador($paseadorId);
     }
 }

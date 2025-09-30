@@ -43,6 +43,10 @@ $titulo = "Mi Perfil (Paseador) - Jaguata";
             <p><strong>Experiencia:</strong> <?= htmlspecialchars($usuario['experiencia'] ?? 'No especificada') ?></p>
             <p><strong>Zona de trabajo:</strong> <?= htmlspecialchars($usuario['zona'] ?? 'No especificada') ?></p>
 
+            <a href="Dashboard.php" class="btn btn-secondary mt-3">
+                <i class="fas fa-arrow-left"></i> Volver al Dashboard
+            </a>
+
             <a href="EditarPerfil.php" class="btn btn-primary mt-3">
                 <i class="fas fa-edit"></i> Editar Perfil
             </a>

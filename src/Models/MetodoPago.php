@@ -2,55 +2,37 @@
 
 namespace Jaguata\Models;
 
+require_once __DIR__ . '/BaseModel.php';
+
 class MetodoPago extends BaseModel
 {
-    protected string $table = 'metodos';
+    protected string $table = 'metodos_pago';
     protected string $primaryKey = 'metodo_id';
 
-    /**
-     * Obtener todos los métodos de pago de un usuario
-     */
-    public function getByUsuario(int $usuId): array
+    public function findByUsuario(int $usuarioId): array
     {
-        return $this->findAll(['usu_id' => $usuId], 'created_at DESC');
+        $sql = "SELECT * FROM {$this->table} WHERE usu_id = :id ORDER BY is_default DESC, created_at DESC";
+        return $this->db->fetchAll($sql, ['id' => $usuarioId]);
     }
 
-    /**
-     * Obtener el método de pago por defecto de un usuario
-     */
-    public function getDefault(int $usuId): ?array
+    public function createMetodo(array $data): int
     {
-        $sql = "SELECT * FROM {$this->table} 
-                WHERE usu_id = :usu_id AND is_default = 1 
-                LIMIT 1";
-        return $this->fetchOne($sql, ['usu_id' => $usuId]);
+        return $this->create($data);
     }
 
-    /**
-     * Marcar un método de pago como predeterminado
-     */
-    public function setDefault(int $usuId, int $metodoId): bool
+    public function updateMetodo(int $id, array $data): bool
     {
-        // Primero desmarcar todos los anteriores
-        $this->updateAllByUser($usuId, ['is_default' => 0]);
-
-        // Luego marcar el nuevo como predeterminado
-        return $this->update($metodoId, ['is_default' => 1]);
+        return $this->update($id, $data);
     }
 
-    /**
-     * Helper: actualizar todos los métodos de un usuario
-     */
-    private function updateAllByUser(int $usuId, array $data): bool
+    public function deleteMetodo(int $id): bool
     {
-        if (empty($data)) {
-            return false;
-        }
+        return $this->delete($id);
+    }
 
-        $fields = implode(', ', array_map(fn($f) => "$f = :$f", array_keys($data)));
-        $sql = "UPDATE {$this->table} SET $fields WHERE usu_id = :usu_id";
-        $data['usu_id'] = $usuId;
-
-        return $this->db->executeQuery($sql, $data);
+    public function setDefault(int $usuarioId, int $metodoId): bool
+    {
+        $this->db->executeQuery("UPDATE {$this->table} SET is_default = 0 WHERE usu_id = :uid", ['uid' => $usuarioId]);
+        return $this->db->executeQuery("UPDATE {$this->table} SET is_default = 1 WHERE metodo_id = :mid", ['mid' => $metodoId]);
     }
 }

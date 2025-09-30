@@ -110,4 +110,15 @@ class PaseoController
     {
         return $this->paseoModel->findSolicitudesPendientes($paseadorId);
     }
+    public function getGananciasPorPaseador(int $paseadorId): float
+    {
+        $paseos = $this->paseoModel->getByPaseador($paseadorId);
+        $total = 0;
+        foreach ($paseos as $p) {
+            if ($p['estado'] === 'completo') {
+                $total += $p['precio_total'];
+            }
+        }
+        return $total;
+    }
 }

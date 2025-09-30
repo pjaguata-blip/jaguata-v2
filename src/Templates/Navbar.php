@@ -9,12 +9,18 @@ use Jaguata\Services\NotificacionService;
 $usuarioLogueado = Session::isLoggedIn();
 $rolUsuario      = Session::getUsuarioRol();
 $nombreUsuario   = Session::getUsuarioNombre();
+
+// 🔹 URL dinámica de inicio
+$inicioUrl = BASE_URL . "/index.php";
+if ($usuarioLogueado && $rolUsuario) {
+    $inicioUrl = BASE_URL . "/features/{$rolUsuario}/Dashboard.php";
+}
 ?>
 
 <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
     <div class="container">
         <!-- Brand -->
-        <a class="navbar-brand d-flex align-items-center" href="<?php echo BASE_URL; ?>">
+        <a class="navbar-brand d-flex align-items-center" href="<?php echo $inicioUrl; ?>">
             <img src="<?php echo ASSETS_URL; ?>/images/logo.png" alt="Jaguata" height="40" class="me-2">
             <span class="fw-bold text-primary">Jaguata</span>
         </a>
@@ -29,7 +35,7 @@ $nombreUsuario   = Session::getUsuarioNombre();
             <ul class="navbar-nav me-auto">
                 <li class="nav-item">
                     <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) === 'index.php' ? 'active' : ''; ?>"
-                        href="<?php echo BASE_URL; ?>">
+                        href="<?php echo $inicioUrl; ?>">
                         <i class="fas fa-home me-1"></i>Inicio
                     </a>
                 </li>

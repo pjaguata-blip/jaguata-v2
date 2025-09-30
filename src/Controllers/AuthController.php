@@ -44,8 +44,13 @@ class AuthController
     private function safeRedirect(string $target): void
     {
         $current = $_SERVER['PHP_SELF'] ?? '';
-        // Evitar loop: si ya estamos en login o registro, no volver a redirigir
-        if (strpos($current, 'login.php') !== false || strpos($current, 'registro.php') !== false) {
+        // Evitar loop: si ya estamos en login, registro, index o logout, no volver a redirigir
+        if (
+            strpos($current, 'login.php') !== false ||
+            strpos($current, 'registro.php') !== false ||
+            strpos($current, 'index.php') !== false ||
+            strpos($current, 'logout.php') !== false
+        ) {
             return;
         }
 
@@ -287,5 +292,39 @@ class AuthController
                 'rol'    => Session::get('rol')
             ]
         ];
+    }
+
+    // =====================
+    // CONTROL DE ROLES
+    // =====================
+
+    public function requireRole(array $roles)
+    {
+        if (!Session::isLoggedIn()) {
+            $this->safeRedirect('/jaguata/public/login.php');
+        }
+
+        $rol = Session::get('rol');
+        if (!in_array($rol, $roles, true)) {
+            // Si tiene rol válido pero no está en la lista, lo mandamos a su dashboard
+            $this->redirectToDashboard();
+        }
+    }
+
+    public function redirectToDashboard()
+    {
+        if (!Session::isLoggedIn()) {
+            $this->safeRedirect('/jaguata/public/login.php');
+        }
+
+        $rol = Session::get('rol');
+        if ($rol && in_array($rol, ['dueno', 'paseador'], true)) {
+            header("Location: /jaguata/features/{$rol}/Dashboard.php", true, 302);
+            exit;
+        }
+
+        // Si no tiene rol válido, forzar logout
+        Session::logout();
+        $this->safeRedirect('/jaguata/public/login.php');
     }
 }

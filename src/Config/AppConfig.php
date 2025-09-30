@@ -16,7 +16,6 @@ class AppConfig
         }
 
         // === Composer Autoload ===
-        // Asegura que el autoload de Composer esté disponible
         $vendorAutoload = __DIR__ . '/../../vendor/autoload.php';
         if (file_exists($vendorAutoload)) {
             require_once $vendorAutoload;
@@ -26,7 +25,7 @@ class AppConfig
         $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? "https://" : "http://";
         $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
 
-        // Detectar carpeta base (ej: /jaguata/public)
+        // Detectar carpeta base
         $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
         $basePath = str_replace('\\', '/', dirname($scriptName));
         $basePath = rtrim($basePath, '/');
@@ -68,7 +67,7 @@ class AppConfig
             define('DEBUG_MODE', $host === 'localhost');
         }
 
-        // === Configuración de BD (usar env si existe) ===
+        // === Configuración de BD ===
         if (!defined('DB_HOST')) define('DB_HOST', getenv('DB_HOST') ?: '127.0.0.1');
         if (!defined('DB_NAME')) define('DB_NAME', getenv('DB_NAME') ?: 'jaguata');
         if (!defined('DB_USER')) define('DB_USER', getenv('DB_USER') ?: 'root');
@@ -98,6 +97,28 @@ class AppConfig
         if (session_status() === PHP_SESSION_NONE) {
             session_name(SESSION_NAME);
             session_start();
+        }
+
+        // === Configuración de tamaños de mascotas ===
+        if (!defined('TAMANOS_MASCOTA')) {
+            define('TAMANOS_MASCOTA', [
+                'pequeno' => [
+                    'label' => 'Pequeño',
+                    'rango' => '0 - 10 kg'
+                ],
+                'mediano' => [
+                    'label' => 'Mediano',
+                    'rango' => '11 - 25 kg'
+                ],
+                'grande' => [
+                    'label' => 'Grande',
+                    'rango' => '26 - 45 kg'
+                ],
+                'extra_grande' => [
+                    'label' => 'Extra Grande',
+                    'rango' => '46+ kg'
+                ]
+            ]);
         }
 
         self::$initialized = true;

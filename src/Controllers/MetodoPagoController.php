@@ -3,38 +3,36 @@
 namespace Jaguata\Controllers;
 
 use Jaguata\Models\MetodoPago;
+use Jaguata\Helpers\Session;
 
 class MetodoPagoController
 {
-    private MetodoPago $model;
+    private MetodoPago $metodoPagoModel;
 
     public function __construct()
     {
-        $this->model = new MetodoPago();
+        $this->metodoPagoModel = new MetodoPago();
     }
 
-    public function getByUsuario(int $usuarioId): array
+    public function index(): array
     {
-        return $this->model->findByUsuario($usuarioId);
+        $usuId = \Jaguata\Helpers\Session::getUsuarioId();
+        return $this->metodoPagoModel->getByUsuario($usuId);
     }
 
-    public function store(array $data): int
+    public function store(array $data): bool
     {
-        return $this->model->createMetodo($data);
+        $data['usuario_id'] = Session::getUsuarioId();
+        return $this->metodoPagoModel->create($data);
     }
 
     public function update(int $id, array $data): bool
     {
-        return $this->model->updateMetodo($id, $data);
+        return $this->metodoPagoModel->update($id, $data);
     }
 
     public function delete(int $id): bool
     {
-        return $this->model->deleteMetodo($id);
-    }
-
-    public function setDefault(int $usuarioId, int $metodoId): bool
-    {
-        return $this->model->setDefault($usuarioId, $metodoId);
+        return $this->metodoPagoModel->delete($id);
     }
 }

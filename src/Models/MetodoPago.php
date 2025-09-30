@@ -9,30 +9,29 @@ class MetodoPago extends BaseModel
     protected string $table = 'metodos_pago';
     protected string $primaryKey = 'metodo_id';
 
-    public function findByUsuario(int $usuarioId): array
+    /**
+     * Obtener métodos de pago de un usuario
+     */
+    public function getByUsuario(int $usuId): array
     {
-        $sql = "SELECT * FROM {$this->table} WHERE usu_id = :id ORDER BY is_default DESC, created_at DESC";
-        return $this->db->fetchAll($sql, ['id' => $usuarioId]);
+        $sql = "SELECT * FROM {$this->table} WHERE usu_id = :usu_id";
+        return $this->fetchAll($sql, ['usu_id' => $usuId]);
     }
 
-    public function createMetodo(array $data): int
+    /**
+     * Establecer un método como predeterminado
+     */
+    public function setDefault(int $metodoId, int $usuId): bool
     {
-        return $this->create($data);
-    }
+        // Primero quitar el anterior default
+        $sql1 = "UPDATE {$this->table} SET is_default = 0 WHERE usu_id = :usu_id";
+        $this->db->executeQuery($sql1, ['usu_id' => $usuId]);
 
-    public function updateMetodo(int $id, array $data): bool
-    {
-        return $this->update($id, $data);
-    }
-
-    public function deleteMetodo(int $id): bool
-    {
-        return $this->delete($id);
-    }
-
-    public function setDefault(int $usuarioId, int $metodoId): bool
-    {
-        $this->db->executeQuery("UPDATE {$this->table} SET is_default = 0 WHERE usu_id = :uid", ['uid' => $usuarioId]);
-        return $this->db->executeQuery("UPDATE {$this->table} SET is_default = 1 WHERE metodo_id = :mid", ['mid' => $metodoId]);
+        // Ahora poner el nuevo
+        $sql2 = "UPDATE {$this->table} SET is_default = 1 WHERE metodo_id = :metodo_id AND usu_id = :usu_id";
+        return $this->db->executeQuery($sql2, [
+            'metodo_id' => $metodoId,
+            'usu_id'    => $usuId
+        ]);
     }
 }

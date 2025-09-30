@@ -24,6 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 ?>
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -32,6 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="../../assets/css/style.css" rel="stylesheet">
 </head>
+
 <body>
     <?php include __DIR__ . '/../../src/Templates/Header.php'; ?>
     <?php include __DIR__ . '/../../src/Templates/Navbar.php'; ?>
@@ -66,7 +68,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <?php if (isset($_SESSION['success'])): ?>
                     <div class="alert alert-success alert-dismissible fade show" role="alert">
                         <i class="fas fa-check-circle me-2"></i>
-                        <?= $_SESSION['success']; unset($_SESSION['success']); ?>
+                        <?= $_SESSION['success'];
+                        unset($_SESSION['success']); ?>
                         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                     </div>
                 <?php endif; ?>
@@ -74,7 +77,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <?php if (isset($_SESSION['error'])): ?>
                     <div class="alert alert-danger alert-dismissible fade show" role="alert">
                         <i class="fas fa-exclamation-circle me-2"></i>
-                        <?= $_SESSION['error']; unset($_SESSION['error']); ?>
+                        <?= $_SESSION['error'];
+                        unset($_SESSION['error']); ?>
                         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                     </div>
                 <?php endif; ?>
@@ -85,7 +89,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <ul class="mb-0">
                             <?php foreach ($_SESSION['errors'] as $error): ?>
                                 <li><?= $error; ?></li>
-                            <?php endforeach; unset($_SESSION['errors']); ?>
+                            <?php endforeach;
+                            unset($_SESSION['errors']); ?>
                         </ul>
                         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                     </div>
@@ -116,12 +121,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     <div class="row">
                                         <div class="col-md-6 mb-3">
                                             <label for="tamano" class="form-label">Tamaño</label>
-                                            <select class="form-select" id="tamano" name="tamano">
+                                            <select class="form-select" id="tamano" name="tamano" required>
                                                 <option value="">Seleccionar tamaño</option>
-                                                <option value="pequeno" <?= ($_POST['tamano'] ?? '') === 'pequeno' ? 'selected' : '' ?>>Pequeño</option>
-                                                <option value="mediano" <?= ($_POST['tamano'] ?? '') === 'mediano' ? 'selected' : '' ?>>Mediano</option>
-                                                <option value="grande" <?= ($_POST['tamano'] ?? '') === 'grande' ? 'selected' : '' ?>>Grande</option>
+                                                <?php foreach (TAMANOS_MASCOTA as $key => $info): ?>
+                                                    <option value="<?= $key ?>" <?= ($_POST['tamano'] ?? '') === $key ? 'selected' : '' ?>>
+                                                        <?= $info['label'] ?> (<?= $info['rango'] ?>)
+                                                    </option>
+                                                <?php endforeach; ?>
                                             </select>
+
                                         </div>
                                         <div class="col-md-6 mb-3">
                                             <label for="edad" class="form-label">Edad</label>
@@ -152,4 +160,5 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="../../assets/js/main.js"></script>
 </body>
+
 </html>

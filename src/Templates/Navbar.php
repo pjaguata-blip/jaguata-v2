@@ -1,5 +1,5 @@
 <?php
-// Navbar component
+// Navbar component limpio
 require_once __DIR__ . '/../Helpers/Session.php';
 require_once __DIR__ . '/../Services/NotificacionService.php';
 
@@ -33,38 +33,18 @@ if ($usuarioLogueado && $rolUsuario) {
         <!-- Navigation items -->
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav me-auto">
-                <li class="nav-item">
-                    <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) === 'index.php' ? 'active' : ''; ?>"
-                        href="<?php echo $inicioUrl; ?>">
-                        <i class="fas fa-home me-1"></i>Inicio
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) === 'sobre_nosotros.php' ? 'active' : ''; ?>"
-                        href="<?php echo BASE_URL; ?>/sobre_nosotros.php">
-                        <i class="fas fa-info-circle me-1"></i>Sobre Nosotros
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) === 'contacto.php' ? 'active' : ''; ?>"
-                        href="<?php echo BASE_URL; ?>/contacto.php">
-                        <i class="fas fa-envelope me-1"></i>Contacto
-                    </a>
-                </li>
-
                 <?php if ($usuarioLogueado): ?>
                     <?php if ($rolUsuario === 'dueno'): ?>
+                        <!-- Dueño -->
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                                <i class="fas fa-paw me-1"></i>Mis Mascotas
-                            </a>
+
                             <ul class="dropdown-menu">
                                 <li><a class="dropdown-item" href="<?php echo BASE_URL; ?>/features/dueno/MisMascotas.php">
-                                        <i class="fas fa-list me-2"></i>Ver Mascotas
-                                    </a></li>
+                                        <i class="fas fa-list me-2"></i>Ver Mascotas</a>
+                                </li>
                                 <li><a class="dropdown-item" href="<?php echo BASE_URL; ?>/features/dueno/AgregarMascota.php">
-                                        <i class="fas fa-plus me-2"></i>Agregar Mascota
-                                    </a></li>
+                                        <i class="fas fa-plus me-2"></i>Agregar Mascota</a>
+                                </li>
                             </ul>
                         </li>
                         <li class="nav-item">
@@ -73,13 +53,10 @@ if ($usuarioLogueado && $rolUsuario) {
                                 <i class="fas fa-search me-1"></i>Buscar Paseadores
                             </a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) === 'MisPaseos.php' ? 'active' : ''; ?>"
-                                href="<?php echo BASE_URL; ?>/features/dueno/MisPaseos.php">
-                                <i class="fas fa-walking me-1"></i>Mis Paseos
-                            </a>
-                        </li>
+
+
                     <?php elseif ($rolUsuario === 'paseador'): ?>
+                        <!-- Paseador -->
                         <li class="nav-item">
                             <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) === 'Solicitudes.php' ? 'active' : ''; ?>"
                                 href="<?php echo BASE_URL; ?>/features/paseador/Solicitudes.php">
@@ -105,7 +82,9 @@ if ($usuarioLogueado && $rolUsuario) {
                                 <i class="fas fa-dollar-sign me-1"></i>Mis Ganancias
                             </a>
                         </li>
+
                     <?php elseif ($rolUsuario === 'admin'): ?>
+                        <!-- Admin -->
                         <li class="nav-item">
                             <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) === 'Dashboard.php' ? 'active' : ''; ?>"
                                 href="<?php echo BASE_URL; ?>/features/admin/Dashboard.php">
@@ -142,17 +121,28 @@ if ($usuarioLogueado && $rolUsuario) {
                             <span class="d-none d-md-inline"><?php echo htmlspecialchars($nombreUsuario); ?></span>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end">
-                            <li><a class="dropdown-item" href="<?php echo BASE_URL; ?>/features/<?php echo $rolUsuario; ?>/Perfil.php"><i class="fas fa-user-edit me-2"></i>Mi Perfil</a></li>
-                            <li><a class="dropdown-item" href="<?php echo BASE_URL; ?>/features/<?php echo $rolUsuario; ?>/Dashboard.php"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</a></li>
+                            <li><a class="dropdown-item" href="<?php echo BASE_URL; ?>/features/<?php echo $rolUsuario; ?>/Perfil.php">
+                                    <i class="fas fa-user-edit me-2"></i>Mi Perfil</a></li>
+                            <li><a class="dropdown-item" href="<?php echo BASE_URL; ?>/features/<?php echo $rolUsuario; ?>/Dashboard.php">
+                                    <i class="fas fa-tachometer-alt me-2"></i>Dashboard</a></li>
                             <li>
                                 <hr class="dropdown-divider">
                             </li>
-                            <li><a class="dropdown-item text-danger" href="<?php echo BASE_URL; ?>/logout.php"><i class="fas fa-sign-out-alt me-2"></i>Cerrar Sesión</a></li>
+                            <li><a class="dropdown-item text-danger" href="<?php echo BASE_URL; ?>/logout.php">
+                                    <i class="fas fa-sign-out-alt me-2"></i>Cerrar Sesión</a></li>
                         </ul>
                     </li>
                 <?php else: ?>
-                    <li class="nav-item"><a class="nav-link" href="<?php echo BASE_URL; ?>/login.php"><i class="fas fa-sign-in-alt me-1"></i>Iniciar Sesión</a></li>
-                    <li class="nav-item"><a class="btn btn-primary ms-2" href="<?php echo BASE_URL; ?>/registro.php"><i class="fas fa-user-plus me-1"></i>Registrarse</a></li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="<?php echo BASE_URL; ?>/login.php">
+                            <i class="fas fa-sign-in-alt me-1"></i>Iniciar Sesión
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="btn btn-primary ms-2" href="<?php echo BASE_URL; ?>/registro.php">
+                            <i class="fas fa-user-plus me-1"></i>Registrarse
+                        </a>
+                    </li>
                 <?php endif; ?>
             </ul>
         </div>

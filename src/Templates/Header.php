@@ -58,11 +58,7 @@ use Jaguata\Helpers\Session;
 
             <!-- Menú -->
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item"><a class="nav-link" href="<?php echo $inicioUrl; ?>">Inicio</a></li>
-                    <li class="nav-item"><a class="nav-link" href="<?php echo BASE_URL; ?>/sobre_nosotros.php">Sobre Nosotros</a></li>
-                    <li class="nav-item"><a class="nav-link" href="<?php echo BASE_URL; ?>/contacto.php">Contacto</a></li>
-                </ul>
+
 
                 <ul class="navbar-nav">
                     <?php if ($usuarioLogueado): ?>

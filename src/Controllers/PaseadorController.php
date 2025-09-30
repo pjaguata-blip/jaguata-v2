@@ -15,33 +15,21 @@ class PaseadorController
         $this->paseadorModel = new Paseador();
     }
 
-    /**
-     * Listar todos los paseadores
-     */
     public function index()
     {
         return $this->paseadorModel->all();
     }
 
-    /**
-     * Listar solo paseadores disponibles
-     */
     public function disponibles()
     {
         return $this->paseadorModel->getDisponibles();
     }
 
-    /**
-     * Ver detalle de un paseador
-     */
     public function show($id)
     {
         return $this->paseadorModel->find((int)$id);
     }
 
-    /**
-     * Crear nuevo paseador (desde API)
-     */
     public function apiStore()
     {
         if (!Session::isLoggedIn()) {
@@ -52,8 +40,8 @@ class PaseadorController
             'nombre'       => $_POST['nombre'] ?? '',
             'email'        => $_POST['email'] ?? '',
             'telefono'     => $_POST['telefono'] ?? '',
-            'experiencia'  => $_POST['experiencia'] ?? '',
-            'disponible'   => isset($_POST['disponible']) ? (int)$_POST['disponible'] : 1,
+            'experiencia'  => $_POST['experiencia'] ?? 0,
+            'disponible'   => $_POST['disponible'] ?? 1,
             'precio_hora'  => $_POST['precio_hora'] ?? 0,
             'calificacion' => $_POST['calificacion'] ?? 0,
             'total_paseos' => $_POST['total_paseos'] ?? 0,
@@ -63,14 +51,10 @@ class PaseadorController
             $id = $this->paseadorModel->create($data);
             return ['success' => true, 'id' => $id];
         } catch (Exception $e) {
-            error_log("Error creando paseador: " . $e->getMessage());
-            return ['error' => 'Error interno'];
+            return ['error' => $e->getMessage()];
         }
     }
 
-    /**
-     * Actualizar paseador (API)
-     */
     public function apiUpdate($id)
     {
         if (!Session::isLoggedIn()) {
@@ -80,8 +64,8 @@ class PaseadorController
         $data = [
             'nombre'       => $_POST['nombre'] ?? '',
             'telefono'     => $_POST['telefono'] ?? '',
-            'experiencia'  => $_POST['experiencia'] ?? '',
-            'disponible'   => isset($_POST['disponible']) ? (int)$_POST['disponible'] : 1,
+            'experiencia'  => $_POST['experiencia'] ?? 0,
+            'disponible'   => $_POST['disponible'] ?? 1,
             'precio_hora'  => $_POST['precio_hora'] ?? 0,
             'calificacion' => $_POST['calificacion'] ?? 0,
             'total_paseos' => $_POST['total_paseos'] ?? 0,
@@ -92,9 +76,6 @@ class PaseadorController
             : ['error' => 'No se pudo actualizar'];
     }
 
-    /**
-     * Eliminar paseador (API)
-     */
     public function apiDelete($id)
     {
         if (!Session::isLoggedIn()) {
@@ -106,47 +87,25 @@ class PaseadorController
             : ['error' => 'No se pudo eliminar'];
     }
 
-    /**
-     * Cambiar disponibilidad de un paseador (API)
-     */
     public function apiSetDisponible($id)
     {
-        if (!Session::isLoggedIn()) {
-            return ['error' => 'No autorizado'];
-        }
-
-        $estado = isset($_POST['disponible']) ? (bool)$_POST['disponible'] : true;
-        return $this->paseadorModel->setDisponible((int)$id, $estado)
-            ? ['success' => true]
-            : ['error' => 'No se pudo actualizar disponibilidad'];
+        return $this->paseadorModel->setDisponible((int)$id, (bool)($_POST['disponible'] ?? true));
     }
 
-    /**
-     * Actualizar calificación (API)
-     */
     public function apiUpdateCalificacion($id)
     {
-        if (!Session::isLoggedIn()) {
-            return ['error' => 'No autorizado'];
-        }
-
-        $nuevaCalificacion = (float)($_POST['calificacion'] ?? 0);
-        return $this->paseadorModel->updateCalificacion((int)$id, $nuevaCalificacion)
-            ? ['success' => true]
-            : ['error' => 'No se pudo actualizar calificación'];
+        return $this->paseadorModel->updateCalificacion((int)$id, (float)($_POST['calificacion'] ?? 0));
     }
 
-    /**
-     * Incrementar paseos completados (API)
-     */
     public function apiIncrementarPaseos($id)
     {
-        if (!Session::isLoggedIn()) {
-            return ['error' => 'No autorizado'];
-        }
+        return $this->paseadorModel->incrementarPaseos((int)$id);
+    }
 
-        return $this->paseadorModel->incrementarPaseos((int)$id)
-            ? ['success' => true]
-            : ['error' => 'No se pudo incrementar paseos'];
+    public function buscar(string $query = '')
+    {
+        return empty($query)
+            ? $this->paseadorModel->all()
+            : $this->paseadorModel->search($query);
     }
 }

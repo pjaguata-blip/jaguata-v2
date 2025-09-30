@@ -1,25 +1,26 @@
 <?php
 require_once __DIR__ . '/../../src/Config/AppConfig.php';
 require_once __DIR__ . '/../../src/Controllers/AuthController.php';
-require_once __DIR__ . '/../../src/Controllers/MascotaController.php';
+require_once __DIR__ . '/../../src/Controllers/MetodoPagoController.php';
 
 use Jaguata\Config\AppConfig;
 use Jaguata\Controllers\AuthController;
-use Jaguata\Controllers\MascotaController;
+use Jaguata\Controllers\MetodoPagoController;
 
 AppConfig::init();
 $auth = new AuthController();
 $auth->checkRole('dueno');
 
-$controller = new MascotaController();
-$mascotas = $controller->index();
+// Controlador
+$controller = new MetodoPagoController();
+$metodosPago = $controller->index(); // obtiene todos los métodos del usuario logueado
 ?>
 <!DOCTYPE html>
 <html lang="es">
 
 <head>
     <meta charset="UTF-8">
-    <title>Mis Mascotas - Jaguata</title>
+    <title>Métodos de Pago - Jaguata</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="<?php echo BASE_URL; ?>/assets/css/style.css" rel="stylesheet">
@@ -30,7 +31,7 @@ $mascotas = $controller->index();
     <?php include __DIR__ . '/../../src/Templates/Navbar.php'; ?>
 
     <div class="container mt-4">
-        <h2 class="mb-4"><i class="fas fa-paw me-2"></i>Mis Mascotas</h2>
+        <h2 class="mb-4"><i class="fas fa-credit-card me-2"></i>Mis Métodos de Pago</h2>
 
         <!-- Mensajes -->
         <?php if (isset($_SESSION['success'])): ?>
@@ -42,37 +43,42 @@ $mascotas = $controller->index();
                                             unset($_SESSION['error']); ?></div>
         <?php endif; ?>
 
-        <a href="AgregarMascota.php" class="btn btn-primary mb-3">
-            <i class="fas fa-plus me-1"></i>Agregar Mascota
+        <a href="AgregarMetodoPago.php" class="btn btn-primary mb-3">
+            <i class="fas fa-plus me-1"></i>Agregar Método de Pago
         </a>
 
-        <div class="card shadow">
-            <div class="card-body">
-                <table class="table table-hover align-middle">
+        <?php if (empty($metodosPago)): ?>
+            <div class="text-center py-5">
+                <i class="fas fa-credit-card fa-3x text-muted mb-3"></i>
+                <p class="text-muted">No tienes métodos de pago registrados</p>
+            </div>
+        <?php else: ?>
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover align-middle">
                     <thead class="table-light">
                         <tr>
-                            <th>Nombre</th>
-                            <th>Raza</th>
-                            <th>Tamaño</th>
-                            <th>Edad</th>
+                            <th>Tipo</th>
+                            <th>Entidad</th>
+                            <th>Número</th>
+                            <th>Titular</th>
                             <th>Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($mascotas as $m): ?>
+                        <?php foreach ($metodosPago as $m): ?>
                             <tr>
-                                <td><?= htmlspecialchars($m['nombre']) ?></td>
-                                <td><?= htmlspecialchars($m['raza']) ?></td>
-                                <td><?= htmlspecialchars($m['tamano']) ?></td>
-                                <td><?= htmlspecialchars($m['edad']) ?> años</td>
+                                <td><i class="fas fa-<?= $m['tipo'] === 'tarjeta' ? 'credit-card' : 'university' ?> me-1"></i> <?= ucfirst($m['tipo']); ?></td>
+                                <td><?= htmlspecialchars($m['entidad']); ?></td>
+                                <td>**** <?= substr($m['numero'], -4); ?></td>
+                                <td><?= htmlspecialchars($m['titular']); ?></td>
                                 <td>
-                                    <a href="EditarMascota.php?id=<?= $m['mascota_id'] ?>" class="btn btn-sm btn-warning">
+                                    <a href="EditarMetodoPago.php?id=<?= $m['metodo_id'] ?>" class="btn btn-sm btn-warning">
                                         <i class="fas fa-edit"></i> Editar
                                     </a>
-                                    <a href="EliminarMascota.php?id=<?= $m['mascota_id'] ?>"
+                                    <a href="EliminarMetodoPago.php?id=<?= $m['metodo_id'] ?>"
                                         class="btn btn-sm btn-danger"
-                                        onclick="return confirm('¿Seguro que deseas eliminar esta mascota?')">
-                                        <i class="fas fa-trash-alt"></i> Eliminar
+                                        onclick="return confirm('¿Seguro que quieres eliminar este método de pago?')">
+                                        <i class="fas fa-trash"></i> Eliminar
                                     </a>
                                 </td>
                             </tr>
@@ -80,7 +86,7 @@ $mascotas = $controller->index();
                     </tbody>
                 </table>
             </div>
-        </div>
+        <?php endif; ?>
     </div>
 
     <!-- Footer -->

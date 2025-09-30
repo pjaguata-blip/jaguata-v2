@@ -9,54 +9,55 @@ class Paseador extends BaseModel
     protected string $table = 'paseadores';
     protected string $primaryKey = 'paseador_id';
 
-    /**
-     * Obtener todos los paseadores disponibles
-     */
-    public function getDisponibles(): array
+    public function all(): array
     {
-        $sql = "SELECT p.*, u.nombre, u.email 
-                FROM {$this->table} p
-                JOIN usuarios u ON u.usu_id = p.paseador_id
-                WHERE p.disponibilidad = 1";
+        $sql = "SELECT * FROM {$this->table}";
         return $this->fetchAll($sql);
     }
 
-    /**
-     * Crear un paseador
-     */
-    public function createPaseador(array $data): int
+    public function getDisponibles(): array
     {
-        return $this->create($data);
+        $sql = "SELECT u.usu_id, u.nombre, u.email, u.telefono, u.zona, u.experiencia, u.perfil_foto
+            FROM usuarios u
+            WHERE u.rol = 'paseador'";
+        return $this->fetchAll($sql);
     }
 
-    /**
-     * Actualizar datos del paseador
-     */
-    public function updatePaseador(int $id, array $data): bool
+
+    public function search(string $query): array
     {
-        return $this->update($id, $data);
+        $sql = "SELECT * FROM {$this->table}
+            WHERE nombre LIKE :q OR zona LIKE :q";
+        return $this->fetchAll($sql, ['q' => "%$query%"]);
     }
 
-    /**
-     * Obtener un paseador por ID
-     */
-    public function getById(int $id): ?array
-    {
-        return $this->find($id) ?: null;
-    }
-
-    /**
-     * Sumar paseo + calificación
-     */
-    public function registrarPaseo(int $id, float $nuevaCalificacion): bool
+    public function setDisponible(int $id, bool $estado): bool
     {
         $sql = "UPDATE {$this->table}
-                SET total_paseos = total_paseos + 1,
-                    calificacion = (calificacion + :calificacion) / 2
+                SET disponibilidad = :estado
+                WHERE {$this->primaryKey} = :id";
+        return $this->db->executeQuery($sql, [
+            'id' => $id,
+            'estado' => $estado ? 1 : 0
+        ]);
+    }
+
+    public function updateCalificacion(int $id, float $nuevaCalificacion): bool
+    {
+        $sql = "UPDATE {$this->table}
+                SET calificacion = :calificacion
                 WHERE {$this->primaryKey} = :id";
         return $this->db->executeQuery($sql, [
             'id' => $id,
             'calificacion' => $nuevaCalificacion
         ]);
+    }
+
+    public function incrementarPaseos(int $id): bool
+    {
+        $sql = "UPDATE {$this->table}
+                SET total_paseos = total_paseos + 1
+                WHERE {$this->primaryKey} = :id";
+        return $this->db->executeQuery($sql, ['id' => $id]);
     }
 }

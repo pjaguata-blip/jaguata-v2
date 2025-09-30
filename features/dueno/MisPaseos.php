@@ -340,26 +340,70 @@ foreach ($paseosPorEstado['completo'] as $paseo) {
                                                 <!-- Acciones -->
                                                 <td>
                                                     <div class="btn-group" role="group">
-                                                        <a href="VerPaseo.php?id=<?php echo $paseo['paseo_id']; ?>" class="btn btn-sm btn-outline-primary">
+                                                        <!-- Ver siempre disponible -->
+                                                        <a href="VerPaseo.php?id=<?php echo $paseo['paseo_id']; ?>"
+                                                            class="btn btn-sm btn-outline-primary" title="Ver detalles">
                                                             <i class="fas fa-eye"></i>
                                                         </a>
-                                                        <?php if (in_array($paseo['estado'], ['Pendiente', 'confirmado'])): ?>
+
+                                                        <?php if ($paseo['estado'] === 'pendiente'): ?>
+                                                            <!-- Confirmar paseo -->
+                                                            <a href="ConfirmarPaseo.php?id=<?php echo $paseo['paseo_id']; ?>"
+                                                                class="btn btn-sm btn-outline-success"
+                                                                onclick="return confirm('¿Quieres confirmar este paseo?')"
+                                                                title="Confirmar">
+                                                                <i class="fas fa-check"></i>
+                                                            </a>
+                                                            <!-- Cancelar paseo -->
                                                             <a href="CancelarPaseo.php?id=<?php echo $paseo['paseo_id']; ?>"
                                                                 class="btn btn-sm btn-outline-danger"
-                                                                onclick="return confirm('¿Estás seguro de que quieres cancelar este paseo?')">
+                                                                onclick="return confirm('¿Seguro que deseas cancelar este paseo?')"
+                                                                title="Cancelar">
+                                                                <i class="fas fa-times"></i>
+                                                            </a>
+                                                        <?php endif; ?>
+
+                                                        <?php if ($paseo['estado'] === 'confirmado'): ?>
+                                                            <!-- Iniciar paseo -->
+                                                            <a href="IniciarPaseo.php?id=<?php echo $paseo['paseo_id']; ?>"
+                                                                class="btn btn-sm btn-outline-warning"
+                                                                onclick="return confirm('¿Quieres iniciar este paseo ahora?')"
+                                                                title="Iniciar">
+                                                                <i class="fas fa-play"></i>
+                                                            </a>
+                                                            <!-- Cancelar -->
+                                                            <a href="CancelarPaseo.php?id=<?php echo $paseo['paseo_id']; ?>"
+                                                                class="btn btn-sm btn-outline-danger"
+                                                                onclick="return confirm('¿Seguro que deseas cancelar este paseo?')"
+                                                                title="Cancelar">
                                                                 <i class="fas fa-times"></i>
                                                             </a>
                                                         <?php endif; ?>
 
                                                         <?php if ($paseo['estado'] === 'en_curso'): ?>
+                                                            <!-- Completar -->
                                                             <a href="CompletarPaseo.php?id=<?php echo $paseo['paseo_id']; ?>"
                                                                 class="btn btn-sm btn-outline-success"
-                                                                onclick="return confirm('¿Confirmas que este paseo fue completado?')">
-                                                                <i class="fas fa-check"></i>
+                                                                onclick="return confirm('¿Confirmas que este paseo fue completado?')"
+                                                                title="Completar">
+                                                                <i class="fas fa-flag-checkered"></i>
                                                             </a>
+                                                            <!-- Cancelar -->
+                                                            <a href="CancelarPaseo.php?id=<?php echo $paseo['paseo_id']; ?>"
+                                                                class="btn btn-sm btn-outline-danger"
+                                                                onclick="return confirm('¿Seguro que deseas cancelar este paseo?')"
+                                                                title="Cancelar">
+                                                                <i class="fas fa-times"></i>
+                                                            </a>
+                                                        <?php endif; ?>
+
+                                                        <?php if (in_array($paseo['estado'], ['completado', 'cancelado'])): ?>
+                                                            <!-- Solo ver -->
+                                                            <span class="badge bg-secondary">Finalizado</span>
                                                         <?php endif; ?>
                                                     </div>
                                                 </td>
+
                                             </tr>
                                         <?php endforeach; ?>
                                     </tbody>

@@ -143,7 +143,7 @@ if (!defined('TAMANO_EXTRA_GRANDE')) {
 
 // Estados de paseo (individuales para compatibilidad)
 if (!defined('PASEO_PENDIENTE')) {
-    define('PASEO_PENDIENTE', 'Pendiente');
+    define('PASEO_PENDIENTE', 'pendiente');
 }
 if (!defined('PASEO_CONFIRMADO')) {
     define('PASEO_CONFIRMADO', 'confirmado');
@@ -205,7 +205,7 @@ if (!defined('ROLES')) {
 // Configuración de estados de paseo (array para UI)
 if (!defined('PASEO_ESTADOS')) {
     define('PASEO_ESTADOS', [
-        'Pendiente' => 'Pendiente',
+        'Pendiente' => 'pendiente',
         'confirmado' => 'Confirmado',
         'en_curso' => 'En Curso',
         'completo' => 'Completo',
@@ -216,7 +216,7 @@ if (!defined('PASEO_ESTADOS')) {
 // Configuración de estados de pago (array para UI)
 if (!defined('PAGO_ESTADOS')) {
     define('PAGO_ESTADOS', [
-        'pendiente' => 'Pendiente',
+        'pendiente' => 'pendiente',
         'procesado' => 'Procesado',
         'fallido' => 'Fallido'
     ]);
@@ -230,15 +230,28 @@ if (!defined('METODOS_PAGO')) {
     ]);
 }
 
-// Configuración de tamaños de mascotas (array para UI)
+// Configuración de tamaños de mascotas con rangos de peso
 if (!defined('TAMANOS_MASCOTA')) {
     define('TAMANOS_MASCOTA', [
-        'pequeno' => 'Pequeño',
-        'mediano' => 'Mediano',
-        'grande' => 'Grande',
-        'extra_grande' => 'Extra Grande'
+        'pequeno' => [
+            'label' => 'Pequeño',
+            'rango' => '0 - 10 kg'
+        ],
+        'mediano' => [
+            'label' => 'Mediano',
+            'rango' => '11 - 25 kg'
+        ],
+        'grande' => [
+            'label' => 'Grande',
+            'rango' => '26 - 45 kg'
+        ],
+        'extra_grande' => [
+            'label' => 'Extra Grande',
+            'rango' => '46+ kg'
+        ]
     ]);
 }
+
 
 // Configuración de zonas
 if (!defined('ZONAS_DISPONIBLES')) {

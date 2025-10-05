@@ -21,7 +21,7 @@ if ($usuarioLogueado && $rolUsuario) {
             <div class="col-lg-4 mb-4">
                 <h5 class="text-primary mb-3">
                     <img src="<?php echo ASSETS_URL; ?>/images/logo-white.png" alt="Jaguata" height="30" class="me-2">
-                    Jaguata
+
                 </h5>
                 <p class="text-muted">
                     Conectamos dueños de mascotas con paseadores profesionales en Paraguay.
@@ -46,9 +46,6 @@ if ($usuarioLogueado && $rolUsuario) {
                     <?php if (!$usuarioLogueado): ?>
                         <li><a href="<?php echo BASE_URL; ?>/login.php" class="text-muted text-decoration-none">Iniciar Sesión</a></li>
                         <li><a href="<?php echo BASE_URL; ?>/registro.php" class="text-muted text-decoration-none">Registrarse</a></li>
-                    <?php else: ?>
-                        <li><a href="<?php echo BASE_URL; ?>/features/<?php echo $rolUsuario; ?>/Dashboard.php" class="text-muted text-decoration-none">Dashboard</a></li>
-                        <li><a href="<?php echo BASE_URL; ?>/logout.php" class="text-muted text-decoration-none">Cerrar Sesión</a></li>
                     <?php endif; ?>
                 </ul>
             </div>
@@ -58,10 +55,6 @@ if ($usuarioLogueado && $rolUsuario) {
                 <h6 class="text-primary mb-3">Servicios</h6>
                 <ul class="list-unstyled">
                     <li><a href="#" class="text-muted text-decoration-none">Paseo de Perros</a></li>
-                    <li><a href="#" class="text-muted text-decoration-none">Paseo de Gatos</a></li>
-                    <li><a href="#" class="text-muted text-decoration-none">Cuidado Temporal</a></li>
-                    <li><a href="#" class="text-muted text-decoration-none">Entrenamiento</a></li>
-                    <li><a href="#" class="text-muted text-decoration-none">Veterinaria</a></li>
                 </ul>
             </div>
 
@@ -112,7 +105,7 @@ if ($usuarioLogueado && $rolUsuario) {
             </div>
             <div class="col-md-6 text-md-end">
                 <p class="text-muted small mb-0">
-                    Hecho con <i class="fas fa-heart text-danger"></i> en Paraguay
+                    Hecho con Amor en Paraguay <i class="fas fa-heart text-danger"></i>
                 </p>
             </div>
         </div>

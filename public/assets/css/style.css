@@ -617,3 +617,104 @@ h1, h2, h3, h4, h5, h6 {
         page-break-before: always;
     }
 }
+
+/* ============================================
+   FIX CONTRASTE EN FOOTER OSCURO (bg-dark)
+   Pegar al final de style.css
+   ============================================ */
+
+footer.bg-dark {
+  color: #e9ecef; /* texto base claro */
+}
+
+footer.bg-dark h5,
+footer.bg-dark h6 {
+  color: #ffffff; /* títulos más brillantes */
+}
+
+footer.bg-dark p,
+footer.bg-dark li,
+footer.bg-dark span {
+  color: #e9ecef;
+}
+
+/* Enlaces legibles sobre fondo oscuro */
+footer.bg-dark a {
+  color: #e9ecef;
+  text-decoration: none;
+  transition: color .2s ease;
+}
+
+footer.bg-dark a:hover,
+footer.bg-dark a:focus {
+  color: #ffffff;
+  text-decoration: none;
+}
+
+/* Sustituye el gris oscuro de text-muted por un gris claro */
+footer.bg-dark .text-muted {
+  color: #c9d1d9 !important;
+}
+
+/* “text-primary” en footer oscuro: usa un verde más claro para contraste */
+footer.bg-dark .text-primary,
+footer.bg-dark i.text-primary {
+  color: #7bd389 !important;
+}
+
+/* Divisor con más contraste */
+footer.bg-dark hr {
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Íconos sociales */
+footer.bg-dark .social-links a {
+  opacity: 0.9;
+}
+
+footer.bg-dark .social-links a:hover {
+  opacity: 1;
+}
+
+/* Botón Back to Top: asegura contraste del ícono */
+#back-to-top i {
+  color: inherit; /* usa el color del botón */
+}
+
+/* Sidebar: colapsables con chevron giratorio */
+.sidebar .nav-link { display:flex; align-items:center; }
+.sidebar .nav-link .chevron { transition: transform .2s ease; }
+
+/* Si el botón está expandido, girar el chevron */
+.sidebar .nav-link[aria-expanded="true"] .chevron { transform: rotate(90deg); }
+
+/* Mejor lectura en subniveles */
+.sidebar .nav .nav { margin-top: .25rem; }
+.sidebar .nav .nav .nav-link { padding-left: .25rem; 
+}
+/* Que el main arranque sin espacio raro arriba */
+.main-content {
+  padding: 1rem 1.5rem;       /* ajustá a gusto */
+}
+
+/* Si tu navbar está fixed-top, dale justo el offset (ajusta el valor a la altura real) */
+body.has-fixed-navbar {
+  padding-top: 56px;          /* 56-64px según tu navbar */
+}
+
+/* Evita márgenes superiores innecesarios en el título inicial */
+.main-content .page-title,
+.main-content h1:first-child {
+  margin-top: 0;
+}
+
+/* Por si algún contenedor tiene mt-5 o py-5, suavizá en desktop */
+@media (min-width: 768px) {
+  .main-content .mt-5 { margin-top: 1rem !important; }
+  .main-content .pt-5, 
+  .main-content .py-5 { padding-top: 1rem !important; }
+}
+
+/* Asegura alto completo de la sidebar y sin “empujar” al main */
+.sidebar { min-height: 100vh; }
+

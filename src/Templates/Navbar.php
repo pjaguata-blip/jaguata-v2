@@ -22,7 +22,6 @@ if ($usuarioLogueado && $rolUsuario) {
         <!-- Brand -->
         <a class="navbar-brand d-flex align-items-center" href="<?php echo $inicioUrl; ?>">
             <img src="<?php echo ASSETS_URL; ?>/images/logo.png" alt="Jaguata" height="40" class="me-2">
-            <span class="fw-bold text-primary">Jaguata</span>
         </a>
 
         <!-- Mobile toggle -->
@@ -55,9 +54,6 @@ if ($usuarioLogueado && $rolUsuario) {
                 <?php if ($usuarioLogueado): ?>
                     <?php if ($rolUsuario === 'dueno'): ?>
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                                <i class="fas fa-paw me-1"></i>Mis Mascotas
-                            </a>
                             <ul class="dropdown-menu">
                                 <li><a class="dropdown-item" href="<?php echo BASE_URL; ?>/features/dueno/MisMascotas.php">
                                         <i class="fas fa-list me-2"></i>Ver Mascotas
@@ -71,12 +67,6 @@ if ($usuarioLogueado && $rolUsuario) {
                             <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) === 'BuscarPaseadores.php' ? 'active' : ''; ?>"
                                 href="<?php echo BASE_URL; ?>/features/dueno/BuscarPaseadores.php">
                                 <i class="fas fa-search me-1"></i>Buscar Paseadores
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) === 'MisPaseos.php' ? 'active' : ''; ?>"
-                                href="<?php echo BASE_URL; ?>/features/dueno/MisPaseos.php">
-                                <i class="fas fa-walking me-1"></i>Mis Paseos
                             </a>
                         </li>
                     <?php elseif ($rolUsuario === 'paseador'): ?>

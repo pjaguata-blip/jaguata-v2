@@ -87,73 +87,157 @@ $mascotasRecientes = array_slice($mascotas, 0, 3);
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
-            <div class="col-md-3 col-lg-2 d-md-block bg-light sidebar">
+            <div class="col-md-3 col-lg-2 d-md-block sidebar">
                 <div class="position-sticky pt-3">
-                    <ul class="nav flex-column">
-                        <!-- 🔹 Nuevo link de Inicio dinámico -->
+                    <ul class="nav flex-column gap-1">
+
+                        <!-- Mascotas -->
                         <li class="nav-item">
-                            <a class="nav-link" href="<?= $homeUrl ?>">
-                                <i class="fas fa-home me-2"></i>
-                                Inicio
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link active" href="Dashboard.php">
-                                <i class="fas fa-tachometer-alt me-2"></i>
-                                Dashboard
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="MisMascotas.php">
+                            <button class="nav-link d-flex align-items-center w-100 text-start"
+                                data-bs-toggle="collapse" data-bs-target="#menuMascotas" aria-expanded="false">
                                 <i class="fas fa-paw me-2"></i>
-                                Mis Mascotas
-                            </a>
+                                <span class="flex-grow-1">Mascotas</span>
+                                <i class="fas fa-chevron-right ms-2 chevron"></i>
+                            </button>
+                            <ul class="collapse ps-4 nav flex-column" id="menuMascotas">
+                                <li class="nav-item">
+                                    <a class="nav-link" href="MisMascotas.php">
+                                        <i class="fas fa-list-ul me-2"></i> Mis Mascotas
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="AgregarMascota.php">
+                                        <i class="fas fa-plus-circle me-2"></i> Agregar Mascota
+                                    </a>
+                                </li>
+                            </ul>
                         </li>
+
+                        <!-- Paseos -->
                         <li class="nav-item">
-                            <a class="nav-link" href="SolicitarPaseo.php">
-                                <i class="fas fa-plus-circle me-2"></i>
-                                Solicitar Paseo
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="MisPaseos.php">
+                            <button class="nav-link d-flex align-items-center w-100 text-start"
+                                data-bs-toggle="collapse" data-bs-target="#menuPaseos" aria-expanded="false">
                                 <i class="fas fa-walking me-2"></i>
-                                Mis Paseos
-                            </a>
+                                <span class="flex-grow-1">Paseos</span>
+                                <i class="fas fa-chevron-right ms-2 chevron"></i>
+                            </button>
+                            <ul class="collapse ps-4 nav flex-column" id="menuPaseos">
+                                <li class="nav-item">
+                                    <a class="nav-link" href="BuscarPaseadores.php">
+                                        <i class="fas fa-search me-2"></i> Buscar Paseadores
+                                    </a>
+                                </li>
+
+                                <!-- Mis Paseos (2º nivel) -->
+                                <li class="nav-item">
+                                    <button class="nav-link d-flex align-items-center w-100 text-start"
+                                        data-bs-toggle="collapse" data-bs-target="#menuMisPaseos" aria-expanded="false">
+                                        <i class="fas fa-calendar-check me-2"></i>
+                                        <span class="flex-grow-1">Mis Paseos</span>
+                                        <i class="fas fa-chevron-right ms-2 chevron"></i>
+                                    </button>
+                                    <ul class="collapse ps-4 nav flex-column" id="menuMisPaseos">
+                                        <li class="nav-item">
+                                            <a class="nav-link" href="PaseosCompletados.php">
+                                                <i class="fas fa-check-circle me-2"></i> Paseos Completados
+                                            </a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link" href="PaseosPendientes.php">
+                                                <i class="fas fa-hourglass-half me-2"></i> Paseos Pendientes
+                                            </a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link" href="PaseosCancelados.php">
+                                                <i class="fas fa-times-circle me-2"></i> Paseos Cancelados
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </li>
+
+                                <li class="nav-item">
+                                    <a class="nav-link" href="SolicitarPaseo.php">
+                                        <i class="fas fa-plus-circle me-2"></i> Solicitar Nuevo Paseo
+                                    </a>
+                                </li>
+                            </ul>
                         </li>
+
+                        <!-- Pagos -->
                         <li class="nav-item">
-                            <a class="nav-link" href="MetodosPago.php">
+                            <button class="nav-link d-flex align-items-center w-100 text-start"
+                                data-bs-toggle="collapse" data-bs-target="#menuPagos" aria-expanded="false">
                                 <i class="fas fa-credit-card me-2"></i>
-                                Métodos de Pago
+                                <span class="flex-grow-1">Pagos</span>
+                                <i class="fas fa-chevron-right ms-2 chevron"></i>
+                            </button>
+                            <ul class="collapse ps-4 nav flex-column" id="menuPagos">
+                                <li class="nav-item">
+                                    <a class="nav-link" href="MetodosPago.php">
+                                        <i class="fas fa-wallet me-2"></i> Método de Pago
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="GastosTotales.php">
+                                        <i class="fas fa-chart-line me-2"></i> Gastos Totales
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <!-- Notificaciones -->
+                        <li class="nav-item">
+                            <a class="nav-link d-flex align-items-center" href="Notificaciones.php">
+                                <i class="fas fa-bell me-2"></i>
+                                <span>Notificaciones</span>
                             </a>
                         </li>
+
+                        <!-- Mi Perfil -->
                         <li class="nav-item">
-                            <a class="nav-link" href="MisPuntos.php">
-                                <i class="fas fa-star me-2"></i>
-                                Mis Puntos
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="Perfil.php">
+                            <button class="nav-link d-flex align-items-center w-100 text-start"
+                                data-bs-toggle="collapse" data-bs-target="#menuPerfil" aria-expanded="false">
                                 <i class="fas fa-user me-2"></i>
-                                Mi Perfil
-                            </a>
+                                <span class="flex-grow-1">Mi Perfil</span>
+                                <i class="fas fa-chevron-right ms-2 chevron"></i>
+                            </button>
+                            <ul class="collapse ps-4 nav flex-column" id="menuPerfil">
+                                <li class="nav-item">
+                                    <a class="nav-link" href="MisPuntos.php">
+                                        <i class="fas fa-star me-2"></i> Mis Puntos
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="Perfil.php">
+                                        <i class="fas fa-id-card me-2"></i> Configuración
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link text-danger" href="logout.php">
+                                        <i class="fas fa-sign-out-alt me-2"></i> Cerrar Sesión
+                                    </a>
+                                </li>
+                            </ul>
                         </li>
+
+                        <!-- (Opcional) Dashboard suelto arriba
+      <li class="nav-item">
+        <a class="nav-link d-flex align-items-center" href="Dashboard.php">
+          <i class="fas fa-tachometer-alt me-2"></i> Dashboard
+        </a>
+      </li> -->
+
                     </ul>
                 </div>
             </div>
+
 
             <!-- Contenido principal -->
             <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
                 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                     <h1 class="h2">Dashboard</h1>
-                    <div class="btn-toolbar mb-2 mb-md-0">
-                        <a href="<?php echo BASE_URL; ?>/public/logout.php"
-                            class="btn btn-sm btn-outline-danger ms-2">
-                            <i class="fas fa-sign-out-alt me-1"></i>
-                            Cerrar Sesión
-                        </a>
 
+                    <div class="btn-toolbar mb-2 mb-md-0">
                         <div class="btn-group me-2">
                             <button type="button" class="btn btn-sm btn-outline-secondary">
                                 <i class="fas fa-download me-1"></i>

@@ -718,3 +718,34 @@ body.has-fixed-navbar {
 /* Asegura alto completo de la sidebar y sin “empujar” al main */
 .sidebar { min-height: 100vh; }
 
+/* ====== Layout Dashboard (sidebar que estira) ====== */
+
+/* Si tu navbar es fixed-top, compensa el body */
+body {
+  --navbar-offset: 56px; /* ajusta a la altura real del header/nav */
+  padding-top: var(--navbar-offset);
+}
+
+/* Sidebar base */
+.sidebar {
+  border-right: 1px solid rgba(0, 0, 0, .075);
+}
+
+/* Main ocupa el alto visible restante */
+.main-content {
+  min-height: calc(100vh - var(--navbar-offset));
+  padding-bottom: 2rem;
+}
+
+/* Chevron del menú colapsable */
+button[aria-expanded="true"] .chevron {
+  transform: rotate(90deg);
+  transition: transform .2s;
+}
+.chevron { transition: transform .2s; }
+
+/* Cards con borde izquierdo de color (estilo SB Admin) */
+.border-left-primary { border-left: .25rem solid #0d6efd !important; }
+.border-left-success { border-left: .25rem solid #198754 !important; }
+.border-left-warning { border-left: .25rem solid #ffc107 !important; }
+.border-left-info    { border-left: .25rem solid #0dcaf0 !important; }

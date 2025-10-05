@@ -62,7 +62,7 @@ $mascotaPreseleccionada = (int)($_GET['mascota_id'] ?? 0);
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
-            <div class="col-md-3 col-lg-2 d-md-block bg-light sidebar">
+            <div class="col-md-3 col-lg-2 d-md-block sidebar">
                 <div class="position-sticky pt-3">
                     <ul class="nav flex-column">
                         <li class="nav-item">

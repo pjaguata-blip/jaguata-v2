@@ -4,11 +4,12 @@ namespace Jaguata\Helpers;
 
 class Session
 {
+    /** Asegura que la sesión esté iniciada con el nombre correcto */
     private static function start(): void
     {
         if (session_status() === PHP_SESSION_NONE) {
             \session_name(defined('SESSION_NAME') ? SESSION_NAME : 'JAGUATA_SESSION');
-            session_start();
+            \session_start();
         }
     }
 
@@ -22,12 +23,26 @@ class Session
         $_SESSION['usuario_tipo'] = $usuario['rol'] ?? 'dueno';
     }
 
+    /** Cierra la sesión limpiando variables, cookie e ID de sesión */
     public static function logout(): void
     {
         self::start();
-        session_unset();
+
+        $_SESSION = [];
+
+        if (ini_get('session.use_cookies')) {
+            $p = session_get_cookie_params();
+            setcookie(session_name(), '', time() - 42000, $p['path'] ?? '/', $p['domain'] ?? '', $p['secure'] ?? false, $p['httponly'] ?? true);
+        }
+
         session_destroy();
+
+        // sesión limpia para evitar reutilización de ID
+        session_start();
+        session_regenerate_id(true);
+        $_SESSION = [];
     }
+
 
     public static function isLoggedIn(): bool
     {
@@ -97,22 +112,18 @@ class Session
         return $messages;
     }
 
-    // 🔹 Métodos directos para errores y éxitos
     public static function setError(string $mensaje): void
     {
         self::setFlash('error', $mensaje);
     }
-
     public static function getError(): ?string
     {
         return self::getFlash('error');
     }
-
     public static function setSuccess(string $mensaje): void
     {
         self::setFlash('success', $mensaje);
     }
-
     public static function getSuccess(): ?string
     {
         return self::getFlash('success');

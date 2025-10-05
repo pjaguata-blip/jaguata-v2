@@ -16,13 +16,20 @@ class AppConfig
         }
 
         // === Composer Autoload ===
-        // Asegura que el autoload de Composer esté disponible
         $vendorAutoload = __DIR__ . '/../../vendor/autoload.php';
         if (file_exists($vendorAutoload)) {
             require_once $vendorAutoload;
         }
 
-        // Detectar protocolo
+        // Normalizar entorno cuando se ejecuta por CLI (tests/scripts)
+        $isCli = (\php_sapi_name() === 'cli');
+        if ($isCli) {
+            $_SERVER['HTTPS']      = $_SERVER['HTTPS']      ?? 'off';
+            $_SERVER['HTTP_HOST']  = $_SERVER['HTTP_HOST']  ?? 'localhost';
+            $_SERVER['SCRIPT_NAME'] = $_SERVER['SCRIPT_NAME'] ?? '/index.php';
+        }
+
+        // Detectar protocolo y host
         $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? "https://" : "http://";
         $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
 
@@ -35,20 +42,17 @@ class AppConfig
         if (!defined('BASE_URL')) {
             define('BASE_URL', $protocol . $host . $basePath);
         }
-
         if (!defined('ASSETS_URL')) {
             define('ASSETS_URL', BASE_URL . '/assets');
         }
-
         if (!defined('API_URL')) {
             define('API_URL', BASE_URL . '/api');
         }
 
         // === Seguridad / Sesiones ===
         if (!defined('APP_KEY')) {
-            define('APP_KEY', 'clave-super-secreta'); // cámbiala en producción
+            define('APP_KEY', 'clave-super-secreta'); // cambiar en producción
         }
-
         if (!defined('SESSION_NAME')) {
             define('SESSION_NAME', 'JAGUATA_SESSION');
         }
@@ -58,7 +62,7 @@ class AppConfig
             define('GOOGLE_ANALYTICS_ID', ($host === 'localhost' ? '' : 'G-XXXXXXXXXX'));
         }
 
-        // === Sentry (Error Tracking) ===
+        // === Sentry ===
         if (!defined('SENTRY_DSN')) {
             define('SENTRY_DSN', ($host === 'localhost' ? '' : 'https://xxxxxxx.ingest.sentry.io/yyyyyy'));
         }
@@ -68,14 +72,14 @@ class AppConfig
             define('DEBUG_MODE', $host === 'localhost');
         }
 
-        // === Configuración de BD (usar env si existe) ===
+        // === Config BD ===
         if (!defined('DB_HOST')) define('DB_HOST', getenv('DB_HOST') ?: '127.0.0.1');
         if (!defined('DB_NAME')) define('DB_NAME', getenv('DB_NAME') ?: 'jaguata');
         if (!defined('DB_USER')) define('DB_USER', getenv('DB_USER') ?: 'root');
         if (!defined('DB_PASS')) define('DB_PASS', getenv('DB_PASS') ?: '');
         if (!defined('DB_CHARSET')) define('DB_CHARSET', getenv('DB_CHARSET') ?: 'utf8mb4');
 
-        // === Conexión a la base de datos ===
+        // === Conexión BD ===
         try {
             $dsn = "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET;
             $options = [
@@ -86,7 +90,10 @@ class AppConfig
             $GLOBALS['db'] = new PDO($dsn, DB_USER, DB_PASS, $options);
         } catch (PDOException $e) {
             error_log("Error de conexión a la base de datos: " . $e->getMessage());
-            http_response_code(500);
+            if (!headers_sent()) {
+                http_response_code(500);
+                header('Content-Type: application/json; charset=utf-8');
+            }
             echo json_encode([
                 'success' => false,
                 'error' => 'Error interno al conectar con la base de datos'
@@ -95,9 +102,9 @@ class AppConfig
         }
 
         // === Iniciar sesión global ===
-        if (session_status() === PHP_SESSION_NONE) {
+        if (session_status() !== PHP_SESSION_ACTIVE) {
             session_name(SESSION_NAME);
-            session_start();
+            @session_start();
         }
 
         self::$initialized = true;

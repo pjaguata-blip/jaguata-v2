@@ -11,6 +11,12 @@ use Jaguata\Helpers\Session;
 
 AppConfig::init();
 
+// Habilita errores en desarrollo (opcional)
+if (defined('DEBUG_MODE') && DEBUG_MODE) {
+    ini_set('display_errors', '1');
+    error_reporting(E_ALL);
+}
+
 // Solo paseador
 $authController = new AuthController();
 $authController->checkRole('paseador');
@@ -18,48 +24,68 @@ $authController->checkRole('paseador');
 // Datos del usuario
 $usuarioModel = new Usuario();
 $usuarioId    = Session::get('usuario_id');
-$usuario      = $usuarioModel->getById($usuarioId);
+$usuario      = $usuarioModel->getById((int)$usuarioId);
 if (!$usuario) {
     echo "Error: No se encontró el usuario.";
     exit;
 }
 
-// Helpers de presentación
-function h(?string $v, string $fallback = 'No especificado')
-{
-    $v = (string)($v ?? '');
-    return $v !== '' ? htmlspecialchars($v) : $fallback;
+/* =========================
+   Helpers seguros
+   ========================= */
+if (!function_exists('h')) {
+    function h(?string $v, string $fallback = 'No especificado')
+    {
+        $v = (string)($v ?? '');
+        return $v !== '' ? htmlspecialchars($v, ENT_QUOTES, 'UTF-8') : $fallback;
+    }
 }
-function fechaLatina(?string $ymd): string
-{
-    if (!$ymd) return '';
-    $ts = strtotime($ymd);
-    return $ts ? date('d/m/Y', $ts) : htmlspecialchars($ymd);
+if (!function_exists('fechaLatina')) {
+    function fechaLatina(?string $ymd): string
+    {
+        if (!$ymd) return '';
+        $ts = strtotime($ymd);
+        return $ts ? date('d/m/Y', $ts) : htmlspecialchars($ymd);
+    }
 }
-function calcularEdad(?string $ymd): ?int
-{
-    if (!$ymd) return null;
-    try {
-        $nac = new DateTime($ymd);
-        $hoy = new DateTime('today');
-        $diff = $nac->diff($hoy);
-        return (int)$diff->y;
-    } catch (\Throwable $e) {
-        return null;
+if (!function_exists('calcularEdad')) {
+    function calcularEdad(?string $ymd): ?int
+    {
+        if (!$ymd) return null;
+        try {
+            $nac  = new DateTime($ymd);
+            $hoy  = new DateTime('today');
+            $diff = $nac->diff($hoy);
+            return (int)$diff->y;
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+}
+/* Compat: PHP 7.x (no hay str_starts_with) */
+if (!function_exists('esUrlAbsoluta')) {
+    function esUrlAbsoluta(string $p): bool
+    {
+        return (bool)preg_match('#^https?://#i', $p);
     }
 }
 
-// Foto de perfil (toma foto_perfil o perfil_foto)
+/* =========================
+   Foto de perfil
+   ========================= */
 $foto = $usuario['foto_perfil'] ?? ($usuario['perfil_foto'] ?? '');
-if ($foto && !str_starts_with($foto, 'http')) {
-    // Si es ruta relativa, prepende BASE_URL
-    $foto = rtrim(BASE_URL, '/') . $foto;
-}
-if (!$foto) {
+// si es ruta relativa, prepende BASE_URL
+if ($foto) {
+    if (!esUrlAbsoluta($foto)) {
+        $foto = rtrim(BASE_URL, '/') . $foto;
+    }
+} else {
     $foto = ASSETS_URL . '/images/user-placeholder.png';
 }
 
-// Zonas de trabajo (JSON o CSV)
+/* =========================
+   Zonas (JSON o CSV)
+   ========================= */
 $zonas = [];
 if (!empty($usuario['zona'])) {
     $decoded = json_decode($usuario['zona'], true);
@@ -70,12 +96,21 @@ if (!empty($usuario['zona'])) {
     }
 }
 
-// Edad
+/* =========================
+   Edad
+   ========================= */
 $edad = calcularEdad($usuario['fecha_nacimiento'] ?? null);
 
 $titulo = "Mi Perfil (Paseador) - Jaguata";
-?>
 
+// Normaliza campos de dirección para evitar warnings si tu SELECT no los trae
+$departamento = $usuario['departamento'] ?? null;
+$ciudad       = $usuario['ciudad'] ?? null;
+$barrio       = $usuario['barrio'] ?? null;
+$calle        = $usuario['calle'] ?? null;
+$direccionRef = $usuario['direccion'] ?? null;
+
+?>
 <?php include __DIR__ . '/../../src/Templates/header.php'; ?>
 
 <div class="container mt-4">
@@ -98,17 +133,17 @@ $titulo = "Mi Perfil (Paseador) - Jaguata";
                 <div class="card-body text-center">
                     <img src="<?= htmlspecialchars($foto) ?>" alt="Foto de perfil"
                         class="rounded-circle mb-3" style="width: 160px; height: 160px; object-fit: cover;">
-                    <h4 class="mb-1"><?= h($usuario['nombre'], 'Sin nombre') ?></h4>
+                    <h4 class="mb-1"><?= h($usuario['nombre'] ?? null, 'Sin nombre') ?></h4>
                     <span class="badge bg-success-subtle text-success-emphasis">Paseador</span>
 
                     <div class="mt-3 text-start small">
                         <div class="mb-2">
                             <i class="fa-solid fa-envelope me-2"></i>
-                            <strong>Email:</strong> <?= h($usuario['email'], 'No registrado') ?>
+                            <strong>Email:</strong> <?= h($usuario['email'] ?? null, 'No registrado') ?>
                         </div>
                         <div class="mb-2">
                             <i class="fa-solid fa-phone me-2"></i>
-                            <strong>Teléfono:</strong> <?= h($usuario['telefono'], 'No registrado') ?>
+                            <strong>Teléfono:</strong> <?= h($usuario['telefono'] ?? null, 'No registrado') ?>
                         </div>
                         <div class="mb-2">
                             <i class="fa-solid fa-cake-candles me-2"></i>
@@ -133,9 +168,38 @@ $titulo = "Mi Perfil (Paseador) - Jaguata";
             </div>
         </div>
 
-        <!-- Columna derecha: dirección, experiencia, zonas -->
+        <!-- Columna derecha -->
         <div class="col-lg-8">
             <!-- Dirección -->
+            <div class="card shadow-sm mb-3">
+                <div class="card-header">
+                    <strong><i class="fa-solid fa-location-dot me-2"></i> Dirección</strong>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="text-muted small">Departamento</div>
+                            <div class="fw-semibold"><?= h($departamento) ?></div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="text-muted small">Ciudad</div>
+                            <div class="fw-semibold"><?= h($ciudad) ?></div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="text-muted small">Barrio</div>
+                            <div class="fw-semibold"><?= h($barrio) ?></div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="text-muted small">Calle</div>
+                            <div class="fw-semibold"><?= h($calle) ?></div>
+                        </div>
+                        <div class="col-12">
+                            <div class="text-muted small">Referencia / Complemento</div>
+                            <div class="fw-semibold"><?= h($direccionRef, '—') ?></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             <!-- Zonas de trabajo -->
             <div class="card shadow-sm mb-3">
@@ -148,7 +212,7 @@ $titulo = "Mi Perfil (Paseador) - Jaguata";
                     <?php else: ?>
                         <div class="d-flex flex-wrap gap-2">
                             <?php foreach ($zonas as $z): ?>
-                                <span class="badge bg-primary"><?= htmlspecialchars($z) ?></span>
+                                <span class="badge bg-primary"><?= htmlspecialchars($z, ENT_QUOTES, 'UTF-8') ?></span>
                             <?php endforeach; ?>
                         </div>
                     <?php endif; ?>
@@ -162,7 +226,7 @@ $titulo = "Mi Perfil (Paseador) - Jaguata";
                 </div>
                 <div class="card-body">
                     <?php if (!empty($usuario['experiencia'])): ?>
-                        <div class="text-muted" style="white-space: pre-wrap;"><?= htmlspecialchars($usuario['experiencia']) ?></div>
+                        <div class="text-muted" style="white-space: pre-wrap;"><?= htmlspecialchars($usuario['experiencia'], ENT_QUOTES, 'UTF-8') ?></div>
                     <?php else: ?>
                         <span class="text-muted">No especificada.</span>
                     <?php endif; ?>

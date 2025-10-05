@@ -131,7 +131,7 @@ $edadUnidadPost = $_POST['edad_unidad'] ?? 'meses'; // default meses
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
-            <div class="col-md-3 col-lg-2 d-md-block bg-light sidebar">
+            <div class="col-md-3 col-lg-2 d-md-block sidebar">
                 <div class="position-sticky pt-3">
                     <ul class="nav flex-column">
                         <li class="nav-item"><a class="nav-link" href="Dashboard.php"><i class="fas fa-tachometer-alt me-2"></i> Dashboard</a></li>

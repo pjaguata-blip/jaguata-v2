@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../../src/Config/AppConfig.php';
 require_once __DIR__ . '/../../src/Controllers/AuthController.php';
 require_once __DIR__ . '/../../src/Controllers/MascotaController.php';
+require_once __DIR__ . '/../../src/Helpers/Session.php';
 
 use Jaguata\Config\AppConfig;
 use Jaguata\Controllers\AuthController;
@@ -13,9 +14,15 @@ AppConfig::init();
 $auth = new AuthController();
 $auth->checkRole('dueno');
 
-// Datos
+// Controlador y datos
 $controller = new MascotaController();
 $mascotas   = $controller->index();
+
+// ===== Botón Volver: referer del mismo dominio o Dashboard por rol =====
+$rolMenu     = \Jaguata\Helpers\Session::getUsuarioRol() ?: 'dueno';
+$defaultBack = BASE_URL . "/features/{$rolMenu}/Dashboard.php";
+$referer     = $_SERVER['HTTP_REFERER'] ?? '';
+$backUrl     = (is_string($referer) && str_starts_with($referer, BASE_URL)) ? $referer : $defaultBack;
 
 // -------- Helpers --------
 /** Muestra edad (guardada en MESES) de forma amigable. */
@@ -27,6 +34,24 @@ function edadAmigable($meses): string
     $anios = intdiv($m, 12);
     $resto = $m % 12;
     return $resto ? "{$anios} a {$resto} m" : "{$anios} año" . ($anios === 1 ? '' : 's');
+}
+
+/** Convierte el slug de tamaño a etiqueta. */
+function etiquetaTamano(?string $t): string
+{
+    return match ($t) {
+        'pequeno' => 'Pequeño',
+        'mediano' => 'Mediano',
+        'grande'  => 'Grande',
+        'gigante' => 'Gigante',
+        default   => '—',
+    };
+}
+
+/** Escapar HTML simple */
+function h($v): string
+{
+    return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
 }
 
 // ---- Filtros (GET) ----
@@ -42,7 +67,7 @@ $razasUnicas   = [];
 $tamanosUnicos = [];
 foreach ($mascotas as $m) {
     if (!empty($m['raza'])) {
-        $razasUnicas[$m['raza']]   = true;
+        $razasUnicas[$m['raza']] = true;
     }
     if (!empty($m['tamano'])) {
         $tamanosUnicos[$m['tamano']] = true;
@@ -77,12 +102,13 @@ $mascotasFiltradas = array_values(array_filter($mascotas, function ($m) use ($q,
     }
 
     // Edad en MESES (entre rangos si están definidos)
-    if ($edadMin !== null) {
-        $ok = $ok && (isset($m['edad']) && (int)$m['edad'] >= $edadMin);
-    }
-    if ($edadMax !== null) {
-        $ok = $ok && (isset($m['edad']) && (int)$m['edad'] <= $edadMax);
-    }
+    // Acepta 'edad_meses' o 'edad' como fallback
+    $edadMeses = null;
+    if (isset($m['edad_meses'])) $edadMeses = (int)$m['edad_meses'];
+    elseif (isset($m['edad']))   $edadMeses = (int)$m['edad'];
+
+    if ($edadMin !== null) $ok = $ok && ($edadMeses !== null && $edadMeses >= $edadMin);
+    if ($edadMax !== null) $ok = $ok && ($edadMeses !== null && $edadMeses <= $edadMax);
 
     return $ok;
 }));
@@ -211,7 +237,13 @@ $resultCount = count($mascotasFiltradas);
             <main class="col-12 col-md-9 col-lg-10 main-content">
                 <!-- Encabezado + acciones -->
                 <div class="d-flex align-items-center justify-content-between mb-3">
-                    <h1 class="page-title mb-0">Mis Mascotas</h1>
+                    <div class="d-flex align-items-center gap-2">
+                        <a href="<?= h($backUrl) ?>" class="btn btn-outline-secondary"
+                            onclick="event.preventDefault(); if (history.length > 1) { history.back(); } else { window.location.href='<?= h($backUrl) ?>'; }">
+                            <i class="fas fa-arrow-left me-1"></i> Volver
+                        </a>
+                        <h1 class="page-title mb-0">Mis Mascotas</h1>
+                    </div>
                     <div class="d-flex align-items-center gap-2">
                         <a href="AgregarMascota.php" class="btn btn-primary">
                             <i class="fas fa-plus me-1"></i> Nueva Mascota
@@ -237,15 +269,15 @@ $resultCount = count($mascotasFiltradas);
                                 <label class="form-label" for="q">Buscar</label>
                                 <input type="text" class="form-control" id="q" name="q"
                                     placeholder="Nombre, raza o tamaño"
-                                    value="<?= htmlspecialchars($q) ?>">
+                                    value="<?= h($q) ?>">
                             </div>
                             <div class="col-6 col-md-3">
                                 <label class="form-label" for="raza">Raza</label>
                                 <select class="form-select" id="raza" name="raza">
                                     <option value="">Todas</option>
                                     <?php foreach ($razasUnicas as $r): ?>
-                                        <option value="<?= htmlspecialchars($r) ?>" <?= $raza === $r ? 'selected' : '' ?>>
-                                            <?= htmlspecialchars($r) ?>
+                                        <option value="<?= h($r) ?>" <?= $raza === $r ? 'selected' : '' ?>>
+                                            <?= h($r) ?>
                                         </option>
                                     <?php endforeach; ?>
                                 </select>
@@ -255,8 +287,8 @@ $resultCount = count($mascotasFiltradas);
                                 <select class="form-select" id="tamano" name="tamano">
                                     <option value="">Todos</option>
                                     <?php foreach ($tamanosUnicos as $t): ?>
-                                        <option value="<?= htmlspecialchars($t) ?>" <?= $tamano === $t ? 'selected' : '' ?>>
-                                            <?= htmlspecialchars($t) ?>
+                                        <option value="<?= h($t) ?>" <?= $tamano === $t ? 'selected' : '' ?>>
+                                            <?= h(etiquetaTamano($t)) ?>
                                         </option>
                                     <?php endforeach; ?>
                                 </select>
@@ -299,6 +331,7 @@ $resultCount = count($mascotasFiltradas);
                                 <table class="table align-middle">
                                     <thead>
                                         <tr>
+                                            <th style="width:60px;">Foto</th>
                                             <th>Nombre</th>
                                             <th>Raza</th>
                                             <th>Tamaño</th>
@@ -308,25 +341,46 @@ $resultCount = count($mascotasFiltradas);
                                     </thead>
                                     <tbody>
                                         <?php foreach ($mascotasFiltradas as $m): ?>
+                                            <?php
+                                            $idMascota = (int)($m['mascota_id'] ?? 0);
+                                            $edadMeses = $m['edad_meses'] ?? ($m['edad'] ?? null);
+                                            $fotoUrl   = $m['foto_url'] ?? '';
+                                            ?>
                                             <tr>
-                                                <td><?= htmlspecialchars($m['nombre'] ?? '') ?></td>
+                                                <td>
+                                                    <?php if (!empty($fotoUrl)): ?>
+                                                        <img src="<?= h($fotoUrl) ?>" alt="Foto" class="rounded" style="width:48px;height:48px;object-fit:cover;border:1px solid #e5e7eb;">
+                                                    <?php else: ?>
+                                                        <div class="d-inline-flex align-items-center justify-content-center rounded bg-light"
+                                                            style="width:48px;height:48px;border:1px solid #e5e7eb;">
+                                                            <i class="fas fa-paw text-secondary"></i>
+                                                        </div>
+                                                    <?php endif; ?>
+                                                </td>
+                                                <td>
+                                                    <a href="PerfilMascota.php?id=<?= $idMascota ?>" class="text-decoration-none fw-semibold">
+                                                        <?= h($m['nombre'] ?? '') ?>
+                                                    </a>
+                                                </td>
                                                 <td>
                                                     <?php if (!empty($m['raza'])): ?>
                                                         <span class="badge bg-secondary-subtle text-secondary-emphasis">
-                                                            <?= htmlspecialchars($m['raza']) ?>
+                                                            <?= h($m['raza']) ?>
                                                         </span>
                                                     <?php else: ?>
                                                         —
                                                     <?php endif; ?>
                                                 </td>
-                                                <td><?= htmlspecialchars($m['tamano'] ?? '—') ?></td>
-                                                <td><?= htmlspecialchars(edadAmigable($m['edad'] ?? null)) ?></td>
+                                                <td><?= h(etiquetaTamano($m['tamano'] ?? null)) ?></td>
+                                                <td><?= h(edadAmigable($edadMeses)) ?></td>
                                                 <td class="text-end">
-                                                    <a href="EditarMascota.php?id=<?= (int)($m['mascota_id'] ?? 0) ?>"
-                                                        class="btn btn-sm btn-outline-warning">
+                                                    <a href="PerfilMascota.php?id=<?= $idMascota ?>" class="btn btn-sm btn-outline-info">
+                                                        <i class="fas fa-id-card me-1"></i> Perfil
+                                                    </a>
+                                                    <a href="EditarMascota.php?id=<?= $idMascota ?>" class="btn btn-sm btn-outline-warning">
                                                         <i class="fas fa-edit"></i> Editar
                                                     </a>
-                                                    <a href="EliminarMascota.php?id=<?= (int)($m['mascota_id'] ?? 0) ?>"
+                                                    <a href="EliminarMascota.php?id=<?= $idMascota ?>"
                                                         class="btn btn-sm btn-outline-danger"
                                                         onclick="return confirm('¿Seguro que deseas eliminar esta mascota?')">
                                                         <i class="fas fa-trash-alt"></i> Eliminar

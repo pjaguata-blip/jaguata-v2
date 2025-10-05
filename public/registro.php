@@ -7,139 +7,220 @@ use Jaguata\Helpers\Validaciones;
 use Jaguata\Models\Usuario;
 use Jaguata\Models\Paseador;
 use Jaguata\Models\Historial;
-use Jaguata\Services\DatabaseService;
 
-// Inicializar configuración
 AppConfig::init();
 
-// Verificar si el usuario ya está logueado
+$RUTA_SELF = AppConfig::getBaseUrl() . '/registro.php';
+$ALLOWED_ROLES = ['dueno', 'paseador']; // (admin) solo por backend
+$COOLDOWN_SECONDS = 30; // ventana anti reenvío rápido
+
+// Si ya está logueado -> Dashboard por rol
 if (Session::isLoggedIn()) {
-    $rol = $_SESSION['rol'];
-    header('Location: ' . AppConfig::getBaseUrl() . '/features/' . $rol . '/Dashboard.php');
+    $rol = Session::getUsuarioRolSeguro() ?? 'dueno';
+    header('Location: ' . AppConfig::getBaseUrl() . "/features/{$rol}/Dashboard.php");
     exit;
 }
 
-$titulo = 'Registrarse - Jaguata';
-$error = '';
-$success = '';
-$errores = [];
-$acepto_terminos = false; // 🔹 Inicializar siempre para evitar warning
+// ===== Navegación (Inicio / Panel si aplica) =====
+$inicioUrl = AppConfig::getBaseUrl();
+$panelUrl  = null; // no hay panel si no está logueado
 
-// Procesar formulario de registro
+// ===== Flash & OLD =====
+$error   = Session::getError();
+$success = Session::getSuccess();
+$old     = Session::get('registro_old', [
+    'rol'                => 'dueno',
+    'nombre'             => '',
+    'email'              => '',
+    'telefono'           => '',
+    'acepto_terminos'    => false,
+]);
+
+// limpiar old para no persistir siempre
+Session::set('registro_old', null);
+
+// ===== POST =====
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $nombre = trim($_POST['nombre'] ?? '');
-    $email = trim($_POST['email'] ?? '');
-    $password = $_POST['password'] ?? '';
-    $confirm_password = $_POST['confirm_password'] ?? '';
-    $telefono = trim($_POST['telefono'] ?? '');
-    $rol = $_POST['rol'] ?? '';
-    $acepto_terminos = isset($_POST['acepto_terminos']); // 🔹 se reasigna si se marcó el checkbox
 
-    // Validar datos
-    $validacion = Validaciones::validarDatosUsuario([
-        'nombre' => $nombre,
-        'email' => $email,
-        'pass' => $password,
-        'telefono' => $telefono,
-        'rol' => $rol
-    ]);
+    // Anti-bot simple (honeypot)
+    $hp = $_POST['website'] ?? '';
+    $csrf = $_POST['csrf_token'] ?? '';
 
-    if (!$validacion['valido']) {
-        $errores = $validacion['errores'];
-    } elseif ($password !== $confirm_password) {
-        $errores['confirm_password'] = 'Las contraseñas no coinciden';
-    } elseif (!$acepto_terminos) {
-        $errores['acepto_terminos'] = 'Debes aceptar los términos y condiciones';
+    // Capturar old para repoblar si falla
+    $old = [
+        'rol'             => $_POST['rol'] ?? 'dueno',
+        'nombre'          => trim($_POST['nombre'] ?? ''),
+        'email'           => trim($_POST['email'] ?? ''),
+        'telefono'        => trim($_POST['telefono'] ?? ''),
+        'acepto_terminos' => isset($_POST['acepto_terminos']),
+    ];
+    Session::set('registro_old', $old);
+
+    // Validaciones base
+    $errores = [];
+
+    if (!Validaciones::verificarCSRF($csrf)) {
+        $errores['csrf'] = 'Token CSRF inválido. Actualizá la página e intentá de nuevo.';
+    }
+    if (!empty($hp)) {
+        $errores['hp'] = 'No se pudo procesar el formulario.';
+    }
+
+    // Rate-limit (por sesión)
+    $last = (int) Session::get('register_last_ts', 0);
+    if ($last && (time() - $last) < $COOLDOWN_SECONDS) {
+        $rest = $COOLDOWN_SECONDS - (time() - $last);
+        $errores['cooldown'] = "Por favor aguardá {$rest}s para volver a intentar.";
+    }
+
+    // Campos
+    $rol      = in_array($old['rol'], $ALLOWED_ROLES, true) ? $old['rol'] : 'dueno';
+    $nombre   = $old['nombre'];
+    $email    = $old['email'];
+    $telefono = $old['telefono'];
+    $pass     = $_POST['password'] ?? '';
+    $pass2    = $_POST['confirm_password'] ?? '';
+
+    // Validaciones semánticas (podés delegar a Validaciones::validarDatosUsuario si querés)
+    if ($nombre === '' || mb_strlen($nombre) < 2 || mb_strlen($nombre) > 100) {
+        $errores['nombre'] = 'El nombre debe tener entre 2 y 100 caracteres.';
+    }
+    if ($email === '' || !Validaciones::validarEmail($email)) {
+        $errores['email'] = 'El correo no es válido.';
+    }
+    if ($telefono !== '' && !preg_match('/^\d{3,4}-?\d{3}-?\d{3,4}$/', $telefono)) {
+        // formato flexible: 0981-123-456 o 0981123456
+        $errores['telefono'] = 'Formato de teléfono no válido (ej: 0981-123-456).';
+    }
+    if ($pass === '' || mb_strlen($pass) < 8) {
+        $errores['pass'] = 'La contraseña debe tener al menos 8 caracteres.';
     } else {
-        // Verificar si el email ya existe
-        $usuarioModel = new Usuario();
-        $usuarioExistente = $usuarioModel->getByEmail($email);
-
-        if ($usuarioExistente) {
-            $errores['email'] = 'Este email ya está registrado';
-        } else {
-            // Crear usuario
-            try {
-                $usuarioId = $usuarioModel->create([
-                    'nombre' => $nombre,
-                    'email' => $email,
-                    'pass' => password_hash($password, PASSWORD_DEFAULT),
-                    'rol' => $rol,
-                    'telefono' => $telefono
-                ]);
-
-                // Si es paseador, crear perfil de paseador
-                if ($rol === 'paseador') {
-                    $paseadorModel = new Paseador();
-                    $paseadorModel->create([
-                        'paseador_id' => $usuarioId,
-                        'experiencia' => '',
-                        'zona' => '',
-                        'precio_hora' => 0,
-                        'disponibilidad' => 1,
-                        'calificacion' => 0,
-                        'total_paseos' => 0
-                    ]);
-                }
-
-                // Registrar actividad en historial
-                $historialModel = new Historial();
-                $historialModel->registrarActividad($usuarioId, 0, 0);
-
-                // Login automático
-                $usuario = $usuarioModel->find($usuarioId);
-                Session::login($usuario);
-
-                // Redirigir según el rol
-                header('Location: ' . AppConfig::getBaseUrl() . '/features/' . $rol . '/Dashboard.php');
-                exit;
-            } catch (Exception $e) {
-                $error = 'Error al crear la cuenta: ' . $e->getMessage();
-            }
+        // Fuerte: al menos 1 may., 1 min., 1 número y 1 símbolo
+        $strong = preg_match('/[A-Z]/', $pass) && preg_match('/[a-z]/', $pass) &&
+            preg_match('/\d/', $pass)   && preg_match('/[^A-Za-z0-9]/', $pass);
+        if (!$strong) {
+            $errores['pass'] = 'Usá mayúsculas, minúsculas, números y un símbolo.';
         }
+    }
+    if ($pass !== $pass2) {
+        $errores['confirm_password'] = 'Las contraseñas no coinciden.';
+    }
+    if (!$old['acepto_terminos']) {
+        $errores['acepto_terminos'] = 'Debes aceptar los términos y condiciones.';
+    }
+
+    // Email único
+    if (empty($errores)) {
+        $usuarioModel = new Usuario();
+        $ya = $usuarioModel->getByEmail($email);
+        if ($ya) {
+            $errores['email'] = 'Este email ya está registrado.';
+        }
+    }
+
+    if (!empty($errores)) {
+        // Consolidar errores a un bloque (y marcar inválidos por campo en el form)
+        Session::setError(implode('<br>', array_values($errores)));
+        header('Location: ' . $RUTA_SELF);
+        exit;
+    }
+
+    // Crear usuario
+    try {
+        $usuarioModel = new Usuario();
+        $usuarioId = $usuarioModel->createUsuario([
+            'nombre'   => $nombre,
+            'email'    => $email,
+            'password' => $pass,    // el modelo lo guarda en 'pass' hasheado
+            'rol'      => $rol,
+            'telefono' => $telefono,
+        ]);
+
+        // Si es paseador, crear perfil extendido (si corresponde a tu modelo de dominio)
+        if ($rol === 'paseador' && class_exists(Paseador::class)) {
+            $paseadorModel = new Paseador();
+            $paseadorModel->create([
+                'paseador_id'    => $usuarioId,
+                'experiencia'    => '',
+                'zona'           => json_encode([], JSON_UNESCAPED_UNICODE),
+                'precio_hora'    => 0,
+                'disponibilidad' => 1,
+                'calificacion'   => 0,
+                'total_paseos'   => 0
+            ]);
+        }
+
+        // Historial (si lo tenés)
+        if (class_exists(Historial::class)) {
+            $historialModel = new Historial();
+            $historialModel->registrarActividad($usuarioId, 0, 0);
+        }
+
+        // Login automático
+        $usuario = $usuarioModel->getById($usuarioId);
+        Session::login($usuario);
+
+        Session::set('register_last_ts', time());
+        Session::setSuccess('¡Bienvenido! Tu cuenta ha sido creada.');
+
+        header('Location: ' . AppConfig::getBaseUrl() . "/features/{$rol}/Dashboard.php");
+        exit;
+    } catch (\Throwable $e) {
+        error_log('Registro error: ' . $e->getMessage());
+        Session::setError('Error al crear la cuenta. Intentá más tarde.');
+        header('Location: ' . $RUTA_SELF);
+        exit;
     }
 }
 
-// Obtener mensajes flash
-$error = $error ?: ($_SESSION['error'] ?? '');
-$success = $success ?: ($_SESSION['success'] ?? '');
-$rol = Session::getUsuarioRol();
+include __DIR__ . '/../src/Templates/Header.php';
 ?>
 
-<?php include __DIR__ . '/../src/Templates/Header.php'; ?>
-
 <div class="container py-5">
+    <div class="d-flex justify-content-end mb-3 gap-2">
+        <a href="<?= htmlspecialchars($inicioUrl) ?>" class="btn btn-outline-secondary">
+            <i class="fa-solid fa-house me-1"></i> Ir al inicio
+        </a>
+        <?php if ($panelUrl): // no se muestra si no hay sesión 
+        ?>
+            <a href="<?= htmlspecialchars($panelUrl) ?>" class="btn btn-outline-primary">
+                <i class="fa-solid fa-gauge-high me-1"></i> Panel principal
+            </a>
+        <?php endif; ?>
+    </div>
+
     <div class="row justify-content-center">
         <div class="col-md-8 col-lg-6">
+            <!-- Mensajes -->
+            <?php if ($error): ?>
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="fas fa-exclamation-circle me-2"></i><?= $error ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            <?php endif; ?>
+            <?php if ($success): ?>
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="fas fa-check-circle me-2"></i><?= $success ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            <?php endif; ?>
+
             <div class="card shadow-lg border-0">
                 <div class="card-body p-5">
-                    <!-- Logo y título -->
                     <div class="text-center mb-4">
-                        <img src="<?php echo AppConfig::getAssetsUrl(); ?>/images/logo.png" alt="Jaguata" height="60" class="mb-3">
+                        <img src="<?= AppConfig::getAssetsUrl(); ?>/images/logo.png" alt="Jaguata" height="60" class="mb-3">
                         <h2 class="fw-bold text-primary">Crear Cuenta</h2>
                         <p class="text-muted">Únete a la comunidad de Jaguata</p>
                     </div>
 
-                    <!-- Mostrar mensajes -->
-                    <?php if ($error): ?>
-                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                            <i class="fas fa-exclamation-circle me-2"></i>
-                            <?php echo htmlspecialchars($error); ?>
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    <form method="POST" novalidate>
+                        <input type="hidden" name="csrf_token" value="<?= Validaciones::generarCSRF(); ?>">
+                        <!-- Honeypot -->
+                        <div style="position:absolute;left:-9999px;top:-9999px;">
+                            <label>Si ves este campo, no lo completes:
+                                <input type="text" name="website" tabindex="-1" autocomplete="off">
+                            </label>
                         </div>
-                    <?php endif; ?>
-
-                    <?php if ($success): ?>
-                        <div class="alert alert-success alert-dismissible fade show" role="alert">
-                            <i class="fas fa-check-circle me-2"></i>
-                            <?php echo htmlspecialchars($success); ?>
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                        </div>
-                    <?php endif; ?>
-
-                    <!-- Formulario de registro -->
-                    <form method="POST" action="" novalidate>
-                        <input type="hidden" name="csrf_token" value="<?php echo bin2hex(random_bytes(32)); ?>">
 
                         <!-- Tipo de cuenta -->
                         <div class="mb-4">
@@ -148,7 +229,7 @@ $rol = Session::getUsuarioRol();
                                 <div class="col-6">
                                     <div class="form-check">
                                         <input class="form-check-input" type="radio" name="rol" id="dueno" value="dueno"
-                                            <?php echo ($rol === 'dueno' || !$rol) ? 'checked' : ''; ?>>
+                                            <?= ($old['rol'] ?? 'dueno') === 'dueno' ? 'checked' : '' ?>>
                                         <label class="form-check-label w-100" for="dueno">
                                             <div class="card h-100 text-center p-3">
                                                 <i class="fas fa-paw fa-2x text-primary mb-2"></i>
@@ -161,7 +242,7 @@ $rol = Session::getUsuarioRol();
                                 <div class="col-6">
                                     <div class="form-check">
                                         <input class="form-check-input" type="radio" name="rol" id="paseador" value="paseador"
-                                            <?php echo $rol === 'paseador' ? 'checked' : ''; ?>>
+                                            <?= ($old['rol'] ?? '') === 'paseador' ? 'checked' : '' ?>>
                                         <label class="form-check-label w-100" for="paseador">
                                             <div class="card h-100 text-center p-3">
                                                 <i class="fas fa-walking fa-2x text-success mb-2"></i>
@@ -172,140 +253,79 @@ $rol = Session::getUsuarioRol();
                                     </div>
                                 </div>
                             </div>
-                            <?php if (isset($errores['rol'])): ?>
-                                <div class="text-danger small mt-1"><?php echo $errores['rol']; ?></div>
-                            <?php endif; ?>
                         </div>
 
                         <!-- Nombre -->
                         <div class="mb-3">
-                            <label for="nombre" class="form-label">
-                                <i class="fas fa-user me-1"></i>Nombre Completo
-                            </label>
-                            <input type="text"
-                                class="form-control form-control-lg <?php echo isset($errores['nombre']) ? 'is-invalid' : ''; ?>"
-                                id="nombre"
-                                name="nombre"
-                                value="<?php echo htmlspecialchars($nombre ?? ''); ?>"
-                                required
-                                autocomplete="name"
-                                placeholder="Tu nombre completo">
-                            <?php if (isset($errores['nombre'])): ?>
-                                <div class="invalid-feedback"><?php echo $errores['nombre']; ?></div>
-                            <?php endif; ?>
+                            <label for="nombre" class="form-label"><i class="fas fa-user me-1"></i>Nombre Completo</label>
+                            <input type="text" class="form-control form-control-lg" id="nombre" name="nombre"
+                                value="<?= htmlspecialchars($old['nombre'] ?? '') ?>" required autocomplete="name"
+                                placeholder="Tu nombre completo" minlength="2" maxlength="100">
                         </div>
 
                         <!-- Email -->
                         <div class="mb-3">
-                            <label for="email" class="form-label">
-                                <i class="fas fa-envelope me-1"></i>Email
-                            </label>
-                            <input type="email"
-                                class="form-control form-control-lg <?php echo isset($errores['email']) ? 'is-invalid' : ''; ?>"
-                                id="email"
-                                name="email"
-                                value="<?php echo htmlspecialchars($email ?? ''); ?>"
-                                required
-                                autocomplete="email"
-                                placeholder="tu@email.com">
-                            <?php if (isset($errores['email'])): ?>
-                                <div class="invalid-feedback"><?php echo $errores['email']; ?></div>
-                            <?php endif; ?>
+                            <label for="email" class="form-label"><i class="fas fa-envelope me-1"></i>Email</label>
+                            <input type="email" class="form-control form-control-lg" id="email" name="email"
+                                value="<?= htmlspecialchars($old['email'] ?? '') ?>" required autocomplete="email"
+                                placeholder="tu@email.com" maxlength="100">
                         </div>
 
                         <!-- Teléfono -->
                         <div class="mb-3">
-                            <label for="telefono" class="form-label">
-                                <i class="fas fa-phone me-1"></i>Teléfono
-                            </label>
-                            <input type="tel"
-                                class="form-control form-control-lg <?php echo isset($errores['telefono']) ? 'is-invalid' : ''; ?>"
-                                id="telefono"
-                                name="telefono"
-                                value="<?php echo htmlspecialchars($telefono ?? ''); ?>"
-                                autocomplete="tel"
-                                placeholder="0981-123-456">
-                            <div class="form-text">Formato: 0981-123-456</div>
-                            <?php if (isset($errores['telefono'])): ?>
-                                <div class="invalid-feedback"><?php echo $errores['telefono']; ?></div>
-                            <?php endif; ?>
+                            <label for="telefono" class="form-label"><i class="fas fa-phone me-1"></i>Teléfono</label>
+                            <input type="tel" class="form-control form-control-lg" id="telefono" name="telefono"
+                                value="<?= htmlspecialchars($old['telefono'] ?? '') ?>" autocomplete="tel"
+                                placeholder="0981-123-456" maxlength="20">
+                            <div class="form-text">Formato sugerido: 0981-123-456</div>
                         </div>
 
                         <!-- Contraseña -->
                         <div class="mb-3">
-                            <label for="password" class="form-label">
-                                <i class="fas fa-lock me-1"></i>Contraseña
-                            </label>
+                            <label for="password" class="form-label"><i class="fas fa-lock me-1"></i>Contraseña</label>
                             <div class="input-group">
-                                <input type="password"
-                                    class="form-control form-control-lg <?php echo isset($errores['pass']) ? 'is-invalid' : ''; ?>"
-                                    id="password"
-                                    name="password"
-                                    required
-                                    autocomplete="new-password"
-                                    placeholder="Mínimo 8 caracteres">
+                                <input type="password" class="form-control form-control-lg" id="password" name="password"
+                                    required autocomplete="new-password" placeholder="Mínimo 8 caracteres">
                                 <button class="btn btn-outline-secondary" type="button" id="togglePassword">
                                     <i class="fas fa-eye"></i>
                                 </button>
                             </div>
-                            <div class="form-text">
-                                Mínimo 8 caracteres, incluyendo mayúsculas, minúsculas, números y símbolos
-                            </div>
-                            <?php if (isset($errores['pass'])): ?>
-                                <div class="invalid-feedback"><?php echo $errores['pass']; ?></div>
-                            <?php endif; ?>
+                            <div class="form-text">Usá mayúsculas, minúsculas, números y símbolos.</div>
                         </div>
 
                         <!-- Confirmar contraseña -->
                         <div class="mb-3">
-                            <label for="confirm_password" class="form-label">
-                                <i class="fas fa-lock me-1"></i>Confirmar Contraseña
-                            </label>
+                            <label for="confirm_password" class="form-label"><i class="fas fa-lock me-1"></i>Confirmar Contraseña</label>
                             <div class="input-group">
-                                <input type="password"
-                                    class="form-control form-control-lg <?php echo isset($errores['confirm_password']) ? 'is-invalid' : ''; ?>"
-                                    id="confirm_password"
-                                    name="confirm_password"
-                                    required
-                                    autocomplete="new-password"
-                                    placeholder="Repite tu contraseña">
+                                <input type="password" class="form-control form-control-lg" id="confirm_password" name="confirm_password"
+                                    required autocomplete="new-password" placeholder="Repite tu contraseña">
                                 <button class="btn btn-outline-secondary" type="button" id="toggleConfirmPassword">
                                     <i class="fas fa-eye"></i>
                                 </button>
                             </div>
-                            <?php if (isset($errores['confirm_password'])): ?>
-                                <div class="invalid-feedback"><?php echo $errores['confirm_password']; ?></div>
-                            <?php endif; ?>
                         </div>
 
-                        <!-- Términos y condiciones -->
+                        <!-- Términos -->
                         <div class="mb-4 form-check">
-                            <input type="checkbox"
-                                class="form-check-input <?php echo isset($errores['acepto_terminos']) ? 'is-invalid' : ''; ?>"
-                                id="acepto_terminos"
-                                name="acepto_terminos"
-                                <?php echo $acepto_terminos ? 'checked' : ''; ?>>
+                            <input type="checkbox" class="form-check-input" id="acepto_terminos" name="acepto_terminos"
+                                <?= !empty($old['acepto_terminos']) ? 'checked' : '' ?>>
                             <label class="form-check-label" for="acepto_terminos">
-                                Acepto los <a href="<?php echo AppConfig::getBaseUrl(); ?>/terminos.php" target="_blank" class="text-primary">términos y condiciones</a>
-                                y la <a href="<?php echo AppConfig::getBaseUrl(); ?>/privacidad.php" target="_blank" class="text-primary">política de privacidad</a>
+                                Acepto los <a href="<?= AppConfig::getBaseUrl(); ?>/terminos.php" target="_blank" class="text-primary">términos y condiciones</a>
+                                y la <a href="<?= AppConfig::getBaseUrl(); ?>/privacidad.php" target="_blank" class="text-primary">política de privacidad</a>
                             </label>
-                            <?php if (isset($errores['acepto_terminos'])): ?>
-                                <div class="invalid-feedback"><?php echo $errores['acepto_terminos']; ?></div>
-                            <?php endif; ?>
                         </div>
 
-                        <!-- Botón de registro -->
+                        <!-- Botón -->
                         <div class="d-grid mb-3">
-                            <button type="submit" class="btn btn-primary btn-lg">
-                                <i class="fas fa-user-plus me-2"></i>Crear Cuenta
+                            <button type="submit" class="btn btn-primary btn-lg" id="submitBtn">
+                                <i class="fas fa-user-plus me-2"></i> Crear Cuenta
                             </button>
                         </div>
 
-                        <!-- Enlaces adicionales -->
+                        <!-- Enlaces -->
                         <div class="text-center">
-                            <p class="mb-0">
-                                ¿Ya tienes cuenta?
-                                <a href="<?php echo AppConfig::getBaseUrl(); ?>/login.php" class="text-primary fw-bold text-decoration-none">
+                            <p class="mb-0">¿Ya tienes cuenta?
+                                <a href="<?= AppConfig::getBaseUrl(); ?>/login.php" class="text-primary fw-bold text-decoration-none">
                                     Inicia sesión aquí
                                 </a>
                             </p>
@@ -314,7 +334,7 @@ $rol = Session::getUsuarioRol();
                 </div>
             </div>
 
-            <!-- Información adicional -->
+            <!-- Beneficios -->
             <div class="text-center mt-4">
                 <div class="row g-3">
                     <div class="col-4">
@@ -349,12 +369,12 @@ $rol = Session::getUsuarioRol();
     .form-control-lg {
         border-radius: 10px;
         border: 2px solid #e9ecef;
-        transition: all 0.3s ease;
+        transition: all .3s ease;
     }
 
     .form-control-lg:focus {
         border-color: #2E7D32;
-        box-shadow: 0 0 0 0.2rem rgba(46, 125, 50, 0.25);
+        box-shadow: 0 0 0 .2rem rgba(46, 125, 50, .25);
     }
 
     .btn-lg {
@@ -379,7 +399,7 @@ $rol = Session::getUsuarioRol();
 
     .form-check .card {
         border: 2px solid #e9ecef;
-        transition: all 0.3s ease;
+        transition: all .3s ease;
         cursor: pointer;
     }
 
@@ -399,66 +419,39 @@ $rol = Session::getUsuarioRol();
         const toggleConfirmPassword = document.getElementById('toggleConfirmPassword');
         const passwordInput = document.getElementById('password');
         const confirmPasswordInput = document.getElementById('confirm_password');
-
-        togglePassword.addEventListener('click', function() {
-            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-            passwordInput.setAttribute('type', type);
-            const icon = this.querySelector('i');
-            icon.classList.toggle('fa-eye');
-            icon.classList.toggle('fa-eye-slash');
-        });
-
-        toggleConfirmPassword.addEventListener('click', function() {
-            const type = confirmPasswordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-            confirmPasswordInput.setAttribute('type', type);
-            const icon = this.querySelector('i');
-            icon.classList.toggle('fa-eye');
-            icon.classList.toggle('fa-eye-slash');
-        });
-
         const form = document.querySelector('form');
-        form.addEventListener('submit', function(e) {
-            const password = document.getElementById('password').value;
-            const confirmPassword = document.getElementById('confirm_password').value;
-            const aceptoTerminos = document.getElementById('acepto_terminos').checked;
+        const submitBtn = document.getElementById('submitBtn');
 
-            if (password !== confirmPassword) {
+        function toggle(input, btn) {
+            const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
+            input.setAttribute('type', type);
+            const icon = btn.querySelector('i');
+            icon.classList.toggle('fa-eye');
+            icon.classList.toggle('fa-eye-slash');
+        }
+
+        togglePassword.addEventListener('click', () => toggle(passwordInput, togglePassword));
+        toggleConfirmPassword.addEventListener('click', () => toggle(confirmPasswordInput, toggleConfirmPassword));
+
+        form.addEventListener('submit', function(e) {
+            // Validaciones rápidas de UX
+            const pass = passwordInput.value;
+            const pass2 = confirmPasswordInput.value;
+            const acepto = document.getElementById('acepto_terminos').checked;
+
+            if (pass !== pass2) {
                 e.preventDefault();
                 alert('Las contraseñas no coinciden');
                 return;
             }
-
-            if (!aceptoTerminos) {
+            if (!acepto) {
                 e.preventDefault();
                 alert('Debes aceptar los términos y condiciones');
                 return;
             }
-
-            const submitBtn = form.querySelector('button[type="submit"]');
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Creando cuenta...';
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Creando cuenta...';
             submitBtn.disabled = true;
         });
-
-        const passwordStrengthInput = document.getElementById('password');
-        passwordStrengthInput.addEventListener('input', function() {
-            const password = this.value;
-            const strength = getPasswordStrength(password);
-            updatePasswordStrengthIndicator(strength);
-        });
-
-        function getPasswordStrength(password) {
-            let strength = 0;
-            if (password.length >= 8) strength++;
-            if (/[a-z]/.test(password)) strength++;
-            if (/[A-Z]/.test(password)) strength++;
-            if (/[0-9]/.test(password)) strength++;
-            if (/[^A-Za-z0-9]/.test(password)) strength++;
-            return strength;
-        }
-
-        function updatePasswordStrengthIndicator(strength) {
-            // Aquí podrías mostrar una barra de fuerza de contraseña
-        }
     });
 </script>
 

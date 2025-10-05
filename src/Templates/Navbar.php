@@ -53,16 +53,7 @@ if ($usuarioLogueado && $rolUsuario) {
 
                 <?php if ($usuarioLogueado): ?>
                     <?php if ($rolUsuario === 'dueno'): ?>
-                        <li class="nav-item dropdown">
-                            <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="<?php echo BASE_URL; ?>/features/dueno/MisMascotas.php">
-                                        <i class="fas fa-list me-2"></i>Ver Mascotas
-                                    </a></li>
-                                <li><a class="dropdown-item" href="<?php echo BASE_URL; ?>/features/dueno/AgregarMascota.php">
-                                        <i class="fas fa-plus me-2"></i>Agregar Mascota
-                                    </a></li>
-                            </ul>
-                        </li>
+
                         <li class="nav-item">
                             <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) === 'BuscarPaseadores.php' ? 'active' : ''; ?>"
                                 href="<?php echo BASE_URL; ?>/features/dueno/BuscarPaseadores.php">
@@ -70,6 +61,7 @@ if ($usuarioLogueado && $rolUsuario) {
                             </a>
                         </li>
                     <?php elseif ($rolUsuario === 'paseador'): ?>
+
                         <li class="nav-item">
                             <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) === 'Solicitudes.php' ? 'active' : ''; ?>"
                                 href="<?php echo BASE_URL; ?>/features/paseador/Solicitudes.php">

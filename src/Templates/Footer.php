@@ -20,7 +20,8 @@ if ($usuarioLogueado && $rolUsuario) {
             <!-- Company Info -->
             <div class="col-lg-4 mb-4">
                 <h5 class="text-primary mb-3">
-                    <img src="<?php echo ASSETS_URL; ?>/images/logo-white.png" alt="Jaguata" height="30" class="me-2">
+                    <img src="<?php echo ASSETS_URL; ?>/uploads/perfiles/logoo.jpg" alt="Jaguata" height="40" class="me-2">
+
 
                 </h5>
                 <p class="text-muted">

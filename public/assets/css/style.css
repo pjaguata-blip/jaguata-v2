@@ -749,3 +749,21 @@ button[aria-expanded="true"] .chevron {
 .border-left-success { border-left: .25rem solid #198754 !important; }
 .border-left-warning { border-left: .25rem solid #ffc107 !important; }
 .border-left-info    { border-left: .25rem solid #0dcaf0 !important; }
+
+/* =========================
+   FOTO DE PERFIL CIRCULAR
+   ========================= */
+
+.perfil-circular {
+  width: 40px;                 /* ajustá el tamaño a gusto */
+  height: 40px;
+  border-radius: 50%;          /* hace que sea un círculo */
+  object-fit: cover;           /* recorta y centra la imagen */
+  border: 2px solid #fff;      /* borde blanco opcional */
+  box-shadow: 0 0 4px rgba(0,0,0,0.15); /* leve sombra opcional */
+  transition: transform 0.2s ease;
+}
+
+.perfil-circular:hover {
+  transform: scale(1.05);      /* pequeño zoom al pasar el mouse */
+}

@@ -21,7 +21,9 @@ if ($usuarioLogueado && $rolUsuario) {
     <div class="container">
         <!-- Brand -->
         <a class="navbar-brand d-flex align-items-center" href="<?php echo $inicioUrl; ?>">
-            <img src="<?php echo ASSETS_URL; ?>/images/logo.png" alt="Jaguata" height="40" class="me-2">
+            <img src="<?php echo ASSETS_URL; ?>/uploads/perfiles/logo.png" alt="Jaguata" height="40" class="me-2">
+            <!-- <img src="assets\uploads\perfiles\u4-20251005084050.png" alt="Jaguata" height="40" class="me-2"> -->
+
         </a>
 
         <!-- Mobile toggle -->
@@ -116,8 +118,10 @@ if ($usuarioLogueado && $rolUsuario) {
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown">
                             <?php if (Session::get('usuario_foto')): ?>
-                                <img src="<?php echo ASSETS_URL; ?>/uploads/perfiles/<?php echo Session::get('usuario_foto'); ?>"
-                                    alt="Foto de perfil" class="rounded-circle me-2" width="32" height="32">
+                                src="<?php echo ASSETS_URL; ?>/uploads/perfiles/<?php echo Session::get('usuario_foto'); ?>"
+                                alt="Foto de perfil"
+                                class="perfil-circular me-2"
+                                >
                             <?php else: ?>
                                 <i class="fas fa-user-circle me-2"></i>
                             <?php endif; ?>

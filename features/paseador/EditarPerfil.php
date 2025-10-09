@@ -25,7 +25,7 @@ if (!$usuario) {
 $mensaje = '';
 $error   = '';
 
-// ========== Catálogos (igual que antes; recortado por espacio) ==========
+// ===== Catálogos =====
 $DEPARTAMENTOS = [
     'Concepción',
     'San Pedro',
@@ -47,17 +47,16 @@ $DEPARTAMENTOS = [
 ];
 
 $CIUDADES = [
-    'Central' => ['Asunción', 'San Lorenzo', 'Luque', 'Lambaré', 'Capiatá', 'Fernando de la Mora', 'Ñemby', 'Mariano R. Alonso', 'Villa Elisa', 'Limpio', 'Otra'],
-    'Alto Paraná' => ['Ciudad del Este', 'Presidente Franco', 'Hernandarias', 'Minga Guazú', 'Otra'],
-    'Itapúa' => ['Encarnación', 'Hohenau', 'Bella Vista', 'Natalio', 'Fram', 'Otra'],
-    // ... agrega las demás como ya venías usando
+    'Central'      => ['Asunción', 'San Lorenzo', 'Luque', 'Lambaré', 'Capiatá', 'Fernando de la Mora', 'Ñemby', 'Mariano R. Alonso', 'Villa Elisa', 'Limpio', 'Otra'],
+    'Alto Paraná'  => ['Ciudad del Este', 'Presidente Franco', 'Hernandarias', 'Minga Guazú', 'Otra'],
+    'Itapúa'       => ['Encarnación', 'Hohenau', 'Bella Vista', 'Natalio', 'Fram', 'Otra'],
 ];
 
 $BARRIOS = [
     'Central' => [
-        'Asunción' => ['Recoleta', 'Las Mercedes', 'Villa Morra', 'San Vicente', 'San Roque', 'Otra'],
+        'Asunción'    => ['Recoleta', 'Las Mercedes', 'Villa Morra', 'San Vicente', 'San Roque', 'Otra'],
         'San Lorenzo' => ['San Miguel', 'Barcequillo', 'Reducto', 'Otra'],
-        'Luque' => ['Luque Centro', 'Mora Cué', 'Maramburé', 'Otra'],
+        'Luque'       => ['Luque Centro', 'Mora Cué', 'Maramburé', 'Otra'],
     ],
     'Alto Paraná' => [
         'Ciudad del Este' => ['Ciudad Nueva', 'Boquerón', 'San Isidro', 'Otra'],
@@ -89,11 +88,11 @@ $CALLES = [
 ];
 
 // Valores actuales
-$depActual     = $usuario['departamento'] ?? '';
-$ciudadActual  = $usuario['ciudad'] ?? '';
-$barrioActual  = $usuario['barrio'] ?? '';
-$calleActual   = $usuario['calle'] ?? '';
-$fotoActual    = $usuario['foto_perfil'] ?? ($usuario['perfil_foto'] ?? ''); // fallback por si venías usando otro nombre
+$depActual      = $usuario['departamento'] ?? '';
+$ciudadActual   = $usuario['ciudad'] ?? '';
+$barrioActual   = $usuario['barrio'] ?? '';
+$calleActual    = $usuario['calle'] ?? '';
+$fotoActual     = $usuario['foto_perfil'] ?? ($usuario['perfil_foto'] ?? '');
 $fechaNacActual = $usuario['fecha_nacimiento'] ?? '';
 
 // Zonas actuales (JSON o CSV)
@@ -108,7 +107,7 @@ if (!empty($usuario['zona'])) {
     }
 }
 
-// ========== Procesar formulario ==========
+// ===== Guardar =====
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nombre       = trim($_POST['nombre'] ?? '');
     $email        = trim($_POST['email'] ?? '');
@@ -125,17 +124,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $fechaNac     = trim($_POST['fecha_nacimiento'] ?? '');
     $zonaJsonPost = trim($_POST['zona_json'] ?? '[]');
 
-    // Resolver ciudad/barrio/calle finales
     $ciudad = ($ciudadSel === 'Otra') ? $ciudadOtra : $ciudadSel;
     $barrio = ($barrioSel === 'Otra') ? $barrioOtra : $barrioSel;
     $calle  = ($calleSel  === 'Otra') ? $calleOtra  : $calleSel;
 
-    // Zonas (array)
     $zonasTrabajo = json_decode($zonaJsonPost, true);
     if (json_last_error() !== JSON_ERROR_NONE || !is_array($zonasTrabajo)) $zonasTrabajo = [];
     $zonasTrabajo = array_values(array_unique(array_filter(array_map('trim', $zonasTrabajo))));
 
-    // Validaciones mínimas
     if ($nombre === '' || $email === '') {
         $error = "El nombre y el email son obligatorios.";
     } elseif ($departamento === '' || !in_array($departamento, $DEPARTAMENTOS, true)) {
@@ -143,13 +139,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($ciudad === '') {
         $error = "Seleccione o escriba una ciudad.";
     } else {
-        // Manejo de foto de perfil (opcional)
+        // Foto (opcional)
         $rutaFotoNueva = null;
         if (!empty($_FILES['foto_perfil']['name'])) {
             $file = $_FILES['foto_perfil'];
             if ($file['error'] === UPLOAD_ERR_OK) {
-                // Validar tamaño y tipo
-                $max = 2 * 1024 * 1024; // 2MB
+                $max = 2 * 1024 * 1024;
                 if ($file['size'] > $max) {
                     $error = "La foto supera el tamaño máximo de 2MB.";
                 } else {
@@ -161,18 +156,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if (!isset($permitidos[$mime])) {
                         $error = "Formato de imagen no permitido. Usa JPG, PNG o WebP.";
                     } else {
-                        // Crear carpeta si no existe
                         $dirFs = realpath(__DIR__ . '/../../') . '/assets/uploads/perfiles';
                         if (!is_dir($dirFs)) {
                             @mkdir($dirFs, 0775, true);
                         }
-                        // Nombre único
-                        $ext = $permitidos[$mime];
+                        $ext  = $permitidos[$mime];
                         $slug = preg_replace('/[^a-z0-9\-]+/i', '-', strtolower(pathinfo($file['name'], PATHINFO_FILENAME)));
                         $nombreArchivo = $slug . '-' . date('YmdHis') . '-' . $usuarioId . '.' . $ext;
 
-                        $destinoFs = $dirFs . '/' . $nombreArchivo;                // ruta física
-                        $destinoUrl = '/assets/uploads/perfiles/' . $nombreArchivo; // ruta relativa para la web
+                        $destinoFs  = $dirFs . '/' . $nombreArchivo;
+                        $destinoUrl = '/assets/uploads/perfiles/' . $nombreArchivo;
 
                         if (move_uploaded_file($file['tmp_name'], $destinoFs)) {
                             $rutaFotoNueva = $destinoUrl;
@@ -201,21 +194,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'zona'             => json_encode($zonasTrabajo, JSON_UNESCAPED_UNICODE),
             ];
             if ($rutaFotoNueva) {
-                $data['foto_perfil'] = $rutaFotoNueva; // columna recomendada
+                $data['foto_perfil'] = $rutaFotoNueva;
             }
 
             if ($usuarioModel->update($usuarioId, $data)) {
-                $mensaje       = "Perfil actualizado correctamente.";
-                $usuario       = $usuarioModel->getById($usuarioId);
-
-                // Refrescar valores actuales
-                $depActual     = $usuario['departamento'] ?? '';
-                $ciudadActual  = $usuario['ciudad'] ?? '';
-                $barrioActual  = $usuario['barrio'] ?? '';
-                $calleActual   = $usuario['calle'] ?? '';
-                $fotoActual    = $usuario['foto_perfil'] ?? ($usuario['perfil_foto'] ?? '');
+                $mensaje        = "Perfil actualizado correctamente.";
+                $usuario        = $usuarioModel->getById($usuarioId);
+                $depActual      = $usuario['departamento'] ?? '';
+                $ciudadActual   = $usuario['ciudad'] ?? '';
+                $barrioActual   = $usuario['barrio'] ?? '';
+                $calleActual    = $usuario['calle'] ?? '';
+                $fotoActual     = $usuario['foto_perfil'] ?? ($usuario['perfil_foto'] ?? '');
                 $fechaNacActual = $usuario['fecha_nacimiento'] ?? '';
-                $zonasActuales = json_decode($usuario['zona'] ?? '[]', true) ?? [];
+                $zonasActuales  = json_decode($usuario['zona'] ?? '[]', true) ?? [];
             } else {
                 $error = "Hubo un problema al actualizar el perfil.";
             }
@@ -234,12 +225,11 @@ $titulo = "Editar Perfil (Paseador) - Jaguata";
     </h2>
 
     <?php if ($mensaje): ?><div class="alert alert-success"><?= htmlspecialchars($mensaje) ?></div><?php endif; ?>
-    <?php if ($error): ?><div class="alert alert-danger"><?= htmlspecialchars($error) ?></div><?php endif; ?>
+    <?php if ($error):   ?><div class="alert alert-danger"><?= htmlspecialchars($error)   ?></div><?php endif; ?>
 
-    <!-- IMPORTANTE: enctype para subir archivos -->
     <form method="POST" action="" enctype="multipart/form-data">
         <div class="row">
-            <!-- Foto + Nombre + Email -->
+            <!-- Foto + datos básicos -->
             <div class="col-lg-4 mb-3">
                 <div class="card h-100">
                     <div class="card-body text-center">
@@ -280,7 +270,7 @@ $titulo = "Editar Perfil (Paseador) - Jaguata";
                 </div>
             </div>
 
-            <!-- Resto de datos -->
+            <!-- Dirección + zonas -->
             <div class="col-lg-8">
                 <div class="row">
                     <div class="col-md-6 mb-3">
@@ -289,7 +279,6 @@ $titulo = "Editar Perfil (Paseador) - Jaguata";
                             value="<?= htmlspecialchars($usuario['telefono'] ?? '') ?>">
                     </div>
 
-                    <!-- Dirección: Departamento → Ciudad → Barrio → Calle -->
                     <div class="col-md-6 mb-3">
                         <label for="departamento" class="form-label">Departamento</label>
                         <select class="form-select" id="departamento" name="departamento" required>
@@ -326,7 +315,6 @@ $titulo = "Editar Perfil (Paseador) - Jaguata";
                             placeholder="Escriba su calle" value="<?= htmlspecialchars($calleActual) ?>">
                     </div>
 
-                    <!-- Referencia libre -->
                     <div class="col-12 mb-3">
                         <label for="direccion" class="form-label">Referencia/Complemento</label>
                         <input type="text" class="form-control" id="direccion" name="direccion"
@@ -334,7 +322,7 @@ $titulo = "Editar Perfil (Paseador) - Jaguata";
                             value="<?= htmlspecialchars($usuario['direccion'] ?? '') ?>">
                     </div>
 
-                    <!-- Zonas de trabajo (multi) -->
+                    <!-- Zonas -->
                     <div class="col-12">
                         <div class="card mb-3">
                             <div class="card-header">
@@ -393,7 +381,7 @@ $titulo = "Editar Perfil (Paseador) - Jaguata";
 
 <script>
     (function() {
-        // Preview de foto
+        // Preview foto
         const inpFoto = document.getElementById('foto_perfil');
         const imgPrev = document.getElementById('previewFoto');
         if (inpFoto) {
@@ -405,12 +393,12 @@ $titulo = "Editar Perfil (Paseador) - Jaguata";
             });
         }
 
-        // Catálogo desde PHP → JS
+        // Catálogos PHP → JS
         const CIUDADES = <?= json_encode($CIUDADES, JSON_UNESCAPED_UNICODE) ?>;
         const BARRIOS = <?= json_encode($BARRIOS,  JSON_UNESCAPED_UNICODE) ?>;
         const CALLES = <?= json_encode($CALLES,   JSON_UNESCAPED_UNICODE) ?>;
 
-        // Dirección (una ciudad)
+        // Selects dirección
         const depSelect = document.getElementById('departamento');
         const ciudadSelect = document.getElementById('ciudad');
         const ciudadOtra = document.getElementById('ciudad_otra');
@@ -421,22 +409,22 @@ $titulo = "Editar Perfil (Paseador) - Jaguata";
         const calleSelect = document.getElementById('calle');
         const calleOtra = document.getElementById('calle_otra');
 
-        const depActual = <?= json_encode($depActual, JSON_UNESCAPED_UNICODE) ?>;
+        const depActual = <?= json_encode($depActual,    JSON_UNESCAPED_UNICODE) ?>;
         const ciudadActual = <?= json_encode($ciudadActual, JSON_UNESCAPED_UNICODE) ?>;
         const barrioActual = <?= json_encode($barrioActual, JSON_UNESCAPED_UNICODE) ?>;
-        const calleActual = <?= json_encode($calleActual, JSON_UNESCAPED_UNICODE) ?>;
+        const calleActual = <?= json_encode($calleActual,  JSON_UNESCAPED_UNICODE) ?>;
 
         function setSelectOptions(select, items, placeholder) {
             select.innerHTML = '';
+            // 👇 CAMBIO: si no hay items, dejamos al menos "Otra"
             if (!items || items.length === 0) {
-                select.disabled = true;
-                const opt = document.createElement('option');
-                opt.value = '';
-                opt.textContent = placeholder || 'Sin datos';
-                select.appendChild(opt);
-                return;
+                items = ['Otra']; // 👈 CAMBIO
             }
-            select.disabled = false;
+            // Nunca deshabilitar para permitir elegir "Otra"
+            select.disabled = false; // 👈 CAMBIO
+
+            // Si queremos un placeholder visual, podemos anteponerlo opcionalmente
+            // pero no hace falta; con "Otra" alcanza para permitir la carga libre
             items.forEach(v => {
                 const o = document.createElement('option');
                 o.value = v;
@@ -446,7 +434,8 @@ $titulo = "Editar Perfil (Paseador) - Jaguata";
         }
 
         function poblarCiudades(dep) {
-            const items = (dep && CIUDADES[dep]) ? CIUDADES[dep] : [];
+            // 👇 CAMBIO: si el dep no está en catálogo, ofrecer "Otra"
+            const items = (dep && CIUDADES[dep]) ? CIUDADES[dep] : ['Otra']; // 👈 CAMBIO
             setSelectOptions(ciudadSelect, items, 'Seleccione un departamento primero');
             ciudadOtra.classList.add('d-none');
             ciudadOtra.required = false;
@@ -458,7 +447,8 @@ $titulo = "Editar Perfil (Paseador) - Jaguata";
             calleOtra.classList.add('d-none');
             calleOtra.required = false;
 
-            if (items.length && ciudadActual) {
+            // Preseleccionar si hay dato guardado
+            if (ciudadActual) {
                 const existe = items.includes(ciudadActual);
                 if (existe) {
                     ciudadSelect.value = ciudadActual;
@@ -477,7 +467,7 @@ $titulo = "Editar Perfil (Paseador) - Jaguata";
             if (dep && ciudad && BARRIOS[dep] && BARRIOS[dep][ciudad]) {
                 items = [...BARRIOS[dep][ciudad]];
             } else {
-                items = ['Otra'];
+                items = ['Otra']; // 👈 ya hacías fallback a Otra
             }
             setSelectOptions(barrioSelect, items, 'Seleccione una ciudad primero');
             barrioOtra.classList.add('d-none');
@@ -524,16 +514,19 @@ $titulo = "Editar Perfil (Paseador) - Jaguata";
         }
 
         depSelect.addEventListener('change', () => poblarCiudades(depSelect.value));
+
         ciudadSelect.addEventListener('change', () => {
             const dep = depSelect.value;
             const c = ciudadSelect.value;
             if (c === 'Otra') {
                 ciudadOtra.classList.remove('d-none');
                 ciudadOtra.required = true;
+
                 setSelectOptions(barrioSelect, ['Otra']);
                 barrioSelect.value = 'Otra';
                 barrioOtra.classList.remove('d-none');
                 barrioOtra.required = true;
+
                 setSelectOptions(calleSelect, ['Otra']);
                 calleSelect.value = 'Otra';
                 calleOtra.classList.remove('d-none');
@@ -544,6 +537,7 @@ $titulo = "Editar Perfil (Paseador) - Jaguata";
                 poblarBarrios(dep, c);
             }
         });
+
         barrioSelect.addEventListener('change', () => {
             const dep = depSelect.value;
             const c = ciudadSelect.value;
@@ -551,6 +545,7 @@ $titulo = "Editar Perfil (Paseador) - Jaguata";
             if (b === 'Otra') {
                 barrioOtra.classList.remove('d-none');
                 barrioOtra.required = true;
+
                 setSelectOptions(calleSelect, ['Otra']);
                 calleSelect.value = 'Otra';
                 calleOtra.classList.remove('d-none');
@@ -561,6 +556,7 @@ $titulo = "Editar Perfil (Paseador) - Jaguata";
                 poblarCalles(dep, c, b);
             }
         });
+
         calleSelect.addEventListener('change', () => {
             if (calleSelect.value === 'Otra') {
                 calleOtra.classList.remove('d-none');
@@ -571,10 +567,11 @@ $titulo = "Editar Perfil (Paseador) - Jaguata";
             }
         });
 
+        // Inicializar con valores actuales
         if (depActual) depSelect.value = depActual;
         poblarCiudades(depSelect.value);
 
-        // ====== Zonas de trabajo (multi) ======
+        // ===== Zonas de trabajo =====
         const depZona = document.getElementById('dep_zona');
         const ciuZona = document.getElementById('ciu_zona');
         const ciuZonaOtra = document.getElementById('ciu_zona_otra');
@@ -622,11 +619,8 @@ $titulo = "Editar Perfil (Paseador) - Jaguata";
             ciuZonaOtra.classList.add('d-none');
             ciuZonaOtra.value = '';
             if (!dep || !CIUDADES[dep]) {
-                ciuZona.disabled = true;
-                const opt = document.createElement('option');
-                opt.value = '';
-                opt.textContent = 'Seleccione un departamento primero';
-                ciuZona.appendChild(opt);
+                ciuZona.disabled = false; // 👈 CAMBIO: no deshabilitar
+                ciuZona.innerHTML = '<option value="Otra">Otra</option>'; // 👈 CAMBIO
                 return;
             }
             ciuZona.disabled = false;
@@ -636,8 +630,16 @@ $titulo = "Editar Perfil (Paseador) - Jaguata";
                 o.textContent = c;
                 ciuZona.appendChild(o);
             });
+            if (!CIUDADES[dep].includes('Otra')) {
+                const o = document.createElement('option');
+                o.value = 'Otra';
+                o.textContent = 'Otra';
+                ciuZona.appendChild(o);
+            }
         }
+
         depZona.addEventListener('change', () => poblarCiudadesZona(depZona.value));
+
         ciuZona.addEventListener('change', () => {
             if (ciuZona.value === 'Otra') {
                 ciuZonaOtra.classList.remove('d-none');
@@ -647,6 +649,7 @@ $titulo = "Editar Perfil (Paseador) - Jaguata";
                 ciuZonaOtra.value = '';
             }
         });
+
         btnAgregarZona.addEventListener('click', () => {
             let zonas = [];
             try {
@@ -654,26 +657,16 @@ $titulo = "Editar Perfil (Paseador) - Jaguata";
             } catch (e) {
                 zonas = [];
             }
+
             const d = depZona.value;
-            if (!d) {
-                alert('Seleccione un departamento.');
-                return;
-            }
-            if (ciuZona.disabled) {
-                alert('Seleccione una ciudad.');
-                return;
-            }
-            let c = ciuZona.value;
-            if (!c) {
-                alert('Seleccione una ciudad.');
-                return;
-            }
+            if (!d) return alert('Seleccione un departamento.');
+
+            if (ciuZona.disabled) return alert('Seleccione una ciudad.');
+            let c = ciuZona.value || '';
+            if (!c) return alert('Seleccione una ciudad.');
             if (c === 'Otra') {
-                c = ciuZonaOtra.value.trim();
-                if (!c) {
-                    alert('Escriba la ciudad.');
-                    return;
-                }
+                c = (ciuZonaOtra.value || '').trim();
+                if (!c) return alert('Escriba la ciudad.');
             }
             const label = d + ' - ' + c;
             if (!zonas.includes(label)) {
@@ -682,6 +675,7 @@ $titulo = "Editar Perfil (Paseador) - Jaguata";
                 renderZonas();
             }
         });
+
         renderZonas();
     })();
 </script>

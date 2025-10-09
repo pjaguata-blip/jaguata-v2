@@ -3,23 +3,28 @@
 namespace Jaguata\Controllers;
 
 use Jaguata\Models\Paseo;
-use Jaguata\Models\Usuario; // 🔹 Importamos Usuario
+use Jaguata\Models\Usuario;
 use Jaguata\Helpers\Session;
 use Exception;
 
 class PaseoController
 {
     private Paseo $paseoModel;
-    private Usuario $usuarioModel; // 🔹 Agregamos referencia a Usuario
+    private Usuario $usuarioModel;
 
     public function __construct()
     {
         $this->paseoModel = new Paseo();
-        $this->usuarioModel = new Usuario(); // 🔹 Instanciamos Usuario
+        $this->usuarioModel = new Usuario();
     }
 
-    // === Métodos REST básicos ===
+    // Obtener paseo por ID (nuevo método)
+    public function getPaseoById(int $id)
+    {
+        return $this->paseoModel->findWithRelations($id);
+    }
 
+    // Listar todos los paseos
     public function index()
     {
         return $this->paseoModel->allWithRelations();
@@ -62,39 +67,24 @@ class PaseoController
         return $this->paseoModel->delete($id);
     }
 
-    // === Métodos especiales para estados ===
-
     public function confirmar($id)
     {
         return $this->paseoModel->cambiarEstado($id, 'confirmado');
-    }
-
-    public function apiIniciar($id)
-    {
-        return $this->paseoModel->cambiarEstado($id, 'en_progreso');
     }
 
     public function apiCompletar($id)
     {
         $resultado = $this->paseoModel->cambiarEstado($id, 'completado');
 
-        // 🔹 Si se completó correctamente, otorgar puntos al dueño
         if ($resultado) {
             $paseo = $this->paseoModel->find($id);
             if ($paseo && isset($paseo['dueno_id'])) {
-                $this->usuarioModel->sumarPuntos((int)$paseo['dueno_id'], 10); // Ejemplo: +10 puntos
+                $this->usuarioModel->sumarPuntos((int)$paseo['dueno_id'], 10);
             }
         }
 
         return $resultado;
     }
-
-    public function apiCancelar($id)
-    {
-        return $this->paseoModel->cambiarEstado($id, 'cancelado');
-    }
-
-    // === Métodos de consulta ===
 
     public function indexByDueno(int $duenoId)
     {
@@ -103,13 +93,14 @@ class PaseoController
 
     public function indexForPaseador(int $paseadorId): array
     {
-        // 🔹 Usamos el método del modelo Paseo
         return $this->paseoModel->findByPaseador($paseadorId);
     }
+
     public function getSolicitudesPendientes(int $paseadorId): array
     {
         return $this->paseoModel->findSolicitudesPendientes($paseadorId);
     }
+
     public function getGananciasPorPaseador(int $paseadorId): float
     {
         $paseos = $this->paseoModel->getByPaseador($paseadorId);

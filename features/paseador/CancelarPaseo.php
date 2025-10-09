@@ -32,12 +32,12 @@ if (!$paseo) {
 }
 
 if ((int)($paseo['paseador_id'] ?? 0) !== (int)Session::get('usuario_id')) {
-    $_SESSION['error'] = 'No tienes permiso para completar este paseo.';
+    $_SESSION['error'] = 'No tienes permiso para cancelar este paseo.';
     header('Location: MisPaseos.php');
     exit;
 }
 
-$ok = $paseoController->apiCompletar($paseoId); // cambia a "completo"
-$_SESSION[$ok ? 'success' : 'error'] = $ok ? 'Paseo completado.' : 'No se pudo completar el paseo.';
+$ok = $paseoController->apiCancelar($paseoId); // cambia a "cancelado"
+$_SESSION[$ok ? 'success' : 'error'] = $ok ? 'Paseo cancelado.' : 'No se pudo cancelar el paseo.';
 header('Location: MisPaseos.php');
 exit;

@@ -73,9 +73,9 @@ $success = $success ?: Session::getSuccess();
                 <div class="card-body p-5">
                     <!-- Logo y título -->
                     <div class="text-center mb-4">
-                        <img src="<?php echo ASSETS_URL; ?>/images/logo.png" alt="Jaguata" height="60" class="mb-3">
+                        <img src="<?php echo ASSETS_URL; ?>/uploads/perfiles/logoo.jpg" alt="Jaguata" height="40" class="me-2">
                         <h2 class="fw-bold text-primary">Iniciar Sesión</h2>
-                        <p class="text-muted">Accede a tu cuenta de Jaguata</p>
+                        <p class="" style="color: white">Accede a tu cuenta de Jaguata</p>
                     </div>
 
                     <!-- Mostrar mensajes -->

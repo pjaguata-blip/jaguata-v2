@@ -190,7 +190,7 @@ foreach ($mascotas as $m) {
                             </button>
                             <ul class="collapse ps-4 nav flex-column" id="menuPagos">
                                 <li class="nav-item">
-                                    <a class="nav-link" href="MetodosPago.php">
+                                    <a class="nav-link" href="pagar_paseo.php">
                                         <i class="fas fa-wallet me-2"></i> Método de Pago
                                     </a>
                                 </li>

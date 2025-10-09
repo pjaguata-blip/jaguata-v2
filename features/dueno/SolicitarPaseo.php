@@ -17,10 +17,10 @@ $authController = new AuthController();
 $authController->checkRole('dueno');
 
 // Obtener controladores
-$paseoController = new PaseoController();
+$paseoController   = new PaseoController();
 $mascotaController = new MascotaController();
 
-// Obtener mascotas
+// Obtener mascotas del dueño
 $mascotas = $mascotaController->index();
 
 // Verificar que tenga mascotas
@@ -42,7 +42,6 @@ $paseadores = $paseadorModel->getDisponibles();
 // Obtener mascota preseleccionada
 $mascotaPreseleccionada = (int)($_GET['mascota_id'] ?? 0);
 ?>
-
 <!DOCTYPE html>
 <html lang="es">
 
@@ -65,48 +64,13 @@ $mascotaPreseleccionada = (int)($_GET['mascota_id'] ?? 0);
             <div class="col-md-3 col-lg-2 d-md-block sidebar">
                 <div class="position-sticky pt-3">
                     <ul class="nav flex-column">
-                        <li class="nav-item">
-                            <a class="nav-link" href="Dashboard.php">
-                                <i class="fas fa-tachometer-alt me-2"></i>
-                                Dashboard
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="MisMascotas.php">
-                                <i class="fas fa-paw me-2"></i>
-                                Mis Mascotas
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link active" href="SolicitarPaseo.php">
-                                <i class="fas fa-plus-circle me-2"></i>
-                                Solicitar Paseo
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="MisPaseos.php">
-                                <i class="fas fa-walking me-2"></i>
-                                Mis Paseos
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="MetodosPago.php">
-                                <i class="fas fa-credit-card me-2"></i>
-                                Métodos de Pago
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="MisPuntos.php">
-                                <i class="fas fa-star me-2"></i>
-                                Mis Puntos
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="Perfil.php">
-                                <i class="fas fa-user me-2"></i>
-                                Mi Perfil
-                            </a>
-                        </li>
+                        <li class="nav-item"><a class="nav-link" href="Dashboard.php"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</a></li>
+                        <li class="nav-item"><a class="nav-link" href="MisMascotas.php"><i class="fas fa-paw me-2"></i>Mis Mascotas</a></li>
+                        <li class="nav-item"><a class="nav-link active" href="SolicitarPaseo.php"><i class="fas fa-plus-circle me-2"></i>Solicitar Paseo</a></li>
+                        <li class="nav-item"><a class="nav-link" href="MisPaseos.php"><i class="fas fa-walking me-2"></i>Mis Paseos</a></li>
+                        <li class="nav-item"><a class="nav-link" href="MetodosPago.php"><i class="fas fa-credit-card me-2"></i>Métodos de Pago</a></li>
+                        <li class="nav-item"><a class="nav-link" href="MisPuntos.php"><i class="fas fa-star me-2"></i>Mis Puntos</a></li>
+                        <li class="nav-item"><a class="nav-link" href="Perfil.php"><i class="fas fa-user me-2"></i>Mi Perfil</a></li>
                     </ul>
                 </div>
             </div>
@@ -117,8 +81,7 @@ $mascotaPreseleccionada = (int)($_GET['mascota_id'] ?? 0);
                     <h1 class="h2">Solicitar Paseo</h1>
                     <div class="btn-toolbar mb-2 mb-md-0">
                         <a href="MisPaseos.php" class="btn btn-outline-secondary">
-                            <i class="fas fa-arrow-left me-1"></i>
-                            Volver
+                            <i class="fas fa-arrow-left me-1"></i> Volver
                         </a>
                     </div>
                 </div>
@@ -169,16 +132,13 @@ $mascotaPreseleccionada = (int)($_GET['mascota_id'] ?? 0);
                                 <form method="POST" data-validate>
                                     <div class="row">
                                         <div class="col-md-6 mb-3">
-                                            <label for="mascota_id" class="form-label">
-                                                Mascota <span class="text-danger">*</span>
-                                            </label>
+                                            <label for="mascota_id" class="form-label">Mascota <span class="text-danger">*</span></label>
                                             <select class="form-select" id="mascota_id" name="mascota_id" required>
                                                 <option value="">Seleccionar mascota</option>
                                                 <?php foreach ($mascotas as $mascota): ?>
                                                     <option value="<?php echo $mascota['mascota_id']; ?>"
                                                         <?php echo $mascota['mascota_id'] == $mascotaPreseleccionada ? 'selected' : ''; ?>>
-                                                        <?php echo htmlspecialchars($mascota['nombre']); ?>
-                                                        (<?php echo ucfirst($mascota['tamano']); ?>)
+                                                        <?php echo htmlspecialchars($mascota['nombre']); ?> (<?php echo ucfirst($mascota['tamano']); ?>)
                                                     </option>
                                                 <?php endforeach; ?>
                                             </select>
@@ -186,9 +146,7 @@ $mascotaPreseleccionada = (int)($_GET['mascota_id'] ?? 0);
                                         </div>
 
                                         <div class="col-md-6 mb-3">
-                                            <label for="paseador_id" class="form-label">
-                                                Paseador <span class="text-danger">*</span>
-                                            </label>
+                                            <label for="paseador_id" class="form-label">Paseador <span class="text-danger">*</span></label>
                                             <select class="form-select" id="paseador_id" name="paseador_id" required>
                                                 <option value="">Seleccionar paseador</option>
                                                 <?php foreach ($paseadores as $paseador): ?>
@@ -205,39 +163,22 @@ $mascotaPreseleccionada = (int)($_GET['mascota_id'] ?? 0);
 
                                     <div class="row">
                                         <div class="col-md-6 mb-3">
-                                            <label for="inicio" class="form-label">
-                                                Fecha y Hora <span class="text-danger">*</span>
-                                            </label>
+                                            <label for="inicio" class="form-label">Fecha y Hora <span class="text-danger">*</span></label>
                                             <input type="datetime-local" class="form-control" id="inicio" name="inicio"
-                                                value="<?php echo htmlspecialchars($_POST['inicio'] ?? ''); ?>"
-                                                required>
+                                                value="<?php echo htmlspecialchars($_POST['inicio'] ?? ''); ?>" required>
                                             <div class="form-text">Cuándo quieres que comience el paseo</div>
                                         </div>
 
                                         <div class="col-md-6 mb-3">
-                                            <label for="duracion" class="form-label">
-                                                Duración <span class="text-danger">*</span>
-                                            </label>
+                                            <label for="duracion" class="form-label">Duración <span class="text-danger">*</span></label>
                                             <select class="form-select" id="duracion" name="duracion" required>
                                                 <option value="">Seleccionar duración</option>
-                                                <option value="15" <?php echo ($_POST['duracion'] ?? '') === '15' ? 'selected' : ''; ?>>
-                                                    15 minutos
-                                                </option>
-                                                <option value="30" <?php echo ($_POST['duracion'] ?? '') === '30' ? 'selected' : ''; ?>>
-                                                    30 minutos
-                                                </option>
-                                                <option value="45" <?php echo ($_POST['duracion'] ?? '') === '45' ? 'selected' : ''; ?>>
-                                                    45 minutos
-                                                </option>
-                                                <option value="60" <?php echo ($_POST['duracion'] ?? '') === '60' ? 'selected' : ''; ?>>
-                                                    1 hora
-                                                </option>
-                                                <option value="90" <?php echo ($_POST['duracion'] ?? '') === '90' ? 'selected' : ''; ?>>
-                                                    1.5 horas
-                                                </option>
-                                                <option value="120" <?php echo ($_POST['duracion'] ?? '') === '120' ? 'selected' : ''; ?>>
-                                                    2 horas
-                                                </option>
+                                                <option value="15" <?php echo ($_POST['duracion'] ?? '') === '15'  ? 'selected' : ''; ?>>15 minutos</option>
+                                                <option value="30" <?php echo ($_POST['duracion'] ?? '') === '30'  ? 'selected' : ''; ?>>30 minutos</option>
+                                                <option value="45" <?php echo ($_POST['duracion'] ?? '') === '45'  ? 'selected' : ''; ?>>45 minutos</option>
+                                                <option value="60" <?php echo ($_POST['duracion'] ?? '') === '60'  ? 'selected' : ''; ?>>1 hora</option>
+                                                <option value="90" <?php echo ($_POST['duracion'] ?? '') === '90'  ? 'selected' : ''; ?>>1.5 horas</option>
+                                                <option value="120" <?php echo ($_POST['duracion'] ?? '') === '120' ? 'selected' : ''; ?>>2 horas</option>
                                             </select>
                                             <div class="form-text">Duración del paseo</div>
                                         </div>
@@ -256,12 +197,10 @@ $mascotaPreseleccionada = (int)($_GET['mascota_id'] ?? 0);
 
                                     <div class="d-flex justify-content-between">
                                         <a href="MisPaseos.php" class="btn btn-outline-secondary">
-                                            <i class="fas fa-times me-1"></i>
-                                            Cancelar
+                                            <i class="fas fa-times me-1"></i> Cancelar
                                         </a>
                                         <button type="submit" class="btn btn-primary">
-                                            <i class="fas fa-paper-plane me-1"></i>
-                                            Solicitar Paseo
+                                            <i class="fas fa-paper-plane me-1"></i> Solicitar Paseo
                                         </button>
                                     </div>
                                 </form>
@@ -280,23 +219,20 @@ $mascotaPreseleccionada = (int)($_GET['mascota_id'] ?? 0);
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const now = new Date();
-            now.setHours(now.getHours() + 2); // suma 2 horas
+            now.setHours(now.getHours() + 2); // +2 horas
 
-            // Formatear en local (YYYY-MM-DDTHH:MM)
             const year = now.getFullYear();
             const month = String(now.getMonth() + 1).padStart(2, '0');
             const day = String(now.getDate()).padStart(2, '0');
             const hour = String(now.getHours()).padStart(2, '0');
             const minute = String(now.getMinutes()).padStart(2, '0');
-
             const minDateTime = `${year}-${month}-${day}T${hour}:${minute}`;
 
             const inputInicio = document.getElementById('inicio');
-            inputInicio.min = minDateTime; // fecha mínima
-            inputInicio.value = minDateTime; // valor por defecto
+            inputInicio.min = minDateTime;
+            if (!inputInicio.value) inputInicio.value = minDateTime;
         });
     </script>
-
 </body>
 
 </html>

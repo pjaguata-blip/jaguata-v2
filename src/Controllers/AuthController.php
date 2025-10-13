@@ -44,7 +44,6 @@ class AuthController
     private function safeRedirect(string $target): void
     {
         $current = $_SERVER['PHP_SELF'] ?? '';
-        // Evitar loop: si ya estamos en login, registro, index o logout, no volver a redirigir
         if (
             strpos($current, 'login.php') !== false ||
             strpos($current, 'registro.php') !== false ||
@@ -306,7 +305,6 @@ class AuthController
 
         $rol = Session::get('rol');
         if (!in_array($rol, $roles, true)) {
-            // Si tiene rol válido pero no está en la lista, lo mandamos a su dashboard
             $this->redirectToDashboard();
         }
     }
@@ -323,7 +321,6 @@ class AuthController
             exit;
         }
 
-        // Si no tiene rol válido, forzar logout
         Session::logout();
         $this->safeRedirect('/jaguata/public/login.php');
     }

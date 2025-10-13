@@ -134,26 +134,62 @@ $resultCount = count($mascotasFiltradas);
         <div class="row">
 
             <!-- Sidebar -->
-            <nav class="col-md-3 col-lg-2 d-md-block sidebar">
+            <div class="col-md-3 col-lg-2 d-md-block sidebar">
                 <div class="position-sticky pt-3">
                     <ul class="nav flex-column gap-1">
+                        <!-- Mi Perfil -->
+                        <li class="nav-item">
+                            <button class="nav-link d-flex align-items-center w-100 text-start"
+                                data-bs-toggle="collapse" data-bs-target="#menuPerfil" aria-expanded="false">
+                                <i class="fas fa-user me-2"></i>
+                                <span class="flex-grow-1">Mi Perfil</span>
+                                <i class="fas fa-chevron-right ms-2 chevron"></i>
+                            </button>
+                            <ul class="collapse ps-4 nav flex-column" id="menuPerfil">
+                                <li class="nav-item">
+                                    <a class="nav-link" href="MiPerfil.php">
+                                        <i class="fas fa-id-card me-2"></i> Ver Perfil
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="EditarPerfil.php">
+                                        <i class="fas fa-user-edit me-2 text-warning"></i> Editar Perfil
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="GastosTotales.php">
+                                        <i class="fas fa-coins me-2 text-success"></i> Gastos Totales
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+
+
+
+
                         <!-- Mascotas -->
                         <li class="nav-item">
                             <button class="nav-link d-flex align-items-center w-100 text-start"
-                                data-bs-toggle="collapse" data-bs-target="#menuMascotas" aria-expanded="true">
+                                data-bs-toggle="collapse" data-bs-target="#menuMascotas" aria-expanded="false">
                                 <i class="fas fa-paw me-2"></i>
                                 <span class="flex-grow-1">Mascotas</span>
                                 <i class="fas fa-chevron-right ms-2 chevron"></i>
                             </button>
-                            <ul class="collapse show ps-4 nav flex-column" id="menuMascotas">
+                            <ul class="collapse ps-4 nav flex-column" id="menuMascotas">
                                 <li class="nav-item">
-                                    <a class="nav-link active" href="MisMascotas.php">
+                                    <a class="nav-link" href="MisMascotas.php">
                                         <i class="fas fa-list-ul me-2"></i> Mis Mascotas
                                     </a>
                                 </li>
                                 <li class="nav-item">
                                     <a class="nav-link" href="AgregarMascota.php">
                                         <i class="fas fa-plus-circle me-2"></i> Agregar Mascota
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link <?= $firstMascotaId ? '' : 'disabled' ?>"
+                                        href="<?= $firstMascotaId ? 'PerfilMascota.php?id=' . (int)$firstMascotaId : '#' ?>">
+                                        <i class="fas fa-id-badge me-2"></i> Perfil de mi Mascota
                                     </a>
                                 </li>
                             </ul>
@@ -203,35 +239,48 @@ $resultCount = count($mascotasFiltradas);
                                 <i class="fas fa-chevron-right ms-2 chevron"></i>
                             </button>
                             <ul class="collapse ps-4 nav flex-column" id="menuPagos">
-                                <li class="nav-item"><a class="nav-link" href="MetodosPago.php"><i class="fas fa-wallet me-2"></i> Método de Pago</a></li>
-                                <li class="nav-item"><a class="nav-link" href="GastosTotales.php"><i class="fas fa-chart-line me-2"></i> Gastos Totales</a></li>
+                                <li class="nav-item">
+                                    <!-- Enviar a Pendientes (allí hay botón Pagar con paseo_id) -->
+                                    <a class="nav-link" href="PaseosPendientes.php">
+                                        <i class="fas fa-wallet me-2"></i> Pagar paseo
+                                    </a>
+                                </li>
                             </ul>
                         </li>
 
                         <!-- Notificaciones -->
                         <li class="nav-item">
                             <a class="nav-link d-flex align-items-center" href="Notificaciones.php">
-                                <i class="fas fa-bell me-2"></i> <span>Notificaciones</span>
+                                <i class="fas fa-bell me-2"></i>
+                                <span>Notificaciones</span>
                             </a>
                         </li>
 
-                        <!-- Mi Perfil -->
+                        <!-- Configuración (solo Editar Perfil y Cerrar Sesión) -->
                         <li class="nav-item">
                             <button class="nav-link d-flex align-items-center w-100 text-start"
-                                data-bs-toggle="collapse" data-bs-target="#menuPerfil" aria-expanded="false">
-                                <i class="fas fa-user me-2"></i>
-                                <span class="flex-grow-1">Mi Perfil</span>
+                                data-bs-toggle="collapse" data-bs-target="#menuConfig" aria-expanded="false">
+                                <i class="fas fa-gear me-2"></i>
+                                <span class="flex-grow-1">Configuración</span>
                                 <i class="fas fa-chevron-right ms-2 chevron"></i>
                             </button>
-                            <ul class="collapse ps-4 nav flex-column" id="menuPerfil">
-                                <li class="nav-item"><a class="nav-link" href="MisPuntos.php"><i class="fas fa-star me-2"></i> Mis Puntos</a></li>
-                                <li class="nav-item"><a class="nav-link" href="Perfil.php"><i class="fas fa-id-card me-2"></i> Configuración</a></li>
-                                <li class="nav-item"><a class="nav-link text-danger" href="logout.php"><i class="fas fa-sign-out-alt me-2"></i> Cerrar Sesión</a></li>
+                            <ul class="collapse ps-4 nav flex-column" id="menuConfig">
+                                <li class="nav-item">
+                                    <a class="nav-link" href="<?= $baseFeatures; ?>/EditarPerfil.php">
+                                        <i class="fas fa-user-cog me-2"></i> Editar Perfil
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link text-danger" href="<?= BASE_URL; ?>/logout.php">
+                                        <i class="fas fa-sign-out-alt me-2"></i> Cerrar Sesión
+                                    </a>
+                                </li>
                             </ul>
                         </li>
+
                     </ul>
                 </div>
-            </nav>
+            </div>
 
             <!-- Contenido -->
             <main class="col-12 col-md-9 col-lg-10 main-content">

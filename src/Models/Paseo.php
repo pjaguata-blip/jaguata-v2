@@ -222,4 +222,46 @@ class Paseo
     {
         return $this->findByPaseador($paseadorId);
     }
+    public function getById(int $id): ?array
+    {
+        $sql = "SELECT 
+                p.paseo_id,
+                p.inicio,
+                p.duracion,
+                p.precio_total,
+                p.estado,
+                p.estado_pago,
+                p.puntos_ganados,
+                p.created_at,
+                p.updated_at,
+                u.nombre AS paseador_nombre,
+                m.nombre AS mascota_nombre
+            FROM paseos p
+            LEFT JOIN usuarios u ON u.usu_id = p.paseador_id
+            LEFT JOIN mascotas m ON m.mascota_id = p.mascota_id
+            WHERE p.paseo_id = :id
+            LIMIT 1";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$row) return null;
+
+        // 🔹 Normalizamos los nombres esperados por la vista VerPaseo.php
+        return [
+            'paseo_id'        => $row['paseo_id'],
+            'mascota_nombre'  => $row['mascota_nombre'] ?? '—',
+            'paseador_nombre' => $row['paseador_nombre'] ?? '—',
+            'fecha_inicio'    => $row['inicio'] ?? null,
+            'duracion'        => $row['duracion'],
+            'monto'           => $row['precio_total'],
+            'estado'          => $row['estado'],
+            'estado_pago'     => $row['estado_pago'],
+            'puntos_ganados'  => $row['puntos_ganados'],
+            'creado'          => $row['created_at'],
+            'actualizado'     => $row['updated_at']
+        ];
+    }
 }

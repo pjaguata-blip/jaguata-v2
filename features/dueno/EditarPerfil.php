@@ -234,18 +234,28 @@ $panelUrl  = AppConfig::getBaseUrl() . '/features/dueno/Dashboard.php';
 <?php include __DIR__ . '/../../src/Templates/header.php'; ?>
 
 <div class="container py-4">
-    <div class="d-flex justify-content-end gap-2 mb-3">
-        <a href="<?= htmlspecialchars($inicioUrl) ?>" class="btn btn-outline-secondary">
-            <i class="fa-solid fa-house me-1"></i> Inicio
-        </a>
-        <a href="<?= htmlspecialchars($panelUrl) ?>" class="btn btn-outline-primary">
-            <i class="fa-solid fa-gauge-high me-1"></i> Panel
-        </a>
+
+    <!-- Encabezado principal con botón Volver -->
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <div class="d-flex align-items-center gap-2">
+            <a href="MiPerfil.php" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i> Volver
+            </a>
+            <h1 class="page-title mb-0 d-flex align-items-center">
+                <i class="fas fa-edit me-2"></i> Editar Perfil - Dueño
+            </h1>
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+            <a href="<?= htmlspecialchars($inicioUrl) ?>" class="btn btn-outline-secondary">
+                <i class="fa-solid fa-house me-1"></i> Inicio
+            </a>
+            <a href="<?= htmlspecialchars($panelUrl) ?>" class="btn btn-outline-primary">
+                <i class="fa-solid fa-gauge-high me-1"></i> Panel
+            </a>
+        </div>
     </div>
 
-    <h2 class="mb-3 d-flex align-items-center">
-        <i class="fas fa-edit me-2"></i> Editar Perfil - Dueño
-    </h2>
 
     <?php if ($mensaje): ?>
         <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -365,9 +375,6 @@ $panelUrl  = AppConfig::getBaseUrl() . '/features/dueno/Dashboard.php';
             <button type="submit" class="btn btn-success">
                 <i class="fas fa-save me-2"></i> Guardar Cambios
             </button>
-            <a href="Perfil.php" class="btn btn-secondary ms-2">
-                <i class="fas fa-arrow-left"></i> Volver
-            </a>
         </div>
     </form>
 </div>

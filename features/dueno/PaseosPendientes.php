@@ -2,16 +2,18 @@
 
 declare(strict_types=1);
 
-use Jaguata\Config\AppConfig;
-use Jaguata\Controllers\AuthController;
-use Jaguata\Controllers\PaseoController;
-use Jaguata\Helpers\Session;
-
 require_once __DIR__ . '/../../src/Config/AppConfig.php';
 require_once __DIR__ . '/../../src/Controllers/AuthController.php';
 require_once __DIR__ . '/../../src/Controllers/PaseoController.php';
+require_once __DIR__ . '/../../src/Controllers/MascotaController.php';
 require_once __DIR__ . '/../../src/Helpers/Session.php';
 require_once __DIR__ . '/../../vendor/autoload.php';
+
+use Jaguata\Config\AppConfig;
+use Jaguata\Controllers\AuthController;
+use Jaguata\Controllers\PaseoController;
+use Jaguata\Controllers\MascotaController;
+use Jaguata\Helpers\Session;
 
 AppConfig::init();
 
@@ -25,24 +27,13 @@ $defaultBack = BASE_URL . "/features/{$rol}/Dashboard.php";
 $referer = $_SERVER['HTTP_REFERER'] ?? '';
 $backUrl = (is_string($referer) && str_starts_with($referer, BASE_URL)) ? $referer : $defaultBack;
 
-// Datos
-$paseoController = new PaseoController();
-$all = $paseoController->index(); // array de paseos
+// Datos base
+$paseoController   = new PaseoController();
+$mascotaController = new MascotaController();
 
-// ---- Filtros ----
-$q     = trim((string)($_GET['q'] ?? ''));
-$desde = $_GET['desde'] ?? null;        // YYYY-MM-DD
-$hasta = $_GET['hasta'] ?? null;
-
-$normalizeTs = function (?string $d, bool $end = false): ?int {
-    if (!$d) return null;
-    $dt = DateTime::createFromFormat('Y-m-d', $d) ?: (strtotime($d) ? new DateTime($d) : null);
-    if (!$dt) return null;
-    $dt->setTime($end ? 23 : 0, $end ? 59 : 0, $end ? 59 : 0);
-    return $dt->getTimestamp();
-};
-$tsDesde = $normalizeTs($desde, false);
-$tsHasta = $normalizeTs($hasta, true);
+// Traer TODO (con relaciones) y luego filtramos por mascotas del dueño
+$allPaseos = $paseoController->index();   // SELECT p.*, nombre_paseador, nombre_mascota...
+$mascotas  = $mascotaController->index(); // solo mascotas del dueño logueado
 
 // ---- Helpers de presentación ----
 function fmtDate($v, string $format = 'd/m/Y H:i'): string
@@ -60,20 +51,48 @@ function fmtGs($v): string
     $n = ($v === null || $v === '') ? 0 : (float)$v;
     return '₲' . number_format($n, 0, ',', '.');
 }
-function badgeClass(string $estado): string
+function estadoToBadge(string $estadoRaw): array
 {
-    return match ($estado) {
-        'completo'   => 'success',
-        'cancelado'  => 'danger',
-        'Pendiente', 'confirmado' => 'warning',
-        default      => 'secondary'
-    };
+    $lc = mb_strtolower($estadoRaw);
+    // Normalizo a: Solicitado / Confirmado / Completo / Cancelado
+    if (in_array($lc, ['pendiente', 'solicitado'], true)) return ['warning', 'Solicitado'];
+    if ($lc === 'confirmado')                                return ['info', 'Confirmado'];
+    if (in_array($lc, ['completo', 'completado'], true))     return ['success', 'Completo'];
+    if ($lc === 'cancelado')                                 return ['danger', 'Cancelado'];
+    return ['secondary', ucfirst($estadoRaw ?: '-')];
 }
 
-// ---- Filtrado (pendientes = Pendiente | confirmado) ----
-$paseos = array_values(array_filter($all, function (array $p) use ($q, $tsDesde, $tsHasta) {
+// ---- Filtros UI ----
+$q     = trim((string)($_GET['q'] ?? ''));
+$desde = $_GET['desde'] ?? null; // YYYY-MM-DD
+$hasta = $_GET['hasta'] ?? null;
+
+$normalizeTs = function (?string $d, bool $end = false): ?int {
+    if (!$d) return null;
+    $dt = DateTime::createFromFormat('Y-m-d', $d) ?: (strtotime($d) ? new DateTime($d) : null);
+    if (!$dt) return null;
+    $dt->setTime($end ? 23 : 0, $end ? 59 : 0, $end ? 59 : 0);
+    return $dt->getTimestamp();
+};
+$tsDesde = $normalizeTs($desde, false);
+$tsHasta = $normalizeTs($hasta, true);
+
+// ---- Filtrar SOLO paseos de las mascotas del dueño ----
+$idsMascotasDueno = [];
+foreach ($mascotas as $m) {
+    $mid = $m['mascota_id'] ?? $m['id'] ?? $m['id_mascota'] ?? null;
+    if ($mid !== null) $idsMascotasDueno[(int)$mid] = true;
+}
+
+$soloDueno = array_values(array_filter($allPaseos, function ($p) use ($idsMascotasDueno) {
+    $mid = $p['mascota_id'] ?? $p['id_mascota'] ?? $p['idMascota'] ?? null;
+    return $mid !== null && isset($idsMascotasDueno[(int)$mid]);
+}));
+
+// ---- Filtrar por estado Pendiente/Confirmado + filtros de fecha y texto ----
+$paseos = array_values(array_filter($soloDueno, function (array $p) use ($q, $tsDesde, $tsHasta) {
     $estado = (string)($p['estado'] ?? '');
-    if (!in_array($estado, ['Pendiente', 'confirmado'], true)) return false;
+    if (!in_array(mb_strtolower($estado), ['pendiente', 'solicitado', 'confirmado'], true)) return false;
 
     $iniTs = null;
     if (isset($p['inicio']) && $p['inicio'] !== '') {
@@ -123,6 +142,7 @@ $paseos = array_values(array_filter($all, function (array $p) use ($q, $tsDesde,
                     </a>
                 </div>
 
+                <!-- Filtros -->
                 <form class="row g-2 mb-3" method="get">
                     <div class="col-sm-3">
                         <label class="form-label">Desde</label>
@@ -150,28 +170,50 @@ $paseos = array_values(array_filter($all, function (array $p) use ($q, $tsDesde,
                             </div>
                         <?php else: ?>
                             <div class="table-responsive">
-                                <table class="table table-bordered table-sm align-middle">
-                                    <thead class="table-light">
-                                        <tr>
-                                            <th>Mascota</th>
-                                            <th>Paseador</th>
-                                            <th>Inicio</th>
-                                            <th>Fin</th>
-                                            <th>Duración</th>
-                                            <th>Precio</th>
-                                            <th>Estado</th>
+                                <table class="table table-bordered table-sm align-middle mb-0" style="white-space:nowrap;">
+                                    <thead class="table-dark">
+                                        <tr class="text-center">
+                                            <th style="width:18%">Mascota</th>
+                                            <th style="width:20%">Paseador</th>
+                                            <th style="width:14%">Inicio</th>
+                                            <th style="width:14%">Fin</th>
+                                            <th style="width:10%">Duración</th>
+                                            <th style="width:12%">Precio</th>
+                                            <th style="width:10%">Estado</th>
+                                            <th style="width:12%" class="text-end">Acción</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <?php foreach ($paseos as $p): ?>
+                                            <?php
+                                            $inicio   = fmtDate($p['inicio'] ?? null);
+                                            $fin      = fmtDate($p['fin'] ?? null);
+                                            $durMin   = $p['duracion_min'] ?? $p['duracion'] ?? null;
+                                            $duracion = fmtInt($durMin);
+                                            $precio   = fmtGs($p['precio_total'] ?? null);
+                                            [$badgeCls, $estadoTxt] = estadoToBadge((string)($p['estado'] ?? ''));
+
+                                            // Habilitamos pagar si es pendiente/solicitado/confirmado y tiene paseo_id
+                                            $puedePagar = in_array(mb_strtolower((string)($p['estado'] ?? '')), ['pendiente', 'solicitado', 'confirmado'], true)
+                                                && !empty($p['paseo_id']);
+                                            ?>
                                             <tr>
-                                                <td><?= htmlspecialchars((string)($p['nombre_mascota'] ?? '-')) ?></td>
-                                                <td><?= htmlspecialchars((string)($p['nombre_paseador'] ?? '-')) ?></td>
-                                                <td><?= fmtDate($p['inicio'] ?? null) ?></td>
-                                                <td><?= fmtDate($p['fin'] ?? null) ?></td>
-                                                <td><?= fmtInt($p['duracion_min'] ?? null) ?></td>
-                                                <td><?= fmtGs($p['precio_total'] ?? null) ?></td>
-                                                <td><span class="badge bg-<?= badgeClass((string)($p['estado'] ?? '')) ?>"><?= htmlspecialchars(ucfirst((string)($p['estado'] ?? '-'))) ?></span></td>
+                                                <td class="text-truncate" style="max-width:180px;"><?= htmlspecialchars((string)($p['nombre_mascota'] ?? '-')) ?></td>
+                                                <td class="text-truncate" style="max-width:220px;"><?= htmlspecialchars((string)($p['nombre_paseador'] ?? '-')) ?></td>
+                                                <td class="text-center"><?= $inicio ?></td>
+                                                <td class="text-center"><?= $fin ?></td>
+                                                <td class="text-center"><?= $duracion ?></td>
+                                                <td class="text-end"><?= $precio ?></td>
+                                                <td class="text-center"><span class="badge bg-<?= $badgeCls ?>"><?= $estadoTxt ?></span></td>
+                                                <td class="text-end">
+                                                    <?php if ($puedePagar): ?>
+                                                        <a href="pago_paseo_dueno.php?paseo_id=<?= (int)$p['paseo_id'] ?>" class="btn btn-sm btn-primary">
+                                                            <i class="fas fa-wallet me-1"></i> Pagar
+                                                        </a>
+                                                    <?php else: ?>
+                                                        <span class="text-muted">—</span>
+                                                    <?php endif; ?>
+                                                </td>
                                             </tr>
                                         <?php endforeach; ?>
                                     </tbody>
@@ -180,6 +222,7 @@ $paseos = array_values(array_filter($all, function (array $p) use ($q, $tsDesde,
                         <?php endif; ?>
                     </div>
                 </div>
+
             </main>
         </div>
     </div>

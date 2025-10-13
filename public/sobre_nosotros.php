@@ -76,7 +76,7 @@ include __DIR__ . '/../src/Templates/Header.php';
                 <div class="card h-100 shadow-sm">
                     <div class="card-body">
                         <h3 class="h5"><i class="fa-solid fa-bullseye me-2 text-primary"></i>Misión</h3>
-                        <p class="mb-0 text-muted">
+                        <p class="mb-0 text-color #ffff">
                             Conectar de forma segura y rápida a dueños con paseadores confiables,
                             garantizando bienestar y felicidad para cada mascota.
                         </p>
@@ -88,7 +88,7 @@ include __DIR__ . '/../src/Templates/Header.php';
                 <div class="card h-100 shadow-sm">
                     <div class="card-body">
                         <h3 class="h5"><i class="fa-solid fa-eye me-2 text-primary"></i>Visión</h3>
-                        <p class="mb-0 text-muted">
+                        <p class="mb-0 text-color #ffff">
                             Ser la plataforma de referencia en servicios para mascotas en Paraguay y la región.
                         </p>
                     </div>
@@ -99,7 +99,7 @@ include __DIR__ . '/../src/Templates/Header.php';
                 <div class="card h-100 shadow-sm">
                     <div class="card-body">
                         <h3 class="h5"><i class="fa-solid fa-heart me-2 text-primary"></i>Valores</h3>
-                        <ul class="mb-0 text-muted ps-3">
+                        <ul class="mb-0 text--color #ffff ps-3">
                             <li>Cuidado y respeto animal</li>
                             <li>Confianza y transparencia</li>
                             <li>Seguridad y responsabilidad</li>
@@ -117,7 +117,7 @@ include __DIR__ . '/../src/Templates/Header.php';
         <div class="row align-items-center g-4">
             <div class="col-lg-8">
                 <h2 class="h3 mb-2">¿Listo para comenzar?</h2>
-                <p class="text-muted mb-0">Crea tu cuenta o hablá con nosotros para conocer más.</p>
+                <p class="text--color #ffff mb-0">Crea tu cuenta o hablá con nosotros para conocer más.</p>
             </div>
             <div class="col-lg-4 text-lg-end">
                 <a href="<?= BASE_URL; ?>/registro.php" class="btn btn-primary me-2">

@@ -4,6 +4,7 @@ require_once __DIR__ . '/../../src/Controllers/AuthController.php';
 require_once __DIR__ . '/../../src/Controllers/MascotaController.php';
 require_once __DIR__ . '/../../src/Controllers/PaseoController.php';
 require_once __DIR__ . '/../../src/Controllers/NotificacionController.php';
+
 require_once __DIR__ . '/../../vendor/autoload.php';
 
 use Jaguata\Config\AppConfig;
@@ -39,9 +40,6 @@ $allPaseos      = $paseoController->index();        // ← podrían venir de tod
 $notificaciones = $notificacionController->getRecientes();
 
 // ---- FILTRAR PASEOS SOLO DE LAS MASCOTAS DEL DUEÑO ----
-/**
- * Obtiene el ID de mascota desde un item, tolerando distintos nombres de clave.
- */
 $extractMascotaId = function (array $row) {
     return $row['mascota_id'] ?? $row['id_mascota'] ?? $row['idMascota'] ?? null;
 };
@@ -64,9 +62,9 @@ $paseos = array_values(array_filter($allPaseos, function ($p) use ($extractMasco
 // Estadísticas (sobre paseos filtrados)
 $totalMascotas = count($mascotas);
 
-$paseosPendientes = array_filter($paseos, fn($p) => in_array(($p['estado'] ?? ''), ['Pendiente', 'confirmado'], true));
-$paseosCompletados = array_filter($paseos, fn($p) => ($p['estado'] ?? '') === 'completo');
-$paseosCancelados  = array_filter($paseos, fn($p) => ($p['estado'] ?? '') === 'cancelado');
+$paseosPendientes = array_filter($paseos, fn($p) => in_array(strtolower($p['estado'] ?? ''), ['pendiente', 'confirmado'], true));
+$paseosCompletados = array_filter($paseos, fn($p) => strtolower($p['estado'] ?? '') === 'completo');
+$paseosCancelados  = array_filter($paseos, fn($p) => strtolower($p['estado'] ?? '') === 'cancelado');
 
 $totalPaseosPendientes  = count($paseosPendientes);
 $totalPaseosCompletados = count($paseosCompletados);
@@ -116,6 +114,35 @@ foreach ($mascotas as $m) {
             <div class="col-md-3 col-lg-2 d-md-block sidebar">
                 <div class="position-sticky pt-3">
                     <ul class="nav flex-column gap-1">
+                        <!-- Mi Perfil -->
+                        <li class="nav-item">
+                            <button class="nav-link d-flex align-items-center w-100 text-start"
+                                data-bs-toggle="collapse" data-bs-target="#menuPerfil" aria-expanded="false">
+                                <i class="fas fa-user me-2"></i>
+                                <span class="flex-grow-1">Mi Perfil</span>
+                                <i class="fas fa-chevron-right ms-2 chevron"></i>
+                            </button>
+                            <ul class="collapse ps-4 nav flex-column" id="menuPerfil">
+                                <li class="nav-item">
+                                    <a class="nav-link" href="<?= $baseFeatures; ?>/MiPerfil.php">
+                                        <i class="fas fa-id-card me-2"></i> Ver Perfil
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="<?= $baseFeatures; ?>/EditarPerfil.php">
+                                        <i class="fas fa-user-edit me-2 text-warning"></i> Editar Perfil
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="<?= $baseFeatures; ?>/GastosTotales.php">
+                                        <i class="fas fa-coins me-2 text-success"></i> Gastos Totales
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+
+
+
 
                         <!-- Mascotas -->
                         <li class="nav-item">
@@ -190,13 +217,9 @@ foreach ($mascotas as $m) {
                             </button>
                             <ul class="collapse ps-4 nav flex-column" id="menuPagos">
                                 <li class="nav-item">
-                                    <a class="nav-link" href="pagar_paseo.php">
-                                        <i class="fas fa-wallet me-2"></i> Método de Pago
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link" href="GastosTotales.php">
-                                        <i class="fas fa-chart-line me-2"></i> Gastos Totales
+                                    <!-- Enviar a Pendientes (allí hay botón Pagar con paseo_id) -->
+                                    <a class="nav-link" href="PaseosPendientes.php">
+                                        <i class="fas fa-wallet me-2"></i> Pagar paseo
                                     </a>
                                 </li>
                             </ul>
@@ -210,23 +233,18 @@ foreach ($mascotas as $m) {
                             </a>
                         </li>
 
-                        <!-- Mi Perfil -->
+                        <!-- Configuración (solo Editar Perfil y Cerrar Sesión) -->
                         <li class="nav-item">
                             <button class="nav-link d-flex align-items-center w-100 text-start"
-                                data-bs-toggle="collapse" data-bs-target="#menuPerfil" aria-expanded="false">
-                                <i class="fas fa-user me-2"></i>
-                                <span class="flex-grow-1">Configuracion</span>
+                                data-bs-toggle="collapse" data-bs-target="#menuConfig" aria-expanded="false">
+                                <i class="fas fa-gear me-2"></i>
+                                <span class="flex-grow-1">Configuración</span>
                                 <i class="fas fa-chevron-right ms-2 chevron"></i>
                             </button>
-                            <ul class="collapse ps-4 nav flex-column" id="menuPerfil">
-                                <li class="nav-item">
-                                    <a class="nav-link" href="<?= $baseFeatures; ?>/MiPerfil.php">
-                                        <i class="fas fa-id-card me-2"></i> Mi Perfil
-                                    </a>
-                                </li>
+                            <ul class="collapse ps-4 nav flex-column" id="menuConfig">
                                 <li class="nav-item">
                                     <a class="nav-link" href="<?= $baseFeatures; ?>/EditarPerfil.php">
-                                        <i class="fas fa-gear me-2"></i> Editar Perfil
+                                        <i class="fas fa-user-cog me-2"></i> Editar Perfil
                                     </a>
                                 </li>
                                 <li class="nav-item">
@@ -246,18 +264,43 @@ foreach ($mascotas as $m) {
                 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                     <h1 class="h2">Dashboard</h1>
 
+                    <!-- Toolbar de exportación -->
                     <div class="btn-toolbar mb-2 mb-md-0">
                         <div class="btn-group me-2">
-                            <button type="button" class="btn btn-sm btn-outline-secondary">
-                                <i class="fas fa-download me-1"></i>
-                                Exportar
-                            </button>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle"
+                                    type="button"
+                                    id="exportDropdown"
+                                    data-bs-toggle="dropdown"
+                                    aria-expanded="false">
+                                    <i class="fas fa-download me-1"></i> Exportar
+                                </button>
+                                <ul class="dropdown-menu" aria-labelledby="exportDropdown">
+                                    <li>
+                                        <a class="dropdown-item" href="exportar_datos.php?tipo=paseos">
+                                            <i class="fas fa-walking me-2 text-success"></i> Paseos
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="exportar_datos.php?tipo=mascotas">
+                                            <i class="fas fa-paw me-2 text-primary"></i> Mascotas
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="exportar_datos.php?tipo=pagos">
+                                            <i class="fas fa-wallet me-2 text-info"></i> Pagos
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
                         </div>
+
                         <a href="SolicitarPaseo.php" class="btn btn-sm btn-primary">
-                            <i class="fas fa-plus me-1"></i>
-                            Nuevo Paseo
+                            <i class="fas fa-plus me-1"></i> Nuevo Paseo
                         </a>
                     </div>
+
+
                 </div>
 
                 <!-- Estadísticas -->
@@ -350,57 +393,99 @@ foreach ($mascotas as $m) {
                     <div class="col-lg-8">
                         <div class="card shadow mb-4">
                             <div class="card-header py-3">
-                                <h6 class="m-0 font-weight-bold text-primary">Paseos Recientes</h6>
+                                <h6 class="m-0 font-weight-bold text-success">Paseos Recientes</h6>
                             </div>
                             <div class="card-body">
+
                                 <?php if (empty($paseosRecientes)): ?>
                                     <div class="text-center py-4">
                                         <i class="fas fa-walking fa-3x text-gray-300 mb-3"></i>
-                                        <p class="text-muted">No tienes paseos recientes de tus mascotas.</p>
+                                        <p class="text-color #ffff mb-3">No tienes paseos recientes de tus mascotas.</p>
                                         <a href="SolicitarPaseo.php" class="btn btn-primary">
-                                            <i class="fas fa-plus me-1"></i>
-                                            Solicitar Primer Paseo
+                                            <i class="fas fa-plus me-1"></i> Solicitar Primer Paseo
                                         </a>
                                     </div>
                                 <?php else: ?>
+
                                     <div class="table-responsive">
-                                        <table class="table table-bordered" width="100%" cellspacing="0">
-                                            <thead>
-                                                <tr>
-                                                    <th>Mascota</th>
-                                                    <th>Paseador</th>
-                                                    <th>Fecha</th>
-                                                    <th>Estado</th>
-                                                    <th>Precio</th>
+                                        <table class="table table-bordered table-sm align-middle mb-0" style="white-space:nowrap;">
+                                            <thead class="table-dark">
+                                                <tr class="text-center">
+                                                    <th style="width:18%">Mascota</th>
+                                                    <th style="width:20%">Paseador</th>
+                                                    <th style="width:14%">Inicio</th>
+                                                    <th style="width:14%">Fin</th>
+                                                    <th style="width:10%">Duración</th>
+                                                    <th style="width:12%">Precio</th>
+                                                    <th style="width:10%">Estado</th>
+                                                    <th style="width:12%" class="text-end">Acción</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 <?php foreach ($paseosRecientes as $paseo): ?>
+                                                    <?php
+                                                    $inicio   = !empty($paseo['inicio']) ? date('d/m/Y H:i', strtotime($paseo['inicio'])) : '-';
+                                                    $fin      = !empty($paseo['fin'] ?? null) ? date('d/m/Y H:i', strtotime($paseo['fin'])) : '-';
+                                                    $durMin   = isset($paseo['duracion_min']) ? (int)$paseo['duracion_min'] : ((isset($paseo['duracion']) ? (int)$paseo['duracion'] : null));
+                                                    $duracion = $durMin !== null ? $durMin . ' min' : '-';
+                                                    $precio   = '₲' . number_format((float)($paseo['precio_total'] ?? 0), 0, ',', '.');
+
+                                                    // Estado → badge
+                                                    $estadoRaw = (string)($paseo['estado'] ?? '');
+                                                    $estadoLc  = mb_strtolower($estadoRaw);
+                                                    $badgeCls  = 'secondary';
+                                                    $estadoTxt = $estadoRaw;
+
+                                                    if (in_array($estadoLc, ['pendiente', 'solicitado'], true)) {
+                                                        $badgeCls = 'warning';
+                                                        $estadoTxt = 'Solicitado';
+                                                    } elseif ($estadoLc === 'confirmado') {
+                                                        $badgeCls = 'info';
+                                                        $estadoTxt = 'Confirmado';
+                                                    } elseif (in_array($estadoLc, ['completo', 'completado'], true)) {
+                                                        $badgeCls = 'success';
+                                                        $estadoTxt = 'Completo';
+                                                    } elseif ($estadoLc === 'cancelado') {
+                                                        $badgeCls = 'danger';
+                                                        $estadoTxt = 'Cancelado';
+                                                    }
+
+                                                    $puedePagar = in_array($estadoLc, ['pendiente', 'solicitado', 'confirmado'], true) && !empty($paseo['paseo_id']);
+                                                    ?>
                                                     <tr>
-                                                        <td><?= htmlspecialchars($paseo['nombre_mascota'] ?? '') ?></td>
-                                                        <td>
-                                                            <?= isset($paseo['nombre_paseador'])
-                                                                ? htmlspecialchars($paseo['nombre_paseador'])
-                                                                : '<span class="text-muted">-</span>' ?>
+                                                        <td class="text-truncate" style="max-width:180px;">
+                                                            <?= htmlspecialchars($paseo['nombre_mascota'] ?? '-') ?>
                                                         </td>
-                                                        <td><?= !empty($paseo['inicio']) ? date('d/m/Y H:i', strtotime($paseo['inicio'])) : '-' ?></td>
-                                                        <td>
-                                                            <?php
-                                                            $estado = $paseo['estado'] ?? '';
-                                                            $cls = ($estado === 'completo') ? 'success' : (($estado === 'cancelado') ? 'danger' : 'warning');
-                                                            ?>
-                                                            <span class="badge badge-<?= $cls ?>"><?= htmlspecialchars(ucfirst($estado)) ?></span>
+                                                        <td class="text-truncate" style="max-width:220px;">
+                                                            <?= isset($paseo['nombre_paseador']) ? htmlspecialchars($paseo['nombre_paseador']) : '<span class="text-color #ffff">-</span>' ?>
                                                         </td>
-                                                        <td>₲<?= number_format((float)($paseo['precio_total'] ?? 0), 0, ',', '.') ?></td>
+                                                        <td class="text-center"><?= $inicio ?></td>
+                                                        <td class="text-center"><?= $fin ?></td>
+                                                        <td class="text-center"><?= $duracion ?></td>
+                                                        <td class="text-end"><?= $precio ?></td>
+                                                        <td class="text-center">
+                                                            <span class="badge bg-<?= $badgeCls ?>"><?= $estadoTxt ?></span>
+                                                        </td>
+                                                        <td class="text-end">
+                                                            <?php if ($puedePagar): ?>
+                                                                <a href="pago_paseo_dueno.php?paseo_id=<?= (int)$paseo['paseo_id'] ?>" class="btn btn-sm btn-primary">
+                                                                    <i class="fas fa-wallet me-1"></i> Pagar
+                                                                </a>
+                                                            <?php else: ?>
+                                                                <span class="text-color #ffff">—</span>
+                                                            <?php endif; ?>
+                                                        </td>
                                                     </tr>
                                                 <?php endforeach; ?>
                                             </tbody>
                                         </table>
                                     </div>
+
                                 <?php endif; ?>
                             </div>
                         </div>
                     </div>
+
 
                     <!-- Mis Mascotas + Notificaciones -->
                     <div class="col-lg-4">
@@ -413,7 +498,7 @@ foreach ($mascotas as $m) {
                                 <?php if (empty($mascotasRecientes)): ?>
                                     <div class="text-center py-3">
                                         <i class="fas fa-paw fa-2x text-gray-300 mb-2"></i>
-                                        <p class="text-muted mb-3">No tienes mascotas registradas</p>
+                                        <p class="text-color #ffff mb-3">No tienes mascotas registradas</p>
                                         <a href="AgregarMascota.php" class="btn btn-primary btn-sm">
                                             <i class="fas fa-plus me-1"></i>
                                             Agregar Mascota
@@ -427,7 +512,7 @@ foreach ($mascotas as $m) {
                                             </div>
                                             <div class="flex-grow-1">
                                                 <h6 class="mb-0"><?= htmlspecialchars($mascota['nombre'] ?? '') ?></h6>
-                                                <small class="text-muted">
+                                                <small class="text-color #ffff">
                                                     <?php
                                                     $tam = $mascota['tamano'] ?? '';
                                                     $edadMeses = $mascota['edad'] ?? $mascota['edad_meses'] ?? null;
@@ -459,7 +544,7 @@ foreach ($mascotas as $m) {
                                 <?php if (empty($notificaciones)): ?>
                                     <div class="text-center py-3">
                                         <i class="fas fa-bell fa-2x text-gray-300 mb-2"></i>
-                                        <p class="text-muted">No tienes notificaciones</p>
+                                        <p class="text-color #ffff">No tienes notificaciones</p>
                                     </div>
                                 <?php else: ?>
                                     <?php foreach ($notificaciones as $n): ?>
@@ -469,8 +554,8 @@ foreach ($mascotas as $m) {
                                             </div>
                                             <div class="flex-grow-1">
                                                 <h6 class="mb-0"><?= htmlspecialchars($n['titulo'] ?? '') ?></h6>
-                                                <p class="text-muted mb-0"><?= htmlspecialchars($n['mensaje'] ?? '') ?></p>
-                                                <small class="text-muted">
+                                                <p class="text-color #ffff mb-0"><?= htmlspecialchars($n['mensaje'] ?? '') ?></p>
+                                                <small class="text-color #ffff">
                                                     <?= !empty($n['created_at']) ? date('d/m/Y H:i', strtotime($n['created_at'])) : '' ?>
                                                 </small>
                                             </div>

@@ -24,38 +24,28 @@ class AppConfig
         // Normalizar entorno cuando se ejecuta por CLI (tests/scripts)
         $isCli = (\php_sapi_name() === 'cli');
         if ($isCli) {
-            $_SERVER['HTTPS']      = $_SERVER['HTTPS']      ?? 'off';
-            $_SERVER['HTTP_HOST']  = $_SERVER['HTTP_HOST']  ?? 'localhost';
+            $_SERVER['HTTPS']       = $_SERVER['HTTPS']       ?? 'off';
+            $_SERVER['HTTP_HOST']   = $_SERVER['HTTP_HOST']   ?? 'localhost';
             $_SERVER['SCRIPT_NAME'] = $_SERVER['SCRIPT_NAME'] ?? '/index.php';
         }
 
         // Detectar protocolo y host
         $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? "https://" : "http://";
-        $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+        $host     = $_SERVER['HTTP_HOST'] ?? 'localhost';
 
         // Detectar carpeta base (ej: /jaguata/public)
         $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
-        $basePath = str_replace('\\', '/', dirname($scriptName));
-        $basePath = rtrim($basePath, '/');
+        $basePath   = str_replace('\\', '/', dirname($scriptName));
+        $basePath   = rtrim($basePath, '/');
 
         // === URLs base ===
-        if (!defined('BASE_URL')) {
-            define('BASE_URL', $protocol . $host . $basePath);
-        }
-        if (!defined('ASSETS_URL')) {
-            define('ASSETS_URL', BASE_URL . '/assets');
-        }
-        if (!defined('API_URL')) {
-            define('API_URL', BASE_URL . '/api');
-        }
+        if (!defined('BASE_URL'))    define('BASE_URL',    $protocol . $host . $basePath);
+        if (!defined('ASSETS_URL'))  define('ASSETS_URL',  BASE_URL . '/assets');
+        if (!defined('API_URL'))     define('API_URL',     BASE_URL . '/api');
 
         // === Seguridad / Sesiones ===
-        if (!defined('APP_KEY')) {
-            define('APP_KEY', 'clave-super-secreta'); // cambiar en producción
-        }
-        if (!defined('SESSION_NAME')) {
-            define('SESSION_NAME', 'JAGUATA_SESSION');
-        }
+        if (!defined('APP_KEY'))       define('APP_KEY',       'clave-super-secreta'); // cambiar en prod
+        if (!defined('SESSION_NAME'))  define('SESSION_NAME',  'JAGUATA_SESSION');
 
         // === Google Analytics ===
         if (!defined('GOOGLE_ANALYTICS_ID')) {
@@ -68,15 +58,13 @@ class AppConfig
         }
 
         // === Debug ===
-        if (!defined('DEBUG_MODE')) {
-            define('DEBUG_MODE', $host === 'localhost');
-        }
+        if (!defined('DEBUG_MODE'))    define('DEBUG_MODE',    $host === 'localhost');
 
         // === Config BD ===
-        if (!defined('DB_HOST')) define('DB_HOST', getenv('DB_HOST') ?: '127.0.0.1');
-        if (!defined('DB_NAME')) define('DB_NAME', getenv('DB_NAME') ?: 'jaguata');
-        if (!defined('DB_USER')) define('DB_USER', getenv('DB_USER') ?: 'root');
-        if (!defined('DB_PASS')) define('DB_PASS', getenv('DB_PASS') ?: '');
+        if (!defined('DB_HOST'))    define('DB_HOST',    getenv('DB_HOST')    ?: '127.0.0.1');
+        if (!defined('DB_NAME'))    define('DB_NAME',    getenv('DB_NAME')    ?: 'jaguata');
+        if (!defined('DB_USER'))    define('DB_USER',    getenv('DB_USER')    ?: 'root');
+        if (!defined('DB_PASS'))    define('DB_PASS',    getenv('DB_PASS')    ?: '');
         if (!defined('DB_CHARSET')) define('DB_CHARSET', getenv('DB_CHARSET') ?: 'utf8mb4');
 
         // === Conexión BD ===
@@ -96,7 +84,7 @@ class AppConfig
             }
             echo json_encode([
                 'success' => false,
-                'error' => 'Error interno al conectar con la base de datos'
+                'error'   => 'Error interno al conectar con la base de datos'
             ]);
             exit;
         }
@@ -133,5 +121,28 @@ class AppConfig
     public static function getApiUrl(): string
     {
         return API_URL;
+    }
+
+    /**
+     * NUEVO: Retorna la conexión PDO inicializada en init().
+     * Mantiene compatibilidad con el uso AppConfig::db() en tus pantallas.
+     */
+    public static function db(): PDO
+    {
+        if (!self::$initialized) {
+            self::init();
+        }
+        if (!isset($GLOBALS['db']) || !($GLOBALS['db'] instanceof PDO)) {
+            throw new \RuntimeException('Conexión DB no inicializada');
+        }
+        return $GLOBALS['db'];
+    }
+
+    /**
+     * Alias opcional por si preferís AppConfig::pdo()
+     */
+    public static function pdo(): PDO
+    {
+        return self::db();
     }
 }

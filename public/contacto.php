@@ -194,7 +194,7 @@ include __DIR__ . '/../src/Templates/Header.php';
         </div>
     </div>
 
-    <div class="text-muted mt-3 small">
+    <div class="text--color #ffff mt-3 small">
         <i class="fa-regular fa-clock me-1"></i> Tiempo entre envíos: <?= (int)$COOLDOWN_SECONDS ?>s
     </div>
 </div>

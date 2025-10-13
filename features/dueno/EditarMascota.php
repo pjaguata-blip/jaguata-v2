@@ -371,7 +371,7 @@ $SUG_RAZA = [
                     </div>
                 </div>
 
-                <div class="mt-3 text-muted small">
+                <div class="mt-3 text-color #ffff small">
                     <i class="fas fa-info-circle me-1"></i> Este formulario mantiene los nombres de campos usados en tu backend/BD.
                 </div>
 

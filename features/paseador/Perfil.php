@@ -115,16 +115,16 @@ $titulo = "Mi Perfil (Paseador) - Jaguata";
                             <strong>Cumpleaños:</strong>
                             <?php if (!empty($usuario['fecha_nacimiento'])): ?>
                                 <?= fechaLatina($usuario['fecha_nacimiento']) ?>
-                                <?= $edad !== null ? " <span class=\"text-muted\">({$edad} años)</span>" : "" ?>
+                                <?= $edad !== null ? " <span class=\"text--color #ffff\">({$edad} años)</span>" : "" ?>
                             <?php else: ?>
-                                <span class="text-muted">No especificado</span>
+                                <span class="text--color #ffff">No especificado</span>
                             <?php endif; ?>
                         </div>
                         <div class="mb-2">
                             <i class="fa-solid fa-star me-2"></i>
                             <strong>Puntos:</strong> <?= (int)($usuario['puntos'] ?? 0) ?>
                         </div>
-                        <div class="text-muted mt-3">
+                        <div class="text--color #ffff mt-3">
                             <div><small><i class="fa-regular fa-clock me-1"></i> Creado: <?= h($usuario['created_at'] ?? '') ?></small></div>
                             <div><small><i class="fa-regular fa-pen-to-square me-1"></i> Actualizado: <?= h($usuario['updated_at'] ?? '') ?></small></div>
                         </div>
@@ -144,7 +144,7 @@ $titulo = "Mi Perfil (Paseador) - Jaguata";
                 </div>
                 <div class="card-body">
                     <?php if (empty($zonas)): ?>
-                        <span class="text-muted">Sin zonas registradas.</span>
+                        <span class="text--color #ffff">Sin zonas registradas.</span>
                     <?php else: ?>
                         <div class="d-flex flex-wrap gap-2">
                             <?php foreach ($zonas as $z): ?>
@@ -162,9 +162,9 @@ $titulo = "Mi Perfil (Paseador) - Jaguata";
                 </div>
                 <div class="card-body">
                     <?php if (!empty($usuario['experiencia'])): ?>
-                        <div class="text-muted" style="white-space: pre-wrap;"><?= htmlspecialchars($usuario['experiencia']) ?></div>
+                        <div class="text-color #ffff" style="white-space: pre-wrap;"><?= htmlspecialchars($usuario['experiencia']) ?></div>
                     <?php else: ?>
-                        <span class="text-muted">No especificada.</span>
+                        <span class="text--color #ffff">No especificada.</span>
                     <?php endif; ?>
                 </div>
             </div>

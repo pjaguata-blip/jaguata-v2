@@ -2,18 +2,22 @@
 
 declare(strict_types=1);
 
-use Jaguata\Config\AppConfig;
-use Jaguata\Controllers\AuthController;
-use Jaguata\Controllers\PaseoController;
-use Jaguata\Helpers\Session;
-
 require_once __DIR__ . '/../../src/Config/AppConfig.php';
 require_once __DIR__ . '/../../src/Controllers/AuthController.php';
 require_once __DIR__ . '/../../src/Controllers/PaseoController.php';
+require_once __DIR__ . '/../../src/Controllers/MascotaController.php';
 require_once __DIR__ . '/../../src/Helpers/Session.php';
 require_once __DIR__ . '/../../vendor/autoload.php';
 
+use Jaguata\Config\AppConfig;
+use Jaguata\Controllers\AuthController;
+use Jaguata\Controllers\PaseoController;
+use Jaguata\Controllers\MascotaController;
+use Jaguata\Helpers\Session;
+
 AppConfig::init();
+
+// Seguridad
 $auth = new AuthController();
 $auth->checkRole('dueno');
 
@@ -23,24 +27,14 @@ $defaultBack = BASE_URL . "/features/{$rol}/Dashboard.php";
 $referer = $_SERVER['HTTP_REFERER'] ?? '';
 $backUrl = (is_string($referer) && str_starts_with($referer, BASE_URL)) ? $referer : $defaultBack;
 
-$paseoController = new PaseoController();
-$all = $paseoController->index();
+// Datos base
+$paseoController   = new PaseoController();
+$mascotaController = new MascotaController();
 
-$q     = trim((string)($_GET['q'] ?? ''));
-$desde = $_GET['desde'] ?? null;
-$hasta = $_GET['hasta'] ?? null;
+$allPaseos = $paseoController->index();
+$mascotas  = $mascotaController->index();
 
-$normalizeTs = function (?string $d, bool $end = false): ?int {
-    if (!$d) return null;
-    $dt = DateTime::createFromFormat('Y-m-d', $d) ?: (strtotime($d) ? new DateTime($d) : null);
-    if (!$dt) return null;
-    $dt->setTime($end ? 23 : 0, $end ? 59 : 0, $end ? 59 : 0);
-    return $dt->getTimestamp();
-};
-$tsDesde = $normalizeTs($desde, false);
-$tsHasta = $normalizeTs($hasta, true);
-
-// Helpers
+// ---- Helpers de presentación ----
 function fmtDate($v, string $format = 'd/m/Y H:i'): string
 {
     if ($v === null || $v === '') return '-';
@@ -56,13 +50,47 @@ function fmtGs($v): string
     $n = ($v === null || $v === '') ? 0 : (float)$v;
     return '₲' . number_format($n, 0, ',', '.');
 }
-function badgeClass(string $estado): string
+function estadoToBadge(string $estadoRaw): array
 {
-    return $estado === 'cancelado' ? 'danger' : 'secondary';
+    $lc = mb_strtolower($estadoRaw);
+    if ($lc === 'cancelado') return ['danger', 'Cancelado'];
+    if (in_array($lc, ['completo', 'completado'], true)) return ['success', 'Completo'];
+    if (in_array($lc, ['pendiente', 'solicitado'], true)) return ['warning', 'Solicitado'];
+    if ($lc === 'confirmado') return ['info', 'Confirmado'];
+    return ['secondary', ucfirst($estadoRaw ?: '-')];
 }
 
-$paseos = array_values(array_filter($all, function (array $p) use ($q, $tsDesde, $tsHasta) {
-    if ((string)($p['estado'] ?? '') !== 'cancelado') return false;
+// ---- Filtros UI ----
+$q     = trim((string)($_GET['q'] ?? ''));
+$desde = $_GET['desde'] ?? null;
+$hasta = $_GET['hasta'] ?? null;
+
+$normalizeTs = function (?string $d, bool $end = false): ?int {
+    if (!$d) return null;
+    $dt = DateTime::createFromFormat('Y-m-d', $d) ?: (strtotime($d) ? new DateTime($d) : null);
+    if (!$dt) return null;
+    $dt->setTime($end ? 23 : 0, $end ? 59 : 0, $end ? 59 : 0);
+    return $dt->getTimestamp();
+};
+$tsDesde = $normalizeTs($desde, false);
+$tsHasta = $normalizeTs($hasta, true);
+
+// ---- Filtrar SOLO paseos de las mascotas del dueño ----
+$idsMascotasDueno = [];
+foreach ($mascotas as $m) {
+    $mid = $m['mascota_id'] ?? $m['id'] ?? $m['id_mascota'] ?? null;
+    if ($mid !== null) $idsMascotasDueno[(int)$mid] = true;
+}
+
+$soloDueno = array_values(array_filter($allPaseos, function ($p) use ($idsMascotasDueno) {
+    $mid = $p['mascota_id'] ?? $p['id_mascota'] ?? $p['idMascota'] ?? null;
+    return $mid !== null && isset($idsMascotasDueno[(int)$mid]);
+}));
+
+// ---- Filtrar por CANCELADOS + filtros de fecha y texto ----
+$paseos = array_values(array_filter($soloDueno, function (array $p) use ($q, $tsDesde, $tsHasta) {
+    $estado = mb_strtolower((string)($p['estado'] ?? ''));
+    if ($estado !== 'cancelado') return false;
 
     $iniTs = null;
     if (isset($p['inicio']) && $p['inicio'] !== '') {
@@ -72,7 +100,7 @@ $paseos = array_values(array_filter($all, function (array $p) use ($q, $tsDesde,
     if ($tsHasta && $iniTs && $iniTs > $tsHasta) return false;
 
     if ($q !== '') {
-        foreach (['nombre_mascota', 'nombre_paseador', 'comentario', 'direccion_origen', 'direccion_destino'] as $k) {
+        foreach (['nombre_mascota', 'nombre_paseador', 'comentario', 'estado', 'direccion_origen', 'direccion_destino'] as $k) {
             if (!empty($p[$k]) && stripos((string)$p[$k], $q) !== false) return true;
         }
         return false;
@@ -112,6 +140,7 @@ $paseos = array_values(array_filter($all, function (array $p) use ($q, $tsDesde,
                     </a>
                 </div>
 
+                <!-- Filtros -->
                 <form class="row g-2 mb-3" method="get">
                     <div class="col-sm-3">
                         <label class="form-label">Desde</label>
@@ -123,7 +152,7 @@ $paseos = array_values(array_filter($all, function (array $p) use ($q, $tsDesde,
                     </div>
                     <div class="col-sm-4">
                         <label class="form-label">Buscar</label>
-                        <input type="text" name="q" value="<?= htmlspecialchars($q) ?>" class="form-control form-control-sm" placeholder="Mascota, paseador, dirección…">
+                        <input type="text" name="q" value="<?= htmlspecialchars($q) ?>" placeholder="Mascota, paseador, dirección…" class="form-control form-control-sm">
                     </div>
                     <div class="col-sm-2 d-flex align-items-end">
                         <button class="btn btn-primary btn-sm w-100"><i class="fas fa-search me-1"></i> Filtrar</button>
@@ -134,33 +163,45 @@ $paseos = array_values(array_filter($all, function (array $p) use ($q, $tsDesde,
                     <div class="card-body">
                         <?php if (empty($paseos)): ?>
                             <div class="text-center py-5 text-muted">
-                                <i class="fas fa-walking fa-2x mb-3"></i>
+                                <i class="fas fa-times-circle fa-2x mb-3"></i>
                                 <p>No hay paseos cancelados con los filtros aplicados.</p>
                             </div>
                         <?php else: ?>
                             <div class="table-responsive">
-                                <table class="table table-bordered table-sm align-middle">
-                                    <thead class="table-light">
-                                        <tr>
-                                            <th>Mascota</th>
-                                            <th>Paseador</th>
-                                            <th>Inicio</th>
-                                            <th>Fin</th>
-                                            <th>Duración</th>
-                                            <th>Precio</th>
-                                            <th>Estado</th>
+                                <table class="table table-bordered table-sm align-middle mb-0" style="white-space:nowrap;">
+                                    <thead class="table-dark">
+                                        <tr class="text-center">
+                                            <th style="width:18%">Mascota</th>
+                                            <th style="width:20%">Paseador</th>
+                                            <th style="width:14%">Inicio</th>
+                                            <th style="width:14%">Fin</th>
+                                            <th style="width:10%">Duración</th>
+                                            <th style="width:12%">Precio</th>
+                                            <th style="width:10%">Estado</th>
+                                            <th style="width:12%" class="text-end">Acción</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <?php foreach ($paseos as $p): ?>
+                                            <?php
+                                            $inicio   = fmtDate($p['inicio'] ?? null);
+                                            $fin      = fmtDate($p['fin'] ?? null);
+                                            $durMin   = $p['duracion_min'] ?? $p['duracion'] ?? null;
+                                            $duracion = fmtInt($durMin);
+                                            $precio   = fmtGs($p['precio_total'] ?? null);
+                                            [$badgeCls, $estadoTxt] = estadoToBadge((string)($p['estado'] ?? ''));
+
+                                            // En cancelados: normalmente no hay acción
+                                            ?>
                                             <tr>
-                                                <td><?= htmlspecialchars((string)($p['nombre_mascota'] ?? '-')) ?></td>
-                                                <td><?= htmlspecialchars((string)($p['nombre_paseador'] ?? '-')) ?></td>
-                                                <td><?= fmtDate($p['inicio'] ?? null) ?></td>
-                                                <td><?= fmtDate($p['fin'] ?? null) ?></td>
-                                                <td><?= fmtInt($p['duracion_min'] ?? null) ?></td>
-                                                <td><?= fmtGs($p['precio_total'] ?? null) ?></td>
-                                                <td><span class="badge bg-<?= badgeClass((string)($p['estado'] ?? '')) ?>"><?= htmlspecialchars(ucfirst((string)($p['estado'] ?? '-'))) ?></span></td>
+                                                <td class="text-truncate" style="max-width:180px;"><?= htmlspecialchars((string)($p['nombre_mascota'] ?? '-')) ?></td>
+                                                <td class="text-truncate" style="max-width:220px;"><?= htmlspecialchars((string)($p['nombre_paseador'] ?? '-')) ?></td>
+                                                <td class="text-center"><?= $inicio ?></td>
+                                                <td class="text-center"><?= $fin ?></td>
+                                                <td class="text-center"><?= $duracion ?></td>
+                                                <td class="text-end"><?= $precio ?></td>
+                                                <td class="text-center"><span class="badge bg-<?= $badgeCls ?>"><?= $estadoTxt ?></span></td>
+                                                <td class="text-end"><span class="text-muted">—</span></td>
                                             </tr>
                                         <?php endforeach; ?>
                                     </tbody>
@@ -169,6 +210,7 @@ $paseos = array_values(array_filter($all, function (array $p) use ($q, $tsDesde,
                         <?php endif; ?>
                     </div>
                 </div>
+
             </main>
         </div>
     </div>

@@ -19,7 +19,10 @@ $authController->checkRole('dueno');
 
 // ===== Controlador =====
 $paseoController = new PaseoController();
-$paseos = $paseoController->index();
+
+// ✅ Obtener solo los paseos del dueño actual
+$duenoId = (int)Session::get('usuario_id');
+$paseos = $paseoController->indexByDueno($duenoId);
 
 // ===== Filtro de estado =====
 $estadoFiltro = $_GET['estado'] ?? '';
@@ -48,6 +51,7 @@ $mensajeExito = $_GET['exito'] ?? '';
 $mensajeError = $_GET['error'] ?? '';
 ?>
 
+
 <!DOCTYPE html>
 <html lang="es">
 
@@ -69,14 +73,148 @@ $mensajeError = $_GET['error'] ?? '';
             <!-- Sidebar -->
             <div class="col-md-3 col-lg-2 d-md-block sidebar">
                 <div class="position-sticky pt-3">
-                    <ul class="nav flex-column">
-                        <li class="nav-item"><a class="nav-link" href="Dashboard.php"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</a></li>
-                        <li class="nav-item"><a class="nav-link" href="MisMascotas.php"><i class="fas fa-paw me-2"></i>Mis Mascotas</a></li>
-                        <li class="nav-item"><a class="nav-link" href="SolicitarPaseo.php"><i class="fas fa-plus-circle me-2"></i>Solicitar Paseo</a></li>
-                        <li class="nav-item"><a class="nav-link active" href="MisPaseos.php"><i class="fas fa-walking me-2"></i>Mis Paseos</a></li>
-                        <li class="nav-item"><a class="nav-link" href="MetodosPago.php"><i class="fas fa-credit-card me-2"></i>Métodos de Pago</a></li>
-                        <li class="nav-item"><a class="nav-link" href="MisPuntos.php"><i class="fas fa-star me-2"></i>Mis Puntos</a></li>
-                        <li class="nav-item"><a class="nav-link" href="Perfil.php"><i class="fas fa-user me-2"></i>Mi Perfil</a></li>
+                    <ul class="nav flex-column gap-1">
+                        <!-- Mi Perfil -->
+                        <li class="nav-item">
+                            <button class="nav-link d-flex align-items-center w-100 text-start"
+                                data-bs-toggle="collapse" data-bs-target="#menuPerfil" aria-expanded="false">
+                                <i class="fas fa-user me-2"></i>
+                                <span class="flex-grow-1">Mi Perfil</span>
+                                <i class="fas fa-chevron-right ms-2 chevron"></i>
+                            </button>
+                            <ul class="collapse ps-4 nav flex-column" id="menuPerfil">
+                                <li class="nav-item">
+                                    <a class="nav-link" href="<?= $baseFeatures; ?>/MiPerfil.php">
+                                        <i class="fas fa-id-card me-2"></i> Ver Perfil
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="<?= $baseFeatures; ?>/EditarPerfil.php">
+                                        <i class="fas fa-user-edit me-2 text-warning"></i> Editar Perfil
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="<?= $baseFeatures; ?>/GastosTotales.php">
+                                        <i class="fas fa-coins me-2 text-success"></i> Gastos Totales
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+
+
+
+
+                        <!-- Mascotas -->
+                        <li class="nav-item">
+                            <button class="nav-link d-flex align-items-center w-100 text-start"
+                                data-bs-toggle="collapse" data-bs-target="#menuMascotas" aria-expanded="false">
+                                <i class="fas fa-paw me-2"></i>
+                                <span class="flex-grow-1">Mascotas</span>
+                                <i class="fas fa-chevron-right ms-2 chevron"></i>
+                            </button>
+                            <ul class="collapse ps-4 nav flex-column" id="menuMascotas">
+                                <li class="nav-item">
+                                    <a class="nav-link" href="MisMascotas.php">
+                                        <i class="fas fa-list-ul me-2"></i> Mis Mascotas
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="AgregarMascota.php">
+                                        <i class="fas fa-plus-circle me-2"></i> Agregar Mascota
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link <?= $firstMascotaId ? '' : 'disabled' ?>"
+                                        href="<?= $firstMascotaId ? 'PerfilMascota.php?id=' . (int)$firstMascotaId : '#' ?>">
+                                        <i class="fas fa-id-badge me-2"></i> Perfil de mi Mascota
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <!-- Paseos -->
+                        <li class="nav-item">
+                            <button class="nav-link d-flex align-items-center w-100 text-start"
+                                data-bs-toggle="collapse" data-bs-target="#menuPaseos" aria-expanded="false">
+                                <i class="fas fa-walking me-2"></i>
+                                <span class="flex-grow-1">Paseos</span>
+                                <i class="fas fa-chevron-right ms-2 chevron"></i>
+                            </button>
+                            <ul class="collapse ps-4 nav flex-column" id="menuPaseos">
+                                <li class="nav-item">
+                                    <a class="nav-link" href="BuscarPaseadores.php">
+                                        <i class="fas fa-search me-2"></i> Buscar Paseadores
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <button class="nav-link d-flex align-items-center w-100 text-start"
+                                        data-bs-toggle="collapse" data-bs-target="#menuMisPaseos" aria-expanded="false">
+                                        <i class="fas fa-calendar-check me-2"></i>
+                                        <span class="flex-grow-1">Mis Paseos</span>
+                                        <i class="fas fa-chevron-right ms-2 chevron"></i>
+                                    </button>
+                                    <ul class="collapse ps-4 nav flex-column" id="menuMisPaseos">
+                                        <li class="nav-item"><a class="nav-link" href="PaseosCompletados.php"><i class="fas fa-check-circle me-2"></i> Completados</a></li>
+                                        <li class="nav-item"><a class="nav-link" href="PaseosPendientes.php"><i class="fas fa-hourglass-half me-2"></i> Pendientes</a></li>
+                                        <li class="nav-item"><a class="nav-link" href="PaseosCancelados.php"><i class="fas fa-times-circle me-2"></i> Cancelados</a></li>
+                                    </ul>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="SolicitarPaseo.php">
+                                        <i class="fas fa-plus-circle me-2"></i> Solicitar Nuevo Paseo
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <!-- Pagos -->
+                        <li class="nav-item">
+                            <button class="nav-link d-flex align-items-center w-100 text-start"
+                                data-bs-toggle="collapse" data-bs-target="#menuPagos" aria-expanded="false">
+                                <i class="fas fa-credit-card me-2"></i>
+                                <span class="flex-grow-1">Pagos</span>
+                                <i class="fas fa-chevron-right ms-2 chevron"></i>
+                            </button>
+                            <ul class="collapse ps-4 nav flex-column" id="menuPagos">
+                                <li class="nav-item">
+                                    <!-- Enviar a Pendientes (allí hay botón Pagar con paseo_id) -->
+                                    <a class="nav-link" href="PaseosPendientes.php">
+                                        <i class="fas fa-wallet me-2"></i> Pagar paseo
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <!-- Notificaciones -->
+                        <li class="nav-item">
+                            <a class="nav-link d-flex align-items-center" href="Notificaciones.php">
+                                <i class="fas fa-bell me-2"></i>
+                                <span>Notificaciones</span>
+                            </a>
+                        </li>
+
+                        <!-- Configuración (solo Editar Perfil y Cerrar Sesión) -->
+                        <li class="nav-item">
+                            <button class="nav-link d-flex align-items-center w-100 text-start"
+                                data-bs-toggle="collapse" data-bs-target="#menuConfig" aria-expanded="false">
+                                <i class="fas fa-gear me-2"></i>
+                                <span class="flex-grow-1">Configuración</span>
+                                <i class="fas fa-chevron-right ms-2 chevron"></i>
+                            </button>
+                            <ul class="collapse ps-4 nav flex-column" id="menuConfig">
+                                <li class="nav-item">
+                                    <a class="nav-link" href="<?= $baseFeatures; ?>/EditarPerfil.php">
+                                        <i class="fas fa-user-cog me-2"></i> Editar Perfil
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link text-danger" href="<?= BASE_URL; ?>/logout.php">
+                                        <i class="fas fa-sign-out-alt me-2"></i> Cerrar Sesión
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+
                     </ul>
                 </div>
             </div>
@@ -131,6 +269,28 @@ $mensajeError = $_GET['error'] ?? '';
                         </div>
                     <?php endforeach; ?>
                 </div>
+                <!-- Filtros -->
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 fw-bold text-primary">Filtros</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label for="estado" class="form-label">Estado</label>
+                                <select class="form-select" id="estado" onchange="filtrarPorEstado()">
+                                    <option value="">Todos los estados</option>
+                                    <?php
+                                    foreach ($estadosValidos as $v) {
+                                        $sel = ($estadoFiltro === $v) ? 'selected' : '';
+                                        echo "<option value=\"{$v}\" {$sel}>" . ucfirst(str_replace('_', ' ', $v)) . "</option>";
+                                    }
+                                    ?>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
                 <!-- Lista -->
                 <?php if (empty($paseos)): ?>
@@ -164,20 +324,20 @@ $mensajeError = $_GET['error'] ?? '';
                                     <tbody>
                                         <?php foreach ($paseos as $paseo): ?>
                                             <tr>
-                                                <td><i class="fas fa-paw text-primary me-2"></i><?= htmlspecialchars($paseo['nombre_mascota']) ?></td>
-                                                <td><i class="fas fa-user text-secondary me-2"></i><?= htmlspecialchars($paseo['nombre_paseador']) ?></td>
+                                                <td><i class="fas fa-paw text-primary me-2"></i><?= htmlspecialchars((string)$paseo['nombre_mascota']) ?></td>
+                                                <td><i class="fas fa-user text-secondary me-2"></i><?= htmlspecialchars((string)$paseo['nombre_paseador']) ?></td>
                                                 <td>
                                                     <strong><?= date('d/m/Y', strtotime($paseo['inicio'])) ?></strong><br>
                                                     <small class="text-muted"><?= date('H:i', strtotime($paseo['inicio'])) ?></small>
                                                 </td>
-                                                <td><?= htmlspecialchars($paseo['duracion']) ?> min</td>
+                                                <td><?= htmlspecialchars((string)$paseo['duracion']) ?> min</td>
                                                 <td>
                                                     <span class="badge bg-<?=
                                                                             $paseo['estado'] === 'completo' ? 'success' : ($paseo['estado'] === 'cancelado' ? 'danger' : ($paseo['estado'] === 'en_curso' ? 'info' : 'warning')) ?>">
                                                         <?= ucfirst($paseo['estado']) ?>
                                                     </span>
                                                 </td>
-                                                <td><strong>₲<?= number_format($paseo['precio_total'], 0, ',', '.') ?></strong></td>
+                                                <td><strong>₲<?= number_format((float)$paseo['precio_total'], 0, ',', '.') ?></strong></td>
 
                                                 <td>
                                                     <div class="btn-group" role="group">

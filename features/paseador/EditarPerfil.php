@@ -219,10 +219,27 @@ $titulo = "Editar Perfil (Paseador) - Jaguata";
 
 <?php include __DIR__ . '/../../src/Templates/header.php'; ?>
 
-<div class="container mt-4">
-    <h2 class="mb-3 d-flex align-items-center">
-        <i class="fas fa-edit me-2"></i> Editar Perfil - Paseador
-    </h2>
+<div class="container py-4">
+    <!-- Encabezado principal con botón Volver, Inicio y Panel -->
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <div class="d-flex align-items-center gap-2">
+            <a href="Perfil.php" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i> Volver
+            </a>
+            <h1 class="page-title mb-0 d-flex align-items-center">
+                <i class="fas fa-edit me-2"></i> Editar Perfil - Paseador
+            </h1>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <a href="<?= AppConfig::getBaseUrl(); ?>" class="btn btn-outline-secondary">
+                <i class="fa-solid fa-house me-1"></i> Inicio
+            </a>
+            <a href="<?= AppConfig::getBaseUrl(); ?>/features/paseador/Dashboard.php" class="btn btn-outline-primary">
+                <i class="fa-solid fa-gauge-high me-1"></i> Panel
+            </a>
+        </div>
+    </div>
+
 
     <?php if ($mensaje): ?><div class="alert alert-success"><?= htmlspecialchars($mensaje) ?></div><?php endif; ?>
     <?php if ($error):   ?><div class="alert alert-danger"><?= htmlspecialchars($error)   ?></div><?php endif; ?>
@@ -327,7 +344,7 @@ $titulo = "Editar Perfil (Paseador) - Jaguata";
                         <div class="card mb-3">
                             <div class="card-header">
                                 <strong><i class="fa-solid fa-map-location-dot me-2"></i> Zonas de trabajo</strong>
-                                <small class="text-muted d-block">Seleccioná una o varias ciudades donde trabajás.</small>
+                                <small class="text-color #ffff d-block">Seleccioná una o varias ciudades donde trabajás.</small>
                             </div>
                             <div class="card-body">
                                 <div class="row g-2 align-items-end">
@@ -371,9 +388,7 @@ $titulo = "Editar Perfil (Paseador) - Jaguata";
         <button type="submit" class="btn btn-success">
             <i class="fas fa-save me-2"></i> Guardar Cambios
         </button>
-        <a href="Perfil.php" class="btn btn-secondary ms-2">
-            <i class="fas fa-arrow-left"></i> Volver
-        </a>
+
     </form>
 </div>
 
@@ -588,7 +603,7 @@ $titulo = "Editar Perfil (Paseador) - Jaguata";
             }
             contZonas.innerHTML = '';
             if (zonas.length === 0) {
-                contZonas.innerHTML = '<span class="text-muted">Sin zonas agregadas.</span>';
+                contZonas.innerHTML = '<span class="text-color #ffff">Sin zonas agregadas.</span>';
                 return;
             }
             zonas.forEach((z, idx) => {

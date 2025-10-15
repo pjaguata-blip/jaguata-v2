@@ -341,34 +341,47 @@ $mensajeError = $_GET['error'] ?? '';
 
                                                 <td>
                                                     <div class="btn-group" role="group">
-                                                        <a href="VerPaseo.php?id=<?= $paseo['paseo_id'] ?>" class="btn btn-sm btn-outline-primary" title="Ver detalles">
+                                                        <!-- Ver Paseo -->
+                                                        <a href="DetallePaseo.php?paseo_id=<?= $paseo['paseo_id'] ?>"
+                                                            class="btn btn-sm btn-outline-primary"
+                                                            data-bs-toggle="tooltip"
+                                                            title="Ver detalles del paseo">
                                                             <i class="fas fa-eye"></i>
                                                         </a>
 
+                                                        <!-- Cancelar (si aplica) -->
                                                         <?php if (in_array($paseo['estado'], ['Pendiente', 'confirmado'])): ?>
                                                             <a href="CancelarPaseo.php?id=<?= $paseo['paseo_id'] ?>"
                                                                 class="btn btn-sm btn-outline-danger"
+                                                                data-bs-toggle="tooltip"
+                                                                title="Cancelar paseo"
                                                                 onclick="return confirm('¿Seguro que deseas cancelar este paseo?')">
                                                                 <i class="fas fa-times"></i>
                                                             </a>
 
                                                             <!-- Botón de pago -->
-                                                            <a href="pagar_paseo.php?paseo_id=<?= $paseo['paseo_id'] ?>"
+                                                            <a href="pago_paseo_dueno.php?paseo_id=<?= $paseo['paseo_id'] ?>"
                                                                 class="btn btn-sm btn-outline-success"
-                                                                title="Pagar este paseo">
-                                                                <i class="fas fa-dollar-sign"></i>
+                                                                data-bs-toggle="tooltip"
+                                                                title="Pagar paseo">
+                                                                <i class="fas fa-wallet"></i>
                                                             </a>
                                                         <?php endif; ?>
 
+                                                        <!-- Completar (si en curso) -->
                                                         <?php if ($paseo['estado'] === 'en_curso'): ?>
                                                             <a href="CompletarPaseo.php?id=<?= $paseo['paseo_id'] ?>"
                                                                 class="btn btn-sm btn-outline-success"
+                                                                data-bs-toggle="tooltip"
+                                                                title="Marcar como completado"
                                                                 onclick="return confirm('¿Confirmas que este paseo fue completado?')">
                                                                 <i class="fas fa-check"></i>
                                                             </a>
                                                         <?php endif; ?>
                                                     </div>
                                                 </td>
+
+
                                             </tr>
                                         <?php endforeach; ?>
                                     </tbody>

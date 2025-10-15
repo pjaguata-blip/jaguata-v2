@@ -141,6 +141,7 @@ if ($usuarioLogueado && $rolUsuario) {
                     <li class="nav-item"><a class="btn btn-primary ms-2" href="<?php echo BASE_URL; ?>/registro.php"><i class="fas fa-user-plus me-1"></i>Registrarse</a></li>
                 <?php endif; ?>
             </ul>
+
         </div>
     </div>
 </nav>

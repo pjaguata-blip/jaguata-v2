@@ -72,4 +72,43 @@ class NotificacionController
         $usuId = $this->currentUserId();
         return $this->model->countUnread($usuId);
     }
+
+    public function crear(): array
+    {
+        try {
+            $usuId   = (int)($_POST['usu_id'] ?? 0);
+            $tipo    = trim($_POST['tipo'] ?? 'general');
+            $titulo  = trim($_POST['titulo'] ?? '');
+            $mensaje = trim($_POST['mensaje'] ?? '');
+            $paseoId = (int)($_POST['paseo_id'] ?? 0);
+
+            if ($usuId <= 0 || $titulo === '' || $mensaje === '') {
+                return ['error' => 'Datos insuficientes para crear la notificación'];
+            }
+
+            $db = \Jaguata\Services\DatabaseService::getInstance()->getConnection();
+
+            $sql = "INSERT INTO notificaciones 
+                    (usu_id, tipo, titulo, mensaje, paseo_id, leido, created_at)
+                VALUES 
+                    (:usu_id, :tipo, :titulo, :mensaje, :paseo_id, 0, NOW())";
+
+            $stmt = $db->prepare($sql);
+            $stmt->execute([
+                ':usu_id'   => $usuId,
+                ':tipo'     => $tipo,
+                ':titulo'   => $titulo,
+                ':mensaje'  => $mensaje,
+                ':paseo_id' => $paseoId > 0 ? $paseoId : null
+            ]);
+
+            return [
+                'success' => true,
+                'id'      => (int)$db->lastInsertId()
+            ];
+        } catch (\Throwable $e) {
+            error_log('❌ Error al crear notificación: ' . $e->getMessage());
+            return ['error' => 'Error interno al crear la notificación'];
+        }
+    }
 }

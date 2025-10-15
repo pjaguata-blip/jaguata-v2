@@ -19,32 +19,15 @@ use Jaguata\Helpers\Session;
 <body class="<?php echo $body_class ?? ''; ?>">
 
     <?php
-    // Flash messages
+    // Flash messages (éxito, error, info)
     $mensajes = Session::getFlashMessages();
     if (!empty($mensajes)): ?>
         <div class="container mt-2">
             <?php foreach ($mensajes as $tipo => $mensaje): ?>
-                <div class="alert alert-<?php echo $tipo === 'error' ? 'danger' : $tipo; ?> alert-dismissible fade show">
+                <div class="alert alert-<?php echo $tipo === 'error' ? 'danger' : $tipo; ?> alert-dismissible fade show" role="alert">
                     <?php echo htmlspecialchars($mensaje); ?>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
                 </div>
             <?php endforeach; ?>
         </div>
     <?php endif; ?>
-
-    <?php
-    $usuarioLogueado = Session::isLoggedIn();
-    $rolUsuario      = Session::getUsuarioRol();
-    $nombreUsuario   = Session::getUsuarioNombre();
-
-    // 🔹 URL dinámica de inicio
-    $inicioUrl = BASE_URL;
-    if ($usuarioLogueado && $rolUsuario) {
-        $inicioUrl = BASE_URL . "/features/{$rolUsuario}/Dashboard.php";
-    }
-    ?>
-    </div>
-    </div>
-    </nav>
-
-    <main class="container mt-4">

@@ -134,6 +134,11 @@ foreach ($mascotas as $m) {
                                     </a>
                                 </li>
                                 <li class="nav-item">
+                                    <a class="nav-link" href="<?= $baseFeatures; ?>/MisPuntos.php">
+                                        <i class="fas fa-coins me-2 text-success"></i> Mis puntos
+                                    </a>
+                                </li>
+                                <li class="nav-item">
                                     <a class="nav-link" href="<?= $baseFeatures; ?>/GastosTotales.php">
                                         <i class="fas fa-coins me-2 text-success"></i> Gastos Totales
                                     </a>

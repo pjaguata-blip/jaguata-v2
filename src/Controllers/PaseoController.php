@@ -25,10 +25,47 @@ class PaseoController
     }
 
     // Obtener paseo por ID
-    public function getPaseoById(int $id)
+    public function getPaseoById(int $id): ?array
     {
-        return $this->paseoModel->findWithRelations($id);
+        $db = \Jaguata\Services\DatabaseService::getInstance();
+
+        $sql = "
+        SELECT 
+            p.paseo_id,
+            p.inicio,
+            p.duracion,
+            p.precio_total,
+            p.estado,
+            m.mascota_id,
+            m.nombre AS nombre_mascota,
+            d.usu_id AS dueno_id,
+            d.nombre AS nombre_dueno,
+            u.usu_id AS paseador_id,
+            u.nombre AS nombre_paseador,
+            u.telefono AS telefono_paseador,
+            u.zona AS zona,
+            u.latitud AS paseador_latitud,
+            u.longitud AS paseador_longitud
+        FROM paseos p
+        INNER JOIN mascotas m ON m.mascota_id = p.mascota_id
+        INNER JOIN usuarios u ON u.usu_id = p.paseador_id
+        INNER JOIN usuarios d ON d.usu_id = m.dueno_id
+        WHERE p.paseo_id = :id
+        LIMIT 1
+    ";
+
+        $row = $db->fetchOne($sql, ['id' => $id]) ?: null;
+
+        // 🔹 agregar campo rated_id para el formulario de calificación
+        if ($row) {
+            $row['rated_id'] = $row['paseador_id'];
+        }
+
+        return $row;
     }
+
+
+
 
     // Listar todos los paseos
     public function index()
@@ -72,26 +109,6 @@ class PaseoController
     {
         return $this->paseoModel->delete($id);
     }
-
-    public function confirmar($id)
-    {
-        return $this->paseoModel->cambiarEstado($id, 'confirmado');
-    }
-
-    public function apiCompletar($id)
-    {
-        $resultado = $this->paseoModel->cambiarEstado($id, 'completado');
-
-        if ($resultado) {
-            $paseo = $this->paseoModel->find($id);
-            if ($paseo && isset($paseo['dueno_id'])) {
-                $this->usuarioModel->sumarPuntos((int)$paseo['dueno_id'], 10);
-            }
-        }
-
-        return $resultado;
-    }
-
     public function indexByDueno(int $duenoId)
     {
         return $this->paseoModel->findByDueno($duenoId);
@@ -216,20 +233,41 @@ class PaseoController
             return null;
         }
     }
-    public function apiIniciar(int $id)
+    public function confirmar(int $id)
+    {
+        return $this->paseoModel->cambiarEstado($id, 'confirmado');
+    }
+
+    public function apiIniciar(int $id): array
     {
         try {
-            // Cambia el estado a 'en_curso'
-            $resultado = $this->paseoModel->cambiarEstado($id, 'en_curso');
-
-            if ($resultado) {
-                return ['success' => true, 'message' => 'Paseo iniciado correctamente'];
-            } else {
-                return ['error' => 'No se pudo iniciar el paseo'];
-            }
+            $ok = $this->paseoModel->cambiarEstado($id, 'en_curso');
+            return $ok ? ['success' => true] : ['error' => 'No se pudo iniciar'];
         } catch (\Throwable $e) {
-            error_log('Error en apiIniciar: ' . $e->getMessage());
-            return ['error' => 'Error interno al iniciar el paseo'];
+            error_log('apiIniciar: ' . $e->getMessage());
+            return ['error' => 'Error interno'];
+        }
+    }
+
+    public function apiCompletar(int $id): array
+    {
+        try {
+            $ok = $this->paseoModel->cambiarEstado($id, 'completo');
+            return $ok ? ['success' => true] : ['error' => 'No se pudo completar'];
+        } catch (\Throwable $e) {
+            error_log('apiCompletar: ' . $e->getMessage());
+            return ['error' => 'Error interno'];
+        }
+    }
+
+    public function apiCancelar(int $id): array
+    {
+        try {
+            $ok = $this->paseoModel->cambiarEstado($id, 'cancelado');
+            return $ok ? ['success' => true] : ['error' => 'No se pudo cancelar'];
+        } catch (\Throwable $e) {
+            error_log('apiCancelar: ' . $e->getMessage());
+            return ['error' => 'Error interno'];
         }
     }
 }

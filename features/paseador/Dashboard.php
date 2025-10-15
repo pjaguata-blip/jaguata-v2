@@ -47,5 +47,5 @@ $titulo = 'Dashboard Paseador - Jaguata';
         </div>
     </div>
 </div>
-<?php include __DIR__ . '/../../src/Templates/Navbar.php'; ?>
+
 <?php include __DIR__ . '/../../src/Templates/Footer.php'; ?>

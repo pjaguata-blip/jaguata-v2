@@ -5,6 +5,7 @@ namespace Jaguata\Controllers;
 use Jaguata\Models\Pago;
 use Jaguata\Helpers\Session;
 use Jaguata\Config\AppConfig;
+use Jaguata\Services\DatabaseService;
 use PDO;
 use Exception;
 
@@ -35,10 +36,10 @@ class PagoController
             }
         }
 
-        // Estado inicial
+        // Estado inicial según método
         $estado = ($data['metodo'] === 'efectivo')
             ? 'confirmado_por_dueno' // efectivo: dueño ya confirmó
-            : 'pendiente';            // transferencia: esperar confirmación del paseador
+            : 'pendiente';            // transferencia: espera paseador
 
         $payload = [
             'paseo_id'    => (int)$data['paseo_id'],
@@ -56,13 +57,24 @@ class PagoController
 
         try {
             $id = $this->pago->create($payload);
+
+            // 🔹 Actualizar estado del paseo si el método es efectivo
+            if ($data['metodo'] === 'efectivo') {
+                $db = DatabaseService::getInstance()->getConnection();
+                $st = $db->prepare("UPDATE paseos SET estado_pago = 'procesado' WHERE paseo_id = :id");
+                $st->execute([':id' => (int)$data['paseo_id']]);
+            }
+
             return ['success' => true, 'id' => $id, 'estado' => $estado];
         } catch (Exception $e) {
             error_log('Error crearPagoDueno: ' . $e->getMessage());
-            return ['error' => 'Error interno'];
+            return ['error' => 'Error interno al crear el pago'];
         }
     }
 
+    /**
+     * Confirmar pago (paseador)
+     */
     public function confirmarPago(int $pagoId, ?string $observacion = null): array
     {
         if (!Session::isLoggedIn()) {
@@ -71,13 +83,26 @@ class PagoController
 
         try {
             $ok = $this->pago->updateEstado($pagoId, 'confirmado_por_paseador', $observacion);
-            return $ok ? ['success' => true] : ['error' => 'No se pudo confirmar'];
+
+            if ($ok) {
+                // 🔹 Marcar el paseo como pagado
+                $db = DatabaseService::getInstance()->getConnection();
+                $db->prepare("UPDATE paseos p 
+                              JOIN pagos g ON g.paseo_id = p.paseo_id 
+                              SET p.estado_pago = 'procesado' 
+                              WHERE g.id = :pid")->execute([':pid' => $pagoId]);
+            }
+
+            return $ok ? ['success' => true] : ['error' => 'No se pudo confirmar el pago'];
         } catch (Exception $e) {
             error_log('Error confirmarPago: ' . $e->getMessage());
-            return ['error' => 'Error interno'];
+            return ['error' => 'Error interno al confirmar el pago'];
         }
     }
 
+    /**
+     * Marcar pago observado o rechazado por el paseador
+     */
     public function observarPago(int $pagoId, ?string $observacion = null): array
     {
         if (!Session::isLoggedIn()) {
@@ -86,16 +111,15 @@ class PagoController
 
         try {
             $ok = $this->pago->updateEstado($pagoId, 'observacion', $observacion);
-            return $ok ? ['success' => true] : ['error' => 'No se pudo actualizar'];
+            return $ok ? ['success' => true] : ['error' => 'No se pudo marcar observación'];
         } catch (Exception $e) {
             error_log('Error observarPago: ' . $e->getMessage());
-            return ['error' => 'Error interno'];
+            return ['error' => 'Error interno al observar el pago'];
         }
     }
 
     /**
      * Alias para compatibilidad: algunos archivos llaman crear($data)
-     * Mantiene el flujo actual usando crearPagoDueno().
      */
     public function crear(array $data): array
     {
@@ -104,8 +128,6 @@ class PagoController
 
     /**
      * Reporte para GastosTotales.php
-     * Filtros esperados: dueno_id, from, to, mascota_id, paseador_id, metodo, estado
-     * Devuelve columnas usadas por la vista.
      */
     public function listarGastosDueno(array $filters): array
     {
@@ -114,9 +136,7 @@ class PagoController
         }
 
         $duenoId = (int)($filters['dueno_id'] ?? 0);
-        if ($duenoId <= 0) {
-            return [];
-        }
+        if ($duenoId <= 0) return [];
 
         $from       = $filters['from']        ?? null;
         $to         = $filters['to']          ?? null;
@@ -129,72 +149,71 @@ class PagoController
             $db = AppConfig::db();
             $sql = "
                 SELECT
-                    p.id,
-                    p.fecha_pago,
-                    p.monto,
-                    UPPER(p.metodo) AS metodo,
-                    p.estado AS estado_raw,
-                    p.referencia,
-                    p.observacion,
-                    ps.id        AS paseo_id,
-                    ps.fecha     AS fecha_paseo,
-                    m.nombre     AS mascota,
-                    u.nombre     AS paseador
-                FROM pagos p
-                JOIN paseos ps  ON ps.id = p.paseo_id
-                JOIN mascotas m ON m.id  = ps.mascota_id
-                JOIN usuarios u ON u.id  = ps.paseador_id
-                WHERE ps.dueno_id = :dueno
+                    pg.id,
+                    pg.fecha_pago,
+                    pg.monto,
+                    UPPER(pg.metodo) AS metodo,
+                    pg.estado AS estado_raw,
+                    pg.referencia,
+                    pg.observacion,
+                    ps.paseo_id,
+                    ps.inicio AS fecha_paseo,
+                    m.nombre  AS mascota,
+                    u.nombre  AS paseador
+                FROM pagos pg
+                INNER JOIN paseos ps  ON ps.paseo_id = pg.paseo_id
+                INNER JOIN mascotas m ON m.mascota_id = ps.mascota_id
+                INNER JOIN usuarios u ON u.usu_id = ps.paseador_id
+                WHERE m.dueno_id = :dueno
             ";
 
             $params = [':dueno' => $duenoId];
 
-            if (!empty($from)) {
-                $sql .= " AND DATE(p.fecha_pago) >= :from";
+            if ($from) {
+                $sql .= " AND DATE(pg.fecha_pago) >= :from";
                 $params[':from'] = $from;
             }
-            if (!empty($to)) {
-                $sql .= " AND DATE(p.fecha_pago) <= :to";
+            if ($to) {
+                $sql .= " AND DATE(pg.fecha_pago) <= :to";
                 $params[':to'] = $to;
             }
-            if (!empty($mascotaId)) {
+            if ($mascotaId) {
                 $sql .= " AND ps.mascota_id = :mid";
                 $params[':mid'] = (int)$mascotaId;
             }
-            if (!empty($paseadorId)) {
+            if ($paseadorId) {
                 $sql .= " AND ps.paseador_id = :pid";
                 $params[':pid'] = (int)$paseadorId;
             }
-            if (!empty($metodo)) {
-                $sql .= " AND UPPER(p.metodo) = :met";
-                $params[':met'] = strtoupper((string)$metodo);
+            if ($metodo) {
+                $sql .= " AND UPPER(pg.metodo) = :met";
+                $params[':met'] = strtoupper($metodo);
             }
 
-            if (!empty($estado)) {
-                $estado = strtoupper((string)$estado);
+            if ($estado) {
+                $estado = strtoupper($estado);
                 if ($estado === 'CONFIRMADO') {
-                    $sql .= " AND (p.estado LIKE 'confirmado_%' OR p.estado = 'confirmado')";
+                    $sql .= " AND (pg.estado LIKE 'confirmado_%' OR pg.estado = 'confirmado')";
                 } elseif ($estado === 'PENDIENTE') {
-                    $sql .= " AND (p.estado = 'pendiente')";
+                    $sql .= " AND (pg.estado = 'pendiente')";
                 } elseif ($estado === 'RECHAZADO') {
-                    $sql .= " AND (p.estado = 'rechazado' OR p.estado = 'observacion')";
+                    $sql .= " AND (pg.estado IN ('rechazado', 'observacion'))";
                 }
             }
 
-            $sql .= " ORDER BY p.fecha_pago DESC, p.id DESC";
+            $sql .= " ORDER BY pg.fecha_pago DESC, pg.id DESC";
 
             $st = $db->prepare($sql);
             $st->execute($params);
             $rows = $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
-            // Normalización de estado
             foreach ($rows as &$r) {
                 $raw = strtolower((string)($r['estado_raw'] ?? ''));
-                if (strpos($raw, 'confirmado') === 0) {
+                if (str_starts_with($raw, 'confirmado')) {
                     $r['estado'] = 'CONFIRMADO';
                 } elseif ($raw === 'pendiente') {
                     $r['estado'] = 'PENDIENTE';
-                } elseif ($raw === 'rechazado' || $raw === 'observacion') {
+                } elseif (in_array($raw, ['rechazado', 'observacion'])) {
                     $r['estado'] = 'RECHAZADO';
                 } else {
                     $r['estado'] = strtoupper($raw ?: 'PENDIENTE');
@@ -204,7 +223,7 @@ class PagoController
             unset($r);
 
             return $rows;
-        } catch (\Throwable $e) {
+        } catch (Exception $e) {
             error_log('listarGastosDueno: ' . $e->getMessage());
             return [];
         }

@@ -1,102 +1,74 @@
 <?php
+
 namespace Jaguata\Controllers;
 
 use Jaguata\Models\Calificacion;
 use Jaguata\Helpers\Session;
-use Exception;
 
-class CalificacionController {
-    private $caliModel;
+class CalificacionController
+{
+    private Calificacion $model;
 
-    public function __construct() {
-        $this->caliModel = new Calificacion();
+    public function __construct()
+    {
+        $this->model = new Calificacion();
     }
 
     /**
-     * Listar todas las calificaciones
+     * Dueño califica al paseador
      */
-    public function index() {
-        if (!Session::isLoggedIn()) {
-            return ['error' => 'No autorizado'];
-        }
-        return $this->caliModel->all();
-    }
-
-    /**
-     * Mostrar una calificación
-     */
-    public function show($id) {
-        if (!Session::isLoggedIn()) {
-            return ['error' => 'No autorizado'];
-        }
-        return $this->caliModel->find($id);
-    }
-
-    /**
-     * Crear nueva calificación
-     */
-    public function apiStore() {
+    public function calificarPaseador(array $data): array
+    {
         if (!Session::isLoggedIn()) {
             return ['error' => 'No autorizado'];
         }
 
-        $data = [
-            'paseo_id' => $_POST['paseo_id'] ?? null,
-            'rater_id' => $_SESSION['usuario_id'],
-            'rated_id' => $_POST['rated_id'] ?? null,
-            'calificacion' => $_POST['calificacion'] ?? null,
-            'comentario' => $_POST['comentario'] ?? '',
-            'tipo' => $_POST['tipo'] ?? 'paseador'
-        ];
-
-        if (!$data['paseo_id'] || !$data['rated_id'] || !$data['calificacion']) {
-            return ['error' => 'Faltan datos obligatorios'];
+        $requeridos = ['paseo_id', 'rated_id', 'calificacion'];
+        foreach ($requeridos as $r) {
+            if (empty($data[$r])) {
+                return ['error' => "Falta $r"];
+            }
         }
 
-        try {
-            $id = $this->caliModel->create($data);
-            return ['success' => true, 'id' => $id];
-        } catch (Exception $e) {
-            error_log('Error al crear calificación: ' . $e->getMessage());
-            return ['error' => 'Error interno al crear calificación'];
+        $raterId = (int)Session::get('usuario_id');
+
+        // Evitar duplicado
+        if ($this->model->existeParaPaseo((int)$data['paseo_id'], 'paseador', $raterId)) {
+            return ['error' => 'Ya calificaste este paseo'];
         }
+
+        $id = $this->model->crear([
+            'paseo_id'     => (int)$data['paseo_id'],
+            'rater_id'     => $raterId,
+            'rated_id'     => (int)$data['rated_id'], // paseador
+            'calificacion' => (int)$data['calificacion'],
+            'comentario'   => trim($data['comentario'] ?? ''),
+            'tipo'         => 'paseador'
+        ]);
+
+        return ['success' => true, 'id' => $id];
     }
 
     /**
-     * Actualizar una calificación
+     * Paseador califica al dueño o mascota (si querés extenderlo)
      */
-    public function apiUpdate($id) {
+    public function calificarMascota(array $data): array
+    {
         if (!Session::isLoggedIn()) {
             return ['error' => 'No autorizado'];
         }
 
-        try {
-            $result = $this->caliModel->update($id, $_POST);
-            return $result
-                ? ['success' => true, 'message' => 'Calificación actualizada']
-                : ['error' => 'No se pudo actualizar calificación'];
-        } catch (Exception $e) {
-            error_log('Error al actualizar calificación: ' . $e->getMessage());
-            return ['error' => 'Error interno del servidor'];
-        }
-    }
+        $raterId = (int)Session::get('usuario_id');
 
-    /**
-     * Eliminar una calificación
-     */
-    public function apiDestroy($id) {
-        if (!Session::isLoggedIn()) {
-            return ['error' => 'No autorizado'];
-        }
+        $id = $this->model->crear([
+            'paseo_id'     => (int)$data['paseo_id'],
+            'rater_id'     => $raterId,
+            'rated_id'     => (int)$data['rated_id'], // mascota
+            'calificacion' => (int)$data['calificacion'],
+            'comentario'   => trim($data['comentario'] ?? ''),
+            'tipo'         => 'mascota'
+        ]);
 
-        try {
-            $result = $this->caliModel->delete($id);
-            return $result
-                ? ['success' => true, 'message' => 'Calificación eliminada']
-                : ['error' => 'No se pudo eliminar calificación'];
-        } catch (Exception $e) {
-            error_log('Error al eliminar calificación: ' . $e->getMessage());
-            return ['error' => 'Error interno del servidor'];
-        }
+        return ['success' => true, 'id' => $id];
     }
 }

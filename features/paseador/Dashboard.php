@@ -14,11 +14,12 @@ $titulo = 'Dashboard Paseador - Jaguata';
 ?>
 
 <?php include __DIR__ . '/../../src/Templates/Header.php'; ?>
-<?php include __DIR__ . '/../../src/Templates/Navbar.php'; ?>
+<?php include __DIR__ . '/../../src/Templates/navbar.php'; ?>
+
 
 <div class="container py-5">
     <h1 class="fw-bold text-success">Bienvenido Paseador</h1>
-    <p class="text-muted">Aquí podrás gestionar tus paseos, disponibilidad y perfil.</p>
+    <p class="text--color #ffff">Aquí podrás gestionar tus paseos, disponibilidad y perfil.</p>
 
     <div class="row">
         <div class="col-md-6">

@@ -4,25 +4,95 @@ namespace Jaguata\Models;
 
 require_once __DIR__ . '/BaseModel.php';
 
+use Jaguata\Services\DatabaseService;
+use PDO;
+use PDOException;
+
+/**
+ * Modelo de Usuario
+ * -----------------
+ * Gestiona los datos del usuario: autenticación, CRUD, puntos, etc.
+ */
 class Usuario extends BaseModel
 {
     protected string $table = 'usuarios';
     protected string $primaryKey = 'usu_id';
 
+    public function __construct()
+    {
+        parent::__construct(); // inicializa $this->db = DatabaseService::getInstance()
+    }
+
     /**
-     * Buscar un usuario por email
+     * Campos base para consultas SELECT.
      */
+    private function baseSelectFields(): string
+    {
+        return "
+            usu_id,
+            nombre,
+            email,
+            pass,
+            rol,
+            telefono,
+            direccion,
+            experiencia,
+            departamento,
+            ciudad,
+            barrio,
+            calle,
+            zona,
+            puntos,
+            foto_perfil AS perfil_foto,
+            banco_nombre,
+            alias_cuenta,
+            cuenta_numero,
+            fecha_nacimiento,
+            created_at,
+            updated_at,
+            descripcion
+        ";
+    }
+
+    // ==========================
+    // 🔹 Métodos de lectura
+    // ==========================
+
     public function getByEmail(string $email): ?array
     {
-        $sql = "SELECT usu_id, nombre, email, pass, rol, telefono, direccion, experiencia, zona, puntos 
-                FROM {$this->table} 
-                WHERE email = :email 
+        $sql = "SELECT " . $this->baseSelectFields() . "
+                FROM {$this->table}
+                WHERE email = :email
                 LIMIT 1";
         return $this->fetchOne($sql, ['email' => strtolower(trim($email))]) ?: null;
     }
 
+    public function getById(int $id): ?array
+    {
+        $stmt = $this->db->getConnection()->prepare(
+            "SELECT * FROM {$this->table} WHERE {$this->primaryKey} = :id LIMIT 1"
+        );
+        $stmt->execute([':id' => $id]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ?: null;
+    }
+
+    public function getAllUsuarios(?int $limite = null): array
+    {
+        $sql = "SELECT " . $this->baseSelectFields() . " FROM {$this->table}";
+        if ($limite !== null) {
+            $lim = max(1, (int) $limite);
+            $sql .= " LIMIT {$lim}";
+        }
+        return $this->fetchAll($sql);
+    }
+
+    // ==========================
+    // 🔹 Autenticación
+    // ==========================
+
     /**
-     * Autenticar un usuario
+     * Autenticación segura mediante password_verify.
      */
     public function authenticate(string $email, string $password): ?array
     {
@@ -31,109 +101,154 @@ class Usuario extends BaseModel
             return null;
         }
 
-        if (!password_verify($password, $usuario['pass'])) {
-            return null;
-        }
+        $hash = (string) ($usuario['pass'] ?? '');
+        $ok = password_verify($password, $hash);
 
-        return $usuario;
+        // ⚠️ Fallback opcional (solo si aún hay contraseñas sin hash)
+        // if (!$ok && hash_equals($hash, $password)) {
+        //     $ok = true;
+        // }
+
+        return $ok ? $usuario : null;
     }
 
-    /**
-     * Crear un usuario
-     */
+    // ==========================
+    // 🔹 CRUD de usuarios
+    // ==========================
+
     public function createUsuario(array $data): int
     {
-        if (isset($data['password'])) {
-            $data['password'] = password_hash($data['password'], PASSWORD_BCRYPT);
-            // 🔹 guardar en la columna "pass"
-            $data['pass'] = $data['password'];
-            unset($data['password']);
+        try {
+            // Normalizar email
+            if (isset($data['email'])) {
+                $data['email'] = strtolower(trim($data['email']));
+            }
+
+            // Hashear contraseña
+            if (!empty($data['password'])) {
+                $data['pass'] = password_hash($data['password'], PASSWORD_BCRYPT);
+                unset($data['password']);
+            } elseif (!empty($data['pass'])) {
+                $data['pass'] = password_hash($data['pass'], PASSWORD_BCRYPT);
+            }
+
+            // Rol y puntos por defecto
+            $data['rol']    = $data['rol']    ?? 'dueno';
+            $data['puntos'] = $data['puntos'] ?? 0;
+
+            // Mapear foto
+            if (isset($data['perfil_foto']) && !isset($data['foto_perfil'])) {
+                $data['foto_perfil'] = $data['perfil_foto'];
+                unset($data['perfil_foto']);
+            }
+
+            return $this->create($data);
+        } catch (PDOException $e) {
+            error_log("Error crearUsuario: " . $e->getMessage());
+            return 0;
         }
-        return $this->create($data);
     }
 
-    /**
-     * Actualizar un usuario
-     */
     public function updateUsuario(int $id, array $data): bool
     {
-        if (isset($data['password'])) {
-            $data['password'] = password_hash($data['password'], PASSWORD_BCRYPT);
-            // 🔹 guardar en la columna "pass"
-            $data['pass'] = $data['password'];
-            unset($data['password']);
+        try {
+            // Normalizar email
+            if (isset($data['email'])) {
+                $data['email'] = strtolower(trim($data['email']));
+            }
+
+            // Hashear contraseña si existe
+            if (!empty($data['password'])) {
+                $data['pass'] = password_hash($data['password'], PASSWORD_BCRYPT);
+                unset($data['password']);
+            } elseif (!empty($data['pass'])) {
+                $data['pass'] = password_hash($data['pass'], PASSWORD_BCRYPT);
+            }
+
+            // Mapear foto
+            if (isset($data['perfil_foto'])) {
+                $data['foto_perfil'] = $data['perfil_foto'];
+                unset($data['perfil_foto']);
+            }
+
+            // Campos permitidos
+            $allowed = [
+                'nombre',
+                'email',
+                'pass',
+                'rol',
+                'telefono',
+                'direccion',
+                'experiencia',
+                'departamento',
+                'ciudad',
+                'barrio',
+                'calle',
+                'zona',
+                'puntos',
+                'foto_perfil',
+                'fecha_nacimiento',
+                'banco_nombre',
+                'alias_cuenta',
+                'cuenta_numero',
+                'descripcion',
+            ];
+
+            $filteredData = array_intersect_key($data, array_flip($allowed));
+
+            return $this->update($id, $filteredData);
+        } catch (PDOException $e) {
+            error_log("Error updateUsuario: " . $e->getMessage());
+            return false;
         }
-
-        // 🔹 Campos válidos que se pueden actualizar
-        $allowed = ['nombre', 'email', 'pass', 'rol', 'telefono', 'direccion', 'experiencia', 'zona', 'puntos'];
-        $filteredData = array_intersect_key($data, array_flip($allowed));
-
-        return $this->update($id, $filteredData);
     }
 
-    /**
-     * Eliminar un usuario
-     */
     public function deleteUsuario(int $id): bool
     {
-        return $this->delete($id);
-    }
-
-    /**
-     * Obtener todos los usuarios (con límite opcional)
-     */
-    public function getAllUsuarios(?int $limite = null): array
-    {
-        $sql = "SELECT usu_id, nombre, email, rol, telefono, direccion, experiencia, zona, puntos 
-                FROM {$this->table}";
-        if ($limite !== null) {
-            $sql .= " LIMIT :limite";
-            return $this->fetchAll($sql, ['limite' => $limite]);
+        try {
+            return $this->delete($id);
+        } catch (PDOException $e) {
+            error_log("Error deleteUsuario: " . $e->getMessage());
+            return false;
         }
-        return $this->fetchAll($sql);
     }
 
-    /**
-     * Buscar usuario por ID
-     */
-    public function getById(int $id): ?array
-    {
-        $sql = "SELECT usu_id, nombre, email, rol, telefono, direccion, experiencia, zona, puntos 
-                FROM {$this->table} 
-                WHERE {$this->primaryKey} = :id 
-                LIMIT 1";
-        return $this->fetchOne($sql, ['id' => $id]) ?: null;
-    }
+    // ==========================
+    // 🔹 Sistema de puntos
+    // ==========================
 
-    /**
-     * Obtener puntos del usuario
-     */
     public function getPuntos(int $id): int
     {
         $sql = "SELECT puntos FROM {$this->table} WHERE {$this->primaryKey} = :id LIMIT 1";
-        $result = $this->fetchOne($sql, ['id' => $id]);
-        return $result ? (int)$result['puntos'] : 0;
+        $r = $this->fetchOne($sql, ['id' => $id]);
+        return $r ? (int) $r['puntos'] : 0;
     }
 
-    /**
-     * Sumar puntos al usuario
-     */
     public function sumarPuntos(int $id, int $puntos): bool
     {
-        $sql = "UPDATE {$this->table} 
-                SET puntos = puntos + :puntos 
+        try {
+            $sql = "UPDATE {$this->table}
+                SET puntos = puntos + :puntos, updated_at = NOW()
                 WHERE {$this->primaryKey} = :id";
-        return $this->db->executeQuery($sql, ['puntos' => $puntos, 'id' => $id]);
+            $stmt = $this->db->getConnection()->prepare($sql);
+            return $stmt->execute([':puntos' => $puntos, ':id' => $id]);
+        } catch (PDOException $e) {
+            error_log("Error sumarPuntos: " . $e->getMessage());
+            return false;
+        }
     }
 
-    /**
-     * Restar puntos al usuario
-     */
     public function restarPuntos(int $id, int $puntos): bool
     {
-        $sql = "UPDATE {$this->table} 
-                SET puntos = GREATEST(puntos - :puntos, 0) 
+        try {
+            $sql = "UPDATE {$this->table}
+                SET puntos = GREATEST(puntos - :puntos, 0), updated_at = NOW()
                 WHERE {$this->primaryKey} = :id";
-        return $this->db->executeQuery($sql, ['puntos' => $puntos, 'id' => $id]);
+            $stmt = $this->db->getConnection()->prepare($sql);
+            return $stmt->execute([':puntos' => $puntos, ':id' => $id]);
+        } catch (PDOException $e) {
+            error_log("Error restarPuntos: " . $e->getMessage());
+            return false;
+        }
     }
 }

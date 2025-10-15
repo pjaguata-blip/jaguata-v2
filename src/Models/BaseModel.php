@@ -1,8 +1,15 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Jaguata\Models;
 
 use Jaguata\Services\DatabaseService;
+
+// 🔹 fallback opcional por si el autoload aún no cargó DatabaseService
+if (!class_exists(DatabaseService::class)) {
+    require_once __DIR__ . '/../Services/DatabaseService.php';
+}
 
 /**
  * Clase base para todos los modelos
@@ -16,6 +23,7 @@ abstract class BaseModel
 
     public function __construct()
     {
+        // 🔹 inicializamos la instancia de base de datos de forma segura
         $this->db = DatabaseService::getInstance();
     }
 
@@ -105,5 +113,27 @@ abstract class BaseModel
     public function fetchAll(string $sql, array $params = []): array
     {
         return $this->db->fetchAll($sql, $params);
+    }
+
+    // --------------------------------------------------------------------
+    // 🔹 Alias en español (manteniendo compatibilidad con tus controladores)
+    // --------------------------------------------------------------------
+
+    /** Alias de create */
+    public function crear(array $data): int
+    {
+        return $this->create($data);
+    }
+
+    /** Alias de update */
+    public function actualizar(int|string $id, array $data): bool
+    {
+        return $this->update($id, $data);
+    }
+
+    /** Alias de delete */
+    public function eliminar(int|string $id): bool
+    {
+        return $this->delete($id);
     }
 }

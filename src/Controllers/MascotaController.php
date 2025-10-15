@@ -1,70 +1,93 @@
 <?php
+
 namespace Jaguata\Controllers;
 
 use Jaguata\Models\Mascota;
 use Jaguata\Helpers\Session;
 use Exception;
 
-class MascotaController {
+class MascotaController
+{
     private Mascota $mascotaModel;
 
-    public function __construct() {
+    public function __construct()
+    {
         $this->mascotaModel = new Mascota();
     }
 
-    /**
-     * Listar todas las mascotas del usuario logueado
-     */
-    public function index() {
+    /* 🔹 Helper: normaliza edad a meses (moverla FUERA de destroy) */
+    private function normalizarEdadAMeses(?int $valor, string $unidad): ?int
+    {
+        if ($valor === null) return null;
+        return ($unidad === 'anios') ? $valor * 12 : $valor; // 'meses' por defecto
+    }
+
+    public function index()
+    {
         if (!Session::isLoggedIn()) {
             return ['error' => 'No autorizado'];
         }
         return $this->mascotaModel->allByOwner(Session::getUsuarioId());
     }
 
-    /**
-     * Mostrar una mascota por ID
-     */
-    public function show(int $id): ?array {
+    public function show(int $id): ?array
+    {
         if (!Session::isLoggedIn()) {
             return ['error' => 'No autorizado'];
         }
 
         $mascota = $this->mascotaModel->find($id);
-
         if (!$mascota || $mascota['dueno_id'] !== Session::getUsuarioId()) {
             return ['error' => 'Mascota no encontrada o no autorizada'];
         }
-
         return $mascota;
     }
 
-    /**
-     * Guardar mascota desde formulario (AgregarMascota.php)
-     */
-    public function store(): void {
+    /* 🔹 GUARDAR (usar nuevos campos del form) */
+    public function store(): void
+    {
         if (!Session::isLoggedIn()) {
             $_SESSION['error'] = "Debe iniciar sesión para agregar mascotas";
             header("Location: " . BASE_URL . "/login.php");
             exit;
         }
 
-        $nombre = trim($_POST['nombre'] ?? '');
-        $raza   = trim($_POST['raza'] ?? '');
-        $tamano = $_POST['tamano'] ?? '';
-        $edad   = (int)($_POST['edad'] ?? 0);
-        $obs    = trim($_POST['observaciones'] ?? '');
+        $nombre        = trim($_POST['nombre'] ?? '');
+        $raza          = trim($_POST['raza'] ?? '');
+        $raza_otra     = trim($_POST['raza_otra'] ?? '');
+        $peso_kg       = isset($_POST['peso_kg']) ? (float)$_POST['peso_kg'] : null; // no se guarda (sin migrar)
+        $tamano        = $_POST['tamano'] ?? ''; // pequeno|mediano|grande|gigante
+        $edad_valor    = isset($_POST['edad_valor']) ? (int)$_POST['edad_valor'] : null;
+        $edad_unidad   = $_POST['edad_unidad'] ?? 'meses';
+        $observaciones = trim($_POST['observaciones'] ?? '');
+
+        if ($raza === 'Otra' && $raza_otra !== '') {
+            $raza = $raza_otra;
+        }
+
+        // Edad normalizada a MESES (se guardará en columna 'edad')
+        $edad_meses = $this->normalizarEdadAMeses($edad_valor, $edad_unidad);
+
+        // Consistencia del tamaño según el peso en servidor (aunque no lo guardemos)
+        if ($peso_kg !== null) {
+            if ($peso_kg <= 10) {
+                $tamano = 'pequeno';
+            } elseif ($peso_kg <= 25) {
+                $tamano = 'mediano';
+            } elseif ($peso_kg <= 45) {
+                $tamano = 'grande';
+            } else {
+                $tamano = 'gigante';
+            }
+        }
 
         $errors = [];
-
-        if ($nombre === '') {
-            $errors[] = "El nombre es obligatorio";
-        }
-        if (!in_array($tamano, ['pequeno', 'mediano', 'grande', ''], true)) {
+        if ($nombre === '') $errors[] = "El nombre es obligatorio";
+        if (!in_array($tamano, ['pequeno', 'mediano', 'grande', 'gigante'], true)) {
             $errors[] = "El tamaño seleccionado no es válido";
         }
-        if ($edad < 0 || $edad > 30) {
-            $errors[] = "La edad debe estar entre 0 y 30 años";
+        if ($edad_meses !== null && $edad_meses < 0) {
+            $errors[] = "La edad no puede ser negativa";
         }
 
         if (!empty($errors)) {
@@ -74,19 +97,20 @@ class MascotaController {
         }
 
         try {
+            // 👇 Guarda edad en meses en la columna 'edad'
             $this->mascotaModel->create([
                 'dueno_id'      => Session::getUsuarioId(),
                 'nombre'        => $nombre,
                 'raza'          => $raza,
+                'peso_kg'       => $peso_kg,          // <- nuevo
                 'tamano'        => $tamano,
-                'edad'          => $edad,
-                'observaciones' => $obs,
+                'edad_meses'    => $edad_meses,       // <- renombrado
+                'observaciones' => $observaciones,
             ]);
 
             $_SESSION['success'] = "Mascota agregada correctamente";
             header("Location: " . BASE_URL . "/features/dueno/MisMascotas.php");
             exit;
-
         } catch (Exception $e) {
             error_log("Error al guardar mascota: " . $e->getMessage());
             $_SESSION['error'] = "Error interno al guardar la mascota";
@@ -95,32 +119,49 @@ class MascotaController {
         }
     }
 
-    /**
-     * Actualizar mascota desde formulario (EditarMascota.php)
-     */
-    public function update(int $id): void {
+    /* 🔹 ACTUALIZAR con la misma lógica de edad en meses */
+    public function update(int $id): void
+    {
         if (!Session::isLoggedIn()) {
             $_SESSION['error'] = "Debe iniciar sesión para editar mascotas";
             header("Location: " . BASE_URL . "/login.php");
             exit;
         }
 
-        $nombre = trim($_POST['nombre'] ?? '');
-        $raza   = trim($_POST['raza'] ?? '');
-        $tamano = $_POST['tamano'] ?? '';
-        $edad   = (int)($_POST['edad'] ?? 0);
-        $obs    = trim($_POST['observaciones'] ?? '');
+        $nombre        = trim($_POST['nombre'] ?? '');
+        $raza          = trim($_POST['raza'] ?? '');
+        $raza_otra     = trim($_POST['raza_otra'] ?? '');
+        $peso_kg       = isset($_POST['peso_kg']) ? (float)$_POST['peso_kg'] : null; // no se guarda (sin migrar)
+        $tamano        = $_POST['tamano'] ?? '';
+        $edad_valor    = isset($_POST['edad_valor']) ? (int)$_POST['edad_valor'] : null;
+        $edad_unidad   = $_POST['edad_unidad'] ?? 'meses';
+        $observaciones = trim($_POST['observaciones'] ?? '');
+
+        if ($raza === 'Otra' && $raza_otra !== '') {
+            $raza = $raza_otra;
+        }
+
+        $edad_meses = $this->normalizarEdadAMeses($edad_valor, $edad_unidad);
+
+        if ($peso_kg !== null) {
+            if ($peso_kg <= 10) {
+                $tamano = 'pequeno';
+            } elseif ($peso_kg <= 25) {
+                $tamano = 'mediano';
+            } elseif ($peso_kg <= 45) {
+                $tamano = 'grande';
+            } else {
+                $tamano = 'gigante';
+            }
+        }
 
         $errors = [];
-
-        if ($nombre === '') {
-            $errors[] = "El nombre es obligatorio";
-        }
-        if (!in_array($tamano, ['pequeno', 'mediano', 'grande', ''], true)) {
+        if ($nombre === '') $errors[] = "El nombre es obligatorio";
+        if (!in_array($tamano, ['pequeno', 'mediano', 'grande', 'gigante'], true)) {
             $errors[] = "El tamaño seleccionado no es válido";
         }
-        if ($edad < 0 || $edad > 30) {
-            $errors[] = "La edad debe estar entre 0 y 30 años";
+        if ($edad_meses !== null && $edad_meses < 0) {
+            $errors[] = "La edad no puede ser negativa";
         }
 
         if (!empty($errors)) {
@@ -133,9 +174,10 @@ class MascotaController {
             $ok = $this->mascotaModel->update($id, [
                 'nombre'        => $nombre,
                 'raza'          => $raza,
+                'peso_kg'       => $peso_kg,          // <- nuevo
                 'tamano'        => $tamano,
-                'edad'          => $edad,
-                'observaciones' => $obs,
+                'edad_meses'    => $edad_meses,       // <- renombrado
+                'observaciones' => $observaciones,
             ]);
 
             if ($ok) {
@@ -146,7 +188,6 @@ class MascotaController {
                 header("Location: " . BASE_URL . "/features/dueno/EditarMascota.php?id=" . $id);
             }
             exit;
-
         } catch (Exception $e) {
             error_log("Error al actualizar mascota: " . $e->getMessage());
             $_SESSION['error'] = "Error interno al actualizar la mascota";
@@ -154,42 +195,39 @@ class MascotaController {
             exit;
         }
     }
-    /**
- * Eliminar mascota
- */
-public function destroy(int $id): void {
-    if (!Session::isLoggedIn()) {
-        $_SESSION['error'] = "Debe iniciar sesión para eliminar mascotas";
-        header("Location: " . BASE_URL . "/login.php");
-        exit;
-    }
 
-    try {
-        $mascota = $this->mascotaModel->find($id);
-
-        if (!$mascota || $mascota['dueno_id'] !== Session::getUsuarioId()) {
-            $_SESSION['error'] = "Mascota no encontrada o no autorizada";
-            header("Location: " . BASE_URL . "/features/dueno/MisMascotas.php");
+    public function destroy(int $id): void
+    {
+        if (!Session::isLoggedIn()) {
+            $_SESSION['error'] = "Debe iniciar sesión para eliminar mascotas";
+            header("Location: " . BASE_URL . "/login.php");
             exit;
         }
 
-        $ok = $this->mascotaModel->delete($id);
+        try {
+            $mascota = $this->mascotaModel->find($id);
 
-        if ($ok) {
-            $_SESSION['success'] = "Mascota eliminada correctamente";
-        } else {
-            $_SESSION['error'] = "No se pudo eliminar la mascota";
+            if (!$mascota || $mascota['dueno_id'] !== Session::getUsuarioId()) {
+                $_SESSION['error'] = "Mascota no encontrada o no autorizada";
+                header("Location: " . BASE_URL . "/features/dueno/MisMascotas.php");
+                exit;
+            }
+
+            $ok = $this->mascotaModel->delete($id);
+
+            if ($ok) {
+                $_SESSION['success'] = "Mascota eliminada correctamente";
+            } else {
+                $_SESSION['error'] = "No se pudo eliminar la mascota";
+            }
+
+            header("Location: " . BASE_URL . "/features/dueno/MisMascotas.php");
+            exit;
+        } catch (Exception $e) {
+            error_log("Error al eliminar mascota: " . $e->getMessage());
+            $_SESSION['error'] = "Error interno al eliminar la mascota";
+            header("Location: " . BASE_URL . "/features/dueno/MisMascotas.php");
+            exit;
         }
-
-        header("Location: " . BASE_URL . "/features/dueno/MisMascotas.php");
-        exit;
-
-    } catch (Exception $e) {
-        error_log("Error al eliminar mascota: " . $e->getMessage());
-        $_SESSION['error'] = "Error interno al eliminar la mascota";
-        header("Location: " . BASE_URL . "/features/dueno/MisMascotas.php");
-        exit;
     }
-}
-
 }

@@ -1,107 +1,122 @@
 <?php
+
+declare(strict_types=1);
+
 namespace Jaguata\Models;
 
 use Jaguata\Services\DatabaseService;
-use PDO;
+use Jaguata\Models\BaseModel;
 
-class Notificacion {
-    private $db;
+// ⛑️ Fallback: si BaseModel aún no está cargado por el autoload, lo incluimos a mano
+if (!class_exists(BaseModel::class)) {
+    require_once __DIR__ . '/BaseModel.php';
+}
 
-    public function __construct() {
-        $this->db = DatabaseService::getInstance()->getConnection();
+class Notificacion extends BaseModel
+{
+    protected string $table = 'notificaciones';
+    protected string $primaryKey = 'noti_id';
+
+    public function __construct()
+    {
+        parent::__construct();
     }
 
-    /**
-     * Buscar notificación por ID
-     */
-    public function find($id) {
-        $stmt = $this->db->prepare("SELECT * FROM notificaciones WHERE noti_id = ?");
-        $stmt->execute([$id]);
-        return $stmt->fetch(PDO::FETCH_ASSOC);
-    }
+    /** Listar notificaciones de un usuario con filtros */
+    public function listByUser(
+        int $usuId,
+        ?int $leido = null,
+        ?string $search = null,
+        int $page = 1,
+        int $perPage = 10,
+        ?string $tipo = null
+    ): array {
+        $where   = ['usu_id = :usu_id'];
+        $params  = ['usu_id' => $usuId];
 
-    /**
-     * Crear una nueva notificación
-     */
-    public function create($data) {
-        $stmt = $this->db->prepare("
-            INSERT INTO notificaciones (usu_id, tipo, titulo, mensaje, paseo_id, leido, created_at) 
-            VALUES (:usu_id, :tipo, :titulo, :mensaje, :paseo_id, 0, NOW())
-        ");
-        $stmt->execute([
-            ':usu_id'   => $data['usu_id'],
-            ':tipo'     => $data['tipo'],
-            ':titulo'   => $data['titulo'],
-            ':mensaje'  => $data['mensaje'],
-            ':paseo_id' => $data['paseo_id'] ?? null
-        ]);
-        return $this->db->lastInsertId();
-    }
+        if ($leido !== null) {
+            $where[] = 'leido = :leido';
+            $params['leido'] = $leido;
+        }
 
-    /**
-     * Actualizar notificación
-     */
-    public function update($id, $data) {
-        $stmt = $this->db->prepare("
-            UPDATE notificaciones 
-               SET titulo = :titulo, 
-                   mensaje = :mensaje, 
-                   updated_at = NOW()
-             WHERE noti_id = :id
-        ");
-        return $stmt->execute([
-            ':titulo' => $data['titulo'],
-            ':mensaje' => $data['mensaje'],
-            ':id' => $id
-        ]);
-    }
+        if ($tipo) {
+            $where[] = 'tipo = :tipo';
+            $params['tipo'] = $tipo;
+        }
 
-    /**
-     * Eliminar notificación
-     */
-    public function delete($id) {
-        $stmt = $this->db->prepare("DELETE FROM notificaciones WHERE noti_id = ?");
-        return $stmt->execute([$id]);
-    }
+        if ($search) {
+            $where[] = '(titulo LIKE :q OR mensaje LIKE :q)';
+            $params['q'] = "%{$search}%";
+        }
 
-    /**
-     * Marcar notificación como leída
-     */
-    public function marcarComoLeida($id) {
-        $stmt = $this->db->prepare("UPDATE notificaciones SET leido = 1 WHERE noti_id = ?");
-        return $stmt->execute([$id]);
-    }
+        $where[] = '(expira IS NULL OR expira > NOW())';
+        $whereSql = 'WHERE ' . implode(' AND ', $where);
 
-    /**
-     * Marcar todas como leídas para un usuario
-     */
-    public function marcarTodasComoLeidas($usuarioId) {
-        $stmt = $this->db->prepare("UPDATE notificaciones SET leido = 1 WHERE usu_id = ?");
-        return $stmt->execute([$usuarioId]);
-    }
+        $sqlCount = "SELECT COUNT(*) AS c FROM {$this->table} {$whereSql}";
+        $total = (int) $this->db->executeScalar($sqlCount, $params);
 
-    /**
-     * Listar notificaciones por usuario
-     */
-    public function allByUsuario($usuarioId, $limit = 20) {
-        $stmt = $this->db->prepare("
-            SELECT * FROM notificaciones 
-            WHERE usu_id = ? 
-            ORDER BY created_at DESC 
-            LIMIT ?
-        ");
-        $stmt->bindValue(1, $usuarioId, PDO::PARAM_INT);
-        $stmt->bindValue(2, (int)$limit, PDO::PARAM_INT);
+        $offset = max(0, ($page - 1) * $perPage);
+        $sql = "SELECT * FROM {$this->table} {$whereSql} ORDER BY leido ASC, created_at DESC LIMIT :limit OFFSET :offset";
+
+        $pdo = $this->db->getConnection();
+        $stmt = $pdo->prepare($sql);
+        foreach ($params as $k => $v) {
+            $stmt->bindValue(':' . $k, $v);
+        }
+        $stmt->bindValue(':limit', $perPage, \PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, \PDO::PARAM_INT);
         $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $rows = $stmt->fetchAll();
+        return [
+            'data' => $rows,
+            'total' => $total,
+            'page' => $page,
+            'perPage' => $perPage,
+            'totalPages' => (int) ceil($total / $perPage),
+        ];
     }
 
-    /**
-     * Contar notificaciones no leídas
-     */
-    public function contarNoLeidas($usuarioId) {
-        $stmt = $this->db->prepare("SELECT COUNT(*) FROM notificaciones WHERE usu_id = ? AND leido = 0");
-        $stmt->execute([$usuarioId]);
-        return (int)$stmt->fetchColumn();
+    /** Notificaciones recientes */
+    public function getRecientes(int $usuId, int $limit = 5): array
+    {
+        $sql = "SELECT *
+                FROM {$this->table}
+                WHERE usu_id = :usu_id
+                  AND (expira IS NULL OR expira > NOW())
+                ORDER BY created_at DESC
+                LIMIT :limit";
+        $pdo = $this->db->getConnection();
+        $stmt = $pdo->prepare($sql);
+        $stmt->bindValue(':usu_id', $usuId, \PDO::PARAM_INT);
+        $stmt->bindValue(':limit', $limit, \PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
+
+    /** Marcar una como leída */
+    public function markRead(int $notiId, int $usuId): bool
+    {
+        $sql = "UPDATE {$this->table}
+                SET leido = 1
+                WHERE {$this->primaryKey} = :id AND usu_id = :usu_id";
+        return $this->db->executeQuery($sql, ['id' => $notiId, 'usu_id' => $usuId]);
+    }
+
+    /** Marcar todas como leídas */
+    public function markAllRead(int $usuId): int
+    {
+        $sql = "UPDATE {$this->table} SET leido = 1 WHERE usu_id = :usu_id";
+        $this->db->executeQuery($sql, ['usu_id' => $usuId]);
+        return (int) $this->db->getConnection()->query("SELECT ROW_COUNT()")->fetchColumn();
+    }
+
+    /** Contador de no leídas */
+    public function countUnread(int $usuId): int
+    {
+        $sql = "SELECT COUNT(*) FROM {$this->table}
+                WHERE usu_id = :usu_id AND leido = 0
+                  AND (expira IS NULL OR expira > NOW())";
+        return (int) $this->db->executeScalar($sql, ['usu_id' => $usuId]);
     }
 }

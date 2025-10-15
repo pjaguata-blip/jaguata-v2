@@ -19,9 +19,14 @@ $authController->checkRole('paseador');
 // Obtener ID del paseador en sesión
 $paseadorId = Session::get('usuario_id');
 
-// Obtener solicitudes (paseos en estado "solicitado")
+// Obtener solicitudes (paseos en estado "Pendiente")
 $paseoController = new PaseoController();
-$solicitudes = $paseoController->getSolicitudesPendientes($paseadorId);
+$solicitudes = $paseoController->getSolicitudesPendientes((int)$paseadorId);
+
+function h($v)
+{
+    return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
+}
 
 $titulo = "Solicitudes de Paseos - Jaguata";
 ?>
@@ -31,6 +36,22 @@ $titulo = "Solicitudes de Paseos - Jaguata";
 
 <div class="container mt-4">
     <h2 class="mb-3"><i class="fas fa-envelope-open-text me-2"></i> Solicitudes de Paseos</h2>
+
+    <!-- Flash messages -->
+    <?php if (!empty($_SESSION['success'])): ?>
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-1"></i> <?= $_SESSION['success'];
+                                                        unset($_SESSION['success']); ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    <?php endif; ?>
+    <?php if (!empty($_SESSION['error'])): ?>
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-triangle-exclamation me-1"></i> <?= $_SESSION['error'];
+                                                                unset($_SESSION['error']); ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    <?php endif; ?>
 
     <?php if (empty($solicitudes)): ?>
         <div class="alert alert-info">
@@ -48,37 +69,55 @@ $titulo = "Solicitudes de Paseos - Jaguata";
                                 <th>Fecha</th>
                                 <th>Duración</th>
                                 <th>Precio</th>
-                                <th>Acciones</th>
+                                <th class="text-end">Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php foreach ($solicitudes as $s): ?>
+                                <?php
+                                $paseoId = (int)($s['paseo_id'] ?? 0);
+                                $duracion = $s['duracion'] ?? ($s['duracion_min'] ?? 0);
+                                ?>
                                 <tr>
                                     <td>
                                         <i class="fas fa-paw text-primary me-1"></i>
-                                        <?= htmlspecialchars($s['nombre_mascota']) ?>
+                                        <?= h($s['nombre_mascota'] ?? '-') ?>
                                     </td>
                                     <td>
                                         <i class="fas fa-user text-secondary me-1"></i>
-                                        <?= htmlspecialchars($s['nombre_dueno']) ?>
+                                        <?= h($s['nombre_dueno'] ?? '-') ?>
                                     </td>
-                                    <td>
-                                        <?= date('d/m/Y H:i', strtotime($s['inicio'])) ?>
-                                    </td>
-                                    <td><?= (int)$s['duracion'] ?> min</td>
-                                    <td>₲<?= number_format($s['precio_total'], 0, ',', '.') ?></td>
-                                    <td>
+                                    <td><?= isset($s['inicio']) ? date('d/m/Y H:i', strtotime($s['inicio'])) : '—' ?></td>
+                                    <td><?= (int)$duracion ?> min</td>
+                                    <td>₲<?= number_format((float)($s['precio_total'] ?? 0), 0, ',', '.') ?></td>
+                                    <td class="text-end">
                                         <div class="btn-group">
-                                            <a href="AceptarSolicitud.php?id=<?= $s['paseo_id'] ?>"
-                                                class="btn btn-sm btn-success"
-                                                onclick="return confirm('¿Aceptar esta solicitud?');">
-                                                <i class="fas fa-check"></i>
-                                            </a>
-                                            <a href="RechazarSolicitud.php?id=<?= $s['paseo_id'] ?>"
-                                                class="btn btn-sm btn-danger"
-                                                onclick="return confirm('¿Rechazar esta solicitud?');">
-                                                <i class="fas fa-times"></i>
-                                            </a>
+                                            <!-- Aceptar (confirmar) -->
+                                            <form action="AccionPaseo.php" method="post" class="d-inline">
+                                                <input type="hidden" name="id" value="<?= $paseoId ?>">
+                                                <input type="hidden" name="accion" value="confirmar">
+                                                <!-- volver a esta misma pantalla luego -->
+                                                <input type="hidden" name="redirect_to" value="Solicitudes.php">
+                                                <button type="submit"
+                                                    class="btn btn-sm btn-success"
+                                                    onclick="return confirm('¿Aceptar esta solicitud?');"
+                                                    title="Aceptar">
+                                                    <i class="fas fa-check"></i>
+                                                </button>
+                                            </form>
+
+                                            <!-- Rechazar (cancelar) -->
+                                            <form action="AccionPaseo.php" method="post" class="d-inline ms-1">
+                                                <input type="hidden" name="id" value="<?= $paseoId ?>">
+                                                <input type="hidden" name="accion" value="cancelar">
+                                                <input type="hidden" name="redirect_to" value="Solicitudes.php">
+                                                <button type="submit"
+                                                    class="btn btn-sm btn-danger"
+                                                    onclick="return confirm('¿Rechazar esta solicitud?');"
+                                                    title="Rechazar">
+                                                    <i class="fas fa-times"></i>
+                                                </button>
+                                            </form>
                                         </div>
                                     </td>
                                 </tr>

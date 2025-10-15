@@ -19,70 +19,15 @@ use Jaguata\Helpers\Session;
 <body class="<?php echo $body_class ?? ''; ?>">
 
     <?php
-    // Flash messages
+    // Flash messages (éxito, error, info)
     $mensajes = Session::getFlashMessages();
     if (!empty($mensajes)): ?>
         <div class="container mt-2">
             <?php foreach ($mensajes as $tipo => $mensaje): ?>
-                <div class="alert alert-<?php echo $tipo === 'error' ? 'danger' : $tipo; ?> alert-dismissible fade show">
+                <div class="alert alert-<?php echo $tipo === 'error' ? 'danger' : $tipo; ?> alert-dismissible fade show" role="alert">
                     <?php echo htmlspecialchars($mensaje); ?>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
                 </div>
             <?php endforeach; ?>
         </div>
     <?php endif; ?>
-
-    <?php
-    $usuarioLogueado = Session::isLoggedIn();
-    $rolUsuario      = Session::getUsuarioRol();
-    $nombreUsuario   = Session::getUsuarioNombre();
-
-    // 🔹 URL dinámica de inicio
-    $inicioUrl = BASE_URL;
-    if ($usuarioLogueado && $rolUsuario) {
-        $inicioUrl = BASE_URL . "/features/{$rolUsuario}/Dashboard.php";
-    }
-    ?>
-
-    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
-        <div class="container">
-            <!-- Logo -->
-            <a class="navbar-brand fw-bold text-primary" href="<?php echo $inicioUrl; ?>">
-                Jaguata
-            </a>
-
-            <!-- Toggle para móviles -->
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-
-            <!-- Menú -->
-            <div class="collapse navbar-collapse" id="navbarNav">
-
-
-                <ul class="navbar-nav">
-                    <?php if ($usuarioLogueado): ?>
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                                <i class="fas fa-user-circle me-2"></i>
-                                <?php echo htmlspecialchars($nombreUsuario); ?>
-                            </a>
-                            <ul class="dropdown-menu dropdown-menu-end">
-                                <li><a class="dropdown-item" href="<?php echo BASE_URL; ?>/features/<?php echo $rolUsuario; ?>/Perfil.php">Mi Perfil</a></li>
-                                <li><a class="dropdown-item" href="<?php echo BASE_URL; ?>/features/<?php echo $rolUsuario; ?>/Dashboard.php">Dashboard</a></li>
-                                <li>
-                                    <hr class="dropdown-divider">
-                                </li>
-                                <li><a class="dropdown-item text-danger" href="<?php echo BASE_URL; ?>/logout.php">Cerrar Sesión</a></li>
-                            </ul>
-                        </li>
-                    <?php else: ?>
-                        <li class="nav-item"><a class="nav-link" href="<?php echo BASE_URL; ?>/login.php">Iniciar Sesión</a></li>
-                        <li class="nav-item"><a class="btn btn-primary ms-2" href="<?php echo BASE_URL; ?>/registro.php">Registrarse</a></li>
-                    <?php endif; ?>
-                </ul>
-            </div>
-        </div>
-    </nav>
-
-    <main class="container mt-4">

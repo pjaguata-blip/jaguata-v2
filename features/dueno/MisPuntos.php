@@ -9,51 +9,59 @@ use Jaguata\Controllers\AuthController;
 use Jaguata\Models\Usuario;
 use Jaguata\Helpers\Session;
 
+// 🔹 Inicializar aplicación y conexión
 AppConfig::init();
 
-// Verificar login (acepta cualquier usuario logueado)
-$authController = new AuthController();
-$authController->checkAuth();
+// 🔹 Verificar usuario logueado (cualquier rol)
+$auth = new AuthController();
+$auth->checkAuth();
+
+// 🔹 Obtener información del usuario actual
+$usuarioId = (int) Session::get('usuario_id');
+$rol       = Session::getUsuarioRol() ?? 'dueno';
 
 $usuarioModel = new Usuario();
-$usuarioId    = Session::get('usuario_id');
 $usuario      = $usuarioModel->getById($usuarioId);
 
 if (!$usuario) {
-    echo "Error: Usuario no encontrado";
-    exit;
+    http_response_code(404);
+    exit('❌ Usuario no encontrado');
 }
 
-$puntos = $usuario['puntos'] ?? 0;
-
+$puntos = (int)($usuario['puntos'] ?? 0);
 $titulo = "Mis Puntos - Jaguata";
 ?>
-<!DOCTYPE html>
-<html lang="es">
 
-<head>
-    <meta charset="UTF-8">
-    <title><?= $titulo ?></title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-</head>
+<?php include __DIR__ . '/../../src/Templates/Header.php'; ?>
+<?php include __DIR__ . '/../../src/Templates/Navbar.php'; ?>
 
-<body>
-    <?php include __DIR__ . '/../../src/Templates/Header.php'; ?>
-    <?php include __DIR__ . '/../../src/Templates/Navbar.php'; ?>
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-6 col-md-8">
+            <div class="card shadow-lg border-0">
+                <div class="card-body text-center p-5">
+                    <h1 class="fw-bold text-success mb-3">
+                        <i class="fas fa-star text-warning me-2"></i> Mis Puntos
+                    </h1>
 
-    <div class="container mt-4">
-        <h2><i class="fas fa-star text-warning me-2"></i> Mis Puntos</h2>
-        <div class="card shadow mt-3">
-            <div class="card-body text-center">
-                <h3>Tienes</h3>
-                <p class="display-4 text-primary"><?= htmlspecialchars($puntos) ?> ⭐</p>
-                <p class="text-muted">Obtienes puntos cada vez que completas un paseo.</p>
+                    <p class="lead text-color #ffff mb-4">
+                        Cada paseo completado te otorga puntos de recompensa 🐾
+                    </p>
+
+                    <div class="bg-light rounded-4 py-4 mb-4">
+                        <h2 class="display-3 fw-bold text-primary mb-0">
+                            <?= number_format($puntos, 0, ',', '.') ?>
+                        </h2>
+                        <small class="text-secondary">puntos acumulados</small>
+                    </div>
+
+                    <a href="<?= BASE_URL ?>/features/<?= $rol ?>/Dashboard.php" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-2"></i> Volver al Dashboard
+                    </a>
+                </div>
             </div>
         </div>
     </div>
+</div>
 
-    <?php include __DIR__ . '/../../src/Templates/Footer.php'; ?>
-</body>
-
-</html>
+<?php include __DIR__ . '/../../src/Templates/Footer.php'; ?>

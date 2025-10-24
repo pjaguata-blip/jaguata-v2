@@ -4,20 +4,18 @@ require_once __DIR__ . '/../src/Helpers/Session.php';
 require_once __DIR__ . '/../src/Helpers/Validaciones.php';
 require_once __DIR__ . '/../src/Models/Usuario.php';
 require_once __DIR__ . '/../vendor/autoload.php';
-// Inicializar configuración
+
 use Jaguata\Config\AppConfig;
 use Jaguata\Helpers\Session;
 use Jaguata\Helpers\Validaciones;
 use Jaguata\Models\Usuario;
-use Jaguata\Services\DatabaseService;
-use Jaguata\Controllers\AuthController;
 
 AppConfig::init();
 
-// Verificar si el usuario ya está logueado
+// Redirigir si ya está logueado
 if (Session::isLoggedIn()) {
     $rol = Session::getUsuarioRol();
-    header('Location: ' . BASE_URL . '/features/' . $rol . '/Dashboard.php');
+    header('Location: ' . BASE_URL . "/features/{$rol}/Dashboard.php");
     exit;
 }
 
@@ -25,33 +23,26 @@ $titulo = 'Iniciar Sesión - Jaguata';
 $error = '';
 $success = '';
 
-// Procesar formulario de login
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = trim($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
     $remember_me = isset($_POST['remember_me']);
 
-    // Validar datos
-    $validacionEmail = Validaciones::validarEmail($email);
-    $validacionPassword = Validaciones::validarPassword($password);
+    $validEmail = Validaciones::validarEmail($email);
+    $validPass  = Validaciones::validarPassword($password);
 
-    if (!$validacionEmail['valido']) {
-        $error = $validacionEmail['mensaje'];
-    } elseif (!$validacionPassword['valido']) {
-        $error = $validacionPassword['mensaje'];
+    if (!$validEmail['valido']) {
+        $error = $validEmail['mensaje'];
+    } elseif (!$validPass['valido']) {
+        $error = $validPass['mensaje'];
     } else {
-        // Intentar autenticar
         $usuarioModel = new Usuario();
         $usuario = $usuarioModel->authenticate($email, $password);
 
         if ($usuario) {
-            // Login exitoso
             $usuario['remember_me'] = $remember_me;
             Session::login($usuario);
-
-            // Redirigir según el rol
-            $rol = $usuario['rol'];
-            header('Location: ' . BASE_URL . '/features/' . $rol . '/Dashboard.php');
+            header('Location: ' . BASE_URL . "/features/{$usuario['rol']}/Dashboard.php");
             exit;
         } else {
             $error = 'Credenciales incorrectas. Verifica tu email y contraseña.';
@@ -59,225 +50,201 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Obtener mensajes flash
 $error = $error ?: Session::getError();
 $success = $success ?: Session::getSuccess();
 ?>
 
-<?php include __DIR__ . '/../src/Templates/Header.php'; ?>
+<!DOCTYPE html>
+<html lang="es">
 
-<div class="container py-5">
-    <div class="row justify-content-center">
-        <div class="col-md-6 col-lg-5">
-            <div class="card shadow-lg border-0">
-                <div class="card-body p-5">
-                    <!-- Logo y título -->
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?= $titulo ?></title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(180deg, #3c6255 0%, #20c997 100%);
+            font-family: "Poppins", sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #333;
+        }
+
+        .card {
+            border: none;
+            border-radius: 18px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            background-color: #ffffff;
+            padding: 2rem;
+        }
+
+        h2 {
+            color: #3c6255;
+            font-weight: 700;
+        }
+
+        .btn-primary {
+            background-color: #3c6255;
+            border: none;
+            transition: all .3s;
+        }
+
+        .btn-primary:hover {
+            background-color: #2f4e45;
+        }
+
+        .form-control {
+            border-radius: 10px;
+            border: 2px solid #e0e0e0;
+            padding: 0.8rem 1rem;
+            transition: all .3s;
+        }
+
+        .form-control:focus {
+            border-color: #20c997;
+            box-shadow: 0 0 0 0.2rem rgba(32, 201, 151, 0.25);
+        }
+
+        .form-check-input:checked {
+            background-color: #3c6255;
+            border-color: #3c6255;
+        }
+
+        a {
+            color: #3c6255;
+            text-decoration: none;
+        }
+
+        a:hover {
+            color: #20c997;
+        }
+
+        .alert {
+            border-radius: 10px;
+            border: none;
+        }
+
+        .footer-icons i {
+            color: #3c6255;
+        }
+
+        .footer-icons small {
+            color: #555;
+        }
+
+        .logo-circle {
+            width: 80px;
+            height: 80px;
+            background-color: #f5f7fa;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            margin: 0 auto 1rem;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-6 col-lg-5">
+                <div class="card">
                     <div class="text-center mb-4">
-                        <img src="<?php echo ASSETS_URL; ?>/uploads/perfiles/logoo.jpg" alt="Jaguata" height="40" class="me-2">
-                        <h2 class="fw-bold text-primary">Iniciar Sesión</h2>
-                        <p class="" style="color: white">Accede a tu cuenta de Jaguata</p>
+                        <div class="logo-circle">
+                            <img src="<?= ASSETS_URL; ?>/uploads/perfiles/logoo.jpg" alt="Jaguata" width="60">
+                        </div>
+                        <h2>Bienvenido a Jaguata 🐾</h2>
+                        <p class="text-muted">Inicia sesión para continuar</p>
                     </div>
 
-                    <!-- Mostrar mensajes -->
                     <?php if ($error): ?>
                         <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                            <i class="fas fa-exclamation-circle me-2"></i>
-                            <?php echo htmlspecialchars($error); ?>
+                            <i class="fas fa-exclamation-circle me-2"></i><?= htmlspecialchars($error); ?>
                             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                         </div>
                     <?php endif; ?>
 
                     <?php if ($success): ?>
                         <div class="alert alert-success alert-dismissible fade show" role="alert">
-                            <i class="fas fa-check-circle me-2"></i>
-                            <?php echo htmlspecialchars($success); ?>
+                            <i class="fas fa-check-circle me-2"></i><?= htmlspecialchars($success); ?>
                             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                         </div>
                     <?php endif; ?>
 
-                    <!-- Formulario de login -->
-                    <form method="POST" action="" novalidate>
-                        <input type="hidden" name="csrf_token" value="<?php echo Validaciones::generarCSRF(); ?>">
+                    <form method="POST" action="">
+                        <input type="hidden" name="csrf_token" value="<?= Validaciones::generarCSRF(); ?>">
 
-                        <!-- Email -->
                         <div class="mb-3">
-                            <label for="email" class="form-label">
-                                <i class="fas fa-envelope me-1"></i>Email
-                            </label>
-                            <input type="email"
-                                class="form-control form-control-lg <?php echo $error && strpos($error, 'email') !== false ? 'is-invalid' : ''; ?>"
-                                id="email"
-                                name="email"
-                                value="<?php echo htmlspecialchars($email ?? ''); ?>"
-                                required
-                                autocomplete="email"
-                                placeholder="tu@email.com">
-                            <div class="invalid-feedback">
-                                Por favor ingresa un email válido.
-                            </div>
+                            <label for="email" class="form-label"><i class="fas fa-envelope me-1"></i>Email</label>
+                            <input type="email" class="form-control" id="email" name="email" required value="<?= htmlspecialchars($email ?? '') ?>" placeholder="tu@email.com">
                         </div>
 
-                        <!-- Contraseña -->
                         <div class="mb-3">
-                            <label for="password" class="form-label">
-                                <i class="fas fa-lock me-1"></i>Contraseña
-                            </label>
+                            <label for="password" class="form-label"><i class="fas fa-lock me-1"></i>Contraseña</label>
                             <div class="input-group">
-                                <input type="password"
-                                    class="form-control form-control-lg <?php echo $error && strpos($error, 'contraseña') !== false ? 'is-invalid' : ''; ?>"
-                                    id="password"
-                                    name="password"
-                                    required
-                                    autocomplete="current-password"
-                                    placeholder="Tu contraseña">
+                                <input type="password" class="form-control" id="password" name="password" placeholder="Tu contraseña" required>
                                 <button class="btn btn-outline-secondary" type="button" id="togglePassword">
                                     <i class="fas fa-eye"></i>
                                 </button>
                             </div>
-                            <div class="invalid-feedback">
-                                Por favor ingresa tu contraseña.
-                            </div>
                         </div>
 
-                        <!-- Recordar sesión -->
-                        <div class="mb-3 form-check">
+                        <div class="form-check mb-3">
                             <input type="checkbox" class="form-check-input" id="remember_me" name="remember_me">
-                            <label class="form-check-label" for="remember_me">
-                                Recordar mi sesión
-                            </label>
+                            <label class="form-check-label" for="remember_me">Recordar mi sesión</label>
                         </div>
 
-                        <!-- Botón de login -->
                         <div class="d-grid mb-3">
-                            <button type="submit" class="btn btn-primary btn-lg">
-                                <i class="fas fa-sign-in-alt me-2"></i>Iniciar Sesión
-                            </button>
+                            <button type="submit" class="btn btn-primary btn-lg"><i class="fas fa-sign-in-alt me-2"></i>Iniciar Sesión</button>
                         </div>
 
-                        <!-- Enlaces adicionales -->
                         <div class="text-center">
-                            <p class="mb-2">
-                                <a href="<?php echo BASE_URL; ?>/recuperar-password.php" class="text-decoration-none">
-                                    ¿Olvidaste tu contraseña?
-                                </a>
-                            </p>
-                            <p class="mb-0">
-                                ¿No tienes cuenta?
-                                <a href="<?php echo BASE_URL; ?>/registro.php" class="text-primary fw-bold text-decoration-none">
-                                    Regístrate aquí
-                                </a>
-                            </p>
+                            <p class="mb-2"><a href="<?= BASE_URL ?>/recuperar-password.php">¿Olvidaste tu contraseña?</a></p>
+                            <p>¿No tienes cuenta? <a href="<?= BASE_URL ?>/registro.php" class="fw-bold">Regístrate aquí</a></p>
                         </div>
                     </form>
                 </div>
-            </div>
 
-            <!-- Información adicional -->
-            <div class="text-center mt-4">
-                <div class="row g-3">
-                    <div class="col-4">
-                        <div class="d-flex flex-column align-items-center">
-                            <i class="fas fa-shield-alt text-primary fa-2x mb-2"></i>
-                            <small class="text-muted">100% Seguro</small>
+                <div class="text-center mt-4 footer-icons">
+                    <div class="row">
+                        <div class="col-4">
+                            <i class="fas fa-shield-alt fa-2x mb-2"></i>
+                            <small>Seguro</small>
                         </div>
-                    </div>
-                    <div class="col-4">
-                        <div class="d-flex flex-column align-items-center">
-                            <i class="fas fa-clock text-primary fa-2x mb-2"></i>
-                            <small class="text-muted">Disponible 24/7</small>
+                        <div class="col-4">
+                            <i class="fas fa-clock fa-2x mb-2"></i>
+                            <small>24/7</small>
                         </div>
-                    </div>
-                    <div class="col-4">
-                        <div class="d-flex flex-column align-items-center">
-                            <i class="fas fa-star text-primary fa-2x mb-2"></i>
-                            <small class="text-muted">Paseadores Verificados</small>
+                        <div class="col-4">
+                            <i class="fas fa-star fa-2x mb-2"></i>
+                            <small>Verificados</small>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
 
-<style>
-    .card {
-        border-radius: 15px;
-    }
-
-    .form-control-lg {
-        border-radius: 10px;
-        border: 2px solid #e9ecef;
-        transition: all 0.3s ease;
-    }
-
-    .form-control-lg:focus {
-        border-color: #2E7D32;
-        box-shadow: 0 0 0 0.2rem rgba(46, 125, 50, 0.25);
-    }
-
-    .btn-lg {
-        border-radius: 10px;
-        padding: 12px 24px;
-        font-weight: 600;
-    }
-
-    .input-group .btn {
-        border-radius: 0 10px 10px 0;
-    }
-
-    .alert {
-        border-radius: 10px;
-        border: none;
-    }
-
-    .form-check-input:checked {
-        background-color: #2E7D32;
-        border-color: #2E7D32;
-    }
-</style>
-
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Toggle password visibility
-        const togglePassword = document.getElementById('togglePassword');
-        const passwordInput = document.getElementById('password');
-
-        togglePassword.addEventListener('click', function() {
-            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-            passwordInput.setAttribute('type', type);
-
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.getElementById('togglePassword').addEventListener('click', function() {
+            const passwordInput = document.getElementById('password');
             const icon = this.querySelector('i');
-            icon.classList.toggle('fa-eye');
-            icon.classList.toggle('fa-eye-slash');
-        });
-
-        // Form validation
-        const form = document.querySelector('form');
-        form.addEventListener('submit', function(e) {
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-
-            if (!email || !password) {
-                e.preventDefault();
-                alert('Por favor completa todos los campos');
-                return;
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                icon.classList.replace('fa-eye', 'fa-eye-slash');
+            } else {
+                passwordInput.type = 'password';
+                icon.classList.replace('fa-eye-slash', 'fa-eye');
             }
-
-            // Show loading state
-            const submitBtn = form.querySelector('button[type="submit"]');
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Iniciando sesión...';
-            submitBtn.disabled = true;
         });
+    </script>
+</body>
 
-        // Auto-hide alerts after 5 seconds
-        setTimeout(function() {
-            const alerts = document.querySelectorAll('.alert');
-            alerts.forEach(function(alert) {
-                const bsAlert = new bootstrap.Alert(alert);
-                bsAlert.close();
-            });
-        }, 5000);
-    });
-</script>
-
-<?php include __DIR__ . '/../src/Templates/Footer.php'; ?>
+</html>

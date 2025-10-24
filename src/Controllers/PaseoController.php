@@ -90,8 +90,13 @@ class PaseoController
                 'precio_total' => $_POST['precio_total'] ?? 0,
             ];
 
-        return ['id' => $this->paseoModel->create($data)];
+            return ['id' => $this->paseoModel->create($data)];
+        } catch (Exception $e) {
+            error_log('Error en store: ' . $e->getMessage());
+            return ['error' => 'Error al crear el paseo'];
+        }
     }
+
 
     public function update($id)
     {
@@ -267,5 +272,88 @@ class PaseoController
             error_log('apiCancelar: ' . $e->getMessage());
             return ['error' => 'Error interno'];
         }
+    }
+
+    public function cancelarPaseo(int $paseoId, string $motivo = ''): array
+    {
+        try {
+            $db = AppConfig::db();
+
+            // Verificar si el paseo existe y su estado actual
+            $stmt = $db->prepare("SELECT * FROM paseos WHERE paseo_id = :id");
+            $stmt->bindValue(':id', $paseoId, PDO::PARAM_INT);
+            $stmt->execute();
+            $paseo = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$paseo) {
+                return ['error' => 'No se encontró el paseo.'];
+            }
+
+            if (!in_array($paseo['estado'], ['pendiente', 'confirmado'], true)) {
+                return ['error' => 'Solo se pueden cancelar paseos pendientes o confirmados.'];
+            }
+
+            // Actualizar estado
+            $update = $db->prepare("
+            UPDATE paseos
+            SET estado = 'cancelado',
+                motivo_cancelacion = :motivo,
+                fecha_cancelacion = NOW()
+            WHERE paseo_id = :id
+        ");
+            $update->bindValue(':motivo', $motivo);
+            $update->bindValue(':id', $paseoId, PDO::PARAM_INT);
+            $update->execute();
+
+            return ['success' => true];
+        } catch (\Throwable $e) {
+            return ['error' => 'Error al cancelar paseo: ' . $e->getMessage()];
+        }
+    }
+    public function completarPaseo(int $paseoId, string $comentario = ''): array
+    {
+        try {
+            $db = AppConfig::db();
+
+            // Validar que exista el paseo
+            $stmt = $db->prepare("SELECT * FROM paseos WHERE paseo_id = :id");
+            $stmt->bindValue(':id', $paseoId, PDO::PARAM_INT);
+            $stmt->execute();
+            $paseo = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$paseo) {
+                return ['error' => 'No se encontró el paseo especificado.'];
+            }
+
+            // Verificar que el estado permita completarlo
+            if (!in_array($paseo['estado'], ['en_curso', 'confirmado'], true)) {
+                return ['error' => 'El paseo no puede ser marcado como completado en este estado.'];
+            }
+
+            // Actualizar estado a completado
+            $update = $db->prepare("
+            UPDATE paseos
+            SET estado = 'completado',
+                comentario_final = :comentario,
+                fecha_completado = NOW()
+            WHERE paseo_id = :id
+        ");
+            $update->bindValue(':comentario', $comentario);
+            $update->bindValue(':id', $paseoId, PDO::PARAM_INT);
+            $update->execute();
+
+            if ($update->rowCount() > 0) {
+                return ['success' => true];
+            }
+
+            return ['error' => 'No se realizaron cambios.'];
+        } catch (\Throwable $e) {
+            return ['error' => 'Error al completar paseo: ' . $e->getMessage()];
+        }
+    }
+    public function show(int $id): ?array
+    {
+        $paseoModel = new \Jaguata\Models\Paseo();
+        return $paseoModel->getById($id);
     }
 }

@@ -9,25 +9,63 @@ use Jaguata\Helpers\Session;
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo $titulo ?? 'Jaguata - Paseo de Mascotas'; ?></title>
+    <title><?= $titulo ?? 'Jaguata - Paseo de Mascotas'; ?></title>
+
+    <!-- Bootstrap + FontAwesome -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="<?php echo ASSETS_URL; ?>/css/style.css" rel="stylesheet">
-    <link rel="icon" type="image/x-icon" href="<?php echo ASSETS_URL; ?>/images/favicon.ico">
+
+    <!-- Estilos personalizados -->
+    <link href="<?= ASSETS_URL; ?>/css/style.css" rel="stylesheet">
+
+    <!-- SweetAlert2 -->
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+
+    <link rel="icon" type="image/x-icon" href="<?= ASSETS_URL; ?>/images/favicon.ico">
+    <style>
+        body {
+            font-family: "Poppins", sans-serif;
+            background-color: #f6f9f7;
+        }
+
+        .navbar-brand img {
+            height: 38px;
+            border-radius: 6px;
+        }
+
+        .swal2-popup {
+            border-radius: 16px !important;
+        }
+    </style>
 </head>
 
-<body class="<?php echo $body_class ?? ''; ?>">
+<body class="<?= $body_class ?? ''; ?>">
 
     <?php
-    // Flash messages (éxito, error, info)
+    // Mensajes flash (éxito, error, info, warning)
     $mensajes = Session::getFlashMessages();
-    if (!empty($mensajes)): ?>
-        <div class="container mt-2">
+    ?>
+
+    <!-- Navbar (opcional si tu header lo incluye globalmente) -->
+
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        // --- Mostrar mensajes flash con SweetAlert2 ---
+        <?php if (!empty($mensajes)): ?>
             <?php foreach ($mensajes as $tipo => $mensaje): ?>
-                <div class="alert alert-<?php echo $tipo === 'error' ? 'danger' : $tipo; ?> alert-dismissible fade show" role="alert">
-                    <?php echo htmlspecialchars($mensaje); ?>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
-                </div>
+                Swal.fire({
+                    icon: '<?= $tipo === 'error' ? 'error' : ($tipo === 'success' ? 'success' : ($tipo === 'warning' ? 'warning' : 'info')) ?>',
+                    title: '<?=
+                            $tipo === "success" ? "¡Listo!" : ($tipo === "error" ? "Ups..." : ($tipo === "warning" ? "Atención" : "Información"))
+                            ?>',
+                    text: '<?= addslashes($mensaje) ?>',
+                    showConfirmButton: <?= $tipo === 'success' ? 'false' : 'true' ?>,
+                    timer: <?= $tipo === 'success' ? '2200' : 'null' ?>,
+                    background: '#f6f9f7',
+                    confirmButtonColor: '#3c6255'
+                });
             <?php endforeach; ?>
-        </div>
-    <?php endif; ?>
+        <?php endif; ?>
+    </script>

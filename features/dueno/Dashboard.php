@@ -4,7 +4,6 @@ require_once __DIR__ . '/../../src/Controllers/AuthController.php';
 require_once __DIR__ . '/../../src/Controllers/MascotaController.php';
 require_once __DIR__ . '/../../src/Controllers/PaseoController.php';
 require_once __DIR__ . '/../../src/Controllers/NotificacionController.php';
-
 require_once __DIR__ . '/../../vendor/autoload.php';
 
 use Jaguata\Config\AppConfig;
@@ -14,83 +13,38 @@ use Jaguata\Controllers\PaseoController;
 use Jaguata\Controllers\NotificacionController;
 use Jaguata\Helpers\Session;
 
-// Inicializar aplicación
 AppConfig::init();
 
 // Verificar autenticación
 $authController = new AuthController();
 $authController->checkRole('dueno');
 
-$rolMenu     = Session::getUsuarioRol() ?: 'dueno';
+// Variables base
+$rolMenu = Session::getUsuarioRol() ?: 'dueno';
 $baseFeatures = BASE_URL . "/features/{$rolMenu}";
 
-// URL de inicio dinámico
-$homeUrl = (Session::isLoggedIn() && Session::getUsuarioRol())
-    ? BASE_URL . "/features/{$rolMenu}/Dashboard.php"
-    : BASE_URL . "/public/login.php";
-
 // Controladores
-$mascotaController       = new MascotaController();
-$paseoController         = new PaseoController();
-$notificacionController  = new NotificacionController();
+$mascotaController = new MascotaController();
+$paseoController = new PaseoController();
+$notificacionController = new NotificacionController();
 
-// Datos base
-$mascotas       = $mascotaController->index();      // ← solo mascotas del dueño
-$allPaseos      = $paseoController->index();        // ← podrían venir de todos
+// Datos
+$mascotas = $mascotaController->index();
+$allPaseos = $paseoController->index();
 $notificaciones = $notificacionController->getRecientes();
 
-// ---- FILTRAR PASEOS SOLO DE LAS MASCOTAS DEL DUEÑO ----
-$extractMascotaId = function (array $row) {
-    return $row['mascota_id'] ?? $row['id_mascota'] ?? $row['idMascota'] ?? null;
-};
+// Filtrado de paseos
+$extractMascotaId = fn($p) => $p['mascota_id'] ?? $p['id_mascota'] ?? null;
+$idsMascotas = array_map(fn($m) => (int)($m['mascota_id'] ?? $m['id'] ?? 0), $mascotas);
+$paseos = array_filter($allPaseos, fn($p) => in_array((int)($extractMascotaId($p) ?? 0), $idsMascotas, true));
 
-// Conjunto de IDs de mascotas del dueño
-$idsMascotasDueno = [];
-foreach ($mascotas as $m) {
-    $mid = $m['mascota_id'] ?? $m['id'] ?? $m['id_mascota'] ?? null;
-    if ($mid !== null) {
-        $idsMascotasDueno[(int)$mid] = true;
-    }
-}
-
-// Filtrar paseos por las mascotas del dueño
-$paseos = array_values(array_filter($allPaseos, function ($p) use ($extractMascotaId, $idsMascotasDueno) {
-    $mid = $extractMascotaId($p);
-    return $mid !== null && isset($idsMascotasDueno[(int)$mid]);
-}));
-
-// Estadísticas (sobre paseos filtrados)
+// Estadísticas
 $totalMascotas = count($mascotas);
-
-$paseosPendientes = array_filter($paseos, fn($p) => in_array(strtolower($p['estado'] ?? ''), ['pendiente', 'confirmado'], true));
+$paseosPendientes = array_filter($paseos, fn($p) => in_array(strtolower($p['estado'] ?? ''), ['pendiente', 'confirmado']));
 $paseosCompletados = array_filter($paseos, fn($p) => strtolower($p['estado'] ?? '') === 'completo');
-$paseosCancelados  = array_filter($paseos, fn($p) => strtolower($p['estado'] ?? '') === 'cancelado');
-
-$totalPaseosPendientes  = count($paseosPendientes);
-$totalPaseosCompletados = count($paseosCompletados);
-$totalPaseosCancelados  = count($paseosCancelados);
-
-// Gastos totales (solo completados del dueño)
-$gastosTotales = 0;
-foreach ($paseosCompletados as $p) {
-    $gastosTotales += (float)($p['precio_total'] ?? 0);
-}
-
-// Paseos recientes (del dueño)
+$gastosTotales = array_sum(array_map(fn($p) => (float)($p['precio_total'] ?? 0), $paseosCompletados));
 $paseosRecientes = array_slice($paseos, 0, 5);
-
-// Mascotas recientes (del dueño)
 $mascotasRecientes = array_slice($mascotas, 0, 3);
-
-// ID para menú "Perfil de mi Mascota" (primera mascota)
-$firstMascotaId = 0;
-foreach ($mascotas as $m) {
-    $mid = $m['mascota_id'] ?? $m['id'] ?? $m['id_mascota'] ?? null;
-    if (!empty($mid)) {
-        $firstMascotaId = (int)$mid;
-        break;
-    }
-}
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -99,487 +53,362 @@ foreach ($mascotas as $m) {
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Dashboard - Jaguata</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
-    <link href="../../assets/css/style.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <link href="<?= ASSETS_URL; ?>/css/jaguata-theme.css" rel="stylesheet">
+
+    <style>
+        /* === Layout general === */
+        body {
+            background-color: #f5f7fa;
+            font-family: "Poppins", sans-serif;
+            overflow-x: hidden;
+            margin: 0;
+            padding: 0;
+        }
+
+        .layout {
+            display: flex;
+            flex-wrap: nowrap;
+            width: 100%;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        /* === Sidebar === */
+        .sidebar {
+            background: linear-gradient(180deg, #1e1e2f 0%, #292a3a 100%);
+            color: #f8f9fa;
+            width: 240px;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            padding-top: 1.5rem;
+            box-shadow: 4px 0 12px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            transition: transform 0.3s ease-in-out;
+        }
+
+        .sidebar .nav-link {
+            color: #ddd;
+            display: flex;
+            align-items: center;
+            padding: 10px 16px;
+            border-radius: 8px;
+            margin: 4px 8px;
+            transition: background 0.2s, transform 0.2s;
+            font-weight: 500;
+        }
+
+        .sidebar .nav-link i {
+            width: 22px;
+            margin-right: 10px;
+        }
+
+        .sidebar .nav-link:hover {
+            background-color: #343454;
+            color: #fff;
+            transform: translateX(4px);
+        }
+
+        .sidebar .nav-link.active {
+            background: #3c6255;
+            color: #fff;
+        }
+
+        /* === Botón de menú móvil === */
+        .menu-toggle {
+            display: none;
+            position: fixed;
+            top: 16px;
+            left: 16px;
+            background-color: #1e1e2f;
+            color: white;
+            border: none;
+            padding: 8px 10px;
+            border-radius: 6px;
+            z-index: 1100;
+        }
+
+        @media (max-width: 768px) {
+            .menu-toggle {
+                display: block;
+            }
+
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .sidebar.show {
+                transform: translateX(0);
+            }
+        }
+
+        /* === Contenido principal === */
+        main.content {
+            flex-grow: 1;
+            margin-left: 240px;
+            background-color: #f5f7fa;
+            padding: 2rem 2.5rem;
+            transition: margin-left 0.3s ease;
+            width: calc(100% - 240px);
+        }
+
+        @media (max-width: 768px) {
+            main.content {
+                margin-left: 0;
+                padding: 1.5rem;
+                width: 100%;
+            }
+        }
+
+        /* === Cabecera de bienvenida === */
+        .welcome-box {
+            background: linear-gradient(90deg, #20c997, #3c6255);
+            color: #fff;
+            padding: 1.5rem 2rem;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+        }
+
+        .welcome-box h4 {
+            font-weight: 600;
+            font-size: 1.25rem;
+            margin-bottom: 4px;
+        }
+
+        .welcome-box p {
+            font-size: 0.95rem;
+            opacity: 0.9;
+        }
+
+        /* === Tarjetas de estadísticas === */
+        .stat-card {
+            background: #fff;
+            border-radius: 12px;
+            text-align: center;
+            padding: 1.2rem 0.8rem;
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s;
+            border: 1px solid #e6e6e6;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+        }
+
+        .stat-icon {
+            font-size: 1.8rem;
+            margin-bottom: 0.4rem;
+        }
+
+        .stat-title {
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+
+        /* === Secciones de contenido === */
+        .card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.07);
+        }
+
+        .card-header {
+            border-top-left-radius: 10px;
+            border-top-right-radius: 10px;
+        }
+
+        /* === Tabla === */
+        .table {
+            font-size: 0.9rem;
+        }
+
+        .table thead {
+            background: #3c6255;
+            color: #fff;
+        }
+
+        .table-hover tbody tr:hover {
+            background-color: #eef8f2;
+        }
+
+        /* === Panel lateral (mascotas / notificaciones) === */
+        .side-panel .card-header {
+            background-color: #3c6255;
+        }
+
+        .side-panel .card-header.bg-info {
+            background-color: #0dcaf0 !important;
+        }
+
+        /* === Footer (opcional) === */
+        footer {
+            text-align: center;
+            color: #777;
+            font-size: 0.85rem;
+            padding: 1rem 0;
+            margin-top: 2rem;
+        }
+    </style>
+
+
 </head>
 
 <body>
-    <?php include __DIR__ . '/../../src/Templates/Header.php'; ?>
-    <?php include __DIR__ . '/../../src/Templates/Navbar.php'; ?>
+    <button class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
 
-    <div class="container-fluid">
-        <div class="row">
-            <!-- Sidebar -->
-            <div class="col-md-3 col-lg-2 d-md-block sidebar">
-                <div class="position-sticky pt-3">
-                    <ul class="nav flex-column gap-1">
-                        <!-- Mi Perfil -->
-                        <li class="nav-item">
-                            <button class="nav-link d-flex align-items-center w-100 text-start"
-                                data-bs-toggle="collapse" data-bs-target="#menuPerfil" aria-expanded="false">
-                                <i class="fas fa-user me-2"></i>
-                                <span class="flex-grow-1">Mi Perfil</span>
-                                <i class="fas fa-chevron-right ms-2 chevron"></i>
-                            </button>
-                            <ul class="collapse ps-4 nav flex-column" id="menuPerfil">
-                                <li class="nav-item">
-                                    <a class="nav-link" href="<?= $baseFeatures; ?>/MiPerfil.php">
-                                        <i class="fas fa-id-card me-2"></i> Ver Perfil
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link" href="<?= $baseFeatures; ?>/EditarPerfil.php">
-                                        <i class="fas fa-user-edit me-2 text-warning"></i> Editar Perfil
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link" href="<?= $baseFeatures; ?>/MisPuntos.php">
-                                        <i class="fas fa-coins me-2 text-success"></i> Mis puntos
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link" href="<?= $baseFeatures; ?>/GastosTotales.php">
-                                        <i class="fas fa-coins me-2 text-success"></i> Gastos Totales
-                                    </a>
-                                </li>
-                            </ul>
-                        </li>
+    <div class="layout">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="text-center mb-4">
+                <img src="../../assets/img/logo.png" alt="Jaguata" width="120" class="mb-3">
+                <hr class="text-light">
+            </div>
 
+            <ul class="nav flex-column gap-1 px-2">
+                <li><a class="nav-link active" href="<?= $baseFeatures; ?>/Dashboard.php"><i class="fas fa-home"></i> Inicio</a></li>
+                <li><a class="nav-link" href="<?= $baseFeatures; ?>/MiPerfil.php"><i class="fas fa-user"></i> Mi perfil</a></li>
+                <li><a class="nav-link" href="<?= $baseFeatures; ?>/MisMascotas.php"><i class="fas fa-paw"></i> Mis mascotas</a></li>
+                <li><a class="nav-link" href="<?= $baseFeatures; ?>/SolicitarPaseo.php"><i class="fas fa-walking"></i> Reservar paseo</a></li>
+                <li><a class="nav-link" href="<?= $baseFeatures; ?>/PaseosPendientes.php"><i class="fas fa-hourglass-half"></i> Paseos pendientes</a></li>
+                <li><a class="nav-link" href="<?= $baseFeatures; ?>/PaseosCompletados.php"><i class="fas fa-check-circle"></i> Paseos completados</a></li>
+                <li><a class="nav-link" href="<?= $baseFeatures; ?>/PaseosCancelados.php"><i class="fas fa-times-circle"></i> Paseos cancelados</a></li>
+                <li><a class="nav-link" href="<?= $baseFeatures; ?>/Notificaciones.php"><i class="fas fa-bell"></i> Notificaciones</a></li>
+                <li><a class="nav-link" href="<?= $baseFeatures; ?>/GastosTotales.php"><i class="fas fa-wallet"></i> Mis gastos</a></li>
+                <li><a class="nav-link text-danger" href="<?= BASE_URL; ?>/logout.php"><i class="fas fa-sign-out-alt"></i> Cerrar sesión</a></li>
+            </ul>
+        </aside>
 
+        <!-- Contenido -->
+        <main class="content">
+            <div class="welcome-box mb-4">
+                <div>
+                    <h4>¡Bienvenido/a a tu panel, <?= htmlspecialchars(Session::getUsuarioNombre() ?? 'Dueño/a'); ?>!</h4>
+                    <p>Gestioná tus mascotas, paseos y notificaciones fácilmente 🐾</p>
+                </div>
+                <i class="fas fa-dog fa-3x opacity-75"></i>
+            </div>
 
-
-                        <!-- Mascotas -->
-                        <li class="nav-item">
-                            <button class="nav-link d-flex align-items-center w-100 text-start"
-                                data-bs-toggle="collapse" data-bs-target="#menuMascotas" aria-expanded="false">
-                                <i class="fas fa-paw me-2"></i>
-                                <span class="flex-grow-1">Mascotas</span>
-                                <i class="fas fa-chevron-right ms-2 chevron"></i>
-                            </button>
-                            <ul class="collapse ps-4 nav flex-column" id="menuMascotas">
-                                <li class="nav-item">
-                                    <a class="nav-link" href="MisMascotas.php">
-                                        <i class="fas fa-list-ul me-2"></i> Mis Mascotas
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link" href="AgregarMascota.php">
-                                        <i class="fas fa-plus-circle me-2"></i> Agregar Mascota
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link <?= $firstMascotaId ? '' : 'disabled' ?>"
-                                        href="<?= $firstMascotaId ? 'PerfilMascota.php?id=' . (int)$firstMascotaId : '#' ?>">
-                                        <i class="fas fa-id-badge me-2"></i> Perfil de mi Mascota
-                                    </a>
-                                </li>
-                            </ul>
-                        </li>
-
-                        <!-- Paseos -->
-                        <li class="nav-item">
-                            <button class="nav-link d-flex align-items-center w-100 text-start"
-                                data-bs-toggle="collapse" data-bs-target="#menuPaseos" aria-expanded="false">
-                                <i class="fas fa-walking me-2"></i>
-                                <span class="flex-grow-1">Paseos</span>
-                                <i class="fas fa-chevron-right ms-2 chevron"></i>
-                            </button>
-                            <ul class="collapse ps-4 nav flex-column" id="menuPaseos">
-                                <li class="nav-item">
-                                    <a class="nav-link" href="BuscarPaseadores.php">
-                                        <i class="fas fa-search me-2"></i> Buscar Paseadores
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <button class="nav-link d-flex align-items-center w-100 text-start"
-                                        data-bs-toggle="collapse" data-bs-target="#menuMisPaseos" aria-expanded="false">
-                                        <i class="fas fa-calendar-check me-2"></i>
-                                        <span class="flex-grow-1">Mis Paseos</span>
-                                        <i class="fas fa-chevron-right ms-2 chevron"></i>
-                                    </button>
-                                    <ul class="collapse ps-4 nav flex-column" id="menuMisPaseos">
-                                        <li class="nav-item"><a class="nav-link" href="PaseosCompletados.php"><i class="fas fa-check-circle me-2"></i> Completados</a></li>
-                                        <li class="nav-item"><a class="nav-link" href="PaseosPendientes.php"><i class="fas fa-hourglass-half me-2"></i> Pendientes</a></li>
-                                        <li class="nav-item"><a class="nav-link" href="PaseosCancelados.php"><i class="fas fa-times-circle me-2"></i> Cancelados</a></li>
-                                    </ul>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link" href="SolicitarPaseo.php">
-                                        <i class="fas fa-plus-circle me-2"></i> Solicitar Nuevo Paseo
-                                    </a>
-                                </li>
-                            </ul>
-                        </li>
-
-                        <!-- Pagos -->
-                        <li class="nav-item">
-                            <button class="nav-link d-flex align-items-center w-100 text-start"
-                                data-bs-toggle="collapse" data-bs-target="#menuPagos" aria-expanded="false">
-                                <i class="fas fa-credit-card me-2"></i>
-                                <span class="flex-grow-1">Pagos</span>
-                                <i class="fas fa-chevron-right ms-2 chevron"></i>
-                            </button>
-                            <ul class="collapse ps-4 nav flex-column" id="menuPagos">
-                                <li class="nav-item">
-                                    <!-- Enviar a Pendientes (allí hay botón Pagar con paseo_id) -->
-                                    <a class="nav-link" href="PaseosPendientes.php">
-                                        <i class="fas fa-wallet me-2"></i> Pagar paseo
-                                    </a>
-                                </li>
-                            </ul>
-                        </li>
-
-                        <!-- Notificaciones -->
-                        <li class="nav-item">
-                            <a class="nav-link d-flex align-items-center" href="Notificaciones.php">
-                                <i class="fas fa-bell me-2"></i>
-                                <span>Notificaciones</span>
-                            </a>
-                        </li>
-
-                        <!-- Configuración (solo Editar Perfil y Cerrar Sesión) -->
-                        <li class="nav-item">
-                            <button class="nav-link d-flex align-items-center w-100 text-start"
-                                data-bs-toggle="collapse" data-bs-target="#menuConfig" aria-expanded="false">
-                                <i class="fas fa-gear me-2"></i>
-                                <span class="flex-grow-1">Configuración</span>
-                                <i class="fas fa-chevron-right ms-2 chevron"></i>
-                            </button>
-                            <ul class="collapse ps-4 nav flex-column" id="menuConfig">
-                                <li class="nav-item">
-                                    <a class="nav-link" href="<?= $baseFeatures; ?>/EditarPerfil.php">
-                                        <i class="fas fa-user-cog me-2"></i> Editar Perfil
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link text-danger" href="<?= BASE_URL; ?>/logout.php">
-                                        <i class="fas fa-sign-out-alt me-2"></i> Cerrar Sesión
-                                    </a>
-                                </li>
-                            </ul>
-                        </li>
-
-                    </ul>
+            <div class="row g-3 mb-4">
+                <div class="col-md-3">
+                    <div class="stat-card"><i class="fas fa-paw stat-icon text-primary"></i>
+                        <h5><?= $totalMascotas ?></h5>
+                        <p class="stat-title">Mascotas</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card"><i class="fas fa-check-circle stat-icon text-success"></i>
+                        <h5><?= count($paseosCompletados) ?></h5>
+                        <p class="stat-title">Completados</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card"><i class="fas fa-hourglass-half stat-icon text-warning"></i>
+                        <h5><?= count($paseosPendientes) ?></h5>
+                        <p class="stat-title">Pendientes</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card"><i class="fas fa-wallet stat-icon text-info"></i>
+                        <h5>₲<?= number_format($gastosTotales, 0, ',', '.') ?></h5>
+                        <p class="stat-title">Gastos</p>
+                    </div>
                 </div>
             </div>
 
-            <!-- Contenido principal -->
-            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
-                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                    <h1 class="h2">Dashboard</h1>
-
-                    <!-- Toolbar de exportación -->
-                    <div class="btn-toolbar mb-2 mb-md-0">
-                        <div class="btn-group me-2">
-                            <div class="dropdown">
-                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle"
-                                    type="button"
-                                    id="exportDropdown"
-                                    data-bs-toggle="dropdown"
-                                    aria-expanded="false">
-                                    <i class="fas fa-download me-1"></i> Exportar
-                                </button>
-                                <ul class="dropdown-menu" aria-labelledby="exportDropdown">
-                                    <li>
-                                        <a class="dropdown-item" href="exportar_datos.php?tipo=paseos">
-                                            <i class="fas fa-walking me-2 text-success"></i> Paseos
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item" href="exportar_datos.php?tipo=mascotas">
-                                            <i class="fas fa-paw me-2 text-primary"></i> Mascotas
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item" href="exportar_datos.php?tipo=pagos">
-                                            <i class="fas fa-wallet me-2 text-info"></i> Pagos
-                                        </a>
-                                    </li>
-                                </ul>
-                            </div>
-                        </div>
-
-                        <a href="SolicitarPaseo.php" class="btn btn-sm btn-primary">
-                            <i class="fas fa-plus me-1"></i> Nuevo Paseo
-                        </a>
-                    </div>
-
-
-                </div>
-
-                <!-- Estadísticas -->
-                <div class="row mb-4">
-                    <!-- Total Mascotas -->
-                    <div class="col-xl-3 col-md-6 mb-4">
-                        <div class="card border-left-primary shadow h-100 py-2">
-                            <div class="card-body">
-                                <div class="row no-gutters align-items-center">
-                                    <div class="col mr-2">
-                                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                                            Total Mascotas
-                                        </div>
-                                        <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                            <?= $totalMascotas ?>
-                                        </div>
-                                    </div>
-                                    <div class="col-auto">
-                                        <i class="fas fa-paw fa-2x text-gray-300"></i>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <!-- Paseos Completados -->
-                    <div class="col-xl-3 col-md-6 mb-4">
-                        <div class="card border-left-success shadow h-100 py-2">
-                            <div class="card-body">
-                                <div class="row no-gutters align-items-center">
-                                    <div class="col mr-2">
-                                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                            Paseos Completados
-                                        </div>
-                                        <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                            <?= $totalPaseosCompletados ?>
-                                        </div>
-                                    </div>
-                                    <div class="col-auto">
-                                        <i class="fas fa-check-circle fa-2x text-gray-300"></i>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <!-- Paseos Pendientes -->
-                    <div class="col-xl-3 col-md-6 mb-4">
-                        <div class="card border-left-warning shadow h-100 py-2">
-                            <div class="card-body">
-                                <div class="row no-gutters align-items-center">
-                                    <div class="col mr-2">
-                                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                                            Paseos Pendientes
-                                        </div>
-                                        <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                            <?= $totalPaseosPendientes ?>
-                                        </div>
-                                    </div>
-                                    <div class="col-auto">
-                                        <i class="fas fa-clock fa-2x text-gray-300"></i>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <!-- Gastos Totales -->
-                    <div class="col-xl-3 col-md-6 mb-4">
-                        <div class="card border-left-info shadow h-100 py-2">
-                            <div class="card-body">
-                                <div class="row no-gutters align-items-center">
-                                    <div class="col mr-2">
-                                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
-                                            Gastos Totales
-                                        </div>
-                                        <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                            ₲<?= number_format($gastosTotales, 0, ',', '.') ?>
-                                        </div>
-                                    </div>
-                                    <div class="col-auto">
-                                        <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
-                                    </div>
-                                </div>
-                            </div>
+            <!-- Paseos recientes -->
+            <div class="row">
+                <div class="col-lg-8">
+                    <div class="card mb-4">
+                        <div class="card-header bg-success text-white fw-bold">Paseos recientes</div>
+                        <div class="card-body">
+                            <?php if (empty($paseosRecientes)): ?>
+                                <p class="text-center text-muted mb-0">No hay paseos recientes.</p>
+                            <?php else: ?>
+                                <table class="table table-hover align-middle text-center">
+                                    <thead>
+                                        <tr>
+                                            <th>Mascota</th>
+                                            <th>Paseador</th>
+                                            <th>Inicio</th>
+                                            <th>Duración</th>
+                                            <th>Precio</th>
+                                            <th>Estado</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($paseosRecientes as $p): ?>
+                                            <tr>
+                                                <td><?= htmlspecialchars($p['nombre_mascota'] ?? '-') ?></td>
+                                                <td><?= htmlspecialchars($p['nombre_paseador'] ?? '-') ?></td>
+                                                <td><?= date('d/m/Y H:i', strtotime($p['inicio'] ?? '')) ?></td>
+                                                <td><?= ($p['duracion'] ?? '-') ?> min</td>
+                                                <td>₲<?= number_format((float)($p['precio_total'] ?? 0), 0, ',', '.') ?></td>
+                                                <td><span class="badge bg-secondary"><?= ucfirst($p['estado'] ?? '-') ?></span></td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
 
-                <!-- Contenido principal -->
-                <div class="row">
-                    <!-- Paseos Recientes (solo del dueño) -->
-                    <div class="col-lg-8">
-                        <div class="card shadow mb-4">
-                            <div class="card-header py-3">
-                                <h6 class="m-0 font-weight-bold text-success">Paseos Recientes</h6>
-                            </div>
-                            <div class="card-body">
-
-                                <?php if (empty($paseosRecientes)): ?>
-                                    <div class="text-center py-4">
-                                        <i class="fas fa-walking fa-3x text-gray-300 mb-3"></i>
-                                        <p class="text-color #ffff mb-3">No tienes paseos recientes de tus mascotas.</p>
-                                        <a href="SolicitarPaseo.php" class="btn btn-primary">
-                                            <i class="fas fa-plus me-1"></i> Solicitar Primer Paseo
-                                        </a>
+                <div class="col-lg-4 side-panel">
+                    <!-- Mis Mascotas -->
+                    <div class="card mb-4">
+                        <div class="card-header text-white fw-bold bg-primary">Mis Mascotas</div>
+                        <div class="card-body">
+                            <?php if (empty($mascotasRecientes)): ?>
+                                <p class="text-center text-muted">No tienes mascotas registradas.</p>
+                            <?php else: ?>
+                                <?php foreach ($mascotasRecientes as $m): ?>
+                                    <div class="d-flex align-items-center mb-2">
+                                        <i class="fas fa-paw text-primary me-2"></i>
+                                        <span><?= htmlspecialchars($m['nombre'] ?? '-') ?></span>
                                     </div>
-                                <?php else: ?>
-
-                                    <div class="table-responsive">
-                                        <table class="table table-bordered table-sm align-middle mb-0" style="white-space:nowrap;">
-                                            <thead class="table-dark">
-                                                <tr class="text-center">
-                                                    <th style="width:18%">Mascota</th>
-                                                    <th style="width:20%">Paseador</th>
-                                                    <th style="width:14%">Inicio</th>
-                                                    <th style="width:14%">Fin</th>
-                                                    <th style="width:10%">Duración</th>
-                                                    <th style="width:12%">Precio</th>
-                                                    <th style="width:10%">Estado</th>
-                                                    <th style="width:12%" class="text-end">Acción</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <?php foreach ($paseosRecientes as $paseo): ?>
-                                                    <?php
-                                                    $inicio   = !empty($paseo['inicio']) ? date('d/m/Y H:i', strtotime($paseo['inicio'])) : '-';
-                                                    $fin      = !empty($paseo['fin'] ?? null) ? date('d/m/Y H:i', strtotime($paseo['fin'])) : '-';
-                                                    $durMin   = isset($paseo['duracion_min']) ? (int)$paseo['duracion_min'] : ((isset($paseo['duracion']) ? (int)$paseo['duracion'] : null));
-                                                    $duracion = $durMin !== null ? $durMin . ' min' : '-';
-                                                    $precio   = '₲' . number_format((float)($paseo['precio_total'] ?? 0), 0, ',', '.');
-
-                                                    // Estado → badge
-                                                    $estadoRaw = (string)($paseo['estado'] ?? '');
-                                                    $estadoLc  = mb_strtolower($estadoRaw);
-                                                    $badgeCls  = 'secondary';
-                                                    $estadoTxt = $estadoRaw;
-
-                                                    if (in_array($estadoLc, ['pendiente', 'solicitado'], true)) {
-                                                        $badgeCls = 'warning';
-                                                        $estadoTxt = 'Solicitado';
-                                                    } elseif ($estadoLc === 'confirmado') {
-                                                        $badgeCls = 'info';
-                                                        $estadoTxt = 'Confirmado';
-                                                    } elseif (in_array($estadoLc, ['completo', 'completado'], true)) {
-                                                        $badgeCls = 'success';
-                                                        $estadoTxt = 'Completo';
-                                                    } elseif ($estadoLc === 'cancelado') {
-                                                        $badgeCls = 'danger';
-                                                        $estadoTxt = 'Cancelado';
-                                                    }
-
-                                                    $puedePagar = in_array($estadoLc, ['pendiente', 'solicitado', 'confirmado'], true) && !empty($paseo['paseo_id']);
-                                                    ?>
-                                                    <tr>
-                                                        <td class="text-truncate" style="max-width:180px;">
-                                                            <?= htmlspecialchars($paseo['nombre_mascota'] ?? '-') ?>
-                                                        </td>
-                                                        <td class="text-truncate" style="max-width:220px;">
-                                                            <?= isset($paseo['nombre_paseador']) ? htmlspecialchars($paseo['nombre_paseador']) : '<span class="text-color #ffff">-</span>' ?>
-                                                        </td>
-                                                        <td class="text-center"><?= $inicio ?></td>
-                                                        <td class="text-center"><?= $fin ?></td>
-                                                        <td class="text-center"><?= $duracion ?></td>
-                                                        <td class="text-end"><?= $precio ?></td>
-                                                        <td class="text-center">
-                                                            <span class="badge bg-<?= $badgeCls ?>"><?= $estadoTxt ?></span>
-                                                        </td>
-                                                        <td class="text-end">
-                                                            <?php if ($puedePagar): ?>
-                                                                <a href="pago_paseo_dueno.php?paseo_id=<?= (int)$paseo['paseo_id'] ?>" class="btn btn-sm btn-primary">
-                                                                    <i class="fas fa-wallet me-1"></i> Pagar
-                                                                </a>
-                                                            <?php else: ?>
-                                                                <span class="text-color #ffff">—</span>
-                                                            <?php endif; ?>
-                                                        </td>
-                                                    </tr>
-                                                <?php endforeach; ?>
-                                            </tbody>
-                                        </table>
-                                    </div>
-
-                                <?php endif; ?>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                            <div class="text-center mt-3">
+                                <a href="<?= $baseFeatures; ?>/MisMascotas.php" class="btn btn-outline-primary btn-sm">Ver todas</a>
                             </div>
                         </div>
                     </div>
 
-
-                    <!-- Mis Mascotas + Notificaciones -->
-                    <div class="col-lg-4">
-                        <!-- Mis Mascotas -->
-                        <div class="card shadow mb-4">
-                            <div class="card-header py-3">
-                                <h6 class="m-0 font-weight-bold text-primary">Mis Mascotas</h6>
-                            </div>
-                            <div class="card-body">
-                                <?php if (empty($mascotasRecientes)): ?>
-                                    <div class="text-center py-3">
-                                        <i class="fas fa-paw fa-2x text-gray-300 mb-2"></i>
-                                        <p class="text-color #ffff mb-3">No tienes mascotas registradas</p>
-                                        <a href="AgregarMascota.php" class="btn btn-primary btn-sm">
-                                            <i class="fas fa-plus me-1"></i>
-                                            Agregar Mascota
-                                        </a>
+                    <!-- Notificaciones -->
+                    <div class="card">
+                        <div class="card-header text-white fw-bold bg-info">Notificaciones</div>
+                        <div class="card-body">
+                            <?php if (empty($notificaciones)): ?>
+                                <p class="text-center text-muted mb-0">No tienes notificaciones.</p>
+                            <?php else: ?>
+                                <?php foreach ($notificaciones as $n): ?>
+                                    <div class="mb-3">
+                                        <h6 class="fw-bold mb-1"><?= htmlspecialchars($n['titulo'] ?? '') ?></h6>
+                                        <p class="mb-1"><?= htmlspecialchars($n['mensaje'] ?? '') ?></p>
+                                        <small class="text-muted"><?= date('d/m/Y H:i', strtotime($n['created_at'] ?? '')) ?></small>
                                     </div>
-                                <?php else: ?>
-                                    <?php foreach ($mascotasRecientes as $mascota): ?>
-                                        <div class="d-flex align-items-center mb-3">
-                                            <div class="me-3">
-                                                <i class="fas fa-paw fa-2x text-primary"></i>
-                                            </div>
-                                            <div class="flex-grow-1">
-                                                <h6 class="mb-0"><?= htmlspecialchars($mascota['nombre'] ?? '') ?></h6>
-                                                <small class="text-color #ffff">
-                                                    <?php
-                                                    $tam = $mascota['tamano'] ?? '';
-                                                    $edadMeses = $mascota['edad'] ?? $mascota['edad_meses'] ?? null;
-                                                    if ($edadMeses !== null && $edadMeses !== '') {
-                                                        $m = (int)$edadMeses;
-                                                        $edadTxt = ($m < 12) ? "$m meses" : (intdiv($m, 12) . " años");
-                                                    } else {
-                                                        $edadTxt = '—';
-                                                    }
-                                                    echo ($tam ? ucfirst($tam) : '—') . ' • ' . $edadTxt;
-                                                    ?>
-                                                </small>
-                                            </div>
-                                        </div>
-                                    <?php endforeach; ?>
-                                    <div class="text-center">
-                                        <a href="MisMascotas.php" class="btn btn-outline-primary btn-sm">Ver Todas</a>
-                                    </div>
-                                <?php endif; ?>
-                            </div>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
                         </div>
-
-                        <!-- Notificaciones -->
-                        <div class="card shadow mb-4">
-                            <div class="card-header py-3">
-                                <h6 class="m-0 font-weight-bold text-primary">Notificaciones</h6>
-                            </div>
-                            <div class="card-body">
-                                <?php if (empty($notificaciones)): ?>
-                                    <div class="text-center py-3">
-                                        <i class="fas fa-bell fa-2x text-gray-300 mb-2"></i>
-                                        <p class="text-color #ffff">No tienes notificaciones</p>
-                                    </div>
-                                <?php else: ?>
-                                    <?php foreach ($notificaciones as $n): ?>
-                                        <div class="d-flex align-items-start mb-3">
-                                            <div class="me-3">
-                                                <i class="fas fa-<?= ($n['tipo'] ?? '') === 'nuevo_paseo' ? 'walking' : 'info-circle'; ?> fa-lg text-primary"></i>
-                                            </div>
-                                            <div class="flex-grow-1">
-                                                <h6 class="mb-0"><?= htmlspecialchars($n['titulo'] ?? '') ?></h6>
-                                                <p class="text-color #ffff mb-0"><?= htmlspecialchars($n['mensaje'] ?? '') ?></p>
-                                                <small class="text-color #ffff">
-                                                    <?= !empty($n['created_at']) ? date('d/m/Y H:i', strtotime($n['created_at'])) : '' ?>
-                                                </small>
-                                            </div>
-                                        </div>
-                                    <?php endforeach; ?>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-
                     </div>
                 </div>
-            </main>
-        </div>
+            </div>
+        </main>
     </div>
 
-    <?php include __DIR__ . '/../../src/Templates/Footer.php'; ?>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="../../assets/js/main.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const toggle = document.getElementById('menuToggle');
+        const sidebar = document.getElementById('sidebar');
+        toggle.addEventListener('click', () => sidebar.classList.toggle('show'));
+    </script>
 </body>
+
 
 </html>

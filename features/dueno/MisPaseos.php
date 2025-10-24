@@ -12,45 +12,24 @@ use Jaguata\Controllers\AuthController;
 use Jaguata\Controllers\PaseoController;
 use Jaguata\Helpers\Session;
 
-// ===== Init + Auth =====
 AppConfig::init();
-$authController = new AuthController();
-$authController->checkRole('dueno');
+$auth = new AuthController();
+$auth->checkRole('dueno');
 
-// ===== Controlador =====
-$paseoController = new PaseoController();
-
-// ✅ Obtener solo los paseos del dueño actual
+$paseoCtrl = new PaseoController();
 $duenoId = (int)Session::get('usuario_id');
-$paseos = $paseoController->indexByDueno($duenoId);
+$paseos = $paseoCtrl->indexByDueno($duenoId) ?? [];
 
-// ===== Filtro de estado =====
-$estadoFiltro = $_GET['estado'] ?? '';
-if ($estadoFiltro) {
-    $paseos = array_filter($paseos, fn($p) => $p['estado'] === $estadoFiltro);
-}
+// Métricas
+$total = count($paseos);
+$pendientes = array_filter($paseos, fn($p) => in_array($p['estado'], ['Pendiente', 'confirmado']));
+$completos  = array_filter($paseos, fn($p) => strtolower($p['estado']) === 'completo');
+$cancelados = array_filter($paseos, fn($p) => strtolower($p['estado']) === 'cancelado');
+$gastoTotal = array_sum(array_column($completos, 'precio_total'));
 
-// ===== Agrupar por estado =====
-$paseosPorEstado = [
-    'Pendiente'  => array_filter($paseos, fn($p) => $p['estado'] === 'Pendiente'),
-    'confirmado' => array_filter($paseos, fn($p) => $p['estado'] === 'confirmado'),
-    'en_curso'   => array_filter($paseos, fn($p) => $p['estado'] === 'en_curso'),
-    'completo'   => array_filter($paseos, fn($p) => $p['estado'] === 'completo'),
-    'cancelado'  => array_filter($paseos, fn($p) => $p['estado'] === 'cancelado'),
-];
-
-// ===== Estadísticas =====
-$totalPaseos        = count($paseos);
-$paseosPendientes   = count($paseosPorEstado['Pendiente']) + count($paseosPorEstado['confirmado']);
-$paseosCompletados  = count($paseosPorEstado['completo']);
-$paseosCancelados   = count($paseosPorEstado['cancelado']);
-$gastosTotales      = array_sum(array_column($paseosPorEstado['completo'], 'precio_total'));
-
-// ===== Mensajes =====
-$mensajeExito = $_GET['exito'] ?? '';
-$mensajeError = $_GET['error'] ?? '';
+$rolMenu = Session::getUsuarioRol() ?: 'dueno';
+$baseFeatures = BASE_URL . "/features/{$rolMenu}";
 ?>
-
 
 <!DOCTYPE html>
 <html lang="es">
@@ -59,350 +38,316 @@ $mensajeError = $_GET['error'] ?? '';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mis Paseos - Jaguata</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link href="../../assets/css/style.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: #f5f7fa;
+            font-family: "Poppins", sans-serif;
+            margin: 0;
+        }
+
+        .layout {
+            display: flex;
+            width: 100%;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            background: linear-gradient(180deg, #1e1e2f 0%, #292a3a 100%);
+            color: #f8f9fa;
+            width: 240px;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            padding-top: 1.5rem;
+            box-shadow: 4px 0 12px rgba(0, 0, 0, .15);
+            z-index: 1000;
+            transition: transform .3s ease-in-out;
+        }
+
+        .sidebar .nav-link {
+            color: #ddd;
+            display: flex;
+            align-items: center;
+            padding: 10px 16px;
+            border-radius: 8px;
+            margin: 4px 8px;
+            font-weight: 500;
+        }
+
+        .sidebar .nav-link i {
+            width: 22px;
+            margin-right: 10px;
+        }
+
+        .sidebar .nav-link:hover {
+            background-color: #343454;
+            color: #fff;
+            transform: translateX(4px);
+        }
+
+        .sidebar .nav-link.active {
+            background: #3c6255;
+            color: #fff;
+        }
+
+        .menu-toggle {
+            display: none;
+            position: fixed;
+            top: 16px;
+            left: 16px;
+            background: #1e1e2f;
+            color: white;
+            border: none;
+            padding: 8px 10px;
+            border-radius: 6px;
+            z-index: 1100;
+        }
+
+        @media(max-width:768px) {
+            .menu-toggle {
+                display: block;
+            }
+
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .sidebar.show {
+                transform: translateX(0);
+            }
+        }
+
+        main.content {
+            flex-grow: 1;
+            margin-left: 240px;
+            padding: 2.5rem;
+            width: calc(100% - 240px);
+        }
+
+        @media(max-width:768px) {
+            main.content {
+                margin-left: 0;
+                width: 100%;
+                padding: 1.5rem;
+            }
+        }
+
+        .welcome-box {
+            background: linear-gradient(90deg, #20c997, #3c6255);
+            color: #fff;
+            padding: 1.5rem 2rem;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, .08);
+        }
+
+        .card-premium {
+            border: none;
+            border-radius: 14px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, .05);
+            background: #fff;
+        }
+
+        .card-premium .card-header {
+            background: linear-gradient(90deg, #20c997, #3c6255);
+            color: #fff;
+            border-top-left-radius: 14px;
+            border-top-right-radius: 14px;
+            font-weight: 600;
+        }
+
+        .btn-gradient {
+            background: linear-gradient(90deg, #3c6255, #20c997);
+            border: none;
+            color: #fff;
+            font-weight: 500;
+        }
+
+        .btn-gradient:hover {
+            opacity: .9;
+        }
+
+        .table thead {
+            background: #f8f9fa;
+            font-weight: 600;
+        }
+
+        .badge {
+            font-size: 0.85rem;
+        }
+    </style>
 </head>
 
 <body>
-    <?php include __DIR__ . '/../../src/Templates/Header.php'; ?>
-    <?php include __DIR__ . '/../../src/Templates/Navbar.php'; ?>
+    <button class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
 
-    <div class="container-fluid">
-        <div class="row">
-            <!-- Sidebar -->
-            <div class="col-md-3 col-lg-2 d-md-block sidebar">
-                <div class="position-sticky pt-3">
-                    <ul class="nav flex-column gap-1">
-                        <!-- Mi Perfil -->
-                        <li class="nav-item">
-                            <button class="nav-link d-flex align-items-center w-100 text-start"
-                                data-bs-toggle="collapse" data-bs-target="#menuPerfil" aria-expanded="false">
-                                <i class="fas fa-user me-2"></i>
-                                <span class="flex-grow-1">Mi Perfil</span>
-                                <i class="fas fa-chevron-right ms-2 chevron"></i>
-                            </button>
-                            <ul class="collapse ps-4 nav flex-column" id="menuPerfil">
-                                <li class="nav-item">
-                                    <a class="nav-link" href="<?= $baseFeatures; ?>/MiPerfil.php">
-                                        <i class="fas fa-id-card me-2"></i> Ver Perfil
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link" href="<?= $baseFeatures; ?>/EditarPerfil.php">
-                                        <i class="fas fa-user-edit me-2 text-warning"></i> Editar Perfil
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link" href="<?= $baseFeatures; ?>/GastosTotales.php">
-                                        <i class="fas fa-coins me-2 text-success"></i> Gastos Totales
-                                    </a>
-                                </li>
-                            </ul>
-                        </li>
+    <div class="layout">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="text-center mb-4">
+                <img src="../../assets/img/logo.png" alt="Jaguata" width="120" class="mb-3">
+                <hr class="text-light">
+            </div>
+            <ul class="nav flex-column gap-1 px-2">
+                <li><a class="nav-link" href="<?= $baseFeatures; ?>/Dashboard.php"><i class="fas fa-home"></i> Inicio</a></li>
+                <li><a class="nav-link active" href="#"><i class="fas fa-walking"></i> Mis Paseos</a></li>
+                <li><a class="nav-link" href="<?= $baseFeatures; ?>/SolicitarPaseo.php"><i class="fas fa-plus"></i> Solicitar Paseo</a></li>
+                <li><a class="nav-link" href="<?= $baseFeatures; ?>/MisMascotas.php"><i class="fas fa-paw"></i> Mis Mascotas</a></li>
+                <li><a class="nav-link" href="<?= $baseFeatures; ?>/MiPerfil.php"><i class="fas fa-user"></i> Perfil</a></li>
+                <li><a class="nav-link text-danger" href="<?= BASE_URL; ?>/logout.php"><i class="fas fa-sign-out-alt"></i> Cerrar sesión</a></li>
+            </ul>
+        </aside>
 
+        <!-- Contenido -->
+        <main class="content">
+            <div class="welcome-box mb-4">
+                <div>
+                    <h4>Mis Paseos</h4>
+                    <p>Listado de tus paseos realizados, pendientes y cancelados 🐾</p>
+                </div>
+                <a href="SolicitarPaseo.php" class="btn btn-light text-success fw-semibold">
+                    <i class="fas fa-plus me-1"></i> Solicitar nuevo paseo
+                </a>
+            </div>
 
-
-
-                        <!-- Mascotas -->
-                        <li class="nav-item">
-                            <button class="nav-link d-flex align-items-center w-100 text-start"
-                                data-bs-toggle="collapse" data-bs-target="#menuMascotas" aria-expanded="false">
-                                <i class="fas fa-paw me-2"></i>
-                                <span class="flex-grow-1">Mascotas</span>
-                                <i class="fas fa-chevron-right ms-2 chevron"></i>
-                            </button>
-                            <ul class="collapse ps-4 nav flex-column" id="menuMascotas">
-                                <li class="nav-item">
-                                    <a class="nav-link" href="MisMascotas.php">
-                                        <i class="fas fa-list-ul me-2"></i> Mis Mascotas
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link" href="AgregarMascota.php">
-                                        <i class="fas fa-plus-circle me-2"></i> Agregar Mascota
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link <?= $firstMascotaId ? '' : 'disabled' ?>"
-                                        href="<?= $firstMascotaId ? 'PerfilMascota.php?id=' . (int)$firstMascotaId : '#' ?>">
-                                        <i class="fas fa-id-badge me-2"></i> Perfil de mi Mascota
-                                    </a>
-                                </li>
-                            </ul>
-                        </li>
-
-                        <!-- Paseos -->
-                        <li class="nav-item">
-                            <button class="nav-link d-flex align-items-center w-100 text-start"
-                                data-bs-toggle="collapse" data-bs-target="#menuPaseos" aria-expanded="false">
-                                <i class="fas fa-walking me-2"></i>
-                                <span class="flex-grow-1">Paseos</span>
-                                <i class="fas fa-chevron-right ms-2 chevron"></i>
-                            </button>
-                            <ul class="collapse ps-4 nav flex-column" id="menuPaseos">
-                                <li class="nav-item">
-                                    <a class="nav-link" href="BuscarPaseadores.php">
-                                        <i class="fas fa-search me-2"></i> Buscar Paseadores
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <button class="nav-link d-flex align-items-center w-100 text-start"
-                                        data-bs-toggle="collapse" data-bs-target="#menuMisPaseos" aria-expanded="false">
-                                        <i class="fas fa-calendar-check me-2"></i>
-                                        <span class="flex-grow-1">Mis Paseos</span>
-                                        <i class="fas fa-chevron-right ms-2 chevron"></i>
-                                    </button>
-                                    <ul class="collapse ps-4 nav flex-column" id="menuMisPaseos">
-                                        <li class="nav-item"><a class="nav-link" href="PaseosCompletados.php"><i class="fas fa-check-circle me-2"></i> Completados</a></li>
-                                        <li class="nav-item"><a class="nav-link" href="PaseosPendientes.php"><i class="fas fa-hourglass-half me-2"></i> Pendientes</a></li>
-                                        <li class="nav-item"><a class="nav-link" href="PaseosCancelados.php"><i class="fas fa-times-circle me-2"></i> Cancelados</a></li>
-                                    </ul>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link" href="SolicitarPaseo.php">
-                                        <i class="fas fa-plus-circle me-2"></i> Solicitar Nuevo Paseo
-                                    </a>
-                                </li>
-                            </ul>
-                        </li>
-
-                        <!-- Pagos -->
-                        <li class="nav-item">
-                            <button class="nav-link d-flex align-items-center w-100 text-start"
-                                data-bs-toggle="collapse" data-bs-target="#menuPagos" aria-expanded="false">
-                                <i class="fas fa-credit-card me-2"></i>
-                                <span class="flex-grow-1">Pagos</span>
-                                <i class="fas fa-chevron-right ms-2 chevron"></i>
-                            </button>
-                            <ul class="collapse ps-4 nav flex-column" id="menuPagos">
-                                <li class="nav-item">
-                                    <!-- Enviar a Pendientes (allí hay botón Pagar con paseo_id) -->
-                                    <a class="nav-link" href="PaseosPendientes.php">
-                                        <i class="fas fa-wallet me-2"></i> Pagar paseo
-                                    </a>
-                                </li>
-                            </ul>
-                        </li>
-
-                        <!-- Notificaciones -->
-                        <li class="nav-item">
-                            <a class="nav-link d-flex align-items-center" href="Notificaciones.php">
-                                <i class="fas fa-bell me-2"></i>
-                                <span>Notificaciones</span>
-                            </a>
-                        </li>
-
-                        <!-- Configuración (solo Editar Perfil y Cerrar Sesión) -->
-                        <li class="nav-item">
-                            <button class="nav-link d-flex align-items-center w-100 text-start"
-                                data-bs-toggle="collapse" data-bs-target="#menuConfig" aria-expanded="false">
-                                <i class="fas fa-gear me-2"></i>
-                                <span class="flex-grow-1">Configuración</span>
-                                <i class="fas fa-chevron-right ms-2 chevron"></i>
-                            </button>
-                            <ul class="collapse ps-4 nav flex-column" id="menuConfig">
-                                <li class="nav-item">
-                                    <a class="nav-link" href="<?= $baseFeatures; ?>/EditarPerfil.php">
-                                        <i class="fas fa-user-cog me-2"></i> Editar Perfil
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link text-danger" href="<?= BASE_URL; ?>/logout.php">
-                                        <i class="fas fa-sign-out-alt me-2"></i> Cerrar Sesión
-                                    </a>
-                                </li>
-                            </ul>
-                        </li>
-
-                    </ul>
+            <!-- Estadísticas -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-3">
+                    <div class="card-premium text-center p-3">
+                        <div class="small text-muted">Total</div>
+                        <div class="display-6"><?= $total ?></div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card-premium text-center p-3">
+                        <div class="small text-muted">Pendientes</div>
+                        <div class="display-6"><?= count($pendientes) ?></div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card-premium text-center p-3">
+                        <div class="small text-muted">Completados</div>
+                        <div class="display-6"><?= count($completos) ?></div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card-premium text-center p-3">
+                        <div class="small text-muted">Gasto Total</div>
+                        <div class="h4 mb-0">₲<?= number_format($gastoTotal, 0, ',', '.') ?></div>
+                    </div>
                 </div>
             </div>
 
-            <!-- Contenido principal -->
-            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
-
-                <div class="d-flex justify-content-between align-items-center pt-3 pb-2 mb-3 border-bottom">
-                    <h1 class="h2">Mis Paseos</h1>
-                    <a href="SolicitarPaseo.php" class="btn btn-primary">
-                        <i class="fas fa-plus me-1"></i> Nuevo Paseo
-                    </a>
+            <!-- Tabla -->
+            <?php if (empty($paseos)): ?>
+                <div class="text-center py-5 text-muted">
+                    <i class="fas fa-dog fa-4x mb-3"></i>
+                    <h5>No tenés paseos registrados</h5>
+                    <a href="SolicitarPaseo.php" class="btn btn-gradient mt-3"><i class="fas fa-plus me-1"></i> Solicitar tu primer paseo</a>
                 </div>
-
-                <!-- Alertas -->
-                <?php if ($mensajeExito): ?>
-                    <div class="alert alert-success alert-dismissible fade show" role="alert">
-                        <?= htmlspecialchars($mensajeExito) ?>
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                <?php elseif ($mensajeError): ?>
-                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                        <?= htmlspecialchars($mensajeError) ?>
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                <?php endif; ?>
-
-                <!-- Estadísticas -->
-                <div class="row mb-4">
-                    <?php
-                    $estadisticas = [
-                        ['Total Paseos', $totalPaseos, 'primary', 'fa-walking'],
-                        ['Pendientes', $paseosPendientes, 'warning', 'fa-clock'],
-                        ['Completados', $paseosCompletados, 'success', 'fa-check-circle'],
-                        ['Gastos Totales', '₲' . number_format($gastosTotales, 0, ',', '.'), 'info', 'fa-dollar-sign']
-                    ];
-                    foreach ($estadisticas as [$titulo, $valor, $color, $icono]): ?>
-                        <div class="col-xl-3 col-md-6 mb-4">
-                            <div class="card border-left-<?= $color ?> shadow h-100 py-2">
-                                <div class="card-body">
-                                    <div class="row align-items-center">
-                                        <div class="col">
-                                            <div class="text-xs fw-bold text-<?= $color ?> text-uppercase mb-1"><?= $titulo ?></div>
-                                            <div class="h5 mb-0 fw-bold text-gray-800"><?= $valor ?></div>
-                                        </div>
-                                        <div class="col-auto">
-                                            <i class="fas <?= $icono ?> fa-2x text-gray-300"></i>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    <?php endforeach; ?>
-                </div>
-                <!-- Filtros -->
-                <div class="card shadow mb-4">
-                    <div class="card-header py-3">
-                        <h6 class="m-0 fw-bold text-primary">Filtros</h6>
-                    </div>
-                    <div class="card-body">
-                        <div class="row g-3">
-                            <div class="col-md-3">
-                                <label for="estado" class="form-label">Estado</label>
-                                <select class="form-select" id="estado" onchange="filtrarPorEstado()">
-                                    <option value="">Todos los estados</option>
-                                    <?php
-                                    foreach ($estadosValidos as $v) {
-                                        $sel = ($estadoFiltro === $v) ? 'selected' : '';
-                                        echo "<option value=\"{$v}\" {$sel}>" . ucfirst(str_replace('_', ' ', $v)) . "</option>";
-                                    }
-                                    ?>
-                                </select>
-                            </div>
+            <?php else: ?>
+                <div class="card-premium">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-list me-2"></i> Lista de Paseos</h5>
+                        <div>
+                            <select class="form-select form-select-sm" id="filtroEstado" style="width:auto;" onchange="filtrarEstado()">
+                                <option value="">Todos</option>
+                                <option value="Pendiente">Pendientes</option>
+                                <option value="confirmado">Confirmados</option>
+                                <option value="en_curso">En curso</option>
+                                <option value="completo">Completos</option>
+                                <option value="cancelado">Cancelados</option>
+                            </select>
                         </div>
                     </div>
-                </div>
-
-                <!-- Lista -->
-                <?php if (empty($paseos)): ?>
-                    <div class="text-center py-5">
-                        <i class="fas fa-walking fa-5x text-gray-300 mb-4"></i>
-                        <h3 class="text-muted">No tienes paseos registrados</h3>
-                        <p class="text-muted mb-4">Solicita tu primer paseo para comenzar</p>
-                        <a href="SolicitarPaseo.php" class="btn btn-primary btn-lg">
-                            <i class="fas fa-plus me-2"></i> Solicitar Primer Paseo
-                        </a>
-                    </div>
-                <?php else: ?>
-                    <div class="card shadow">
-                        <div class="card-header py-3">
-                            <h6 class="m-0 fw-bold text-primary">Lista de Paseos</h6>
-                        </div>
-                        <div class="card-body">
-                            <div class="table-responsive">
-                                <table class="table table-bordered align-middle" width="100%">
-                                    <thead class="table-light">
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-striped align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Mascota</th>
+                                        <th>Paseador</th>
+                                        <th>Fecha</th>
+                                        <th>Duración</th>
+                                        <th>Estado</th>
+                                        <th>Precio</th>
+                                        <th class="text-center">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($paseos as $p): ?>
                                         <tr>
-                                            <th>Mascota</th>
-                                            <th>Paseador</th>
-                                            <th>Fecha</th>
-                                            <th>Duración</th>
-                                            <th>Estado</th>
-                                            <th>Precio</th>
-                                            <th>Acciones</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <?php foreach ($paseos as $paseo): ?>
-                                            <tr>
-                                                <td><i class="fas fa-paw text-primary me-2"></i><?= htmlspecialchars((string)$paseo['nombre_mascota']) ?></td>
-                                                <td><i class="fas fa-user text-secondary me-2"></i><?= htmlspecialchars((string)$paseo['nombre_paseador']) ?></td>
-                                                <td>
-                                                    <strong><?= date('d/m/Y', strtotime($paseo['inicio'])) ?></strong><br>
-                                                    <small class="text-muted"><?= date('H:i', strtotime($paseo['inicio'])) ?></small>
-                                                </td>
-                                                <td><?= htmlspecialchars((string)$paseo['duracion']) ?> min</td>
-                                                <td>
-                                                    <span class="badge bg-<?=
-                                                                            $paseo['estado'] === 'completo' ? 'success' : ($paseo['estado'] === 'cancelado' ? 'danger' : ($paseo['estado'] === 'en_curso' ? 'info' : 'warning')) ?>">
-                                                        <?= ucfirst($paseo['estado']) ?>
-                                                    </span>
-                                                </td>
-                                                <td><strong>₲<?= number_format((float)$paseo['precio_total'], 0, ',', '.') ?></strong></td>
+                                            <td><i class="fas fa-paw text-success me-2"></i><?= htmlspecialchars($p['nombre_mascota'] ?? '') ?></td>
+                                            <td><i class="fas fa-user text-secondary me-2"></i><?= htmlspecialchars($p['nombre_paseador'] ?? '') ?></td>
+                                            <td><?= date('d/m/Y H:i', strtotime($p['inicio'] ?? '')) ?></td>
+                                            <td><?= (int)($p['duracion'] ?? 0) ?> min</td>
+                                            <td>
+                                                <?php
+                                                $estado = strtolower($p['estado']);
+                                                $badge = match ($estado) {
+                                                    'completo' => 'success',
+                                                    'cancelado' => 'danger',
+                                                    'en_curso' => 'info',
+                                                    'confirmado' => 'primary',
+                                                    default => 'warning'
+                                                };
+                                                ?>
+                                                <span class="badge bg-<?= $badge ?>"><?= ucfirst($estado) ?></span>
+                                            </td>
+                                            <td>₲<?= number_format((float)($p['precio_total'] ?? 0), 0, ',', '.') ?></td>
+                                            <td class="text-center">
+                                                <div class="btn-group">
+                                                    <a href="DetallePaseo.php?paseo_id=<?= $p['paseo_id'] ?>" class="btn btn-sm btn-outline-primary" title="Ver detalles">
+                                                        <i class="fas fa-eye"></i>
+                                                    </a>
 
-                                                <td>
-                                                    <div class="btn-group" role="group">
-                                                        <!-- Ver Paseo -->
-                                                        <a href="DetallePaseo.php?paseo_id=<?= $paseo['paseo_id'] ?>"
-                                                            class="btn btn-sm btn-outline-primary"
-                                                            data-bs-toggle="tooltip"
-                                                            title="Ver detalles del paseo">
-                                                            <i class="fas fa-eye"></i>
+                                                    <?php if (in_array($p['estado'], ['Pendiente', 'confirmado'])): ?>
+                                                        <a href="CancelarPaseo.php?id=<?= $p['paseo_id'] ?>"
+                                                            class="btn btn-sm btn-outline-danger"
+                                                            onclick="return confirm('¿Cancelar este paseo?')"
+                                                            title="Cancelar">
+                                                            <i class="fas fa-times"></i>
                                                         </a>
 
-                                                        <!-- Cancelar (si aplica) -->
-                                                        <?php if (in_array($paseo['estado'], ['Pendiente', 'confirmado'])): ?>
-                                                            <a href="CancelarPaseo.php?id=<?= $paseo['paseo_id'] ?>"
-                                                                class="btn btn-sm btn-outline-danger"
-                                                                data-bs-toggle="tooltip"
-                                                                title="Cancelar paseo"
-                                                                onclick="return confirm('¿Seguro que deseas cancelar este paseo?')">
-                                                                <i class="fas fa-times"></i>
-                                                            </a>
+                                                        <a href="pago_paseo_dueno.php?paseo_id=<?= $p['paseo_id'] ?>"
+                                                            class="btn btn-sm btn-outline-success"
+                                                            title="Pagar">
+                                                            <i class="fas fa-wallet"></i>
+                                                        </a>
+                                                    <?php endif; ?>
+                                                </div>
+                                            </td>
 
-                                                            <!-- Botón de pago -->
-                                                            <a href="pago_paseo_dueno.php?paseo_id=<?= $paseo['paseo_id'] ?>"
-                                                                class="btn btn-sm btn-outline-success"
-                                                                data-bs-toggle="tooltip"
-                                                                title="Pagar paseo">
-                                                                <i class="fas fa-wallet"></i>
-                                                            </a>
-                                                        <?php endif; ?>
-
-                                                        <!-- Completar (si en curso) -->
-                                                        <?php if ($paseo['estado'] === 'en_curso'): ?>
-                                                            <a href="CompletarPaseo.php?id=<?= $paseo['paseo_id'] ?>"
-                                                                class="btn btn-sm btn-outline-success"
-                                                                data-bs-toggle="tooltip"
-                                                                title="Marcar como completado"
-                                                                onclick="return confirm('¿Confirmas que este paseo fue completado?')">
-                                                                <i class="fas fa-check"></i>
-                                                            </a>
-                                                        <?php endif; ?>
-
-                                                        <?php if (in_array($paseo['estado'], ['completado', 'cancelado'])): ?>
-                                                            <!-- Solo ver -->
-                                                            <span class="badge bg-secondary">Finalizado</span>
-                                                        <?php endif; ?>
-                                                    </div>
-                                                </td>
-
-
-                                            </tr>
-                                        <?php endforeach; ?>
-                                    </tbody>
-                                </table>
-                            </div>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
-                <?php endif; ?>
-            </main>
-        </div>
+                </div>
+            <?php endif; ?>
+        </main>
     </div>
 
-    <?php include __DIR__ . '/../../src/Templates/Footer.php'; ?>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const toggle = document.getElementById('menuToggle');
+        const sidebar = document.getElementById('sidebar');
+        toggle.addEventListener('click', () => sidebar.classList.toggle('show'));
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="../../assets/js/main.js"></script>
+        function filtrarEstado() {
+            const estado = document.getElementById('filtroEstado').value;
+            const url = new URL(window.location.href);
+            if (estado) url.searchParams.set('estado', estado);
+            else url.searchParams.delete('estado');
+            window.location.href = url.toString();
+        }
+    </script>
 </body>
 
 </html>

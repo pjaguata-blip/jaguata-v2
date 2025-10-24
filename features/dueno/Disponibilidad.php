@@ -4,51 +4,52 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../../src/Config/AppConfig.php';
 require_once __DIR__ . '/../../src/Controllers/AuthController.php';
-require_once __DIR__ . '/../../src/Controllers/PaseoController.php';
+require_once __DIR__ . '/../../src/Controllers/PaseadorController.php';
 require_once __DIR__ . '/../../src/Helpers/Session.php';
 
 use Jaguata\Config\AppConfig;
 use Jaguata\Controllers\AuthController;
-use Jaguata\Controllers\PaseoController;
+use Jaguata\Controllers\PaseadorController;
 use Jaguata\Helpers\Session;
-
-// ✅ Función de sanitización segura
-function h(mixed $v): string
-{
-    return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
-}
 
 // === Init + auth ===
 AppConfig::init();
 $auth = new AuthController();
-$auth->checkRole('dueno');
+$auth->checkRole('paseador');
 
+$paseadorCtrl = new PaseadorController();
+$paseadorId = (int)Session::get('usuario_id');
 
-$paseoId = isset($_GET['paseo_id']) ? (int)$_GET['paseo_id'] : 0;
-if ($paseoId <= 0) {
-    exit('ID de paseo no válido.');
+// ✅ Si hay envío de formulario
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $dias = $_POST['dias'] ?? [];
+    $horaInicio = $_POST['hora_inicio'] ?? '';
+    $horaFin = $_POST['hora_fin'] ?? '';
+    $resp = $paseadorCtrl->actualizarDisponibilidad($paseadorId, $dias, $horaInicio, $horaFin);
+
+    if (!empty($resp['success'])) {
+        $_SESSION['success'] = 'Disponibilidad actualizada correctamente 🐾';
+        header("Location: Disponibilidad.php");
+        exit;
+    } else {
+        $_SESSION['error'] = $resp['error'] ?? 'No se pudo actualizar la disponibilidad.';
+    }
 }
 
-$paseoCtrl = new PaseoController();
-$paseo = $paseoCtrl->getById($paseoId);
-if (!$paseo) {
-    exit('No se encontró el paseo.');
-}
+// ✅ Datos actuales del paseador
+$disponibilidad = $paseadorCtrl->obtenerDisponibilidad($paseadorId);
+$diasActivos = $disponibilidad['dias'] ?? [];
+$inicio = $disponibilidad['hora_inicio'] ?? '08:00';
+$fin = $disponibilidad['hora_fin'] ?? '18:00';
 
-// Variables base
-$rol = Session::getUsuarioRol() ?: 'dueno';
+$rol = 'paseador';
 $baseFeatures = BASE_URL . "/features/{$rol}";
-$backUrl = $baseFeatures . "/MisPaseos.php";
-$panelUrl = $baseFeatures . "/Dashboard.php";
 
-// Datos
-$fecha = !empty($paseo['fecha_inicio']) ? date('d/m/Y H:i', strtotime($paseo['fecha_inicio'])) : '—';
-$estado = ucfirst($paseo['estado'] ?? 'Pendiente');
-$monto = number_format((float)($paseo['monto'] ?? 0), 0, ',', '.');
-$duracion = h($paseo['duracion'] ?? '—');
-$observacion = nl2br(h($paseo['observacion'] ?? 'Sin observaciones.'));
-$paseador = h($paseo['paseador_nombre'] ?? 'No asignado');
-$mascota = h($paseo['mascota_nombre'] ?? '—');
+// Helper seguro
+function h(mixed $v): string
+{
+    return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
+}
 
 ?>
 
@@ -58,9 +59,10 @@ $mascota = h($paseo['mascota_nombre'] ?? '—');
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Detalle del Paseo - Jaguata</title>
+    <title>Disponibilidad - Jaguata</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
     <style>
         body {
             background: #f5f7fa;
@@ -184,6 +186,11 @@ $mascota = h($paseo['mascota_nombre'] ?? '—');
         .btn-gradient:hover {
             opacity: .9;
         }
+
+        .form-check-label {
+            font-weight: 500;
+            color: #333;
+        }
     </style>
 </head>
 
@@ -198,82 +205,92 @@ $mascota = h($paseo['mascota_nombre'] ?? '—');
                 <hr class="text-light">
             </div>
             <ul class="nav flex-column gap-1 px-2">
-                <li><a class="nav-link" href="<?= $panelUrl ?>"><i class="fas fa-home"></i> Inicio</a></li>
-                <li><a class="nav-link active" href="#"><i class="fas fa-info-circle"></i> Detalle Paseo</a></li>
+                <li><a class="nav-link" href="<?= $baseFeatures; ?>/Dashboard.php"><i class="fas fa-home"></i> Dashboard</a></li>
+                <li><a class="nav-link active" href="#"><i class="fas fa-calendar-check"></i> Disponibilidad</a></li>
                 <li><a class="nav-link" href="<?= $baseFeatures; ?>/MisPaseos.php"><i class="fas fa-list"></i> Mis Paseos</a></li>
+                <li><a class="nav-link" href="<?= $baseFeatures; ?>/Perfil.php"><i class="fas fa-user"></i> Perfil</a></li>
                 <li><a class="nav-link text-danger" href="<?= BASE_URL; ?>/logout.php"><i class="fas fa-sign-out-alt"></i> Cerrar sesión</a></li>
             </ul>
         </aside>
 
-        <!-- Contenido principal -->
+        <!-- Contenido -->
         <main class="content">
             <div class="welcome-box mb-4">
                 <div>
-                    <h4>Detalles del Paseo</h4>
-                    <p>Información completa sobre tu paseo 🐾</p>
+                    <h4>Mi Disponibilidad</h4>
+                    <p>Definí los días y horarios en los que podés ofrecer paseos 🐾</p>
                 </div>
-                <a href="<?= $backUrl ?>" class="btn btn-light text-success fw-semibold">
-                    <i class="fas fa-arrow-left me-1"></i> Volver
-                </a>
+                <i class="fas fa-calendar-alt fa-3x opacity-75"></i>
             </div>
 
             <div class="card-premium p-4">
-                <div class="row g-4 info-box">
-                    <div class="col-md-6">
-                        <h5><i class="fas fa-calendar-alt me-2 text-success"></i> Fecha del paseo</h5>
-                        <p><?= $fecha ?></p>
-
-                        <h5><i class="fas fa-user-tie me-2 text-success"></i> Paseador</h5>
-                        <p><?= $paseador ?></p>
-
-                        <h5><i class="fas fa-dog me-2 text-success"></i> Mascota</h5>
-                        <p><?= $mascota ?></p>
+                <form method="POST">
+                    <div class="mb-4">
+                        <h5 class="fw-semibold"><i class="fas fa-calendar-days me-2 text-success"></i>Días disponibles</h5>
+                        <div class="row">
+                            <?php
+                            $diasSemana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+                            foreach ($diasSemana as $d): ?>
+                                <div class="col-6 col-md-3 mb-2">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="dias[]" value="<?= h($d) ?>"
+                                            id="dia_<?= h($d) ?>" <?= in_array($d, $diasActivos) ? 'checked' : '' ?>>
+                                        <label class="form-check-label" for="dia_<?= h($d) ?>"><?= h($d) ?></label>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
                     </div>
 
-                    <div class="col-md-6">
-                        <h5><i class="fas fa-stopwatch me-2 text-success"></i> Duración</h5>
-                        <p><?= (int)$paseo['duracion'] ?> minutos</p>
-
-                        <h5><i class="fas fa-wallet me-2 text-success"></i> Monto</h5>
-                        <p>₲ <?= $monto ?></p>
-
-                        <h5><i class="fas fa-info-circle me-2 text-success"></i> Estado</h5>
-                        <span class="badge 
-                            <?= $estado === 'Completo' ? 'bg-success' : ($estado === 'Cancelado' ? 'bg-danger' : 'bg-warning text-dark') ?>">
-                            <?= $estado ?>
-                        </span>
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold"><i class="fas fa-clock me-2 text-success"></i>Hora de inicio</label>
+                            <input type="time" name="hora_inicio" class="form-control" value="<?= h($inicio) ?>" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold"><i class="fas fa-clock me-2 text-success"></i>Hora de finalización</label>
+                            <input type="time" name="hora_fin" class="form-control" value="<?= h($fin) ?>" required>
+                        </div>
                     </div>
 
-                    <div class="col-12 mt-3">
-                        <h5><i class="fas fa-comment-dots me-2 text-success"></i> Observaciones</h5>
-                        <p class="border rounded p-2 bg-light"><?= $observacion ?></p>
+                    <div class="d-flex justify-content-end">
+                        <button type="submit" class="btn btn-gradient px-4 py-2">
+                            <i class="fas fa-save me-1"></i> Guardar Cambios
+                        </button>
                     </div>
-                </div>
-
-                <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
-                    <a href="<?= $backUrl ?>" class="btn btn-outline-secondary px-4 py-2">
-                        <i class="fas fa-arrow-left me-1"></i> Volver
-                    </a>
-
-                    <?php if (in_array(strtolower($paseo['estado']), ['pendiente', 'confirmado'])): ?>
-                        <a href="<?= $baseFeatures; ?>/CancelarPaseo.php?id=<?= $paseoId ?>" class="btn btn-outline-danger px-4 py-2">
-                            <i class="fas fa-ban me-1"></i> Cancelar Paseo
-                        </a>
-
-                        <a href="<?= $baseFeatures; ?>/pago_paseo_dueno.php?paseo_id=<?= $paseoId ?>" class="btn btn-gradient px-4 py-2">
-                            <i class="fas fa-wallet me-1"></i> Pagar Paseo
-                        </a>
-                    <?php endif; ?>
-                </div>
+                </form>
             </div>
         </main>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         const toggle = document.getElementById('menuToggle');
         const sidebar = document.getElementById('sidebar');
         toggle.addEventListener('click', () => sidebar.classList.toggle('show'));
+
+        <?php if (!empty($_SESSION['success'])): ?>
+            Swal.fire({
+                icon: 'success',
+                title: '¡Listo!',
+                text: '<?= addslashes($_SESSION['success']) ?>',
+                showConfirmButton: false,
+                timer: 2500,
+                background: '#f6f9f7'
+            });
+        <?php unset($_SESSION['success']);
+        endif; ?>
+
+        <?php if (!empty($_SESSION['error'])): ?>
+            Swal.fire({
+                icon: 'error',
+                title: 'Ups...',
+                text: '<?= addslashes($_SESSION['error']) ?>',
+                confirmButtonText: 'Aceptar'
+            });
+        <?php unset($_SESSION['error']);
+        endif; ?>
     </script>
 </body>
 

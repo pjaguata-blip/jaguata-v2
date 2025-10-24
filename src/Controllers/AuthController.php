@@ -20,12 +20,27 @@ class AuthController
     /**
      * Verifica que el usuario tenga un rol específico
      */
-    public function checkRole(string $role)
+    public function checkRole(string $requiredRole)
     {
-        if (!Session::isLoggedIn() || Session::get('rol') !== $role) {
-            $this->safeRedirect('/jaguata/public/login.php');
+        $current = Session::getUsuarioRol();
+
+        if (!Session::isLoggedIn()) {
+            header("Location: /login.php");
+            exit;
+        }
+
+        // 🔹 Evita bucle: si ya estás en tu dashboard
+        $currentPath = $_SERVER['REQUEST_URI'] ?? '';
+        if ($current === $requiredRole && str_contains($currentPath, "/$requiredRole/Dashboard.php")) {
+            return;
+        }
+
+        if ($current !== $requiredRole) {
+            header("Location: /features/$current/Dashboard.php");
+            exit;
         }
     }
+
 
     /**
      * Verifica que el usuario esté autenticado

@@ -24,7 +24,7 @@ if (Session::isLoggedIn()) {
 include __DIR__ . '/../src/Templates/Header.php';
 ?>
 
-<!-- Barra de navegación secundaria (solo botones, sin duplicar en otros lados) -->
+<!-- Barra de navegación secundaria -->
 <div class="container py-3">
     <div class="d-flex justify-content-end gap-2">
         <a href="<?= htmlspecialchars($inicioUrl) ?>" class="btn btn-outline-secondary">
@@ -38,71 +38,85 @@ include __DIR__ . '/../src/Templates/Header.php';
     </div>
 </div>
 
-<!-- Hero Section -->
-<section class="hero-section bg-primary text-white py-5">
+<!-- HERO -->
+<section class="hero-section py-5 text-white" style="background:linear-gradient(135deg,#3c6255,#20c997);">
     <div class="container">
         <div class="row align-items-center g-4">
-            <div class="col-lg-6">
-                <h1 class="display-4 fw-bold mb-4">Sobre Jaguata</h1>
+            <div class="col-lg-6 text-center text-lg-start">
+                <h1 class="display-5 fw-bold mb-3">Sobre <span class="text-warning">Jaguata</span></h1>
                 <p class="lead mb-4">
-                    Somos la plataforma líder en paseo de mascotas en Paraguay,
-                    conectando dueños de mascotas con paseadores profesionales verificados.
+                    Somos la comunidad líder en paseo de mascotas en Paraguay,
+                    conectando dueños de mascotas con paseadores verificados y comprometidos.
                 </p>
-                <div class="d-flex flex-wrap gap-3">
-                    <a href="<?= BASE_URL; ?>/registro.php" class="btn btn-warning btn-lg">
+                <div class="d-flex flex-wrap justify-content-center justify-content-lg-start gap-3">
+                    <a href="<?= BASE_URL; ?>/registro.php" class="btn btn-warning btn-lg shadow-sm">
                         <i class="fas fa-user-plus me-2"></i> Únete a Jaguata
                     </a>
-                    <a href="<?= BASE_URL; ?>/contacto.php" class="btn btn-outline-light btn-lg">
+                    <a href="<?= BASE_URL; ?>/contacto.php" class="btn btn-outline-light btn-lg shadow-sm">
                         <i class="fas fa-envelope me-2"></i> Contáctanos
                     </a>
                 </div>
             </div>
-            <div class="col-lg-6">
-                <img
-                    src="<?= ASSETS_URL; ?>/images/about-hero.png"
-                    alt="Ilustración sobre Jaguata: paseadores y mascotas conectados"
-                    class="img-fluid rounded shadow"
-                    loading="lazy">
+            <div class="col-lg-6 text-center">
+                <img src="<?= ASSETS_URL; ?>/images/about-hero.png"
+                    alt="Paseadores y mascotas felices"
+                    class="img-fluid rounded-4 shadow-lg"
+                    style="max-height:380px;object-fit:contain;">
             </div>
         </div>
     </div>
 </section>
 
-<!-- Sección Misión, Visión, Valores (ejemplo) -->
+<!-- MISIÓN / VISIÓN / VALORES -->
 <section class="py-5 bg-light">
     <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="fw-bold text-success">Nuestra Esencia</h2>
+            <p class="text-muted">Lo que nos motiva cada día a cuidar de tu mejor amigo 🐶</p>
+        </div>
+
         <div class="row g-4">
             <div class="col-md-4">
-                <div class="card h-100 shadow-sm">
-                    <div class="card-body">
-                        <h3 class="h5"><i class="fa-solid fa-bullseye me-2 text-primary"></i>Misión</h3>
-                        <p class="mb-0 text-color #ffff">
-                            Conectar de forma segura y rápida a dueños con paseadores confiables,
-                            garantizando bienestar y felicidad para cada mascota.
+                <div class="card h-100 border-0 shadow-sm hover-card">
+                    <div class="card-body text-center p-4">
+                        <div class="icon-circle bg-success-subtle mb-3">
+                            <i class="fa-solid fa-bullseye fa-2x text-success"></i>
+                        </div>
+                        <h5 class="fw-semibold mb-2">Misión</h5>
+                        <p class="text-muted mb-0">
+                            Conectar de forma segura a dueños y paseadores,
+                            promoviendo bienestar, confianza y felicidad animal.
                         </p>
                     </div>
                 </div>
             </div>
 
             <div class="col-md-4">
-                <div class="card h-100 shadow-sm">
-                    <div class="card-body">
-                        <h3 class="h5"><i class="fa-solid fa-eye me-2 text-primary"></i>Visión</h3>
-                        <p class="mb-0 text-color #ffff">
-                            Ser la plataforma de referencia en servicios para mascotas en Paraguay y la región.
+                <div class="card h-100 border-0 shadow-sm hover-card">
+                    <div class="card-body text-center p-4">
+                        <div class="icon-circle bg-success-subtle mb-3">
+                            <i class="fa-solid fa-eye fa-2x text-success"></i>
+                        </div>
+                        <h5 class="fw-semibold mb-2">Visión</h5>
+                        <p class="text-muted mb-0">
+                            Ser la plataforma más confiable de servicios para mascotas
+                            en Paraguay y expandir nuestro impacto en toda la región.
                         </p>
                     </div>
                 </div>
             </div>
 
             <div class="col-md-4">
-                <div class="card h-100 shadow-sm">
-                    <div class="card-body">
-                        <h3 class="h5"><i class="fa-solid fa-heart me-2 text-primary"></i>Valores</h3>
-                        <ul class="mb-0 text--color #ffff ps-3">
-                            <li>Cuidado y respeto animal</li>
-                            <li>Confianza y transparencia</li>
-                            <li>Seguridad y responsabilidad</li>
+                <div class="card h-100 border-0 shadow-sm hover-card">
+                    <div class="card-body text-center p-4">
+                        <div class="icon-circle bg-success-subtle mb-3">
+                            <i class="fa-solid fa-heart fa-2x text-success"></i>
+                        </div>
+                        <h5 class="fw-semibold mb-2">Valores</h5>
+                        <ul class="list-unstyled text-muted mb-0">
+                            <li><i class="fa-solid fa-paw me-2 text-success"></i>Amor y respeto animal</li>
+                            <li><i class="fa-solid fa-handshake me-2 text-success"></i>Confianza y transparencia</li>
+                            <li><i class="fa-solid fa-shield-dog me-2 text-success"></i>Seguridad y responsabilidad</li>
                         </ul>
                     </div>
                 </div>
@@ -111,19 +125,21 @@ include __DIR__ . '/../src/Templates/Header.php';
     </div>
 </section>
 
-<!-- CTA final -->
-<section class="py-5">
-    <div class="container">
+<!-- CTA FINAL -->
+<section class="cta-section py-5" style="background:#f6f9f7;">
+    <div class="container text-center text-lg-start">
         <div class="row align-items-center g-4">
             <div class="col-lg-8">
-                <h2 class="h3 mb-2">¿Listo para comenzar?</h2>
-                <p class="text--color #ffff mb-0">Crea tu cuenta o hablá con nosotros para conocer más.</p>
+                <h2 class="fw-bold mb-2 text-success">¿Listo para comenzar?</h2>
+                <p class="text-muted mb-0">
+                    Crea tu cuenta o hablá con nosotros para saber cómo Jaguata puede ayudarte.
+                </p>
             </div>
             <div class="col-lg-4 text-lg-end">
-                <a href="<?= BASE_URL; ?>/registro.php" class="btn btn-primary me-2">
+                <a href="<?= BASE_URL; ?>/registro.php" class="btn btn-success btn-lg me-2">
                     <i class="fa-solid fa-paw me-1"></i> Crear cuenta
                 </a>
-                <a href="<?= BASE_URL; ?>/contacto.php" class="btn btn-outline-secondary">
+                <a href="<?= BASE_URL; ?>/contacto.php" class="btn btn-outline-secondary btn-lg">
                     <i class="fa-regular fa-message me-1"></i> Hablar ahora
                 </a>
             </div>
@@ -132,3 +148,24 @@ include __DIR__ . '/../src/Templates/Header.php';
 </section>
 
 <?php include __DIR__ . '/../src/Templates/Footer.php'; ?>
+
+<style>
+    .hover-card {
+        transition: transform .3s ease, box-shadow .3s ease;
+    }
+
+    .hover-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 6px 18px rgba(0, 0, 0, .12);
+    }
+
+    .icon-circle {
+        width: 70px;
+        height: 70px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto;
+    }
+</style>

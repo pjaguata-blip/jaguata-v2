@@ -12,19 +12,13 @@ use Jaguata\Controllers\AuthController;
 use Jaguata\Controllers\PaseoController;
 use Jaguata\Helpers\Session;
 
-// ✅ Función de sanitización segura
-function h(mixed $v): string
-{
-    return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
-}
-
 // === Init + auth ===
 AppConfig::init();
 $auth = new AuthController();
 $auth->checkRole('dueno');
 
-
-$paseoId = isset($_GET['paseo_id']) ? (int)$_GET['paseo_id'] : 0;
+// === Paseo ===
+$paseoId = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 if ($paseoId <= 0) {
     exit('ID de paseo no válido.');
 }
@@ -35,32 +29,45 @@ if (!$paseo) {
     exit('No se encontró el paseo.');
 }
 
-// Variables base
 $rol = Session::getUsuarioRol() ?: 'dueno';
 $baseFeatures = BASE_URL . "/features/{$rol}";
 $backUrl = $baseFeatures . "/MisPaseos.php";
 $panelUrl = $baseFeatures . "/Dashboard.php";
 
-// Datos
+// === Cancelación ===
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $motivo = trim($_POST['motivo'] ?? '');
+    $resp = $paseoCtrl->cancelarPaseo($paseoId, $motivo);
+    if (!empty($resp['success'])) {
+        $_SESSION['success'] = "El paseo fue cancelado correctamente 🐾";
+        header("Location: {$backUrl}");
+        exit;
+    } else {
+        $_SESSION['error'] = $resp['error'] ?? "No se pudo cancelar el paseo.";
+    }
+}
+
+function h($v): string
+{
+    return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
+}
+
 $fecha = !empty($paseo['fecha_inicio']) ? date('d/m/Y H:i', strtotime($paseo['fecha_inicio'])) : '—';
-$estado = ucfirst($paseo['estado'] ?? 'Pendiente');
-$monto = number_format((float)($paseo['monto'] ?? 0), 0, ',', '.');
-$duracion = h($paseo['duracion'] ?? '—');
-$observacion = nl2br(h($paseo['observacion'] ?? 'Sin observaciones.'));
 $paseador = h($paseo['paseador_nombre'] ?? 'No asignado');
 $mascota = h($paseo['mascota_nombre'] ?? '—');
-
+$monto = number_format((float)($paseo['monto'] ?? 0), 0, ',', '.');
+$duracion = h($paseo['duracion'] ?? '—');
 ?>
-
 <!DOCTYPE html>
 <html lang="es">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Detalle del Paseo - Jaguata</title>
+    <title>Cancelar Paseo - Jaguata</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
     <style>
         body {
             background: #f5f7fa;
@@ -199,18 +206,18 @@ $mascota = h($paseo['mascota_nombre'] ?? '—');
             </div>
             <ul class="nav flex-column gap-1 px-2">
                 <li><a class="nav-link" href="<?= $panelUrl ?>"><i class="fas fa-home"></i> Inicio</a></li>
-                <li><a class="nav-link active" href="#"><i class="fas fa-info-circle"></i> Detalle Paseo</a></li>
-                <li><a class="nav-link" href="<?= $baseFeatures; ?>/MisPaseos.php"><i class="fas fa-list"></i> Mis Paseos</a></li>
+                <li><a class="nav-link active" href="#"><i class="fas fa-ban"></i> Cancelar Paseo</a></li>
+                <li><a class="nav-link" href="<?= $backUrl ?>"><i class="fas fa-list"></i> Mis Paseos</a></li>
                 <li><a class="nav-link text-danger" href="<?= BASE_URL; ?>/logout.php"><i class="fas fa-sign-out-alt"></i> Cerrar sesión</a></li>
             </ul>
         </aside>
 
-        <!-- Contenido principal -->
+        <!-- Contenido -->
         <main class="content">
             <div class="welcome-box mb-4">
                 <div>
-                    <h4>Detalles del Paseo</h4>
-                    <p>Información completa sobre tu paseo 🐾</p>
+                    <h4><i class="fas fa-ban me-2"></i> Cancelar Paseo</h4>
+                    <p>Podés cancelar el paseo antes de su inicio programado</p>
                 </div>
                 <a href="<?= $backUrl ?>" class="btn btn-light text-success fw-semibold">
                     <i class="fas fa-arrow-left me-1"></i> Volver
@@ -218,62 +225,59 @@ $mascota = h($paseo['mascota_nombre'] ?? '—');
             </div>
 
             <div class="card-premium p-4">
-                <div class="row g-4 info-box">
+                <h5 class="mb-3"><i class="fas fa-info-circle me-2 text-success"></i>Detalles del paseo</h5>
+                <div class="row g-3">
                     <div class="col-md-6">
-                        <h5><i class="fas fa-calendar-alt me-2 text-success"></i> Fecha del paseo</h5>
-                        <p><?= $fecha ?></p>
-
-                        <h5><i class="fas fa-user-tie me-2 text-success"></i> Paseador</h5>
-                        <p><?= $paseador ?></p>
-
-                        <h5><i class="fas fa-dog me-2 text-success"></i> Mascota</h5>
-                        <p><?= $mascota ?></p>
+                        <p><strong>Paseador:</strong> <?= $paseador ?></p>
+                        <p><strong>Mascota:</strong> <?= $mascota ?></p>
+                        <p><strong>Fecha:</strong> <?= $fecha ?></p>
                     </div>
-
                     <div class="col-md-6">
-                        <h5><i class="fas fa-stopwatch me-2 text-success"></i> Duración</h5>
-                        <p><?= (int)$paseo['duracion'] ?> minutos</p>
-
-                        <h5><i class="fas fa-wallet me-2 text-success"></i> Monto</h5>
-                        <p>₲ <?= $monto ?></p>
-
-                        <h5><i class="fas fa-info-circle me-2 text-success"></i> Estado</h5>
-                        <span class="badge 
-                            <?= $estado === 'Completo' ? 'bg-success' : ($estado === 'Cancelado' ? 'bg-danger' : 'bg-warning text-dark') ?>">
-                            <?= $estado ?>
-                        </span>
-                    </div>
-
-                    <div class="col-12 mt-3">
-                        <h5><i class="fas fa-comment-dots me-2 text-success"></i> Observaciones</h5>
-                        <p class="border rounded p-2 bg-light"><?= $observacion ?></p>
+                        <p><strong>Duración:</strong> <?= $duracion ?> min</p>
+                        <p><strong>Monto:</strong> ₲ <?= $monto ?></p>
                     </div>
                 </div>
+                <hr>
 
-                <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
-                    <a href="<?= $backUrl ?>" class="btn btn-outline-secondary px-4 py-2">
-                        <i class="fas fa-arrow-left me-1"></i> Volver
-                    </a>
-
-                    <?php if (in_array(strtolower($paseo['estado']), ['pendiente', 'confirmado'])): ?>
-                        <a href="<?= $baseFeatures; ?>/CancelarPaseo.php?id=<?= $paseoId ?>" class="btn btn-outline-danger px-4 py-2">
-                            <i class="fas fa-ban me-1"></i> Cancelar Paseo
-                        </a>
-
-                        <a href="<?= $baseFeatures; ?>/pago_paseo_dueno.php?paseo_id=<?= $paseoId ?>" class="btn btn-gradient px-4 py-2">
-                            <i class="fas fa-wallet me-1"></i> Pagar Paseo
-                        </a>
-                    <?php endif; ?>
-                </div>
+                <form method="POST" id="formCancel">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold"><i class="fas fa-comment-dots me-1 text-success"></i>Motivo de la cancelación</label>
+                        <textarea class="form-control" name="motivo" rows="3" placeholder="Contanos brevemente por qué querés cancelar..."></textarea>
+                    </div>
+                    <div class="d-flex justify-content-end gap-2 mt-3">
+                        <a href="<?= $backUrl ?>" class="btn btn-outline-secondary px-4"><i class="fas fa-times me-1"></i> Volver</a>
+                        <button type="submit" class="btn btn-gradient px-4"><i class="fas fa-ban me-1"></i> Cancelar Paseo</button>
+                    </div>
+                </form>
             </div>
         </main>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         const toggle = document.getElementById('menuToggle');
         const sidebar = document.getElementById('sidebar');
         toggle.addEventListener('click', () => sidebar.classList.toggle('show'));
+
+        const form = document.getElementById('formCancel');
+        form.addEventListener('submit', e => {
+            e.preventDefault();
+            Swal.fire({
+                title: '¿Confirmás la cancelación?',
+                text: 'Esta acción no se puede deshacer.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3c6255',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Sí, cancelar',
+                cancelButtonText: 'No, volver'
+            }).then((r) => {
+                if (r.isConfirmed) {
+                    form.submit();
+                }
+            });
+        });
     </script>
 </body>
 

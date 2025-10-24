@@ -118,4 +118,21 @@ class Paseador extends BaseModel
             'id' => $id,
         ]);
     }
+    public function search(string $query): array
+    {
+        try {
+            $pdo = $this->db ?? \Jaguata\Config\AppConfig::db();
+            $sql = "SELECT * FROM paseadores 
+                WHERE nombre LIKE :query 
+                   OR email LIKE :query 
+                   OR telefono LIKE :query
+                ORDER BY calificacion DESC";
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute([':query' => '%' . $query . '%']);
+            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (\Throwable $e) {
+            error_log("Error en Paseador::search(): " . $e->getMessage());
+            return [];
+        }
+    }
 }

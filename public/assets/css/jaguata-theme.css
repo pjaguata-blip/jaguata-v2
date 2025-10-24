@@ -1,0 +1,82 @@
+/* Jaguata Theme 🌿 */
+body {
+  font-family: 'Poppins', sans-serif;
+  background-color: #f6f9f7;
+  color: #3c6255;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: #3c6255;
+  font-weight: 600;
+}
+
+a {
+  color: #20c997;
+  text-decoration: none;
+}
+a:hover {
+  color: #3c6255;
+}
+
+.btn-success {
+  background-color: #3c6255;
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  transition: all .3s ease;
+}
+.btn-success:hover {
+  background-color: #2f4e45;
+  transform: translateY(-2px);
+}
+
+.btn-outline-secondary {
+  border-radius: 10px;
+}
+
+.card {
+  border: none;
+  border-radius: 16px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+}
+
+.form-control {
+  border-radius: 10px;
+  border: 2px solid #e9ecef;
+  transition: all .3s ease;
+}
+.form-control:focus {
+  border-color: #20c997;
+  box-shadow: 0 0 0 .2rem rgba(32, 201, 151, .25);
+}
+
+/* Navbar */
+.navbar {
+  background: #fff !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,.05);
+}
+.navbar .nav-link {
+  color: #3c6255 !important;
+  transition: color .3s;
+}
+.navbar .nav-link:hover {
+  color: #20c997 !important;
+}
+
+/* Footer */
+footer {
+  background-color: #3c6255;
+  color: #fff;
+}
+footer a {
+  color: #fff;
+}
+footer a:hover {
+  text-decoration: underline;
+}
+
+/* SweetAlert custom */
+.swal2-popup {
+  border-radius: 16px !important;
+  font-family: 'Poppins', sans-serif !important;
+}

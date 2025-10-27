@@ -19,7 +19,7 @@ if ($usuarioLogueado && $rolUsuario) {
             <!-- Company Info -->
             <div class="col-lg-4 mb-4">
                 <h5 class="mb-3 d-flex align-items-center fw-bold text-success">
-                    <img src="<?= ASSETS_URL; ?>/uploads/perfiles/logoo.jpg" alt="Jaguata" height="45" class="me-2 rounded-circle shadow-sm">
+                    <img src="<?= ASSETS_URL; ?>/uploads/perfiles/logojag.png" alt="Jaguata" width="100" class="me-2 rounded-circle shadow-sm">
                     Jaguata
                 </h5>
                 <p class="text-muted small">

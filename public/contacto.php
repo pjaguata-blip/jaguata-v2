@@ -12,10 +12,9 @@ $RUTA_SELF = BASE_URL . '/contacto.php';
 $COOLDOWN_SECONDS = 60; // Throttle: 60s entre envíos
 
 // ====== URLs de navegación ======
-$inicioUrl = BASE_URL; // tu landing/home
+$inicioUrl = BASE_URL;
 $panelUrl  = null;
 if (Session::isLoggedIn()) {
-    // usa el helper seguro que ya tenés
     $rol = Session::getUsuarioRolSeguro();
     if ($rol) {
         $panelUrl = BASE_URL . "/features/{$rol}/Dashboard.php";
@@ -30,11 +29,9 @@ Session::set('contact_old', null);
 
 // ====== POST ======
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Honeypot
     $honeypot = $_POST['website'] ?? '';
     $csrf     = $_POST['csrf_token'] ?? '';
 
-    // Guardar old para repoblar si falla
     $old = [
         'nombre'  => trim($_POST['nombre'] ?? ''),
         'email'   => trim($_POST['email'] ?? ''),
@@ -47,13 +44,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (!empty($honeypot)) {
         Session::setError('No se pudo procesar el formulario.');
     } else {
-        // Throttle
         $last = (int) Session::get('contact_last_ts', 0);
         if ($last && (time() - $last) < $COOLDOWN_SECONDS) {
             $rest = $COOLDOWN_SECONDS - (time() - $last);
             Session::setError("Por favor, aguardá {$rest}s para volver a enviar.");
         } else {
-            // Sanitizar + validar
             $nombre  = Validaciones::sanitizarString($old['nombre'] ?? '');
             $email   = Validaciones::sanitizarString($old['email'] ?? '');
             $mensaje = Validaciones::sanitizarString($old['mensaje'] ?? '');
@@ -62,20 +57,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($nombre === '' || $email === '' || $mensaje === '') {
                 $errors[] = 'Todos los campos son obligatorios.';
             }
-            if ($nombre !== '' && (mb_strlen($nombre) < 2 || mb_strlen($nombre) > 100)) {
+            if (mb_strlen($nombre) < 2 || mb_strlen($nombre) > 100) {
                 $errors[] = 'El nombre debe tener entre 2 y 100 caracteres.';
             }
-            if ($email !== '' && !Validaciones::validarEmail($email)) {
+            if (!Validaciones::validarEmail($email)) {
                 $errors[] = 'El correo no es válido.';
             }
-            if ($mensaje !== '' && (mb_strlen($mensaje) < 10 || mb_strlen($mensaje) > 2000)) {
+            if (mb_strlen($mensaje) < 10 || mb_strlen($mensaje) > 2000) {
                 $errors[] = 'El mensaje debe tener entre 10 y 2000 caracteres.';
             }
 
             if (!empty($errors)) {
                 Session::setError(implode('<br>', $errors));
             } else {
-                // Email
                 $to      = 'contacto@jaguata.com';
                 $subject = "Nuevo mensaje de {$nombre}";
                 $body    = "
@@ -100,7 +94,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // PRG
     header('Location: ' . $RUTA_SELF);
     exit;
 }
@@ -109,94 +102,106 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 include __DIR__ . '/../src/Templates/Header.php';
 ?>
 
-<div class="container py-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2 class="mb-0">
-            <i class="fa-regular fa-envelope me-2"></i> Contacto
-        </h2>
-        <div class="d-flex gap-2">
-            <a href="<?= htmlspecialchars($inicioUrl) ?>" class="btn btn-outline-secondary">
-                <i class="fa-solid fa-house me-1"></i> Ir al inicio
+<!-- HERO -->
+<section class="hero-section text-white text-center py-5" style="background:linear-gradient(135deg,#3c6255,#20c997);">
+    <div class="container">
+        <h1 class="display-5 fw-bold mb-3">Contáctanos</h1>
+        <p class="lead mb-4">
+            Si tenés consultas, sugerencias o querés formar parte de Jaguata, completá el formulario y te responderemos pronto 🐾
+        </p>
+        <div class="d-flex justify-content-center gap-2 flex-wrap">
+            <a href="<?= htmlspecialchars($inicioUrl) ?>" class="btn btn-outline-light">
+                <i class="fa-solid fa-house me-1"></i> Inicio
             </a>
             <?php if ($panelUrl): ?>
-                <a href="<?= htmlspecialchars($panelUrl) ?>" class="btn btn-outline-primary">
-                    <i class="fa-solid fa-gauge-high me-1"></i> Panel principal
+                <a href="<?= htmlspecialchars($panelUrl) ?>" class="btn btn-warning text-dark">
+                    <i class="fa-solid fa-gauge-high me-1"></i> Ir al Panel
                 </a>
             <?php endif; ?>
         </div>
     </div>
+</section>
 
-    <!-- Alertas -->
-    <?= $error   ? Funciones::generarAlerta('error', $error)     : '' ?>
-    <?= $success ? Funciones::generarAlerta('success', $success) : '' ?>
+<!-- FORMULARIO -->
+<section class="py-5 bg-light">
+    <div class="container">
+        <?= $error   ? Funciones::generarAlerta('error', $error)     : '' ?>
+        <?= $success ? Funciones::generarAlerta('success', $success) : '' ?>
 
-    <div class="card shadow-sm">
-        <div class="card-body">
-            <form method="post" novalidate>
-                <input type="hidden" name="csrf_token" value="<?= Validaciones::generarCSRF(); ?>">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="card shadow-sm border-0">
+                    <div class="card-body p-4">
+                        <h3 class="fw-semibold text-success mb-4 text-center">
+                            <i class="fa-regular fa-envelope me-2"></i>Formulario de Contacto
+                        </h3>
 
-                <!-- Honeypot anti-spam -->
-                <div style="position:absolute;left:-9999px;top:-9999px;">
-                    <label>Si ves este campo, no lo completes:
-                        <input type="text" name="website" tabindex="-1" autocomplete="off">
-                    </label>
+                        <form method="post" novalidate>
+                            <input type="hidden" name="csrf_token" value="<?= Validaciones::generarCSRF(); ?>">
+
+                            <!-- Honeypot -->
+                            <div style="position:absolute;left:-9999px;top:-9999px;">
+                                <label>Si ves este campo, no lo completes:
+                                    <input type="text" name="website" tabindex="-1" autocomplete="off">
+                                </label>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="nombre" class="form-label fw-semibold">Nombre completo</label>
+                                <input type="text" id="nombre" name="nombre"
+                                    class="form-control shadow-sm"
+                                    minlength="2" maxlength="100" required
+                                    value="<?= htmlspecialchars($old['nombre'] ?? '') ?>">
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="email" class="form-label fw-semibold">Correo electrónico</label>
+                                <input type="email" id="email" name="email"
+                                    class="form-control shadow-sm"
+                                    maxlength="100" required
+                                    value="<?= htmlspecialchars($old['email'] ?? '') ?>">
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="mensaje" class="form-label fw-semibold">Mensaje</label>
+                                <textarea id="mensaje" name="mensaje" rows="6"
+                                    class="form-control shadow-sm" required minlength="10" maxlength="2000"><?= htmlspecialchars($old['mensaje'] ?? '') ?></textarea>
+                            </div>
+
+                            <div class="d-flex flex-wrap justify-content-between align-items-center">
+                                <button type="submit" class="btn btn-success btn-lg">
+                                    <i class="fa-regular fa-paper-plane me-1"></i> Enviar mensaje
+                                </button>
+                                <a href="<?= htmlspecialchars($RUTA_SELF) ?>" class="btn btn-outline-secondary btn-lg">
+                                    <i class="fa-solid fa-eraser me-1"></i> Limpiar
+                                </a>
+                            </div>
+                        </form>
+
+                        <p class="text-muted small text-center mt-3">
+                            <i class="fa-regular fa-clock me-1"></i>
+                            Tiempo mínimo entre envíos: <?= (int)$COOLDOWN_SECONDS ?> segundos.
+                        </p>
+                    </div>
                 </div>
-
-                <div class="mb-3">
-                    <label for="nombre" class="form-label">Nombre completo</label>
-                    <input
-                        type="text"
-                        class="form-control"
-                        id="nombre"
-                        name="nombre"
-                        required
-                        minlength="2"
-                        maxlength="100"
-                        value="<?= htmlspecialchars($old['nombre'] ?? '') ?>">
-                    <div class="form-text">Entre 2 y 100 caracteres.</div>
-                </div>
-
-                <div class="mb-3">
-                    <label for="email" class="form-label">Correo electrónico</label>
-                    <input
-                        type="email"
-                        class="form-control"
-                        id="email"
-                        name="email"
-                        required
-                        maxlength="100"
-                        value="<?= htmlspecialchars($old['email'] ?? '') ?>">
-                </div>
-
-                <div class="mb-3">
-                    <label for="mensaje" class="form-label">Mensaje</label>
-                    <textarea
-                        class="form-control"
-                        id="mensaje"
-                        name="mensaje"
-                        rows="6"
-                        required
-                        minlength="10"
-                        maxlength="2000"><?= htmlspecialchars($old['mensaje'] ?? '') ?></textarea>
-                    <div class="form-text">Sé claro y conciso. Máx. 2000 caracteres.</div>
-                </div>
-
-                <div class="d-flex flex-wrap gap-2">
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fa-regular fa-paper-plane me-1"></i> Enviar
-                    </button>
-
-                    <a href="<?= htmlspecialchars($RUTA_SELF) ?>" class="btn btn-outline-dark ms-auto">
-                        <i class="fa-solid fa-eraser me-1"></i> Limpiar
-                    </a>
-                </div>
-            </form>
+            </div>
         </div>
     </div>
+</section>
 
-    <div class="text--color #ffff mt-3 small">
-        <i class="fa-regular fa-clock me-1"></i> Tiempo entre envíos: <?= (int)$COOLDOWN_SECONDS ?>s
+<!-- CTA FINAL -->
+<section class="cta-section py-5" style="background:#f6f9f7;">
+    <div class="container text-center">
+        <h2 class="fw-bold text-success mb-2">¿Querés unirte a Jaguata?</h2>
+        <p class="text-muted mb-4">Registrate y empezá a disfrutar de nuestros servicios para mascotas.</p>
+        <a href="<?= BASE_URL; ?>/registro.php" class="btn btn-warning btn-lg me-2 shadow-sm">
+            <i class="fa-solid fa-paw me-1"></i> Crear cuenta
+        </a>
+        <a href="<?= BASE_URL; ?>/sobre_nosotros.php" class="btn btn-outline-success btn-lg shadow-sm">
+            <i class="fa-regular fa-circle-question me-1"></i> Saber más
+        </a>
     </div>
-</div>
+</section>
+
 
 <?php include __DIR__ . '/../src/Templates/Footer.php'; ?>

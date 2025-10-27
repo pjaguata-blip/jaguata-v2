@@ -9,13 +9,15 @@ require_once __DIR__ . '/../../vendor/autoload.php';
 use Jaguata\Config\AppConfig;
 use Jaguata\Controllers\AuthController;
 
-// === Init + Auth ===
 AppConfig::init();
+
+// === Autenticación ===
 $auth = new AuthController();
 $auth->checkRole('paseador');
 
 $rol = 'paseador';
 $baseFeatures = BASE_URL . "/features/{$rol}";
+$usuarioNombre = htmlspecialchars($_SESSION['usuario_nombre'] ?? 'Paseador');
 ?>
 
 <!DOCTYPE html>
@@ -140,6 +142,11 @@ $baseFeatures = BASE_URL . "/features/{$rol}";
             main {
                 padding: 1rem;
             }
+
+            .sidebar {
+                min-height: auto;
+                position: relative;
+            }
         }
     </style>
 </head>
@@ -147,27 +154,33 @@ $baseFeatures = BASE_URL . "/features/{$rol}";
 <body>
     <div class="container-fluid">
         <div class="row">
+            <!-- Botón de menú móvil -->
+            <button class="btn btn-success d-md-none mb-3 mt-3 ms-3" type="button" data-bs-toggle="collapse" data-bs-target="#menuSidebar">
+                <i class="fas fa-bars"></i> Menú
+            </button>
+
             <!-- Sidebar -->
-            <div class="col-md-3 col-lg-2 d-md-block sidebar">
+            <div class="collapse d-md-block col-md-3 col-lg-2 sidebar" id="menuSidebar">
                 <div class="text-center mb-4">
-                    <img src="../../assets/img/logo.png" alt="Jaguata" width="120" class="mb-3">
+                    <img src="<?= ASSETS_URL; ?>/uploads/perfiles/logojag.png" alt="Jaguata" width="50">
                     <hr class="text-light">
                 </div>
                 <ul class="nav flex-column gap-1 px-2">
-                    <li><a class="nav-link active" href="Dashboard.php"><i class="fas fa-home"></i> Inicio</a></li>
+                    <li><a class="nav-link active" href="<?= $baseFeatures; ?>/Dashboard.php"><i class="fas fa-home"></i> Inicio</a></li>
                     <li><a class="nav-link" href="<?= $baseFeatures; ?>/MisPaseos.php"><i class="fas fa-list"></i> Mis Paseos</a></li>
                     <li><a class="nav-link" href="<?= $baseFeatures; ?>/Disponibilidad.php"><i class="fas fa-calendar-check"></i> Disponibilidad</a></li>
                     <li><a class="nav-link" href="<?= $baseFeatures; ?>/Perfil.php"><i class="fas fa-user"></i> Mi Perfil</a></li>
+                    <li><a class="nav-link" href="<?= $baseFeatures; ?>/Estadisticas.php"><i class="fas fa-chart-line"></i> Estadísticas</a></li>
+                    <li><a class="nav-link" href="<?= $baseFeatures; ?>/Solicitudes.php"><i class="fas fa-comments"></i> Solicitudes</a></li>
                     <li><a class="nav-link text-danger" href="<?= BASE_URL; ?>/logout.php"><i class="fas fa-sign-out-alt"></i> Cerrar sesión</a></li>
                 </ul>
             </div>
 
             <!-- Contenido principal -->
             <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
-
                 <div class="page-header">
-                    <h2><i class="fas fa-paw me-2"></i> Bienvenido Paseador 🐾</h2>
-                    <a href="Perfil.php" class="btn btn-outline-light btn-sm">
+                    <h2><i class="fas fa-paw me-2"></i> Bienvenido, <?= $usuarioNombre; ?> 🐾</h2>
+                    <a href="<?= $baseFeatures; ?>/Perfil.php" class="btn btn-outline-light btn-sm">
                         <i class="fas fa-user me-1"></i> Ver Perfil
                     </a>
                 </div>
@@ -178,7 +191,7 @@ $baseFeatures = BASE_URL . "/features/{$rol}";
                             <i class="fas fa-dog fa-3x text-success mb-3"></i>
                             <h5>Mis Paseos Asignados</h5>
                             <p>Consultá los paseos que te asignaron los dueños y marcá su progreso.</p>
-                            <a href="MisPaseos.php" class="btn btn-gradient w-100"><i class="fas fa-walking me-1"></i> Ver Paseos</a>
+                            <a href="<?= $baseFeatures; ?>/MisPaseos.php" class="btn btn-gradient w-100"><i class="fas fa-walking me-1"></i> Ver Paseos</a>
                         </div>
                     </div>
 
@@ -187,7 +200,7 @@ $baseFeatures = BASE_URL . "/features/{$rol}";
                             <i class="fas fa-calendar-alt fa-3x text-success mb-3"></i>
                             <h5>Mi Disponibilidad</h5>
                             <p>Definí los días y horarios en los que estás disponible para pasear.</p>
-                            <a href="Disponibilidad.php" class="btn btn-outline-success w-100"><i class="fas fa-clock me-1"></i> Gestionar Horarios</a>
+                            <a href="<?= $baseFeatures; ?>/Disponibilidad.php" class="btn btn-outline-success w-100"><i class="fas fa-clock me-1"></i> Gestionar Horarios</a>
                         </div>
                     </div>
 
@@ -196,7 +209,7 @@ $baseFeatures = BASE_URL . "/features/{$rol}";
                             <i class="fas fa-user fa-3x text-success mb-3"></i>
                             <h5>Mi Perfil</h5>
                             <p>Actualizá tus datos personales, experiencia y zonas de trabajo.</p>
-                            <a href="Perfil.php" class="btn btn-outline-success w-100"><i class="fas fa-user-edit me-1"></i> Editar Perfil</a>
+                            <a href="<?= $baseFeatures; ?>/Perfil.php" class="btn btn-outline-success w-100"><i class="fas fa-user-edit me-1"></i> Editar Perfil</a>
                         </div>
                     </div>
 
@@ -205,7 +218,7 @@ $baseFeatures = BASE_URL . "/features/{$rol}";
                             <i class="fas fa-chart-line fa-3x text-success mb-3"></i>
                             <h5>Estadísticas</h5>
                             <p>Visualizá tus paseos completados, cancelados e ingresos generados.</p>
-                            <a href="MisPaseos.php" class="btn btn-outline-success w-100"><i class="fas fa-chart-bar me-1"></i> Ver Reporte</a>
+                            <a href="<?= $baseFeatures; ?>/Estadisticas.php" class="btn btn-outline-success w-100"><i class="fas fa-chart-bar me-1"></i> Ver Reporte</a>
                         </div>
                     </div>
 
@@ -214,7 +227,7 @@ $baseFeatures = BASE_URL . "/features/{$rol}";
                             <i class="fas fa-comments fa-3x text-success mb-3"></i>
                             <h5>Mensajes y Solicitudes</h5>
                             <p>Respondé solicitudes y mensajes de los dueños que te contactaron.</p>
-                            <a href="Solicitudes.php" class="btn btn-outline-success w-100"><i class="fas fa-envelope me-1"></i> Ver Mensajes</a>
+                            <a href="<?= $baseFeatures; ?>/Solicitudes.php" class="btn btn-outline-success w-100"><i class="fas fa-envelope me-1"></i> Ver Mensajes</a>
                         </div>
                     </div>
                 </div>

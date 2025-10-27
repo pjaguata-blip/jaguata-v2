@@ -21,7 +21,7 @@ if ($usuarioLogueado && $rolUsuario) {
     <div class="container">
         <!-- Brand -->
         <a class="navbar-brand d-flex align-items-center fw-semibold text-success" href="<?= $inicioUrl; ?>">
-            <img src="<?= ASSETS_URL; ?>/uploads/perfiles/logo.png" alt="Jaguata" height="42" class="me-2 rounded">
+            <img src="<?= ASSETS_URL; ?>/uploads/perfiles/logojagua.jpg" alt="Jaguata" height="42" class="me-2 rounded">
             Jaguata
         </a>
 

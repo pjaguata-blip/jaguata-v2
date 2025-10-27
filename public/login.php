@@ -157,7 +157,7 @@ $success = $success ?: Session::getSuccess();
                 <div class="card">
                     <div class="text-center mb-4">
                         <div class="logo-circle">
-                            <img src="<?= ASSETS_URL; ?>/uploads/perfiles/logoo.jpg" alt="Jaguata" width="60">
+                            <img src="<?= ASSETS_URL; ?>/uploads/perfiles/logojag.png" alt="Jaguata" width="100">
                         </div>
                         <h2>Bienvenido a Jaguata 🐾</h2>
                         <p class="text-muted">Inicia sesión para continuar</p>

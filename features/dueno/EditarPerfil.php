@@ -76,14 +76,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $msg = 'Perfil actualizado correctamente.';
             $usuario = $usuarioModel->getById($usuarioId);
             $fotoActual = $usuario['foto_perfil'] ?? '';
-        } else $error = 'No se pudo guardar los cambios.';
+        } else {
+            $error = 'No se pudo guardar los cambios.';
+        }
     }
 }
 
 $rolMenu = Session::getUsuarioRol() ?: 'dueno';
 $baseFeatures = BASE_URL . "/features/{$rolMenu}";
 ?>
-
 <!DOCTYPE html>
 <html lang="es">
 
@@ -93,6 +94,8 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
     <title>Editar Perfil - Jaguata</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <!-- Fuente para unificar tipografía con el resto -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body {
             background: #f5f7fa;
@@ -117,7 +120,7 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
             padding-top: 1.5rem;
             box-shadow: 4px 0 12px rgba(0, 0, 0, .15);
             z-index: 1000;
-            transition: transform .3s ease-in-out;
+            transition: transform .3s;
         }
 
         .sidebar .nav-link {
@@ -136,7 +139,7 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
         }
 
         .sidebar .nav-link:hover {
-            background-color: #343454;
+            background: #343454;
             color: #fff;
             transform: translateX(4px);
         }
@@ -152,8 +155,8 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
             top: 16px;
             left: 16px;
             background: #1e1e2f;
-            color: white;
-            border: none;
+            color: #fff;
+            border: 0;
             padding: 8px 10px;
             border-radius: 6px;
             z-index: 1100;
@@ -197,6 +200,13 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
             align-items: center;
             justify-content: space-between;
             box-shadow: 0 4px 15px rgba(0, 0, 0, .08);
+            margin-bottom: 2rem;
+        }
+
+        .welcome-box h1 {
+            font-weight: 600;
+            margin: 0;
+            font-size: 1.6rem;
         }
 
         .card-premium {
@@ -221,6 +231,26 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
         .btn-gradient:hover {
             opacity: .9;
         }
+
+        /* Botón volver arriba (opcional, como el resto) */
+        #btnTop {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 45px;
+            height: 45px;
+            border: none;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #3c6255, #20c997);
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, .25);
+            display: none;
+            z-index: 1000;
+        }
+
+        #btnTop:hover {
+            opacity: .9;
+        }
     </style>
 </head>
 
@@ -231,7 +261,7 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
         <!-- Sidebar -->
         <aside class="sidebar" id="sidebar">
             <div class="text-center mb-4">
-                <img src="../../assets/img/logo.png" alt="Jaguata" width="120" class="mb-3">
+                <img src="<?= ASSETS_URL; ?>/uploads/perfiles/logojag.png" alt="Jaguata" width="50">
                 <hr class="text-light">
             </div>
             <ul class="nav flex-column gap-1 px-2">
@@ -245,10 +275,16 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
         <main class="content">
             <div class="welcome-box mb-4">
                 <div>
-                    <h4>Editar Perfil</h4>
-                    <p>Actualizá tus datos personales y de contacto 🐾</p>
+                    <h1>Editar Perfil</h1>
+                    <p class="mb-0">Actualizá tus datos personales y de contacto 🐾</p>
                 </div>
-                <i class="fas fa-user-edit fa-3x opacity-75"></i>
+                <div class="d-flex align-items-center gap-2">
+
+                    <!-- 👉 Botón VOLVER unificado como en las otras pantallas -->
+                    <a href="<?= $baseFeatures; ?>/MiPerfil.php" class="btn btn-light btn-sm">
+                        <i class="fas fa-arrow-left me-1"></i> Volver
+                    </a>
+                </div>
             </div>
 
             <?php if ($msg): ?><div class="alert alert-success"><?= htmlspecialchars($msg) ?></div><?php endif; ?>
@@ -258,9 +294,7 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
                 <div class="row g-4">
                     <div class="col-lg-4">
                         <div class="card-premium text-center p-3">
-                            <?php
-                            $src = $fotoActual ? (BASE_URL . $fotoActual) : (ASSETS_URL . '/images/user-placeholder.png');
-                            ?>
+                            <?php $src = $fotoActual ? (BASE_URL . $fotoActual) : (ASSETS_URL . '/images/user-placeholder.png'); ?>
                             <img id="previewFoto" src="<?= htmlspecialchars($src) ?>" class="rounded-circle mb-3" style="width:150px;height:150px;object-fit:cover;">
                             <div class="text-start">
                                 <label class="form-label">Foto de perfil</label>
@@ -308,22 +342,37 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
 
                 <div class="text-end mt-4">
                     <button type="submit" class="btn btn-gradient px-4 py-2">
-                        <i class="fas fa-save me-1"></i>Guardar cambios
+                        <i class="fas fa-save me-1"></i> Guardar cambios
                     </button>
                 </div>
             </form>
         </main>
     </div>
 
+    <!-- Botón volver arriba (igual que en otras) -->
+    <button id="btnTop" title="Volver arriba"><i class="fas fa-arrow-up"></i></button>
+
     <script>
         const toggle = document.getElementById('menuToggle');
         const sidebar = document.getElementById('sidebar');
-        toggle.addEventListener('click', () => sidebar.classList.toggle('show'));
-        document.getElementById('foto').addEventListener('change', e => {
+        toggle?.addEventListener('click', () => sidebar.classList.toggle('show'));
+
+        // Preview foto
+        document.getElementById('foto')?.addEventListener('change', e => {
             const f = e.target.files?.[0];
             if (!f) return;
             document.getElementById('previewFoto').src = URL.createObjectURL(f);
         });
+
+        // Mostrar/ocultar botón to-top
+        const btnTop = document.getElementById("btnTop");
+        window.addEventListener("scroll", () => {
+            btnTop.style.display = window.scrollY > 200 ? "block" : "none";
+        });
+        btnTop.addEventListener("click", () => window.scrollTo({
+            top: 0,
+            behavior: "smooth"
+        }));
     </script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>

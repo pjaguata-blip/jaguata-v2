@@ -9,7 +9,6 @@ require_once __DIR__ . '/../../vendor/autoload.php';
 use Jaguata\Config\AppConfig;
 use Jaguata\Controllers\AuthController;
 
-// === Init + Auth ===
 AppConfig::init();
 $auth = new AuthController();
 $auth->checkRole('paseador');
@@ -17,24 +16,14 @@ $auth->checkRole('paseador');
 $rol = 'paseador';
 $baseFeatures = BASE_URL . "/features/{$rol}";
 
-// Días de la semana
-$diasSemana = [
-    'Lunes',
-    'Martes',
-    'Miércoles',
-    'Jueves',
-    'Viernes',
-    'Sábado',
-    'Domingo'
-];
+$diasSemana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
-// Simulación: carga previa (luego podés traer de BD)
+// Simulado: en producción, esto viene de la BD
 $disponibilidadActual = [
     'Lunes' => ['inicio' => '08:00', 'fin' => '12:00'],
-    'Martes' => ['inicio' => '08:00', 'fin' => '12:00'],
+    'Martes' => ['inicio' => '09:00', 'fin' => '13:00'],
 ];
 ?>
-
 <!DOCTYPE html>
 <html lang="es">
 
@@ -45,12 +34,14 @@ $disponibilidadActual = [
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
     <style>
+        /* === FUENTE Y COLORES BASE === */
         body {
             background: #f5f7fa;
             font-family: "Poppins", sans-serif;
+            color: #333;
         }
 
-        /* Sidebar */
+        /* === SIDEBAR === */
         .sidebar {
             background: linear-gradient(180deg, #1e1e2f 0%, #292a3a 100%);
             color: #f8f9fa;
@@ -81,11 +72,7 @@ $disponibilidadActual = [
             color: #fff;
         }
 
-        /* Main */
-        main {
-            padding: 2rem;
-        }
-
+        /* === CABECERA === */
         .page-header {
             background: linear-gradient(90deg, #20c997, #3c6255);
             color: #fff;
@@ -100,31 +87,84 @@ $disponibilidadActual = [
 
         .page-header h2 {
             font-weight: 600;
+            font-size: 1.3rem;
             margin: 0;
         }
 
+        /* === TARJETA === */
         .card-premium {
             border: none;
             border-radius: 14px;
             box-shadow: 0 5px 20px rgba(0, 0, 0, .05);
             background: #fff;
-            padding: 1.5rem;
+            padding: 1.5rem 2rem;
         }
 
+        /* === FORMULARIO === */
+        .day-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #eee;
+            padding: 0.8rem 0;
+        }
+
+        .day-row:last-child {
+            border-bottom: none;
+        }
+
+        .day-name {
+            font-weight: 600;
+            width: 110px;
+        }
+
+        .form-switch .form-check-input {
+            width: 3em;
+            height: 1.4em;
+        }
+
+        .form-check-input:checked {
+            background-color: #3c6255;
+            border-color: #3c6255;
+        }
+
+        .hour-input {
+            border-radius: 8px;
+            border: 1px solid #ced4da;
+            padding: 0.45rem 0.6rem;
+            width: 110px;
+            font-size: 0.9rem;
+        }
+
+        .time-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* === BOTÓN === */
         .btn-gradient {
             background: linear-gradient(90deg, #3c6255, #20c997);
             border: none;
             color: #fff;
             font-weight: 500;
+            border-radius: 10px;
+            transition: 0.3s;
         }
 
         .btn-gradient:hover {
             opacity: 0.9;
         }
 
-        .form-check-input:checked {
-            background-color: #3c6255;
-            border-color: #3c6255;
+        /* === ALERTA === */
+        #alerta {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, .15);
+            display: none;
+            font-size: 0.95rem;
         }
     </style>
 </head>
@@ -132,10 +172,10 @@ $disponibilidadActual = [
 <body>
     <div class="container-fluid">
         <div class="row">
-            <!-- Sidebar -->
+            <!-- === SIDEBAR === -->
             <div class="col-md-3 col-lg-2 d-md-block sidebar">
                 <div class="text-center mb-4">
-                    <img src="../../assets/img/logo.png" alt="Jaguata" width="120" class="mb-3">
+                    <img src="<?= ASSETS_URL; ?>/uploads/perfiles/logojag.png" alt="Jaguata" width="50">
                     <hr class="text-light">
                 </div>
                 <ul class="nav flex-column gap-1 px-2">
@@ -147,71 +187,60 @@ $disponibilidadActual = [
                 </ul>
             </div>
 
-            <!-- Contenido -->
+            <!-- === CONTENIDO PRINCIPAL === -->
             <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
-
                 <div class="page-header">
                     <h2><i class="fas fa-calendar-check me-2"></i> Disponibilidad Semanal</h2>
-                    <a href="Dashboard.php" class="btn btn-outline-light btn-sm"><i class="fas fa-arrow-left me-1"></i> Volver</a>
+                    <a href="Dashboard.php" class="btn btn-outline-light btn-sm">
+                        <i class="fas fa-arrow-left me-1"></i> Volver
+                    </a>
                 </div>
 
-                <div class="card-premium mb-4">
-                    <h5 class="fw-semibold mb-3"><i class="fas fa-clock text-success me-2"></i> Configurá tus horarios</h5>
-                    <p class="text-muted mb-4">Seleccioná los días en los que estás disponible y especificá tus horarios de inicio y fin. Los dueños solo podrán solicitarte paseos dentro de estos rangos.</p>
+                <div class="card-premium">
+                    <p class="text-muted mb-4">Activá los días que estás disponible y ajustá tus horarios.</p>
 
                     <form id="formDisponibilidad">
-                        <div class="table-responsive">
-                            <table class="table align-middle">
-                                <thead>
-                                    <tr>
-                                        <th>Día</th>
-                                        <th>Disponible</th>
-                                        <th>Hora de inicio</th>
-                                        <th>Hora de fin</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php foreach ($diasSemana as $dia):
-                                        $dispo = $disponibilidadActual[$dia] ?? null;
-                                        $checked = $dispo ? 'checked' : '';
-                                        $inicio = $dispo['inicio'] ?? '';
-                                        $fin = $dispo['fin'] ?? '';
-                                    ?>
-                                        <tr>
-                                            <td class="fw-semibold"><?= $dia ?></td>
-                                            <td>
-                                                <input type="checkbox" class="form-check-input" name="dias[]" value="<?= $dia ?>" <?= $checked ?>>
-                                            </td>
-                                            <td><input type="time" class="form-control" name="inicio[<?= $dia ?>]" value="<?= $inicio ?>"></td>
-                                            <td><input type="time" class="form-control" name="fin[<?= $dia ?>]" value="<?= $fin ?>"></td>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                </tbody>
-                            </table>
-                        </div>
+                        <?php foreach ($diasSemana as $dia):
+                            $dispo = $disponibilidadActual[$dia] ?? null;
+                            $checked = $dispo ? 'checked' : '';
+                            $inicio = $dispo['inicio'] ?? '';
+                            $fin = $dispo['fin'] ?? '';
+                        ?>
+                            <div class="day-row">
+                                <span class="day-name"><?= $dia ?></span>
+                                <div class="form-switch">
+                                    <input type="checkbox" class="form-check-input" name="dias[]" id="<?= $dia ?>" value="<?= $dia ?>" <?= $checked ?>>
+                                </div>
+                                <div class="time-group">
+                                    <input type="time" name="inicio[<?= $dia ?>]" value="<?= $inicio ?>" class="hour-input">
+                                    <span>–</span>
+                                    <input type="time" name="fin[<?= $dia ?>]" value="<?= $fin ?>" class="hour-input">
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
 
-                        <div class="text-end mt-3">
-                            <button type="submit" class="btn btn-gradient">
-                                <i class="fas fa-save me-2"></i> Guardar Cambios
+                        <div class="text-end mt-4">
+                            <button type="submit" class="btn btn-gradient px-4 py-2">
+                                <i class="fas fa-save me-2"></i> Guardar cambios
                             </button>
                         </div>
                     </form>
                 </div>
-
-                <div id="alerta" class="alert d-none"></div>
             </main>
         </div>
     </div>
 
+    <div id="alerta" class="alert alert-success">
+        <i class="fas fa-check-circle me-2"></i> Disponibilidad guardada correctamente.
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        document.getElementById('formDisponibilidad').addEventListener('submit', function(e) {
+        document.getElementById('formDisponibilidad').addEventListener('submit', e => {
             e.preventDefault();
             const alerta = document.getElementById('alerta');
-            alerta.className = 'alert alert-success';
-            alerta.textContent = 'Disponibilidad guardada correctamente.';
-            alerta.classList.remove('d-none');
-            setTimeout(() => alerta.classList.add('d-none'), 3000);
+            alerta.style.display = 'block';
+            setTimeout(() => alerta.style.display = 'none', 2500);
         });
     </script>
 </body>

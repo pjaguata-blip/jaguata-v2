@@ -175,7 +175,7 @@ $mascotasRecientes = array_slice($mascotas, 0, 3);
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
         }
 
-        .welcome-box h4 {
+        .welcome-box h2 {
             font-weight: 600;
             font-size: 1.25rem;
             margin-bottom: 4px;
@@ -266,7 +266,7 @@ $mascotasRecientes = array_slice($mascotas, 0, 3);
         <!-- Sidebar -->
         <aside class="sidebar" id="sidebar">
             <div class="text-center mb-4">
-                <img src="../../assets/img/logo.png" alt="Jaguata" width="120" class="mb-3">
+                <img src="<?= ASSETS_URL; ?>/uploads/perfiles/logojag.png" alt="Jaguata" width="50">
                 <hr class="text-light">
             </div>
 
@@ -288,7 +288,7 @@ $mascotasRecientes = array_slice($mascotas, 0, 3);
         <main class="content">
             <div class="welcome-box mb-4">
                 <div>
-                    <h4>¡Bienvenido/a a tu panel, <?= htmlspecialchars(Session::getUsuarioNombre() ?? 'Dueño/a'); ?>!</h4>
+                    <h1>¡Bienvenido/a a tu panel, <?= htmlspecialchars(Session::getUsuarioNombre() ?? 'Dueño/a'); ?>!</h1>
                     <p>Gestioná tus mascotas, paseos y notificaciones fácilmente 🐾</p>
                 </div>
                 <i class="fas fa-dog fa-3x opacity-75"></i>

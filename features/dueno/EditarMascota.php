@@ -220,7 +220,7 @@ $baseFeatures = BASE_URL . "/features/{$rol}";
         <!-- Sidebar -->
         <aside class="sidebar" id="sidebar">
             <div class="text-center mb-4">
-                <img src="../../assets/img/logo.png" alt="Jaguata" width="120" class="mb-3">
+                <img src="<?= ASSETS_URL; ?>/uploads/perfiles/logojag.png" alt="Jaguata" width="50">
                 <hr class="text-light">
             </div>
             <ul class="nav flex-column gap-1 px-2">

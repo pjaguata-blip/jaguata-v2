@@ -131,7 +131,7 @@ function activeMenu(string $name): string
     <div class="layout">
         <aside class="sidebar" id="sidebar">
             <div class="text-center mb-4">
-                <img src="<?= ASSETS_URL ?>/img/logo.png" alt="Jaguata" width="120" class="mb-3">
+                <img src="<?= ASSETS_URL; ?>/uploads/perfiles/logojag.png" alt="Jaguata" width="100">
                 <hr class="text-light">
             </div>
             <ul class="nav flex-column gap-1 px-2">

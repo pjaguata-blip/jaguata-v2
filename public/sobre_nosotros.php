@@ -27,8 +27,8 @@ include __DIR__ . '/../src/Templates/Header.php';
 <!-- Barra de navegación secundaria -->
 <div class="container py-3">
     <div class="d-flex justify-content-end gap-2">
-        <a href="<?= htmlspecialchars($inicioUrl) ?>" class="btn btn-outline-secondary">
-            <i class="fa-solid fa-house me-1"></i> Ir al inicio
+        <a href="<?= BASE_URL; ?>/login.php" class="btn btn-outline-secondary">
+            <i class="fa-solid fa-right-to-bracket me-1"></i> Iniciar sesión
         </a>
         <?php if ($panelUrl): ?>
             <a href="<?= htmlspecialchars($panelUrl) ?>" class="btn btn-outline-primary">
@@ -58,10 +58,16 @@ include __DIR__ . '/../src/Templates/Header.php';
                 </div>
             </div>
             <div class="col-lg-6 text-center">
-                <img src="<?= ASSETS_URL; ?>/images/about-hero.png"
-                    alt="Paseadores y mascotas felices"
+                <video
+                    src="http://localhost/jaguata/assets/uploads/perfiles/gif1.mp4"
+                    autoplay
+                    loop
+                    muted
+                    playsinline
                     class="img-fluid rounded-4 shadow-lg"
-                    style="max-height:380px;object-fit:contain;">
+                    style="max-height:380px; object-fit:contain;">
+                    Tu navegador no soporta videos HTML5.
+                </video>
             </div>
         </div>
     </div>

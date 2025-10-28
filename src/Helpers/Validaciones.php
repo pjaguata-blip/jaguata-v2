@@ -101,7 +101,11 @@ class Validaciones
             $errores['telefono'] = 'Teléfono inválido (ej: 0981-123-456 o solo dígitos)';
         }
 
-        if (empty($data['rol']) || !\in_array($data['rol'], ['dueno', 'paseador'], true)) {
+        /**
+         * ✅ Se agregó el rol 'admin' para compatibilidad con el panel administrativo.
+         *    Ahora también será considerado válido al registrarse o iniciar sesión.
+         */
+        if (empty($data['rol']) || !\in_array($data['rol'], ['dueno', 'paseador', 'admin'], true)) {
             $errores['rol'] = 'Debes seleccionar un rol válido';
         }
 

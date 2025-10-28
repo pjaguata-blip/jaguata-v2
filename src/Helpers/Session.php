@@ -19,8 +19,8 @@ class Session
         $_SESSION['usuario_id']   = $usuario['usu_id'] ?? null;
         $_SESSION['nombre']       = $usuario['nombre'] ?? '';
         $_SESSION['email']        = $usuario['email'] ?? '';
-        $_SESSION['rol']          = $usuario['rol'] ?? 'dueno';
-        $_SESSION['usuario_tipo'] = $usuario['rol'] ?? 'dueno';
+        $_SESSION['rol']          = strtolower($usuario['rol'] ?? 'dueno'); // 🔹 agregado strtolower
+        $_SESSION['usuario_tipo'] = strtolower($usuario['rol'] ?? 'dueno');
     }
 
     /** Cierra la sesión limpiando variables, cookie e ID de sesión */

@@ -41,7 +41,6 @@ class AuthController
         }
     }
 
-
     /**
      * Verifica que el usuario esté autenticado
      */
@@ -80,8 +79,13 @@ class AuthController
     {
         if (Session::isLoggedIn()) {
             $rol = Session::getUsuarioRol();
-            if ($rol && in_array($rol, ['dueno', 'paseador'], true)) {
-                header('Location: /jaguata/features/' . $rol . '/Dashboard.php', true, 302);
+            if ($rol && in_array($rol, ['dueno', 'paseador', 'admin'], true)) {
+                // ✅ ahora soporta también 'admin'
+                if ($rol === 'admin') {
+                    header('Location: /jaguata/public/admin.php', true, 302);
+                } else {
+                    header('Location: /jaguata/features/' . $rol . '/Dashboard.php', true, 302);
+                }
                 exit;
             } else {
                 Session::logout();
@@ -94,8 +98,12 @@ class AuthController
     {
         if (Session::isLoggedIn()) {
             $rol = Session::getUsuarioRol();
-            if ($rol && in_array($rol, ['dueno', 'paseador'], true)) {
-                header('Location: /jaguata/features/' . $rol . '/Dashboard.php', true, 302);
+            if ($rol && in_array($rol, ['dueno', 'paseador', 'admin'], true)) {
+                if ($rol === 'admin') {
+                    header('Location: /jaguata/public/admin.php', true, 302);
+                } else {
+                    header('Location: /jaguata/features/' . $rol . '/Dashboard.php', true, 302);
+                }
                 exit;
             } else {
                 Session::logout();
@@ -161,8 +169,13 @@ class AuthController
 
         if ($result['success']) {
             $rol = Session::get('rol');
-            if ($rol && in_array($rol, ['dueno', 'paseador'], true)) {
-                header('Location: /jaguata/features/' . $rol . '/Dashboard.php', true, 302);
+            if ($rol && in_array($rol, ['dueno', 'paseador', 'admin'], true)) {
+                // ✅ Redirección según el rol
+                if ($rol === 'admin') {
+                    header('Location: /jaguata/public/admin.php', true, 302);
+                } else {
+                    header('Location: /jaguata/features/' . $rol . '/Dashboard.php', true, 302);
+                }
                 exit;
             } else {
                 Session::logout();
@@ -214,7 +227,7 @@ class AuthController
             return ['success' => false, 'error' => 'Teléfono inválido'];
         }
 
-        if (!in_array($rol, ['dueno', 'paseador'], true)) {
+        if (!in_array($rol, ['dueno', 'paseador', 'admin'], true)) {
             return ['success' => false, 'error' => 'Rol inválido'];
         }
 
@@ -331,8 +344,12 @@ class AuthController
         }
 
         $rol = Session::get('rol');
-        if ($rol && in_array($rol, ['dueno', 'paseador'], true)) {
-            header("Location: /jaguata/features/{$rol}/Dashboard.php", true, 302);
+        if ($rol && in_array($rol, ['dueno', 'paseador', 'admin'], true)) {
+            if ($rol === 'admin') {
+                header("Location: /jaguata/public/admin.php", true, 302);
+            } else {
+                header("Location: /jaguata/features/{$rol}/Dashboard.php", true, 302);
+            }
             exit;
         }
 

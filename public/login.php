@@ -15,7 +15,18 @@ AppConfig::init();
 // Redirigir si ya está logueado
 if (Session::isLoggedIn()) {
     $rol = Session::getUsuarioRol();
-    header('Location: ' . BASE_URL . "/features/{$rol}/Dashboard.php");
+    if ($usuario) {
+        $usuario['remember_me'] = $remember_me;
+        Session::login($usuario);
+
+        if ($usuario['rol'] === 'admin') {
+            header('Location: ' . BASE_URL . '/public/admin.php');
+        } else {
+            header('Location: ' . BASE_URL . "/features/{$usuario['rol']}/Dashboard.php");
+        }
+        exit;
+    }
+
     exit;
 }
 

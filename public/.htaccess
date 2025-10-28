@@ -12,22 +12,15 @@ RewriteEngine On
 RewriteCond %{HTTP_HOST} ^www\.(.+)$ [NC]
 RewriteRule ^ https://%1%{REQUEST_URI} [R=301,L]
 
-# Si estás detrás de proxy que pone X-Forwarded-Proto, usa esto en su lugar:
-# RewriteCond %{HTTP:X-Forwarded-Proto} !https
-# RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
-
 ### 2) Bloqueo de archivos y carpetas sensibles
-# Bloquea todos los dotfiles (.env, .git, .htaccess, etc.)
 <FilesMatch "^\.">
   Require all denied
 </FilesMatch>
 
-# Bloquear archivos concretos
 <FilesMatch "^(config\.env|composer\.(json|lock))$">
   Require all denied
 </FilesMatch>
 
-# Bloquear acceso directo a carpetas internas (no se puede usar <Directory> en .htaccess)
 RewriteRule ^(?:src|database|tests)(?:/.*)?$ - [F,L]
 
 ### 3) Cache de estáticos
@@ -44,13 +37,12 @@ RewriteRule ^(?:src|database|tests)(?:/.*)?$ - [F,L]
   ExpiresByType font/woff2 "access plus 30 days"
 </IfModule>
 
-# Opcional: simplificar validación de cache
 FileETag None
 <IfModule mod_headers.c>
   Header unset ETag
 </IfModule>
 
-### 4) Compresión (Brotli si está, sino Gzip) 
+### 4) Compresión (Brotli si está, sino Gzip)
 <IfModule mod_brotli.c>
   AddOutputFilterByType BROTLI_COMPRESS \
     text/plain text/html text/xml text/css \
@@ -69,36 +61,33 @@ FileETag None
   Header always set X-Content-Type-Options "nosniff"
   Header always set X-Frame-Options "SAMEORIGIN"
   Header always set Referrer-Policy "strict-origin-when-cross-origin"
-  # HSTS solo si ya sirves estrictamente por HTTPS:
-  # Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
   Header always set Cross-Origin-Opener-Policy "same-origin"
   Header always set Cross-Origin-Resource-Policy "same-origin"
   Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
-  # Obsoleto, pero inofensivo para navegadores antiguos:
   Header always set X-XSS-Protection "1; mode=block"
 </IfModule>
 
-### 6) Ruteo de API → api/index.php (front controller)
-# Todo lo que empiece con /api va a api/index.php
+### 6) Ruteo de API → api/index.php
 RewriteCond %{REQUEST_URI} ^/api [NC]
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^api(?:/(.*))?$ api/index.php [QSA,L]
 
-### 7) Ruteo del sitio público
+### 7) Ruteo del sitio público y exclusión de /features/
 # Si el archivo o directorio existe, lo sirve directamente
 RewriteCond %{REQUEST_FILENAME} -f [OR]
 RewriteCond %{REQUEST_FILENAME} -d
 RewriteRule ^ - [L]
 
-# Enviar el resto al front controller de /public
-RewriteRule ^(.*)$ public/index.php [QSA,L]
+# ⚠️ Evitar que /features/ y /public/ se redirijan a sí mismos
+RewriteCond %{REQUEST_URI} ^/features/ [NC]
+RewriteRule ^ - [L]
 
-# Enviar el resto a /public manteniendo rutas limpias (/login, /registro, etc.)
-RewriteCond %{REQUEST_URI} !^/public/
-RewriteRule ^(.*)$ public/$1 [QSA,L]
+RewriteCond %{REQUEST_URI} ^/public/ [NC]
+RewriteRule ^ - [L]
 
-# Si usas SPA o front controller en /public, agrega otro .htaccess dentro de /public que envíe a index.php.
+# Enviar el resto al front controller principal
+RewriteRule ^ index.php [QSA,L]
 
 ### 8) Páginas de error
 ErrorDocument 404 /public/404.php

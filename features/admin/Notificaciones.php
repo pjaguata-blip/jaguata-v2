@@ -2,28 +2,20 @@
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-// ✅ Inclusión de dependencias
 require_once dirname(__DIR__, 2) . '/src/Config/AppConfig.php';
 require_once dirname(__DIR__, 2) . '/src/Helpers/Session.php';
 
 use Jaguata\Config\AppConfig;
 use Jaguata\Helpers\Session;
 
-// 🔹 Inicialización
 AppConfig::init();
 
-// 🔹 Verificación de sesión y rol
-if (!Session::isLoggedIn()) {
-    header('Location: /jaguata/public/login.php');
-    exit;
-}
-$rol = Session::getUsuarioRol();
-if ($rol !== 'admin') {
+if (!Session::isLoggedIn() || Session::getUsuarioRol() !== 'admin') {
     header('Location: /jaguata/public/login.php?error=unauthorized');
     exit;
 }
 
-// 🔹 Datos simulados (puedes reemplazar por datos reales desde BD)
+// 🔹 Datos simulados
 $notificaciones = [
     ['id' => 1, 'titulo' => 'Nueva actualización disponible', 'mensaje' => 'Se agregó un nuevo módulo de Auditoría en el sistema.', 'destinatario' => 'Todos', 'fecha' => '2025-10-25 09:30', 'estado' => 'enviado'],
     ['id' => 2, 'titulo' => 'Recordatorio de pago', 'mensaje' => 'Recuerda liquidar los paseos completados antes de fin de mes.', 'destinatario' => 'Paseadores', 'fecha' => '2025-10-26 14:15', 'estado' => 'enviado'],
@@ -40,77 +32,95 @@ $notificaciones = [
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
     <style>
+        :root {
+            --verde-jaguata: #3c6255;
+            --verde-claro: #20c997;
+            --gris-fondo: #f5f7fa;
+            --blanco: #fff;
+        }
+
         body {
-            background-color: #f5f7fa;
+            background-color: var(--gris-fondo);
             font-family: "Poppins", sans-serif;
+            color: #444;
         }
 
         .sidebar {
             background: linear-gradient(180deg, #1e1e2f 0%, #292a3a 100%);
-            color: #fff;
-            width: 240px;
+            width: 250px;
             height: 100vh;
             position: fixed;
+            color: #fff;
             top: 0;
             left: 0;
             padding-top: 1.5rem;
+            box-shadow: 3px 0 10px rgba(0, 0, 0, 0.25);
         }
 
         .sidebar .nav-link {
-            color: #ddd;
+            color: #ccc;
             padding: 10px 16px;
             border-radius: 8px;
-            margin: 4px 8px;
-            transition: background 0.2s;
+            margin: 4px 10px;
+            display: flex;
+            align-items: center;
+            gap: 0.7rem;
+            transition: all 0.2s ease;
         }
 
         .sidebar .nav-link:hover,
         .sidebar .nav-link.active {
-            background: #3c6255;
+            background: var(--verde-claro);
             color: #fff;
+            transform: translateX(4px);
         }
 
         main {
-            margin-left: 240px;
+            margin-left: 250px;
             padding: 2rem;
         }
 
         .welcome-box {
-            background: linear-gradient(90deg, #20c997, #3c6255);
+            background: linear-gradient(90deg, var(--verde-claro), var(--verde-jaguata));
             color: #fff;
-            padding: 1.5rem 2rem;
-            border-radius: 14px;
+            padding: 1.8rem 2rem;
+            border-radius: 16px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 2rem;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+            animation: fadeIn 0.7s ease;
         }
 
         .card {
-            background: #fff;
-            border-radius: 12px;
-            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.07);
+            background: var(--blanco);
+            border-radius: 14px;
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
+            animation: fadeIn 0.6s ease;
         }
 
         .table thead {
-            background: #3c6255;
+            background: var(--verde-jaguata);
             color: #fff;
         }
 
         .table-hover tbody tr:hover {
             background-color: #eef8f2;
+            transition: 0.25s;
         }
 
         .btn-enviar {
-            background: #3c6255;
+            background: var(--verde-jaguata);
             color: #fff;
             border: none;
             padding: .6rem 1.3rem;
             border-radius: 8px;
+            transition: 0.2s ease;
         }
 
         .btn-enviar:hover {
-            background: #20c997;
+            background: var(--verde-claro);
+            transform: translateY(-2px);
         }
 
         footer {
@@ -119,15 +129,45 @@ $notificaciones = [
             font-size: 0.85rem;
             margin-top: 2rem;
         }
+
+        .filtros {
+            background: var(--blanco);
+            border-radius: 14px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+            padding: 1rem 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .badge-pendiente {
+            background: #ffc107;
+            color: #000;
+        }
+
+        .badge-enviado {
+            background: #20c997;
+            color: #fff;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
     </style>
 </head>
 
 <body>
-
     <!-- Sidebar -->
     <aside class="sidebar">
         <div class="text-center mb-4">
-            <img src="<?= ASSETS_URL; ?>/uploads/perfiles/logojag.png" alt="Logo" width="50">
+            <img src="<?= ASSETS_URL; ?>/uploads/perfiles/logojag.png" alt="Logo" width="70" class="rounded-circle bg-light p-2">
+            <h6 class="mt-2 fw-bold text-success">Jaguata Admin</h6>
             <hr class="text-light">
         </div>
         <ul class="nav flex-column gap-1 px-2">
@@ -137,25 +177,43 @@ $notificaciones = [
             <li><a class="nav-link" href="Pagos.php"><i class="fas fa-wallet"></i> Pagos</a></li>
             <li><a class="nav-link" href="Servicios.php"><i class="fas fa-briefcase"></i> Servicios</a></li>
             <li><a class="nav-link active" href="#"><i class="fas fa-bell"></i> Notificaciones</a></li>
-            <li><a class="nav-link" href="RolesPermisos.php"><i class="fas fa-user-lock"></i> Roles y Permisos</a></li>
+            <li><a class="nav-link" href="RolesPermisos.php"><i class="fas fa-user-lock"></i> Roles</a></li>
             <li><a class="nav-link" href="Reportes.php"><i class="fas fa-chart-pie"></i> Reportes</a></li>
             <li><a class="nav-link" href="Configuracion.php"><i class="fas fa-cogs"></i> Configuración</a></li>
             <li><a class="nav-link" href="Auditoria.php"><i class="fas fa-shield-halved"></i> Auditoría</a></li>
-            <li><a class="nav-link text-danger" href="/jaguata/public/logout.php"><i class="fas fa-sign-out-alt"></i> Cerrar sesión</a></li>
+            <li><a class="nav-link text-danger" href="/jaguata/public/logout.php"><i class="fas fa-sign-out-alt"></i> Salir</a></li>
         </ul>
     </aside>
 
     <!-- Contenido -->
     <main>
-        <div class="welcome-box">
+        <div class="welcome-box mb-4">
             <div>
-                <h1>Notificaciones del sistema</h1>
-                <p>Envía avisos a usuarios, dueños o paseadores 🔔</p>
+                <h1 class="fw-bold">Centro de Notificaciones</h1>
+                <p>Envía avisos, recordatorios y promociones a los usuarios 🔔</p>
             </div>
             <i class="fas fa-bell fa-3x opacity-75"></i>
         </div>
 
-        <!-- Formulario de nueva notificación -->
+        <!-- Filtros -->
+        <div class="filtros">
+            <form class="row g-3 align-items-end">
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Buscar</label>
+                    <input type="text" id="searchInput" class="form-control" placeholder="Título o destinatario...">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Estado</label>
+                    <select id="filterEstado" class="form-select">
+                        <option value="">Todos</option>
+                        <option value="enviado">Enviado</option>
+                        <option value="pendiente">Pendiente</option>
+                    </select>
+                </div>
+            </form>
+        </div>
+
+        <!-- Nueva notificación -->
         <div class="card p-4 mb-4">
             <h5 class="text-success fw-bold mb-3"><i class="fas fa-paper-plane me-2"></i>Enviar nueva notificación</h5>
             <form method="post" action="#">
@@ -177,52 +235,96 @@ $notificaciones = [
                     <label class="form-label fw-semibold">Mensaje</label>
                     <textarea name="mensaje" class="form-control" rows="4" placeholder="Escribe el contenido del aviso..." required></textarea>
                 </div>
-                <button type="submit" class="btn-enviar"><i class="fas fa-paper-plane me-2"></i>Enviar notificación</button>
+                <button type="submit" class="btn-enviar"><i class="fas fa-paper-plane me-2"></i>Enviar</button>
             </form>
         </div>
 
-        <!-- Historial de notificaciones -->
+        <!-- Historial -->
         <div class="card p-4">
             <h5 class="text-success fw-bold mb-3"><i class="fas fa-history me-2"></i>Historial de notificaciones</h5>
-            <table class="table table-hover align-middle">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Título</th>
-                        <th>Destinatario</th>
-                        <th>Fecha</th>
-                        <th>Estado</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($notificaciones as $n): ?>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle" id="tablaNotificaciones">
+                    <thead>
                         <tr>
-                            <td><strong>#<?= htmlspecialchars($n['id']) ?></strong></td>
-                            <td><?= htmlspecialchars($n['titulo']) ?></td>
-                            <td><?= htmlspecialchars($n['destinatario']) ?></td>
-                            <td><?= date('d/m/Y H:i', strtotime($n['fecha'])) ?></td>
-                            <td>
-                                <span class="badge <?= $n['estado'] === 'enviado' ? 'bg-success' : 'bg-secondary' ?>">
-                                    <?= ucfirst($n['estado']) ?>
-                                </span>
-                            </td>
-                            <td>
-                                <button class="btn btn-sm btn-outline-primary"><i class="fas fa-eye"></i></button>
-                                <button class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button>
-                            </td>
+                            <th>ID</th>
+                            <th>Título</th>
+                            <th>Destinatario</th>
+                            <th>Fecha</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
                         </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($notificaciones as $n): ?>
+                            <?php $estado = strtolower($n['estado']); ?>
+                            <tr data-estado="<?= $estado ?>">
+                                <td>#<?= htmlspecialchars($n['id']) ?></td>
+                                <td><?= htmlspecialchars($n['titulo']) ?></td>
+                                <td><?= htmlspecialchars($n['destinatario']) ?></td>
+                                <td><?= date('d/m/Y H:i', strtotime($n['fecha'])) ?></td>
+                                <td><span class="badge <?= $estado === 'enviado' ? 'badge-enviado' : 'badge-pendiente' ?>"><?= ucfirst($n['estado']) ?></span></td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#verNotiModal" data-id="<?= $n['id'] ?>"><i class="fas fa-eye"></i></button>
+                                    <button class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
         </div>
 
-        <footer>
-            <small>© <?= date('Y') ?> Jaguata — Panel de Administración</small>
-        </footer>
+        <!-- Modal -->
+        <div class="modal fade" id="verNotiModal" tabindex="-1" aria-labelledby="verNotiLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header bg-success text-white">
+                        <h5 class="modal-title"><i class="fas fa-bell me-2"></i>Detalle de Notificación</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <h6><strong>Título:</strong> <span id="notiTitulo">Actualización del sistema</span></h6>
+                        <h6><strong>Destinatario:</strong> <span id="notiDestinatario">Todos</span></h6>
+                        <hr>
+                        <p id="notiMensaje">Se agregó un nuevo módulo de auditoría en Jaguata.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer><small>© <?= date('Y') ?> Jaguata — Panel de Administración</small></footer>
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // === Filtros dinámicos ===
+        const searchInput = document.getElementById('searchInput');
+        const filterEstado = document.getElementById('filterEstado');
+        const rows = document.querySelectorAll('#tablaNotificaciones tbody tr');
+
+        function aplicarFiltros() {
+            const texto = searchInput.value.toLowerCase();
+            const estadoVal = filterEstado.value.toLowerCase();
+            rows.forEach(row => {
+                const rowEstado = row.dataset.estado;
+                const rowTexto = row.textContent.toLowerCase();
+                const visible = rowTexto.includes(texto) && (!estadoVal || rowEstado === estadoVal);
+                row.style.display = visible ? '' : 'none';
+            });
+        }
+        [searchInput, filterEstado].forEach(el => el.addEventListener('input', aplicarFiltros));
+
+        // === Modal de vista ===
+        document.querySelectorAll('[data-bs-target="#verNotiModal"]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const id = btn.dataset.id;
+                const row = btn.closest('tr');
+                document.getElementById('notiTitulo').textContent = row.children[1].textContent;
+                document.getElementById('notiDestinatario').textContent = row.children[2].textContent;
+                document.getElementById('notiMensaje').textContent = "<?= addslashes($notificaciones[0]['mensaje']) ?>";
+            });
+        });
+    </script>
 </body>
 
 </html>

@@ -47,6 +47,7 @@ $config = array_merge([
     <title>Configuración - Jaguata</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         :root {
             --verde-jaguata: #3c6255;
@@ -61,7 +62,6 @@ $config = array_merge([
             font-family: "Poppins", sans-serif;
         }
 
-        /* === Sidebar === */
         .sidebar {
             background: linear-gradient(180deg, #1e1e2f 0%, #292a3a 100%);
             color: #fff;
@@ -86,13 +86,11 @@ $config = array_merge([
             color: #fff;
         }
 
-        /* === Main === */
         main {
             margin-left: 250px;
             padding: 2rem;
         }
 
-        /* === Header === */
         .welcome-box {
             background: linear-gradient(90deg, var(--verde-claro), var(--verde-jaguata));
             color: #fff;
@@ -103,10 +101,8 @@ $config = array_merge([
             align-items: center;
             margin-bottom: 2rem;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
-            animation: fadeIn 0.6s ease;
         }
 
-        /* === Tarjetas de configuración === */
         .section-card {
             background: var(--blanco);
             border-radius: 14px;
@@ -130,7 +126,6 @@ $config = array_merge([
             padding-bottom: 0.5rem;
         }
 
-        /* === Inputs === */
         label {
             font-weight: 600;
             color: #444;
@@ -150,7 +145,6 @@ $config = array_merge([
             box-shadow: 0 0 0 3px rgba(32, 201, 151, 0.2);
         }
 
-        /* === Switch === */
         .switch {
             position: relative;
             display: inline-block;
@@ -196,7 +190,6 @@ $config = array_merge([
             transform: translateX(30px);
         }
 
-        /* === Botón === */
         .btn-guardar {
             background: var(--verde-jaguata);
             color: #fff;
@@ -213,26 +206,6 @@ $config = array_merge([
             transform: scale(1.03);
         }
 
-        /* === Mensaje de éxito === */
-        .alert-success {
-            border-left: 6px solid var(--verde-claro);
-            animation: fadeIn 0.7s ease;
-        }
-
-        /* === Animaciones === */
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        /* === Footer === */
         footer {
             text-align: center;
             color: #777;
@@ -243,7 +216,6 @@ $config = array_merge([
 </head>
 
 <body>
-
     <!-- Sidebar -->
     <aside class="sidebar">
         <div class="text-center mb-4">
@@ -255,7 +227,6 @@ $config = array_merge([
             <li><a class="nav-link" href="Usuarios.php"><i class="fas fa-users"></i> Usuarios</a></li>
             <li><a class="nav-link" href="Paseos.php"><i class="fas fa-dog"></i> Paseos</a></li>
             <li><a class="nav-link" href="Pagos.php"><i class="fas fa-wallet"></i> Pagos</a></li>
-            <li><a class="nav-link" href="Reportes.php"><i class="fas fa-chart-pie"></i> Reportes</a></li>
             <li><a class="nav-link active" href="#"><i class="fas fa-cogs"></i> Configuración</a></li>
             <li><a class="nav-link" href="Auditoria.php"><i class="fas fa-shield-halved"></i> Auditoría</a></li>
             <li><a class="nav-link text-danger" href="/jaguata/public/logout.php"><i class="fas fa-sign-out-alt"></i> Salir</a></li>
@@ -277,7 +248,7 @@ $config = array_merge([
         <?php endif; ?>
 
         <form method="post">
-            <!-- Sección general -->
+            <!-- General -->
             <div class="section-card">
                 <div class="section-header"><i class="fas fa-gears me-2"></i>Configuración General</div>
                 <div class="row g-3">
@@ -292,7 +263,7 @@ $config = array_merge([
                 </div>
             </div>
 
-            <!-- Sección financiera -->
+            <!-- Financiera -->
             <div class="section-card">
                 <div class="section-header"><i class="fas fa-wallet me-2"></i>Configuración Financiera</div>
                 <div class="row g-3">
@@ -307,7 +278,7 @@ $config = array_merge([
                 </div>
             </div>
 
-            <!-- Sección técnica -->
+            <!-- Técnica -->
             <div class="section-card">
                 <div class="section-header"><i class="fas fa-shield-halved me-2"></i>Configuración del Sistema</div>
                 <div class="row align-items-center g-3">
@@ -328,12 +299,60 @@ $config = array_merge([
             </div>
         </form>
 
-        <footer>
-            <small>© <?= date('Y') ?> Jaguata — Panel de Administración</small>
-        </footer>
+        <!-- Seguridad -->
+        <div class="section-card">
+            <div class="section-header"><i class="fas fa-lock me-2"></i>Seguridad de la Cuenta</div>
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label>Contraseña actual</label>
+                    <input type="password" id="passActual" class="form-control">
+                </div>
+                <div class="col-md-4">
+                    <label>Nueva contraseña</label>
+                    <input type="password" id="passNueva" class="form-control">
+                </div>
+                <div class="col-md-4">
+                    <label>Confirmar nueva contraseña</label>
+                    <input type="password" id="passConfirm" class="form-control">
+                </div>
+            </div>
+            <div class="text-end mt-3">
+                <button id="btnCambiarPass" class="btn-guardar"><i class="fas fa-key me-2"></i>Actualizar contraseña</button>
+            </div>
+        </div>
+
+        <footer><small>© <?= date('Y') ?> Jaguata — Panel de Administración</small></footer>
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.getElementById('btnCambiarPass').addEventListener('click', () => {
+            const actual = document.getElementById('passActual').value.trim();
+            const nueva = document.getElementById('passNueva').value.trim();
+            const confirmar = document.getElementById('passConfirm').value.trim();
+
+            if (!actual || !nueva || !confirmar)
+                return Swal.fire('⚠️', 'Completá todos los campos.', 'warning');
+
+            if (nueva !== confirmar)
+                return Swal.fire('❌', 'Las contraseñas no coinciden.', 'error');
+
+            if (nueva.length < 6)
+                return Swal.fire('🔒', 'La nueva contraseña debe tener al menos 6 caracteres.', 'warning');
+
+            // En un entorno real aquí se haría fetch() a tu controlador PHP
+            Swal.fire({
+                icon: 'success',
+                title: 'Contraseña actualizada',
+                text: 'Tu contraseña fue cambiada correctamente.',
+                confirmButtonColor: '#20c997'
+            });
+
+            document.getElementById('passActual').value = '';
+            document.getElementById('passNueva').value = '';
+            document.getElementById('passConfirm').value = '';
+        });
+    </script>
 </body>
 
 </html>

@@ -10,20 +10,16 @@ use Jaguata\Config\AppConfig;
 use Jaguata\Helpers\Session;
 use Jaguata\Controllers\PaseoController;
 
-// 🔹 Inicialización
 AppConfig::init();
 
-// 🔹 Seguridad
 if (!Session::isLoggedIn() || Session::getUsuarioRol() !== 'admin') {
     header('Location: /jaguata/public/login.php?error=unauthorized');
     exit;
 }
 
-// 🔹 Cargar paseos
 $paseoController = new PaseoController();
 $paseos = $paseoController->index();
 
-// 🔹 Datos de ejemplo
 if (empty($paseos) || isset($paseos['error'])) {
     $paseos = [
         [
@@ -49,12 +45,11 @@ if (empty($paseos) || isset($paseos['error'])) {
 <html lang="es">
 
 <head>
-    <meta charset="UTF-8" />
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Paseos - Jaguata</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
-
     <style>
         :root {
             --verde-jaguata: #3c6255;
@@ -66,9 +61,10 @@ if (empty($paseos) || isset($paseos['error'])) {
         body {
             font-family: "Poppins", sans-serif;
             background-color: var(--gris-fondo);
+            color: #333;
         }
 
-        /* === Sidebar === */
+        /* SIDEBAR */
         .sidebar {
             background: linear-gradient(180deg, #1e1e2f 0%, #292a3a 100%);
             width: 250px;
@@ -78,13 +74,18 @@ if (empty($paseos) || isset($paseos['error'])) {
             top: 0;
             left: 0;
             padding-top: 1.5rem;
+            box-shadow: 3px 0 10px rgba(0, 0, 0, 0.25);
         }
 
         .sidebar .nav-link {
             color: #ddd;
             padding: 10px 16px;
             border-radius: 8px;
-            margin: 4px 8px;
+            margin: 4px 10px;
+            display: flex;
+            align-items: center;
+            gap: 0.7rem;
+            transition: all 0.2s ease;
         }
 
         .sidebar .nav-link:hover,
@@ -94,46 +95,45 @@ if (empty($paseos) || isset($paseos['error'])) {
             transform: translateX(4px);
         }
 
-        /* === Contenido === */
+        /* MAIN */
         main {
             margin-left: 250px;
             padding: 2rem;
         }
 
-        /* === Header === */
+        /* HEADER */
         .welcome-box {
             background: linear-gradient(90deg, var(--verde-claro), var(--verde-jaguata));
             color: #fff;
-            padding: 1.5rem 2rem;
-            border-radius: 14px;
+            padding: 1.8rem 2rem;
+            border-radius: 16px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 2rem;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+            animation: fadeIn 0.7s ease;
         }
 
-        /* === Filtros === */
+        /* FILTROS */
         .filtros {
             background: var(--blanco);
-            padding: 1rem 1.5rem;
             border-radius: 14px;
+            padding: 1.2rem 1.5rem;
             box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
-            margin-bottom: 1.5rem;
+            margin-top: 1.5rem;
         }
 
-        .filtros input,
-        .filtros select {
-            border-radius: 10px;
-            font-size: 0.95rem;
+        .filtros .form-label {
+            font-weight: 600;
+            color: #444;
         }
 
-        /* === Botones exportar === */
+        /* BOTONES EXPORTAR */
         .export-buttons {
             display: flex;
             justify-content: flex-end;
             gap: .5rem;
-            margin-bottom: 1rem;
+            margin: 1.2rem 0;
         }
 
         .export-buttons .btn {
@@ -141,7 +141,18 @@ if (empty($paseos) || isset($paseos['error'])) {
             border-radius: 8px;
             font-size: 0.9rem;
             color: #fff;
-            transition: 0.2s;
+            transition: 0.25s;
+            display: flex;
+            align-items: center;
+            gap: .4rem;
+        }
+
+        .btn i {
+            transition: transform 0.2s;
+        }
+
+        .btn:hover i {
+            transform: scale(1.1);
         }
 
         .btn-pdf {
@@ -168,7 +179,7 @@ if (empty($paseos) || isset($paseos['error'])) {
             background: var(--verde-jaguata);
         }
 
-        /* === Tabla === */
+        /* TABLA */
         .table {
             background: var(--blanco);
             border-radius: 12px;
@@ -183,12 +194,14 @@ if (empty($paseos) || isset($paseos['error'])) {
 
         .table-hover tbody tr:hover {
             background: #eef8f2;
+            transition: 0.25s;
         }
 
         .badge {
             font-size: 0.85rem;
             padding: 0.4em 0.7em;
             border-radius: 8px;
+            box-shadow: inset 0 0 6px rgba(255, 255, 255, 0.3);
         }
 
         .btn-ver {
@@ -204,21 +217,40 @@ if (empty($paseos) || isset($paseos['error'])) {
             background-color: var(--verde-jaguata);
         }
 
+        /* FOOTER */
         footer {
             text-align: center;
             color: #777;
             font-size: 0.85rem;
             margin-top: 2rem;
         }
+
+        /* ANIMACIONES */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade-in-row {
+            animation: fadeIn 0.5s ease;
+        }
     </style>
 </head>
 
 <body>
 
-    <!-- Sidebar -->
+    <!-- SIDEBAR -->
     <aside class="sidebar">
         <div class="text-center mb-4">
-            <img src="<?= ASSETS_URL ?>/uploads/perfiles/logojag.png" alt="Logo" width="60">
+            <img src="<?= ASSETS_URL ?>/uploads/perfiles/logojag.png" alt="Logo" width="70" class="rounded-circle bg-light p-2">
+            <h6 class="mt-2 fw-bold text-success">Jaguata Admin</h6>
             <hr class="text-light">
         </div>
         <ul class="nav flex-column gap-1 px-2">
@@ -231,25 +263,25 @@ if (empty($paseos) || isset($paseos['error'])) {
         </ul>
     </aside>
 
-    <!-- Contenido principal -->
+    <!-- CONTENIDO -->
     <main>
         <div class="welcome-box">
             <div>
-                <h1>Paseos registrados</h1>
+                <h1 class="fw-bold">Paseos registrados</h1>
                 <p>Listado general de paseos activos, pendientes y completados 🐾</p>
             </div>
             <i class="fas fa-dog fa-3x opacity-75"></i>
         </div>
 
-        <!-- Filtros -->
+        <!-- FILTROS -->
         <div class="filtros">
             <form class="row g-3 align-items-end">
                 <div class="col-md-3">
-                    <label class="form-label fw-semibold">Buscar</label>
+                    <label class="form-label">Buscar</label>
                     <input type="text" id="searchInput" class="form-control" placeholder="Paseador o cliente...">
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label fw-semibold">Estado</label>
+                    <label class="form-label">Estado</label>
                     <select id="filterEstado" class="form-select">
                         <option value="">Todos</option>
                         <option value="pendiente">Pendiente</option>
@@ -260,24 +292,24 @@ if (empty($paseos) || isset($paseos['error'])) {
                     </select>
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label fw-semibold">Fecha desde</label>
+                    <label class="form-label">Fecha desde</label>
                     <input type="date" id="filterDesde" class="form-control">
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label fw-semibold">Fecha hasta</label>
+                    <label class="form-label">Fecha hasta</label>
                     <input type="date" id="filterHasta" class="form-control">
                 </div>
             </form>
         </div>
 
-        <!-- Botones de exportación -->
+        <!-- EXPORT -->
         <div class="export-buttons">
             <button class="btn btn-pdf"><i class="fas fa-file-pdf"></i> PDF</button>
             <button class="btn btn-excel"><i class="fas fa-file-excel"></i> Excel</button>
             <button class="btn btn-csv"><i class="fas fa-file-csv"></i> CSV</button>
         </div>
 
-        <!-- Tabla de paseos -->
+        <!-- TABLA -->
         <div class="table-responsive">
             <table class="table table-hover align-middle" id="tablaPaseos">
                 <thead>
@@ -292,19 +324,18 @@ if (empty($paseos) || isset($paseos['error'])) {
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($paseos as $p): ?>
-                        <?php
+                    <?php foreach ($paseos as $p):
                         $estado = strtolower($p['estado'] ?? 'pendiente');
                         $badge = match ($estado) {
                             'pendiente' => 'bg-warning text-dark',
                             'confirmado' => 'bg-primary',
-                            'en_curso' => 'bg-info',
+                            'en_curso' => 'bg-info text-dark',
                             'finalizado', 'completo' => 'bg-success',
                             'cancelado' => 'bg-danger',
                             default => 'bg-secondary'
                         };
-                        ?>
-                        <tr data-estado="<?= $estado ?>">
+                    ?>
+                        <tr class="fade-in-row" data-estado="<?= $estado ?>">
                             <td><strong>#<?= htmlspecialchars($p['paseo_id']) ?></strong></td>
                             <td><?= htmlspecialchars($p['nombre_paseador'] ?? '-') ?></td>
                             <td><?= htmlspecialchars($p['nombre_dueno'] ?? '-') ?></td>
@@ -312,9 +343,7 @@ if (empty($paseos) || isset($paseos['error'])) {
                             <td><?= (int)($p['duracion'] ?? 0) ?> min</td>
                             <td><span class="badge <?= $badge ?>"><?= ucfirst($estado) ?></span></td>
                             <td class="text-center">
-                                <a href="VerPaseo.php?id=<?= $p['paseo_id'] ?>" class="btn-ver">
-                                    <i class="fas fa-eye"></i> Ver detalle
-                                </a>
+                                <a href="VerPaseo.php?id=<?= $p['paseo_id'] ?>" class="btn-ver"><i class="fas fa-eye"></i> Ver</a>
                             </td>
                         </tr>
                     <?php endforeach; ?>
@@ -322,9 +351,7 @@ if (empty($paseos) || isset($paseos['error'])) {
             </table>
         </div>
 
-        <footer>
-            <small>© <?= date('Y') ?> Jaguata — Panel de Administración</small>
-        </footer>
+        <footer><small>© <?= date('Y') ?> Jaguata — Panel de Administración</small></footer>
     </main>
 
     <script>
@@ -343,9 +370,8 @@ if (empty($paseos) || isset($paseos['error'])) {
             rows.forEach(row => {
                 const rowEstado = row.dataset.estado;
                 const rowTexto = row.textContent.toLowerCase();
-                const fechaTexto = row.cells[3].textContent;
-                const [d, m, yHora] = fechaTexto.split('/');
-                const [y, hora] = yHora.split(' ');
+                const fechaTexto = row.cells[3].textContent.split(' ')[0];
+                const [d, m, y] = fechaTexto.split('/');
                 const fechaRow = new Date(`${y}-${m}-${d}`);
 
                 const coincideTexto = rowTexto.includes(texto);
@@ -358,7 +384,6 @@ if (empty($paseos) || isset($paseos['error'])) {
 
         [search, estado, desde, hasta].forEach(el => el.addEventListener('input', aplicarFiltros));
 
-        // Simulación exportar
         document.querySelectorAll('.export-buttons .btn').forEach(btn => {
             btn.addEventListener('click', () => alert(`Exportar a ${btn.textContent.trim()} aún no implementado 🚀`));
         });

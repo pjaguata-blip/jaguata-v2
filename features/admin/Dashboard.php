@@ -173,7 +173,7 @@ $totalTickets        = 2; // soporte pendiente
             <li><a class="nav-link" href="Paseos.php"><i class="fas fa-dog"></i>Paseos</a></li>
             <li><a class="nav-link" href="../mensajeria/chat.php"><i class="fas fa-comments"></i>Mensajería</a></li>
             <li><a class="nav-link" href="Pagos.php"><i class="fas fa-wallet"></i>Pagos</a></li>
-            <li><a class="nav-link" href="Servicios.php"><i class="fas fa-briefcase"></i>Servicios</a></li>
+            <li><a class="nav-link" href="generar_qr.php"><i class="fas fa-briefcase"></i>Servicios</a></li>
             <li><a class="nav-link" href="Notificaciones.php"><i class="fas fa-bell"></i>Notificaciones</a></li>
             <li><a class="nav-link" href="Soporte.php"><i class="fas fa-headset"></i>Soporte</a></li>
             <li><a class="nav-link" href="RolesPermisos.php"><i class="fas fa-user-lock"></i>Roles y Permisos</a></li>

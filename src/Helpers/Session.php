@@ -43,7 +43,6 @@ class Session
         $_SESSION = [];
     }
 
-
     public static function isLoggedIn(): bool
     {
         self::start();
@@ -67,6 +66,13 @@ class Session
     {
         self::start();
         return $_SESSION['nombre'] ?? null;
+    }
+
+    /** ✅ Nuevo método: obtener email del usuario logueado */
+    public static function getUsuarioEmail(): ?string
+    {
+        self::start();
+        return $_SESSION['email'] ?? null;
     }
 
     public static function getUsuarioId(): ?int
@@ -116,14 +122,17 @@ class Session
     {
         self::setFlash('error', $mensaje);
     }
+
     public static function getError(): ?string
     {
         return self::getFlash('error');
     }
+
     public static function setSuccess(string $mensaje): void
     {
         self::setFlash('success', $mensaje);
     }
+
     public static function getSuccess(): ?string
     {
         return self::getFlash('success');

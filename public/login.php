@@ -12,28 +12,25 @@ use Jaguata\Models\Usuario;
 
 AppConfig::init();
 
-// Redirigir si ya está logueado
-if (Session::isLoggedIn()) {
-    $rol = Session::getUsuarioRol();
-    if ($usuario) {
-        $usuario['remember_me'] = $remember_me;
-        Session::login($usuario);
-
-        if ($usuario['rol'] === 'admin') {
-            header('Location: ' . BASE_URL . '/public/admin.php');
-        } else {
-            header('Location: ' . BASE_URL . "/features/{$usuario['rol']}/Dashboard.php");
-        }
-        exit;
-    }
-
-    exit;
-}
-
 $titulo = 'Iniciar Sesión - Jaguata';
 $error = '';
 $success = '';
+$usuario = null; // ✅ evita warning "Variable no definida"
 
+// 🔹 Si ya está logueado, redirigir según su rol
+if (Session::isLoggedIn()) {
+    $rol = Session::getUsuarioRol();
+
+    // Redirigir automáticamente al Dashboard correspondiente
+    if ($rol === 'admin') {
+        header('Location: ' . BASE_URL . '/public/admin.php');
+    } else {
+        header('Location: ' . BASE_URL . "/features/{$rol}/Dashboard.php");
+    }
+    exit;
+}
+
+// 🔹 Procesar envío del formulario
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = trim($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
@@ -53,7 +50,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($usuario) {
             $usuario['remember_me'] = $remember_me;
             Session::login($usuario);
-            header('Location: ' . BASE_URL . "/features/{$usuario['rol']}/Dashboard.php");
+
+            // Redirigir según el rol del usuario
+            if ($usuario['rol'] === 'admin') {
+                header('Location: ' . BASE_URL . '/public/admin.php');
+            } else {
+                header('Location: ' . BASE_URL . "/features/{$usuario['rol']}/Dashboard.php");
+            }
             exit;
         } else {
             $error = 'Credenciales incorrectas. Verifica tu email y contraseña.';

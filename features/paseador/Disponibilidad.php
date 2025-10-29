@@ -10,6 +10,7 @@ use Jaguata\Config\AppConfig;
 use Jaguata\Controllers\AuthController;
 
 AppConfig::init();
+
 $auth = new AuthController();
 $auth->checkRole('paseador');
 
@@ -18,7 +19,7 @@ $baseFeatures = BASE_URL . "/features/{$rol}";
 
 $diasSemana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
-// Simulado: en producción, esto viene de la BD
+// Simulación (en producción viene de BD)
 $disponibilidadActual = [
     'Lunes' => ['inicio' => '08:00', 'fin' => '12:00'],
     'Martes' => ['inicio' => '09:00', 'fin' => '13:00'],
@@ -34,9 +35,15 @@ $disponibilidadActual = [
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
     <style>
-        /* === FUENTE Y COLORES BASE === */
+        :root {
+            --verde-jaguata: #3c6255;
+            --verde-claro: #20c997;
+            --gris-fondo: #f5f7fa;
+            --blanco: #ffffff;
+        }
+
         body {
-            background: #f5f7fa;
+            background: var(--gris-fondo);
             font-family: "Poppins", sans-serif;
             color: #333;
         }
@@ -51,100 +58,89 @@ $disponibilidadActual = [
         }
 
         .sidebar .nav-link {
-            color: #ddd;
-            border-radius: 8px;
-            padding: 10px 16px;
-            margin: 4px 8px;
+            color: #ccc;
             display: flex;
             align-items: center;
-            font-weight: 500;
-            transition: background 0.2s, transform 0.2s;
+            gap: 0.6rem;
+            padding: 10px 16px;
+            margin: 4px 8px;
+            border-radius: 8px;
+            transition: all .2s;
         }
 
-        .sidebar .nav-link:hover {
-            background-color: #343454;
-            color: #fff;
-            transform: translateX(4px);
-        }
-
+        .sidebar .nav-link:hover,
         .sidebar .nav-link.active {
-            background-color: #3c6255;
-            color: #fff;
+            background: var(--verde-claro);
+            color: var(--blanco);
         }
 
         /* === CABECERA === */
         .page-header {
-            background: linear-gradient(90deg, #20c997, #3c6255);
+            background: linear-gradient(90deg, var(--verde-claro), var(--verde-jaguata));
             color: #fff;
-            padding: 1.2rem 1.5rem;
+            padding: 1.4rem 2rem;
             border-radius: 14px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, .08);
             margin-bottom: 2rem;
-        }
-
-        .page-header h2 {
-            font-weight: 600;
-            font-size: 1.3rem;
-            margin: 0;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, .1);
         }
 
         /* === TARJETA === */
         .card-premium {
             border: none;
-            border-radius: 14px;
-            box-shadow: 0 5px 20px rgba(0, 0, 0, .05);
-            background: #fff;
-            padding: 1.5rem 2rem;
+            border-radius: 18px;
+            background: var(--blanco);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, .05);
+            padding: 2rem;
         }
 
-        /* === FORMULARIO === */
         .day-row {
-            display: flex;
+            display: grid;
+            grid-template-columns: 130px 100px 1fr;
             align-items: center;
-            justify-content: space-between;
-            border-bottom: 1px solid #eee;
+            border-bottom: 1px solid #eaeaea;
             padding: 0.8rem 0;
-        }
-
-        .day-row:last-child {
-            border-bottom: none;
+            gap: 1rem;
         }
 
         .day-name {
             font-weight: 600;
-            width: 110px;
+            font-size: 1rem;
+            color: var(--verde-jaguata);
         }
 
         .form-switch .form-check-input {
-            width: 3em;
-            height: 1.4em;
+            width: 3.2em;
+            height: 1.5em;
         }
 
         .form-check-input:checked {
-            background-color: #3c6255;
-            border-color: #3c6255;
+            background-color: var(--verde-claro);
+            border-color: var(--verde-claro);
         }
 
-        .hour-input {
+        .time-group input[type="time"] {
             border-radius: 8px;
-            border: 1px solid #ced4da;
-            padding: 0.45rem 0.6rem;
-            width: 110px;
+            border: 1px solid #d0d0d0;
+            padding: 0.4rem 0.6rem;
             font-size: 0.9rem;
+            width: 115px;
         }
 
-        .time-group {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
+        .time-group span {
+            color: #888;
+        }
+
+        .time-group.disabled input {
+            opacity: 0.4;
+            pointer-events: none;
         }
 
         /* === BOTÓN === */
         .btn-gradient {
-            background: linear-gradient(90deg, #3c6255, #20c997);
+            background: linear-gradient(90deg, var(--verde-jaguata), var(--verde-claro));
             border: none;
             color: #fff;
             font-weight: 500;
@@ -153,18 +149,31 @@ $disponibilidadActual = [
         }
 
         .btn-gradient:hover {
-            opacity: 0.9;
+            transform: translateY(-1px);
+            opacity: 0.95;
         }
 
-        /* === ALERTA === */
+        /* === ALERTA flotante === */
         #alerta {
             position: fixed;
-            bottom: 20px;
-            right: 20px;
+            bottom: 25px;
+            right: 25px;
             border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, .15);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, .2);
             display: none;
             font-size: 0.95rem;
+        }
+
+        .copy-btn {
+            background: none;
+            border: none;
+            color: var(--verde-jaguata);
+            cursor: pointer;
+            transition: color .2s;
+        }
+
+        .copy-btn:hover {
+            color: var(--verde-claro);
         }
     </style>
 </head>
@@ -175,19 +184,19 @@ $disponibilidadActual = [
             <!-- === SIDEBAR === -->
             <div class="col-md-3 col-lg-2 d-md-block sidebar">
                 <div class="text-center mb-4">
-                    <img src="<?= ASSETS_URL; ?>/uploads/perfiles/logojag.png" alt="Jaguata" width="50">
+                    <img src="<?= ASSETS_URL; ?>/uploads/perfiles/logojag.png" alt="Jaguata" width="55">
                     <hr class="text-light">
                 </div>
                 <ul class="nav flex-column gap-1 px-2">
-                    <li><a class="nav-link" href="<?= $baseFeatures; ?>/Dashboard.php"><i class="fas fa-home me-2"></i>Inicio</a></li>
-                    <li><a class="nav-link" href="<?= $baseFeatures; ?>/MisPaseos.php"><i class="fas fa-list me-2"></i>Mis Paseos</a></li>
-                    <li><a class="nav-link active" href="#"><i class="fas fa-calendar-check me-2"></i>Disponibilidad</a></li>
-                    <li><a class="nav-link" href="<?= $baseFeatures; ?>/Perfil.php"><i class="fas fa-user me-2"></i>Mi Perfil</a></li>
-                    <li><a class="nav-link text-danger" href="<?= BASE_URL; ?>/logout.php"><i class="fas fa-sign-out-alt me-2"></i>Cerrar sesión</a></li>
+                    <li><a class="nav-link" href="<?= $baseFeatures; ?>/Dashboard.php"><i class="fas fa-home"></i> Inicio</a></li>
+                    <li><a class="nav-link" href="<?= $baseFeatures; ?>/MisPaseos.php"><i class="fas fa-list"></i> Mis Paseos</a></li>
+                    <li><a class="nav-link active" href="#"><i class="fas fa-calendar-check"></i> Disponibilidad</a></li>
+                    <li><a class="nav-link" href="<?= $baseFeatures; ?>/Configuracion.php"><i class="fas fa-cogs"></i> Configuración</a></li>
+                    <li><a class="nav-link text-danger" href="<?= BASE_URL; ?>/logout.php"><i class="fas fa-sign-out-alt"></i> Salir</a></li>
                 </ul>
             </div>
 
-            <!-- === CONTENIDO PRINCIPAL === -->
+            <!-- === CONTENIDO === -->
             <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
                 <div class="page-header">
                     <h2><i class="fas fa-calendar-check me-2"></i> Disponibilidad Semanal</h2>
@@ -197,7 +206,10 @@ $disponibilidadActual = [
                 </div>
 
                 <div class="card-premium">
-                    <p class="text-muted mb-4">Activá los días que estás disponible y ajustá tus horarios.</p>
+                    <p class="text-muted mb-4">
+                        Activá los días que estás disponible y definí tus horarios.
+                        <br><small class="text-secondary">Podés copiar tus horarios de un día a otro fácilmente.</small>
+                    </p>
 
                     <form id="formDisponibilidad">
                         <?php foreach ($diasSemana as $dia):
@@ -207,21 +219,22 @@ $disponibilidadActual = [
                             $fin = $dispo['fin'] ?? '';
                         ?>
                             <div class="day-row">
-                                <span class="day-name"><?= $dia ?></span>
+                                <div class="day-name"><?= $dia ?></div>
                                 <div class="form-switch">
-                                    <input type="checkbox" class="form-check-input" name="dias[]" id="<?= $dia ?>" value="<?= $dia ?>" <?= $checked ?>>
+                                    <input type="checkbox" class="form-check-input toggle-dia" data-dia="<?= $dia ?>" <?= $checked ?>>
                                 </div>
-                                <div class="time-group">
-                                    <input type="time" name="inicio[<?= $dia ?>]" value="<?= $inicio ?>" class="hour-input">
+                                <div class="time-group <?= $checked ? '' : 'disabled' ?>">
+                                    <input type="time" class="hora-inicio" value="<?= $inicio ?>">
                                     <span>–</span>
-                                    <input type="time" name="fin[<?= $dia ?>]" value="<?= $fin ?>" class="hour-input">
+                                    <input type="time" class="hora-fin" value="<?= $fin ?>">
+                                    <button type="button" class="copy-btn" title="Copiar horario a todos"><i class="fas fa-copy"></i></button>
                                 </div>
                             </div>
                         <?php endforeach; ?>
 
                         <div class="text-end mt-4">
                             <button type="submit" class="btn btn-gradient px-4 py-2">
-                                <i class="fas fa-save me-2"></i> Guardar cambios
+                                <i class="fas fa-save me-2"></i> Guardar Cambios
                             </button>
                         </div>
                     </form>
@@ -236,9 +249,39 @@ $disponibilidadActual = [
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        document.getElementById('formDisponibilidad').addEventListener('submit', e => {
+        const alerta = document.getElementById('alerta');
+        const form = document.getElementById('formDisponibilidad');
+
+        // Activar/desactivar campos de horario
+        document.querySelectorAll('.toggle-dia').forEach(toggle => {
+            toggle.addEventListener('change', e => {
+                const grupo = e.target.closest('.day-row').querySelector('.time-group');
+                grupo.classList.toggle('disabled', !e.target.checked);
+            });
+        });
+
+        // Copiar horario a todos los días activos
+        document.querySelectorAll('.copy-btn').forEach(btn => {
+            btn.addEventListener('click', e => {
+                const row = e.target.closest('.day-row');
+                const inicio = row.querySelector('.hora-inicio').value;
+                const fin = row.querySelector('.hora-fin').value;
+
+                if (!inicio || !fin) return alert("Completá los horarios antes de copiar.");
+
+                document.querySelectorAll('.day-row').forEach(r => {
+                    const activo = r.querySelector('.toggle-dia').checked;
+                    if (activo) {
+                        r.querySelector('.hora-inicio').value = inicio;
+                        r.querySelector('.hora-fin').value = fin;
+                    }
+                });
+            });
+        });
+
+        // Simular guardado
+        form.addEventListener('submit', e => {
             e.preventDefault();
-            const alerta = document.getElementById('alerta');
             alerta.style.display = 'block';
             setTimeout(() => alerta.style.display = 'none', 2500);
         });

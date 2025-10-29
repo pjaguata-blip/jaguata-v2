@@ -3,7 +3,6 @@ require_once dirname(__DIR__, 2) . '/src/Helpers/Session.php';
 
 use Jaguata\Helpers\Session;
 
-// Variables seguras
 $paseoId = $_GET['paseo_id'] ?? 0;
 $destinatarioId = $_GET['destinatario_id'] ?? 0;
 $mensajes = $mensajes ?? [];
@@ -17,6 +16,7 @@ $mensajes = $mensajes ?? [];
     <title>Chat del Paseo #<?= htmlspecialchars($paseoId) ?> - Jaguata</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/emojionearea@3.4.2/dist/emojionearea.min.css">
     <style>
         :root {
             --verde-jaguata: #3c6255;
@@ -38,7 +38,7 @@ $mensajes = $mensajes ?? [];
 
         header {
             background: linear-gradient(90deg, var(--verde-jaguata), var(--verde-claro));
-            color: var(--blanco);
+            color: #fff;
             padding: 1rem 1.5rem;
             display: flex;
             align-items: center;
@@ -62,7 +62,7 @@ $mensajes = $mensajes ?? [];
             border-radius: 10px;
             padding: .5rem 1.2rem;
             text-decoration: none;
-            transition: all 0.2s;
+            transition: .2s;
         }
 
         header a:hover {
@@ -99,6 +99,8 @@ $mensajes = $mensajes ?? [];
             max-width: 70%;
             line-height: 1.4;
             animation: fadeIn .25s ease-in;
+            white-space: pre-wrap;
+            word-break: break-word;
         }
 
         @keyframes fadeIn {
@@ -130,13 +132,13 @@ $mensajes = $mensajes ?? [];
         .mensaje strong {
             display: block;
             font-weight: 600;
-            font-size: 0.9rem;
-            opacity: 0.9;
+            font-size: .9rem;
+            opacity: .9;
         }
 
         .mensaje small {
             display: block;
-            font-size: 0.75rem;
+            font-size: .75rem;
             color: rgba(255, 255, 255, 0.8);
             margin-top: .3rem;
             text-align: right;
@@ -179,7 +181,7 @@ $mensajes = $mensajes ?? [];
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all .2s ease;
+            transition: .2s;
         }
 
         button:hover {
@@ -190,7 +192,7 @@ $mensajes = $mensajes ?? [];
         footer {
             text-align: center;
             color: #aaa;
-            font-size: 0.85rem;
+            font-size: .85rem;
             padding: .6rem;
             background: #181824;
         }
@@ -217,7 +219,7 @@ $mensajes = $mensajes ?? [];
         <form id="formMensaje" method="post" action="/jaguata/api/mensajes/enviar.php">
             <input type="hidden" name="paseo_id" value="<?= $paseoId ?>">
             <input type="hidden" name="destinatario_id" value="<?= $destinatarioId ?>">
-            <textarea name="mensaje" placeholder="Escribe un mensaje..." required></textarea>
+            <textarea name="mensaje" id="mensajeInput" placeholder="Escribe un mensaje o agrega un emoji 😊..." required></textarea>
             <button type="submit"><i class="fas fa-paper-plane"></i></button>
         </form>
     </section>
@@ -226,32 +228,53 @@ $mensajes = $mensajes ?? [];
         <small>© <?= date('Y') ?> Jaguata — Mensajería Interna</small>
     </footer>
 
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/emojionearea@3.4.2/dist/emojionearea.min.js"></script>
     <script>
+        // Inicializar selector de emojis
+        $(document).ready(function() {
+            $("#mensajeInput").emojioneArea({
+                pickerPosition: "top",
+                tonesStyle: "bullet",
+                search: false,
+                filtersPosition: "bottom",
+                placeholder: "Escribe un mensaje o agrega un emoji 😊...",
+                styles: {
+                    backgroundColor: "#2f2f42",
+                    color: "#fff"
+                }
+            });
+        });
+
         const mensajesBox = document.getElementById('mensajesBox');
         const form = document.getElementById('formMensaje');
-
         const scrollBottom = () => mensajesBox.scrollTop = mensajesBox.scrollHeight;
         scrollBottom();
 
         form.addEventListener('submit', async e => {
             e.preventDefault();
+            const textarea = document.querySelector('.emojionearea-editor');
+            const mensaje = textarea.innerHTML.trim();
+            if (!mensaje) return;
             const fd = new FormData(form);
+            fd.set('mensaje', mensaje);
             const res = await fetch(form.action, {
                 method: 'POST',
                 body: fd
             });
             const data = await res.json();
-
             if (data.success) {
                 const msg = document.createElement('div');
                 msg.classList.add('mensaje', 'propio');
-                msg.innerHTML = `<strong>Tú</strong><p>${fd.get('mensaje')}</p><small>${new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</small>`;
+                msg.innerHTML = `<strong>Tú</strong><p>${mensaje}</p><small>${new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</small>`;
                 mensajesBox.appendChild(msg);
-                form.reset();
+                textarea.innerHTML = '';
                 scrollBottom();
             } else alert(data.error || 'Error al enviar mensaje.');
         });
 
+        // Actualización periódica
         setInterval(async () => {
             const res = await fetch(`/jaguata/api/mensajes/listar.php?paseo_id=<?= $paseoId ?>`);
             const msgs = await res.json();

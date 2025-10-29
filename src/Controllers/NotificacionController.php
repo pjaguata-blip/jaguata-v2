@@ -7,7 +7,11 @@ use Jaguata\Helpers\Session;
 use PDO;
 use Exception;
 
-class NotificacionesController
+/**
+ * Controlador de notificaciones del sistema
+ * Maneja creación, lectura, actualización y eliminación
+ */
+class NotificacionController
 {
     private PDO $db;
 
@@ -32,7 +36,7 @@ class NotificacionesController
             $stmt = $this->db->query($sql);
             return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
         } catch (Exception $e) {
-            error_log("Error en NotificacionesController::index -> " . $e->getMessage());
+            error_log('Error en NotificacionController::index -> ' . $e->getMessage());
             return [];
         }
     }
@@ -51,7 +55,7 @@ class NotificacionesController
             $stmt->execute([':id' => $usuarioId]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
         } catch (Exception $e) {
-            error_log("Error getByUsuario: " . $e->getMessage());
+            error_log('Error getByUsuario: ' . $e->getMessage());
             return [];
         }
     }
@@ -85,7 +89,7 @@ class NotificacionesController
                 ':expira'     => $data['expira'] ?? null
             ]);
         } catch (Exception $e) {
-            error_log("Error create notificación: " . $e->getMessage());
+            error_log('Error create notificación: ' . $e->getMessage());
             return false;
         }
     }
@@ -99,7 +103,7 @@ class NotificacionesController
             $stmt = $this->db->prepare("UPDATE notificaciones SET leido = 1 WHERE noti_id = :id");
             return $stmt->execute([':id' => $id]);
         } catch (Exception $e) {
-            error_log("Error marcarLeida: " . $e->getMessage());
+            error_log('Error marcarLeida: ' . $e->getMessage());
             return false;
         }
     }
@@ -113,7 +117,7 @@ class NotificacionesController
             $stmt = $this->db->prepare("UPDATE notificaciones SET estado = :estado WHERE noti_id = :id");
             return $stmt->execute([':estado' => $estado, ':id' => $id]);
         } catch (Exception $e) {
-            error_log("Error actualizarEstado: " . $e->getMessage());
+            error_log('Error actualizarEstado: ' . $e->getMessage());
             return false;
         }
     }
@@ -127,7 +131,7 @@ class NotificacionesController
             $stmt = $this->db->prepare("DELETE FROM notificaciones WHERE noti_id = :id");
             return $stmt->execute([':id' => $id]);
         } catch (Exception $e) {
-            error_log("Error delete notificación: " . $e->getMessage());
+            error_log('Error delete notificación: ' . $e->getMessage());
             return false;
         }
     }
@@ -159,7 +163,7 @@ class NotificacionesController
             }
             return $inserted;
         } catch (Exception $e) {
-            error_log("Error enviarPorRol: " . $e->getMessage());
+            error_log('Error enviarPorRol: ' . $e->getMessage());
             return 0;
         }
     }
@@ -174,8 +178,31 @@ class NotificacionesController
             $stmt->execute();
             return $stmt->rowCount();
         } catch (Exception $e) {
-            error_log("Error limpiarExpiradas: " . $e->getMessage());
+            error_log('Error limpiarExpiradas: ' . $e->getMessage());
             return 0;
+        }
+    }
+    /**
+     * 🔹 Obtener las últimas notificaciones recientes (por defecto 5)
+     */
+    public function getRecientes(int $limite = 5): array
+    {
+        try {
+            $sql = "SELECT n.*, 
+                           u.nombre AS usuario_nombre,
+                           a.nombre AS admin_nombre
+                    FROM notificaciones n
+                    LEFT JOIN usuarios u ON n.usu_id = u.usu_id
+                    LEFT JOIN usuarios a ON n.admin_id = a.usu_id
+                    ORDER BY n.created_at DESC
+                    LIMIT :limite";
+            $stmt = $this->db->prepare($sql);
+            $stmt->bindValue(':limite', $limite, PDO::PARAM_INT);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        } catch (Exception $e) {
+            error_log('Error en getRecientes: ' . $e->getMessage());
+            return [];
         }
     }
 }

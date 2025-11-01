@@ -133,6 +133,57 @@ $ingresosTotales   = array_reduce($by('completo'), fn($a, $p) => $a + (float)($p
         .badge.bg-success {
             background-color: #3c6255 !important;
         }
+
+        /* BOTONES EXPORTAR */
+        .export-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: .5rem;
+            margin: 1.2rem 0;
+        }
+
+        .export-buttons .btn {
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            color: #fff;
+            transition: 0.25s;
+            display: flex;
+            align-items: center;
+            gap: .4rem;
+        }
+
+        .btn i {
+            transition: transform 0.2s;
+        }
+
+        .btn:hover i {
+            transform: scale(1.1);
+        }
+
+        .btn-pdf {
+            background: #dc3545;
+        }
+
+        .btn-excel {
+            background: #198754;
+        }
+
+        .btn-csv {
+            background: #20c997;
+        }
+
+        .btn-pdf:hover {
+            background: #b02a37;
+        }
+
+        .btn-excel:hover {
+            background: #157347;
+        }
+
+        .btn-csv:hover {
+            background: #3c6255;
+        }
     </style>
 </head>
 
@@ -197,21 +248,40 @@ $ingresosTotales   = array_reduce($by('completo'), fn($a, $p) => $a + (float)($p
                     </div>
                 </div>
 
-                <!-- Filtros -->
+                <!-- EXPORT -->
+                <div class="export-buttons">
+                    <button class="btn btn-excel" onclick="window.location.href='/jaguata/public/api/paseos/exportarPaseosPaseador.php'">
+                        <i class="fas fa-file-excel"></i> Excel
+                    </button>
+                </div>
+
+                <!-- FILTROS -->
                 <div class="card mb-4">
                     <div class="card-header"><i class="fas fa-filter me-2"></i> Filtros</div>
                     <div class="card-body">
                         <div class="row g-3 align-items-end">
-                            <div class="col-md-4">
-                                <label for="estado" class="form-label">Estado</label>
-                                <select class="form-select" id="estado" onchange="filtrarPorEstado()">
-                                    <option value="">Todos los estados</option>
+                            <div class="col-md-3">
+                                <label class="form-label">Buscar</label>
+                                <input type="text" id="searchInput" class="form-control" placeholder="Mascota o dueño...">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Estado</label>
+                                <select id="filterEstado" class="form-select">
+                                    <option value="">Todos</option>
                                     <?php foreach ($estadosValidos as $v): ?>
                                         <option value="<?= $v ?>" <?= $estadoFiltro === $v ? 'selected' : '' ?>>
                                             <?= ucfirst(str_replace('_', ' ', $v)) ?>
                                         </option>
                                     <?php endforeach; ?>
                                 </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Desde</label>
+                                <input type="date" id="filterDesde" class="form-control">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Hasta</label>
+                                <input type="date" id="filterHasta" class="form-control">
                             </div>
                         </div>
                     </div>
@@ -228,7 +298,7 @@ $ingresosTotales   = array_reduce($by('completo'), fn($a, $p) => $a + (float)($p
                         <div class="card-header"><i class="fas fa-list me-2"></i> Lista de Paseos</div>
                         <div class="card-body">
                             <div class="table-responsive">
-                                <table class="table table-hover align-middle">
+                                <table class="table table-hover align-middle" id="tablaPaseos">
                                     <thead class="table-light">
                                         <tr>
                                             <th>Mascota</th>
@@ -252,7 +322,7 @@ $ingresosTotales   = array_reduce($by('completo'), fn($a, $p) => $a + (float)($p
                                                 default      => 'warning'
                                             };
                                         ?>
-                                            <tr>
+                                            <tr data-estado="<?= $estado ?>">
                                                 <td><?= h($p['nombre_mascota'] ?? '') ?></td>
                                                 <td><?= h($p['nombre_dueno'] ?? '') ?></td>
                                                 <td>
@@ -272,42 +342,30 @@ $ingresosTotales   = array_reduce($by('completo'), fn($a, $p) => $a + (float)($p
                                                 </td>
                                                 <td>
                                                     <div class="btn-group" role="group">
-                                                        <a href="VerPaseo.php?id=<?= $paseoId ?>" class="btn btn-sm btn-outline-primary" title="Ver"><i class="fas fa-eye"></i></a>
+                                                        <!-- Botón Ver (no es formulario) -->
+                                                        <a href="VerPaseo.php?id=<?= $paseoId ?>" class="btn btn-sm btn-outline-primary" title="Ver" type="button">
+                                                            <i class="fas fa-eye"></i>
+                                                        </a>
+
                                                         <?php if ($estado === 'pendiente'): ?>
                                                             <form action="AccionPaseo.php" method="post" class="d-inline">
                                                                 <input type="hidden" name="id" value="<?= $paseoId ?>">
                                                                 <input type="hidden" name="accion" value="confirmar">
-                                                                <button type="submit" class="btn btn-sm btn-outline-success" onclick="return confirm('¿Confirmar este paseo?');" title="Confirmar"><i class="fas fa-check"></i></button>
+                                                                <button type="submit" class="btn btn-sm btn-outline-success" onclick="return confirm('¿Confirmar este paseo?');" title="Confirmar">
+                                                                    <i class="fas fa-check"></i>
+                                                                </button>
                                                             </form>
+
                                                             <form action="AccionPaseo.php" method="post" class="d-inline">
                                                                 <input type="hidden" name="id" value="<?= $paseoId ?>">
                                                                 <input type="hidden" name="accion" value="cancelar">
-                                                                <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Cancelar este paseo?');" title="Cancelar"><i class="fas fa-times"></i></button>
-                                                            </form>
-                                                        <?php elseif ($estado === 'confirmado'): ?>
-                                                            <form action="AccionPaseo.php" method="post" class="d-inline">
-                                                                <input type="hidden" name="id" value="<?= $paseoId ?>">
-                                                                <input type="hidden" name="accion" value="iniciar">
-                                                                <button type="submit" class="btn btn-sm btn-outline-info" onclick="return confirm('¿Iniciar este paseo?');" title="Iniciar"><i class="fas fa-play"></i></button>
-                                                            </form>
-                                                            <form action="AccionPaseo.php" method="post" class="d-inline">
-                                                                <input type="hidden" name="id" value="<?= $paseoId ?>">
-                                                                <input type="hidden" name="accion" value="cancelar">
-                                                                <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Cancelar este paseo?');" title="Cancelar"><i class="fas fa-times"></i></button>
-                                                            </form>
-                                                        <?php elseif ($estado === 'en_curso'): ?>
-                                                            <form action="AccionPaseo.php" method="post" class="d-inline">
-                                                                <input type="hidden" name="id" value="<?= $paseoId ?>">
-                                                                <input type="hidden" name="accion" value="completar">
-                                                                <button type="submit" class="btn btn-sm btn-outline-success" onclick="return confirm('¿Marcar como completado?');" title="Completar"><i class="fas fa-flag-checkered"></i></button>
-                                                            </form>
-                                                            <form action="AccionPaseo.php" method="post" class="d-inline">
-                                                                <input type="hidden" name="id" value="<?= $paseoId ?>">
-                                                                <input type="hidden" name="accion" value="cancelar">
-                                                                <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Cancelar este paseo?');" title="Cancelar"><i class="fas fa-times"></i></button>
+                                                                <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Cancelar este paseo?');" title="Cancelar">
+                                                                    <i class="fas fa-times"></i>
+                                                                </button>
                                                             </form>
                                                         <?php endif; ?>
                                                     </div>
+
                                                 </td>
                                             </tr>
                                         <?php endforeach; ?>
@@ -323,14 +381,44 @@ $ingresosTotales   = array_reduce($by('completo'), fn($a, $p) => $a + (float)($p
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        function filtrarPorEstado() {
-            const estado = document.getElementById('estado').value;
-            const url = new URL(window.location);
-            if (estado) url.searchParams.set('estado', estado);
-            else url.searchParams.delete('estado');
-            window.location.href = url.toString();
+        const search = document.getElementById('searchInput');
+        const estado = document.getElementById('filterEstado');
+        const desde = document.getElementById('filterDesde');
+        const hasta = document.getElementById('filterHasta');
+        const rows = document.querySelectorAll('#tablaPaseos tbody tr');
+
+        function aplicarFiltros() {
+            const texto = search.value.toLowerCase();
+            const estadoVal = estado.value.toLowerCase();
+            const fDesde = desde.value ? new Date(desde.value) : null;
+            const fHasta = hasta.value ? new Date(hasta.value) : null;
+
+            rows.forEach(row => {
+                const rowEstado = row.dataset.estado;
+                const rowTexto = row.textContent.toLowerCase();
+                const fechaTexto = row.cells[2].textContent.split(' ')[0];
+                const [d, m, y] = fechaTexto.split('/');
+                const fechaRow = new Date(`${y}-${m}-${d}`);
+
+                const coincideTexto = rowTexto.includes(texto);
+                const coincideEstado = !estadoVal || rowEstado === estadoVal;
+                const coincideFecha = (!fDesde || fechaRow >= fDesde) && (!fHasta || fechaRow <= fHasta);
+
+                row.style.display = coincideTexto && coincideEstado && coincideFecha ? '' : 'none';
+            });
         }
+
+        [search, estado, desde, hasta].forEach(el => el.addEventListener('input', aplicarFiltros));
+
+        document.querySelectorAll('.export-buttons .btn').forEach(btn => {
+            if (btn.classList.contains('btn-excel')) return;
+            btn.addEventListener('click', e => {
+                e.preventDefault();
+                alert(`Exportar a ${btn.textContent.trim()} aún no implementado 🚀`);
+            });
+        });
     </script>
+
 </body>
 
 </html>

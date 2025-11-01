@@ -68,10 +68,32 @@ class PaseoController
 
 
     // Listar todos los paseos
-    public function index()
+    public function index(): array
     {
-        return $this->paseoModel->allWithRelations();
+        $db = \Jaguata\Services\DatabaseService::connection();
+        $duenoId = \Jaguata\Helpers\Session::getUsuarioId();
+
+        $sql = "SELECT 
+                p.paseo_id,
+                p.mascota_id,
+                p.paseador_id,
+                p.inicio,
+                p.duracion,
+                p.precio_total,
+                p.estado,
+                m.nombre AS nombre_mascota,
+                u.nombre AS nombre_paseador
+            FROM paseos p
+            INNER JOIN mascotas m ON m.mascota_id = p.mascota_id
+            INNER JOIN usuarios u ON u.usu_id = p.paseador_id
+            WHERE m.dueno_id = :dueno_id
+            ORDER BY p.inicio DESC";
+
+        $stmt = $db->prepare($sql);
+        $stmt->execute([':dueno_id' => $duenoId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+
 
     public function store()
     {
@@ -196,37 +218,17 @@ class PaseoController
     }
     public function listarMascotasDeDueno(int $duenoId): array
     {
-        try {
-            $db = AppConfig::db();
-            $st = $db->prepare("
-            SELECT id, nombre
-            FROM mascotas
-            WHERE dueno_id = :d AND estado <> 'eliminado'
-            ORDER BY nombre ASC, id ASC
-        ");
-            $st->execute([':d' => $duenoId]);
-            return $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
-        } catch (\Throwable $e) {
-            error_log('listarMascotasDeDueno: ' . $e->getMessage());
-            return [];
-        }
+        $db = \Jaguata\Services\DatabaseService::connection();
+        $stmt = $db->prepare("SELECT mascota_id AS id, nombre FROM mascotas WHERE dueno_id = ?");
+        $stmt->execute([$duenoId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     public function listarPaseadores(): array
     {
-        try {
-            $db = AppConfig::db();
-            $st = $db->query("
-            SELECT id, nombre
-            FROM usuarios
-            WHERE role = 'paseador' AND (estado IS NULL OR estado <> 'inactivo')
-            ORDER BY nombre ASC, id ASC
-        ");
-            return $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
-        } catch (\Throwable $e) {
-            error_log('listarPaseadores: ' . $e->getMessage());
-            return [];
-        }
+        $db = \Jaguata\Services\DatabaseService::connection();
+        $stmt = $db->query("SELECT usu_id AS id, nombre FROM usuarios WHERE rol = 'paseador' AND estado = 'aprobado'");
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
     public function getById(int $id): ?array
     {

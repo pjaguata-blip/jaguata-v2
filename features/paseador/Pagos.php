@@ -12,54 +12,67 @@ use Jaguata\Controllers\AuthController;
 use Jaguata\Controllers\PaseoController;
 use Jaguata\Helpers\Session;
 
+// === Inicialización y seguridad ===
 AppConfig::init();
-
-// --- Seguridad ---
 $auth = new AuthController();
 $auth->checkRole('paseador');
 
-// --- Variables base ---
+// === Variables base ===
 $rolMenu = 'paseador';
 $baseFeatures = BASE_URL . "/features/{$rolMenu}";
+$paseadorId = Session::getUsuarioId();
 
-// --- Simulación de pagos ---
-$pagos = [
-    ['id' => 1, 'paseo' => 'Paseo de Luna', 'monto' => 50000, 'fecha' => '2025-10-20', 'estado' => 'pagado'],
-    ['id' => 2, 'paseo' => 'Paseo de Max', 'monto' => 35000, 'fecha' => '2025-10-22', 'estado' => 'pendiente'],
-    ['id' => 3, 'paseo' => 'Paseo de Toby', 'monto' => 60000, 'fecha' => '2025-10-25', 'estado' => 'pagado'],
-    ['id' => 4, 'paseo' => 'Paseo de Nala', 'monto' => 40000, 'fecha' => '2025-10-26', 'estado' => 'pendiente'],
-];
+// === Controlador ===
+$paseoController = new PaseoController();
 
-// --- Cálculos ---
-$totalPagado = array_sum(array_column(array_filter($pagos, fn($p) => $p['estado'] === 'pagado'), 'monto'));
-$totalPendiente = array_sum(array_column(array_filter($pagos, fn($p) => $p['estado'] === 'pendiente'), 'monto'));
+// === Obtener paseos reales del paseador logueado ===
+$paseos = $paseoController->indexForPaseador($paseadorId);
+
+// === Filtrar por pagos realizados o pendientes ===
+$pagos = [];
+foreach ($paseos as $p) {
+    $pagos[] = [
+        'id' => $p['paseo_id'] ?? 0,
+        'paseo' => 'Paseo de ' . ($p['nombre_mascota'] ?? 'Mascota'),
+        'monto' => (float)($p['precio_total'] ?? 0),
+        'fecha' => $p['inicio'] ?? null,
+        'estado' => strtolower($p['estado_pago'] ?? 'pendiente')
+    ];
+}
+
+// === Totales ===
+$totalPagado = array_sum(array_map(fn($p) => $p['estado'] === 'pagado' ? (float)$p['monto'] : 0, $pagos));
+$totalPendiente = array_sum(array_map(fn($p) => $p['estado'] === 'pendiente' ? (float)$p['monto'] : 0, $pagos));
 $totalPaseos = count($pagos);
 
-// --- Ganancias (simulado) ---
+// === Filtro por fecha (para ganancias) ===
 $fechaInicio = $_GET['fecha_inicio'] ?? '';
 $fechaFin = $_GET['fecha_fin'] ?? '';
-$paseosCompletados = [
-    ['nombre_mascota' => 'Luna', 'inicio' => '2025-10-10 08:00', 'precio_total' => 50000],
-    ['nombre_mascota' => 'Toby', 'inicio' => '2025-10-15 09:30', 'precio_total' => 60000],
-    ['nombre_mascota' => 'Nala', 'inicio' => '2025-10-20 10:00', 'precio_total' => 40000],
-];
-if ($fechaInicio && $fechaFin) {
-    $paseosCompletados = array_filter(
-        $paseosCompletados,
-        fn($p) =>
-        date('Y-m-d', strtotime($p['inicio'])) >= $fechaInicio && date('Y-m-d', strtotime($p['inicio'])) <= $fechaFin
-    );
-}
-$gananciasTotales = array_sum(array_column($paseosCompletados, 'precio_total'));
 
-// --- Exportación CSV ---
+$paseosCompletados = array_filter($paseos, function ($p) use ($fechaInicio, $fechaFin) {
+    $estado = strtolower($p['estado'] ?? '');
+    $fecha = isset($p['inicio']) ? date('Y-m-d', strtotime($p['inicio'])) : null;
+    if (!$fecha || !in_array($estado, ['completo', 'finalizado'])) return false;
+    if ($fechaInicio && $fecha < $fechaInicio) return false;
+    if ($fechaFin && $fecha > $fechaFin) return false;
+    return true;
+});
+
+// === Calcular ganancias totales ===
+$gananciasTotales = array_sum(array_map(fn($p) => (float)($p['precio_total'] ?? 0), $paseosCompletados));
+
+// === Exportar CSV ===
 if (isset($_GET['export']) && $_GET['export'] === 'csv') {
     header('Content-Type: text/csv; charset=utf-8');
     header('Content-Disposition: attachment; filename=ganancias_paseador.csv');
     $output = fopen('php://output', 'w');
     fputcsv($output, ['Mascota', 'Fecha', 'Monto (₲)']);
     foreach ($paseosCompletados as $p) {
-        fputcsv($output, [$p['nombre_mascota'], date('d/m/Y H:i', strtotime($p['inicio'])), $p['precio_total']]);
+        fputcsv($output, [
+            $p['nombre_mascota'] ?? '-',
+            date('d/m/Y H:i', strtotime($p['inicio'] ?? '')),
+            (float)($p['precio_total'] ?? 0)
+        ]);
     }
     fclose($output);
     exit;
@@ -74,7 +87,6 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
     <title>Pagos y Ganancias - Paseador | Jaguata</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
-    <link href="<?= ASSETS_URL; ?>/css/jaguata-theme.css" rel="stylesheet">
     <style>
         body {
             background-color: #f5f7fa;
@@ -144,47 +156,46 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
             font-size: 1.3rem;
         }
 
-        .stat-card {
-            background: #fff;
-            border-radius: 12px;
-            text-align: center;
-            padding: 1.2rem 0.8rem;
-            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.05);
-            transition: transform 0.2s;
-        }
-
-        .stat-card:hover {
-            transform: translateY(-4px);
-        }
-
-        .stat-icon {
-            font-size: 1.8rem;
-            margin-bottom: 0.4rem;
-        }
-
         .table thead {
             background: #3c6255;
             color: #fff;
         }
 
-        .btn-gradient {
-            background: linear-gradient(90deg, #3c6255, #20c997);
-            border: none;
-            color: #fff;
-            border-radius: 8px;
-            transition: 0.3s;
-        }
-
-        .btn-gradient:hover {
-            opacity: 0.9;
-        }
-
-        footer {
+        .badge {
+            display: inline-block;
+            min-width: 80px;
             text-align: center;
-            color: #777;
-            font-size: 0.85rem;
-            padding: 1rem 0;
-            margin-top: 2rem;
+            padding: 0.4em 0.6em;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            white-space: nowrap;
+        }
+
+        /* === Botón de exportar (igual que las otras pantallas) === */
+        .export-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: .5rem;
+            margin: 1.2rem 0;
+        }
+
+        .export-buttons .btn {
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            color: #fff;
+            transition: 0.25s;
+            display: flex;
+            align-items: center;
+            gap: .4rem;
+        }
+
+        .btn-excel {
+            background: #198754;
+        }
+
+        .btn-excel:hover {
+            background: #157347;
         }
     </style>
 </head>
@@ -214,68 +225,34 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                 <a href="Dashboard.php" class="btn btn-outline-light btn-sm"><i class="fas fa-arrow-left me-1"></i> Volver</a>
             </div>
 
-            <!-- Estadísticas -->
-            <div class="row g-3 mb-4">
+            <!-- Totales -->
+            <div class="row g-3 mb-4 text-center">
                 <div class="col-md-4">
-                    <div class="stat-card">
-                        <i class="fas fa-check-circle stat-icon text-success"></i>
-                        <h5>₲<?= number_format($totalPagado, 0, ',', '.') ?></h5>
-                        <p class="text-muted">Total recibido</p>
+                    <div class="p-3 bg-white rounded shadow-sm">
+                        <h6 class="text-success"><i class="fas fa-check-circle me-1"></i> Total recibido</h6>
+                        <h4>₲<?= number_format((float)$totalPagado, 0, ',', '.') ?></h4>
                     </div>
                 </div>
                 <div class="col-md-4">
-                    <div class="stat-card">
-                        <i class="fas fa-hourglass-half stat-icon text-warning"></i>
-                        <h5>₲<?= number_format($totalPendiente, 0, ',', '.') ?></h5>
-                        <p class="text-muted">Pagos pendientes</p>
+                    <div class="p-3 bg-white rounded shadow-sm">
+                        <h6 class="text-warning"><i class="fas fa-hourglass-half me-1"></i> Pendiente</h6>
+                        <h4>₲<?= number_format((float)$totalPendiente, 0, ',', '.') ?></h4>
                     </div>
                 </div>
                 <div class="col-md-4">
-                    <div class="stat-card">
-                        <i class="fas fa-walking stat-icon text-info"></i>
-                        <h5><?= $totalPaseos ?></h5>
-                        <p class="text-muted">Paseos totales</p>
+                    <div class="p-3 bg-white rounded shadow-sm">
+                        <h6 class="text-info"><i class="fas fa-list me-1"></i> Total Paseos</h6>
+                        <h4><?= (int)$totalPaseos ?></h4>
                     </div>
                 </div>
             </div>
 
-            <!-- Tabla de pagos -->
-            <div class="card mb-4">
-                <div class="card-header bg-success text-white fw-bold"><i class="fas fa-list me-2"></i>Historial de Pagos</div>
-                <div class="card-body">
-                    <table class="table table-hover align-middle text-center">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Paseo</th>
-                                <th>Monto</th>
-                                <th>Fecha</th>
-                                <th>Estado</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($pagos as $p): ?>
-                                <tr>
-                                    <td>#<?= $p['id'] ?></td>
-                                    <td><?= htmlspecialchars($p['paseo']) ?></td>
-                                    <td>₲<?= number_format($p['monto'], 0, ',', '.') ?></td>
-                                    <td><?= date('d/m/Y', strtotime($p['fecha'])) ?></td>
-                                    <td>
-                                        <span class="badge <?= $p['estado'] === 'pagado' ? 'bg-success' : 'bg-warning text-dark' ?>">
-                                            <?= ucfirst($p['estado']) ?>
-                                        </span>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Sección Ganancias -->
+            <!-- Ganancias -->
             <div class="card mb-4">
                 <div class="card-header bg-primary text-white fw-bold"><i class="fas fa-coins me-2"></i>Mis Ganancias</div>
                 <div class="card-body">
+
+                    <!-- Filtros -->
                     <form method="get" class="row g-3 mb-3">
                         <div class="col-md-4">
                             <label class="form-label">Desde</label>
@@ -286,23 +263,27 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                             <input type="date" name="fecha_fin" class="form-control" value="<?= htmlspecialchars($fechaFin) ?>">
                         </div>
                         <div class="col-md-4 d-flex align-items-end gap-2">
-                            <button type="submit" class="btn btn-gradient"><i class="fas fa-filter me-1"></i> Filtrar</button>
+                            <button type="submit" class="btn btn-success"><i class="fas fa-filter me-1"></i> Filtrar</button>
                             <a href="Pagos.php" class="btn btn-outline-secondary">Quitar filtro</a>
                         </div>
                     </form>
 
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h4 class="fw-bold text-success">₲<?= number_format($gananciasTotales, 0, ',', '.') ?></h4>
-                        <?php if (!empty($paseosCompletados)): ?>
-                            <a href="?export=csv<?= $fechaInicio ? "&fecha_inicio=$fechaInicio&fecha_fin=$fechaFin" : '' ?>"
-                                class="btn btn-outline-success btn-sm">
-                                <i class="fas fa-file-export me-1"></i> Exportar CSV
+                    <!-- Botón Exportar -->
+                    <?php if (!empty($paseosCompletados)): ?>
+                        <div class="export-buttons">
+                            <a href="?export=csv<?= $fechaInicio ? "&fecha_inicio=$fechaInicio&fecha_fin=$fechaFin" : '' ?>" class="btn btn-excel">
+                                <i class="fas fa-file-excel"></i> Exportar CSV
                             </a>
-                        <?php endif; ?>
+                        </div>
+                    <?php endif; ?>
+
+                    <!-- Total de Ganancias -->
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4 class="fw-bold text-success">₲<?= number_format((float)$gananciasTotales, 0, ',', '.') ?></h4>
                     </div>
 
                     <?php if (empty($paseosCompletados)): ?>
-                        <div class="alert alert-info mb-0 text-center">No hay paseos completados en el período seleccionado.</div>
+                        <div class="alert alert-info text-center">No hay paseos completados en el período seleccionado.</div>
                     <?php else: ?>
                         <table class="table table-hover align-middle text-center">
                             <thead>
@@ -315,9 +296,43 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                             <tbody>
                                 <?php foreach ($paseosCompletados as $p): ?>
                                     <tr>
-                                        <td><?= htmlspecialchars($p['nombre_mascota']) ?></td>
+                                        <td><?= htmlspecialchars($p['nombre_mascota'] ?? '-') ?></td>
                                         <td><?= date('d/m/Y H:i', strtotime($p['inicio'])) ?></td>
-                                        <td class="fw-semibold text-success">₲<?= number_format($p['precio_total'], 0, ',', '.') ?></td>
+                                        <td class="fw-semibold text-success">₲<?= number_format((float)($p['precio_total'] ?? 0), 0, ',', '.') ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <!-- Historial -->
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white fw-bold"><i class="fas fa-list me-2"></i>Historial de Pagos</div>
+                <div class="card-body">
+                    <?php if (empty($pagos)): ?>
+                        <p class="text-center text-muted mb-0">No hay registros de pagos aún.</p>
+                    <?php else: ?>
+                        <table class="table table-hover align-middle text-center">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Paseo</th>
+                                    <th>Monto</th>
+                                    <th>Fecha</th>
+                                    <th>Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($pagos as $p): ?>
+                                    <?php $badgeColor = $p['estado'] === 'pagado' ? 'bg-success' : 'bg-warning text-dark'; ?>
+                                    <tr>
+                                        <td>#<?= (int)$p['id'] ?></td>
+                                        <td><?= htmlspecialchars($p['paseo']) ?></td>
+                                        <td>₲<?= number_format((float)($p['monto'] ?? 0), 0, ',', '.') ?></td>
+                                        <td><?= $p['fecha'] ? date('d/m/Y', strtotime($p['fecha'])) : '-' ?></td>
+                                        <td><span class="badge <?= $badgeColor ?>"><?= ucfirst($p['estado']) ?></span></td>
                                     </tr>
                                 <?php endforeach; ?>
                             </tbody>

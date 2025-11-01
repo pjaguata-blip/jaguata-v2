@@ -5,6 +5,7 @@ namespace Jaguata\Controllers;
 use Jaguata\Models\Mascota;
 use Jaguata\Helpers\Session;
 use Exception;
+use PDO;
 
 class MascotaController
 {
@@ -22,13 +23,21 @@ class MascotaController
         return ($unidad === 'anios') ? $valor * 12 : $valor; // 'meses' por defecto
     }
 
-    public function index()
+    public function index(): array
     {
-        if (!Session::isLoggedIn()) {
-            return ['error' => 'No autorizado'];
-        }
-        return $this->mascotaModel->allByOwner(Session::getUsuarioId());
+        $db = \Jaguata\Services\DatabaseService::connection();
+        $duenoId = \Jaguata\Helpers\Session::getUsuarioId();
+
+        $sql = "SELECT mascota_id, nombre, raza, edad_meses, tamano, peso_kg, foto_url 
+            FROM mascotas 
+            WHERE dueno_id = :dueno_id 
+            ORDER BY created_at DESC";
+
+        $stmt = $db->prepare($sql);
+        $stmt->execute([':dueno_id' => $duenoId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+
 
     public function show(int $id): ?array
     {

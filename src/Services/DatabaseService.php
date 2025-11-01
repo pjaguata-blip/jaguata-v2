@@ -9,6 +9,7 @@ use Jaguata\Config\AppConfig;
 class DatabaseService
 {
     private static ?self $instance = null;
+    private static ?PDO $pdoInstance = null; // 🔹 nuevo para acceso directo al PDO
     private PDO $connection;
 
     private function __construct()
@@ -23,11 +24,17 @@ class DatabaseService
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                 PDO::ATTR_EMULATE_PREPARES => false,
             ]);
+
+            // 🔹 Guardar también el PDO estático para acceso global
+            self::$pdoInstance = $this->connection;
         } catch (PDOException $e) {
             die("Error de conexión: " . $e->getMessage());
         }
     }
 
+    /**
+     * Devuelve la instancia única de DatabaseService (wrapper)
+     */
     public static function getInstance(): self
     {
         if (self::$instance === null) {
@@ -36,10 +43,36 @@ class DatabaseService
         return self::$instance;
     }
 
+    /**
+     * Devuelve la conexión PDO interna
+     */
     public function getConnection(): PDO
     {
         return $this->connection;
     }
+
+    /**
+     * 🔹 Devuelve directamente el PDO (uso estático, sin instancia previa)
+     */
+    public static function getConnectionStatic(): PDO
+    {
+        if (self::$pdoInstance === null) {
+            self::getInstance();
+        }
+        return self::$pdoInstance;
+    }
+
+    /**
+     * 🔹 Alias corto para obtener el PDO
+     */
+    public static function connection(): PDO
+    {
+        return self::getConnectionStatic();
+    }
+
+    // ==============================================================
+    // 👇 Métodos existentes — SIN ELIMINAR NADA
+    // ==============================================================
 
     public function fetchAll(string $sql, array $params = []): array
     {
@@ -66,8 +99,6 @@ class DatabaseService
     {
         return $this->connection->lastInsertId();
     }
-
-    // 🔹 Nuevos métodos sin romper nada
 
     /**
      * Ejecutar y devolver un único valor escalar

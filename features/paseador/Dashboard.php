@@ -3,6 +3,7 @@ require_once __DIR__ . '/../../src/Config/AppConfig.php';
 require_once __DIR__ . '/../../src/Controllers/AuthController.php';
 require_once __DIR__ . '/../../src/Controllers/PaseoController.php';
 require_once __DIR__ . '/../../src/Controllers/NotificacionController.php';
+require_once __DIR__ . '/../../src/Helpers/Session.php';
 require_once __DIR__ . '/../../vendor/autoload.php';
 
 use Jaguata\Config\AppConfig;
@@ -11,34 +12,36 @@ use Jaguata\Controllers\PaseoController;
 use Jaguata\Controllers\NotificacionController;
 use Jaguata\Helpers\Session;
 
+// === Inicialización ===
 AppConfig::init();
-
-// Verificar autenticación
 $authController = new AuthController();
 $authController->checkRole('paseador');
 
-// Variables base
+// === Variables base ===
 $rolMenu = Session::getUsuarioRol() ?: 'paseador';
 $baseFeatures = BASE_URL . "/features/{$rolMenu}";
+$paseadorId = Session::getUsuarioId();
 
-// Controladores
+// === Controladores ===
 $paseoController = new PaseoController();
 $notificacionController = new NotificacionController();
 
-// Datos simulados o reales
-$paseos = $paseoController->index();
-$notificaciones = $notificacionController->getRecientes() ?? [];
+// === Datos reales ===
+// Obtener paseos solo del paseador actual
+$paseosAsignados = $paseoController->indexForPaseador($paseadorId);
 
-// Filtrar paseos del paseador actual
-$paseadorId = Session::getUsuarioId();
-$paseosAsignados = array_filter($paseos, fn($p) => ($p['paseador_id'] ?? null) == $paseadorId);
+// Notificaciones recientes
+$notificaciones = $notificacionController->getRecientes($paseadorId) ?? [];
 
-// Estadísticas
+// === Estadísticas ===
 $totalPaseos = count($paseosAsignados);
-$paseosCompletados = array_filter($paseosAsignados, fn($p) => strtolower($p['estado'] ?? '') === 'completo');
+$paseosCompletados = array_filter($paseosAsignados, fn($p) => in_array(strtolower($p['estado'] ?? ''), ['completo', 'finalizado']));
 $paseosPendientes = array_filter($paseosAsignados, fn($p) => in_array(strtolower($p['estado'] ?? ''), ['pendiente', 'confirmado']));
 $paseosCancelados = array_filter($paseosAsignados, fn($p) => strtolower($p['estado'] ?? '') === 'cancelado');
 $ingresosTotales = array_sum(array_map(fn($p) => (float)($p['precio_total'] ?? 0), $paseosCompletados));
+
+// Paseos recientes (últimos 5)
+usort($paseosAsignados, fn($a, $b) => strtotime($b['inicio'] ?? '') <=> strtotime($a['inicio'] ?? ''));
 $paseosRecientes = array_slice($paseosAsignados, 0, 5);
 ?>
 <!DOCTYPE html>
@@ -164,17 +167,6 @@ $paseosRecientes = array_slice($paseosAsignados, 0, 5);
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
         }
 
-        .welcome-box h1 {
-            font-size: 1.4rem;
-            font-weight: 600;
-        }
-
-        .welcome-box p {
-            font-size: 0.95rem;
-            opacity: 0.9;
-        }
-
-        /* === Stats === */
         .stat-card {
             background: #fff;
             border-radius: 12px;
@@ -182,11 +174,6 @@ $paseosRecientes = array_slice($paseosAsignados, 0, 5);
             padding: 1.2rem 0.8rem;
             box-shadow: 0 3px 12px rgba(0, 0, 0, 0.05);
             border: 1px solid #e6e6e6;
-            transition: transform 0.2s;
-        }
-
-        .stat-card:hover {
-            transform: translateY(-4px);
         }
 
         .stat-icon {
@@ -197,17 +184,6 @@ $paseosRecientes = array_slice($paseosAsignados, 0, 5);
         .stat-title {
             color: #6c757d;
             font-size: 0.9rem;
-        }
-
-        .card {
-            border: none;
-            border-radius: 10px;
-            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.07);
-        }
-
-        .card-header {
-            border-top-left-radius: 10px;
-            border-top-right-radius: 10px;
         }
 
         .table thead {
@@ -226,6 +202,17 @@ $paseosRecientes = array_slice($paseosAsignados, 0, 5);
             padding: 1rem 0;
             margin-top: 2rem;
         }
+
+        .badge {
+            display: inline-block;
+            min-width: 90px;
+            /* fuerza un ancho mínimo */
+            text-align: center;
+            font-size: 0.9rem;
+            padding: 0.45em 0.75em;
+            border-radius: 10px;
+            font-weight: 500;
+        }
     </style>
 </head>
 
@@ -242,13 +229,14 @@ $paseosRecientes = array_slice($paseosAsignados, 0, 5);
 
             <ul class="nav flex-column gap-1 px-2">
                 <li><a class="nav-link active" href="<?= $baseFeatures; ?>/Dashboard.php"><i class="fas fa-home"></i> Inicio</a></li>
+                <li><a class="nav-link" href="<?= $baseFeatures; ?>/Solicitudes.php"><i class="fas fa-envelope-open-text"></i> Solicitudes</a></li>
                 <li><a class="nav-link" href="<?= $baseFeatures; ?>/MisPaseos.php"><i class="fas fa-list"></i> Mis Paseos</a></li>
-                <li><a class="nav-link" href="../mensajeria/chat.php"><i class="fas fa-comments"></i>Mensajería</a></li>
-                <li><a class="nav-link" href="<?= $baseFeatures; ?>/Pagos.php"><i class="fas fa-wallet"></i> Pagos</a></li>
                 <li><a class="nav-link" href="<?= $baseFeatures; ?>/Disponibilidad.php"><i class="fas fa-calendar-check"></i> Disponibilidad</a></li>
+                <li><a class="nav-link" href="<?= $baseFeatures; ?>/Pagos.php"><i class="fas fa-wallet"></i> Pagos</a></li>
                 <li><a class="nav-link" href="<?= $baseFeatures; ?>/Estadisticas.php"><i class="fas fa-chart-line"></i> Estadísticas</a></li>
+                <li><a class="nav-link" href="../mensajeria/chat.php"><i class="fas fa-comments"></i> Mensajería</a></li>
                 <li><a class="nav-link" href="<?= $baseFeatures; ?>/Notificaciones.php"><i class="fas fa-bell"></i> Notificaciones</a></li>
-                <li><a class="nav-link" href="<?= $baseFeatures; ?>/Configuracion.php"><i class="fas fa-cogs"></i> Configuración</a></li>
+                <li><a class="nav-link" href="<?= $baseFeatures; ?>/Perfil.php"><i class="fas fa-user"></i> Mi Perfil</a></li>
                 <li><a class="nav-link text-danger" href="<?= BASE_URL; ?>/logout.php"><i class="fas fa-sign-out-alt"></i> Cerrar sesión</a></li>
             </ul>
         </aside>
@@ -331,7 +319,6 @@ $paseosRecientes = array_slice($paseosAsignados, 0, 5);
 
                 <!-- Panel lateral -->
                 <div class="col-lg-4">
-                    <!-- Notificaciones -->
                     <div class="card mb-4">
                         <div class="card-header bg-info text-white fw-bold">Notificaciones</div>
                         <div class="card-body">
@@ -346,22 +333,6 @@ $paseosRecientes = array_slice($paseosAsignados, 0, 5);
                                     </div>
                                 <?php endforeach; ?>
                             <?php endif; ?>
-                        </div>
-                    </div>
-
-                    <!-- Acceso rápido -->
-                    <div class="card">
-                        <div class="card-header bg-success text-white fw-bold">Acceso rápido</div>
-                        <div class="card-body">
-                            <a href="<?= $baseFeatures; ?>/Mensajes.php" class="btn btn-outline-success w-100 mb-2">
-                                <i class="fas fa-comments me-1"></i> Mensajes
-                            </a>
-                            <a href="<?= $baseFeatures; ?>/Pagos.php" class="btn btn-outline-success w-100 mb-2">
-                                <i class="fas fa-wallet me-1"></i> Pagos
-                            </a>
-                            <a href="<?= $baseFeatures; ?>/Disponibilidad.php" class="btn btn-outline-success w-100">
-                                <i class="fas fa-calendar-check me-1"></i> Disponibilidad
-                            </a>
                         </div>
                     </div>
                 </div>

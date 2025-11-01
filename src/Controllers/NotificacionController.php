@@ -23,23 +23,59 @@ class NotificacionController
     /**
      * 🔹 Listar todas las notificaciones (para admin)
      */
-    public function index(): array
+    public function index(array $filters): array
     {
-        try {
-            $sql = "SELECT n.*, 
-                           u.nombre AS usuario_nombre,
-                           a.nombre AS admin_nombre
-                    FROM notificaciones n
-                    LEFT JOIN usuarios u ON n.usu_id = u.usu_id
-                    LEFT JOIN usuarios a ON n.admin_id = a.usu_id
-                    ORDER BY n.created_at DESC";
-            $stmt = $this->db->query($sql);
-            return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
-        } catch (Exception $e) {
-            error_log('Error en NotificacionController::index -> ' . $e->getMessage());
-            return [];
+        $db = \Jaguata\Services\DatabaseService::connection();
+
+        $usuarioId = \Jaguata\Helpers\Session::getUsuarioId(); // ✅ dueño logueado
+        $q = trim($filters['q'] ?? '');
+        $leido = $filters['leido'] ?? '';
+        $page = max(1, (int)($filters['page'] ?? 1));
+        $perPage = (int)($filters['perPage'] ?? 10);
+        $offset = ($page - 1) * $perPage;
+
+        $where = "usu_id = :usuarioId";
+        $params = ['usuarioId' => $usuarioId];
+
+        if ($q !== '') {
+            $where .= " AND (titulo LIKE :q OR mensaje LIKE :q)";
+            $params['q'] = "%$q%";
         }
+        if ($leido !== '') {
+            $where .= " AND leido = :leido";
+            $params['leido'] = (int)$leido;
+        }
+
+        // 🔹 Total de registros
+        $totalSql = "SELECT COUNT(*) FROM notificaciones WHERE $where";
+        $stmt = $db->prepare($totalSql);
+        $stmt->execute($params);
+        $total = (int)$stmt->fetchColumn();
+        $totalPages = max(1, ceil($total / $perPage));
+
+        // 🔹 Datos paginados
+        $sql = "SELECT noti_id, titulo, mensaje, leido, created_at
+            FROM notificaciones
+            WHERE $where
+            ORDER BY created_at DESC
+            LIMIT :offset, :limit";
+
+        $stmt = $db->prepare($sql);
+        foreach ($params as $k => $v) {
+            $stmt->bindValue(':' . $k, $v);
+        }
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
+        $stmt->execute();
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        return [
+            'data' => $rows,
+            'totalPages' => $totalPages
+        ];
     }
+
+
 
     /**
      * 🔹 Obtener notificaciones de un usuario (por rol o app)
@@ -188,21 +224,74 @@ class NotificacionController
     public function getRecientes(int $limite = 5): array
     {
         try {
-            $sql = "SELECT n.*, 
-                           u.nombre AS usuario_nombre,
-                           a.nombre AS admin_nombre
-                    FROM notificaciones n
-                    LEFT JOIN usuarios u ON n.usu_id = u.usu_id
-                    LEFT JOIN usuarios a ON n.admin_id = a.usu_id
-                    ORDER BY n.created_at DESC
-                    LIMIT :limite";
+            $usuarioId = \Jaguata\Helpers\Session::getUsuarioId();
+            $sql = "SELECT n.noti_id, n.titulo, n.mensaje, n.created_at, n.leido
+                FROM notificaciones n
+                WHERE n.usu_id = :usuarioId
+                ORDER BY n.created_at DESC
+                LIMIT :limite";
+
             $stmt = $this->db->prepare($sql);
+            $stmt->bindValue(':usuarioId', $usuarioId, PDO::PARAM_INT);
             $stmt->bindValue(':limite', $limite, PDO::PARAM_INT);
             $stmt->execute();
             return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
         } catch (Exception $e) {
-            error_log('Error en getRecientes: ' . $e->getMessage());
+            error_log('Error getRecientes: ' . $e->getMessage());
             return [];
         }
+    }
+
+    public function marcarTodasLeidas(): bool
+    {
+        try {
+            $stmt = $this->db->prepare("UPDATE notificaciones SET leido = 1 WHERE leido = 0");
+            $stmt->execute();
+            return $stmt->rowCount() > 0;
+        } catch (Exception $e) {
+            error_log('Error marcarTodasLeidas: ' . $e->getMessage());
+            return false;
+        }
+    }
+    // 🔹 Marca una notificación específica del usuario como leída
+    public function marcarLeidaUsuario(int $notiId): bool
+    {
+        try {
+            $usuarioId = \Jaguata\Helpers\Session::getUsuarioId();
+            $stmt = $this->db->prepare("UPDATE notificaciones 
+                                    SET leido = 1 
+                                    WHERE noti_id = :id AND usu_id = :usuarioId");
+            return $stmt->execute([':id' => $notiId, ':usuarioId' => $usuarioId]);
+        } catch (Exception $e) {
+            error_log('Error marcarLeidaUsuario: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    // 🔹 Marca todas las notificaciones del usuario como leídas
+    public function marcarTodasLeidasUsuario(): bool
+    {
+        try {
+            $usuarioId = \Jaguata\Helpers\Session::getUsuarioId();
+            $stmt = $this->db->prepare("UPDATE notificaciones 
+                                    SET leido = 1 
+                                    WHERE usu_id = :usuarioId AND leido = 0");
+            $stmt->execute([':usuarioId' => $usuarioId]);
+            return $stmt->rowCount() > 0;
+        } catch (Exception $e) {
+            error_log('Error marcarTodasLeidasUsuario: ' . $e->getMessage());
+            return false;
+        }
+    }
+    // === Aliases para compatibilidad con la vista ===
+    public function markRead(array $data): bool
+    {
+        $id = (int)($data['noti_id'] ?? 0);
+        return $this->marcarLeidaUsuario($id);
+    }
+
+    public function markAllRead(): bool
+    {
+        return $this->marcarTodasLeidasUsuario();
     }
 }

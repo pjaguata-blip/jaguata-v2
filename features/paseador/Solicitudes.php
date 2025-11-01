@@ -9,28 +9,29 @@ use Jaguata\Controllers\AuthController;
 use Jaguata\Controllers\PaseoController;
 use Jaguata\Helpers\Session;
 
-// Inicializar aplicación
+// === Inicialización y seguridad ===
 AppConfig::init();
-
-// Verificar autenticación SOLO para paseador
 $authController = new AuthController();
 $authController->checkRole('paseador');
 
-// Obtener ID del paseador en sesión
-$paseadorId = Session::get('usuario_id');
+// === Variables base ===
+$rolMenu = Session::getUsuarioRol() ?: 'paseador';
+$baseFeatures = BASE_URL . "/features/{$rolMenu}";
+$paseadorId = Session::getUsuarioId();
 
-// Obtener solicitudes (paseos en estado "Pendiente")
+// === Controlador ===
 $paseoController = new PaseoController();
-$solicitudes = $paseoController->getSolicitudesPendientes((int)$paseadorId);
 
+// === Datos reales ===
+// Obtener solo solicitudes en estado "pendiente" para este paseador
+$solicitudes = $paseoController->getSolicitudesPendientes((int)$paseadorId) ?? [];
+
+// Helper para escapar
 function h($v)
 {
     return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
 }
-
-$baseFeatures = BASE_URL . "/features/paseador";
 ?>
-
 <!DOCTYPE html>
 <html lang="es">
 
@@ -94,11 +95,6 @@ $baseFeatures = BASE_URL . "/features/paseador";
             margin-bottom: 2rem;
         }
 
-        .page-header h2 {
-            font-weight: 600;
-            margin: 0;
-        }
-
         .card-premium {
             border: none;
             border-radius: 14px;
@@ -142,11 +138,16 @@ $baseFeatures = BASE_URL . "/features/paseador";
                     <img src="<?= ASSETS_URL; ?>/uploads/perfiles/logojag.png" alt="Jaguata" width="50">
                     <hr class="text-light">
                 </div>
+
                 <ul class="nav flex-column gap-1 px-2">
                     <li><a class="nav-link" href="<?= $baseFeatures; ?>/Dashboard.php"><i class="fas fa-home me-2"></i>Inicio</a></li>
+                    <li><a class="nav-link active" href="<?= $baseFeatures; ?>/Solicitudes.php"><i class="fas fa-envelope-open-text me-2"></i>Solicitudes</a></li>
                     <li><a class="nav-link" href="<?= $baseFeatures; ?>/MisPaseos.php"><i class="fas fa-list me-2"></i>Mis Paseos</a></li>
                     <li><a class="nav-link" href="<?= $baseFeatures; ?>/Disponibilidad.php"><i class="fas fa-calendar-check me-2"></i>Disponibilidad</a></li>
-                    <li><a class="nav-link active" href="#"><i class="fas fa-envelope-open-text me-2"></i>Solicitudes</a></li>
+                    <li><a class="nav-link" href="<?= $baseFeatures; ?>/Pagos.php"><i class="fas fa-wallet me-2"></i>Pagos</a></li>
+                    <li><a class="nav-link" href="<?= $baseFeatures; ?>/Estadisticas.php"><i class="fas fa-chart-line me-2"></i>Estadísticas</a></li>
+                    <li><a class="nav-link" href="../mensajeria/chat.php"><i class="fas fa-comments me-2"></i>Mensajería</a></li>
+                    <li><a class="nav-link" href="<?= $baseFeatures; ?>/Notificaciones.php"><i class="fas fa-bell me-2"></i>Notificaciones</a></li>
                     <li><a class="nav-link" href="<?= $baseFeatures; ?>/Perfil.php"><i class="fas fa-user me-2"></i>Mi Perfil</a></li>
                     <li><a class="nav-link text-danger" href="<?= BASE_URL; ?>/logout.php"><i class="fas fa-sign-out-alt me-2"></i>Cerrar sesión</a></li>
                 </ul>
@@ -154,24 +155,23 @@ $baseFeatures = BASE_URL . "/features/paseador";
 
             <!-- Contenido -->
             <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
-
                 <div class="page-header">
                     <h2><i class="fas fa-envelope-open-text me-2"></i> Solicitudes de Paseos</h2>
                     <a href="Dashboard.php" class="btn btn-outline-light btn-sm"><i class="fas fa-arrow-left me-1"></i> Volver</a>
                 </div>
 
-                <!-- Flash messages -->
+                <!-- Mensajes de estado -->
                 <?php if (!empty($_SESSION['success'])): ?>
-                    <div class="alert alert-success alert-dismissible fade show" role="alert">
-                        <i class="fas fa-check-circle me-1"></i> <?= $_SESSION['success'];
+                    <div class="alert alert-success alert-dismissible fade show">
+                        <i class="fas fa-check-circle me-1"></i> <?= h($_SESSION['success']);
                                                                     unset($_SESSION['success']); ?>
                         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                     </div>
                 <?php endif; ?>
 
                 <?php if (!empty($_SESSION['error'])): ?>
-                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                        <i class="fas fa-triangle-exclamation me-1"></i> <?= $_SESSION['error'];
+                    <div class="alert alert-danger alert-dismissible fade show">
+                        <i class="fas fa-triangle-exclamation me-1"></i> <?= h($_SESSION['error']);
                                                                             unset($_SESSION['error']); ?>
                         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                     </div>

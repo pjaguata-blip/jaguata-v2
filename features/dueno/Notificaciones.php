@@ -42,9 +42,11 @@ $leido   = $_GET['leido'] ?? '';
 $page    = max(1, (int)($_GET['page'] ?? 1));
 $perPage = 10;
 
-$data = $notiCtrl->index(['q' => $q, 'leido' => $leido, 'page' => $page, 'perPage' => $perPage]);
-$notificaciones = $data['data'];
-$totalPages = $data['totalPages'];
+$data = $notiCtrl->index(['q' => $q, 'leido' => $leido, 'page' => $page, 'perPage' => $perPage]) ?? [];
+
+$notificaciones = $data['data'] ?? [];
+$totalPages     = $data['totalPages'] ?? 1;
+
 
 $rolMenu = Session::getUsuarioRol() ?: 'dueno';
 $baseFeatures = BASE_URL . "/features/{$rolMenu}";

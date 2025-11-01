@@ -8,35 +8,30 @@ use Jaguata\Config\AppConfig;
 
 class DatabaseService
 {
-    private static ?DatabaseService $instance = null;
+    private static ?self $instance = null;
     private PDO $connection;
 
     private function __construct()
     {
-        // Nos aseguramos de inicializar AppConfig
-        if (!AppConfig::isInitialized()) {
-            AppConfig::init();
-        }
-
-        $dsn = "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET;
-        $user = DB_USER;
-        $pass = DB_PASS;
+        $dsn = 'mysql:host=localhost;dbname=jaguata;charset=utf8mb4';
+        $user = 'root';
+        $password = '';
 
         try {
-            $this->connection = new PDO($dsn, $user, $pass, [
-                PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+            $this->connection = new PDO($dsn, $user, $password, [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                PDO::ATTR_EMULATE_PREPARES   => false,
+                PDO::ATTR_EMULATE_PREPARES => false,
             ]);
         } catch (PDOException $e) {
             die("Error de conexión: " . $e->getMessage());
         }
     }
 
-    public static function getInstance(): DatabaseService
+    public static function getInstance(): self
     {
-        if (!self::$instance) {
-            self::$instance = new DatabaseService();
+        if (self::$instance === null) {
+            self::$instance = new self();
         }
         return self::$instance;
     }
@@ -50,14 +45,14 @@ class DatabaseService
     {
         $stmt = $this->connection->prepare($sql);
         $stmt->execute($params);
-        return $stmt->fetchAll();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     public function fetchOne(string $sql, array $params = []): ?array
     {
         $stmt = $this->connection->prepare($sql);
         $stmt->execute($params);
-        $result = $stmt->fetch();
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
         return $result ?: null;
     }
 

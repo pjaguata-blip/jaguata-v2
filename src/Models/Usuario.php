@@ -77,15 +77,28 @@ class Usuario extends BaseModel
         return $row ?: null;
     }
 
-    public function getAllUsuarios(?int $limite = null): array
+    public function getAllUsuarios(): array
     {
-        $sql = "SELECT " . $this->baseSelectFields() . " FROM {$this->table}";
-        if ($limite !== null) {
-            $lim = max(1, (int) $limite);
-            $sql .= " LIMIT {$lim}";
+        try {
+            $sql = "SELECT 
+                    usu_id, 
+                    nombre, 
+                    email, 
+                    rol, 
+                    estado, 
+                    created_at, 
+                    updated_at 
+                FROM {$this->table}";
+            $conn = $this->db->getConnection(); // obtiene el PDO real
+            $stmt = $conn->query($sql);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Error getAllUsuarios: " . $e->getMessage());
+            return [];
         }
-        return $this->fetchAll($sql);
     }
+
+
 
     // ==========================
     // 🔹 Autenticación
@@ -206,12 +219,23 @@ class Usuario extends BaseModel
     public function deleteUsuario(int $id): bool
     {
         try {
-            return $this->delete($id);
+            $conn = $this->db->getConnection();
+
+            // 1️⃣ Eliminar dependencias primero
+            $conn->prepare("DELETE FROM pagos WHERE usuario_id = :id")->execute([':id' => $id]);
+
+            // 2️⃣ Luego eliminar usuario
+            $stmt = $conn->prepare("DELETE FROM {$this->table} WHERE {$this->primaryKey} = :id");
+            $stmt->execute([':id' => $id]);
+
+            return $stmt->rowCount() > 0;
         } catch (PDOException $e) {
             error_log("Error deleteUsuario: " . $e->getMessage());
             return false;
         }
     }
+
+
 
     // ==========================
     // 🔹 Sistema de puntos
@@ -248,6 +272,80 @@ class Usuario extends BaseModel
             return $stmt->execute([':puntos' => $puntos, ':id' => $id]);
         } catch (PDOException $e) {
             error_log("Error restarPuntos: " . $e->getMessage());
+            return false;
+        }
+    }
+    public function updateEstado(int $id, string $estado): bool
+    {
+        try {
+            $sql = "UPDATE {$this->table} 
+                SET estado = :estado, updated_at = NOW() 
+                WHERE {$this->primaryKey} = :id";
+            $stmt = $this->db->getConnection()->prepare($sql);
+            return $stmt->execute([':estado' => $estado, ':id' => $id]);
+        } catch (PDOException $e) {
+            error_log("Error updateEstado: " . $e->getMessage());
+            return false;
+        }
+    }
+    /**
+     * Buscar usuario por ID (para controlador y edición)
+     */
+    public function findById(int $id): ?array
+    {
+        try {
+            $sql = "SELECT * FROM {$this->table} WHERE {$this->primaryKey} = :id LIMIT 1";
+            $stmt = $this->db->getConnection()->prepare($sql);
+            $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+            $stmt->execute();
+            $usuario = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $usuario ?: null;
+        } catch (PDOException $e) {
+            error_log("Error findById: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Eliminar usuario por ID (usado por el botón “Eliminar”)
+     */
+    public function deleteById(int $id): bool
+    {
+        try {
+            $conn = $this->db->getConnection();
+
+            // 1️⃣ Eliminar dependencias si existen
+            $conn->prepare("DELETE FROM pagos WHERE usuario_id = :id")->execute([':id' => $id]);
+
+            // 2️⃣ Eliminar el usuario
+            $stmt = $conn->prepare("DELETE FROM {$this->table} WHERE {$this->primaryKey} = :id");
+            $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+            $stmt->execute();
+
+            return $stmt->rowCount() > 0;
+        } catch (PDOException $e) {
+            error_log("Error deleteById: " . $e->getMessage());
+            return false;
+        }
+    }
+
+
+    /**
+     * Actualizar nombre y correo (para formulario de edición)
+     */
+    public function updateDatos(int $id, string $nombre, string $email): bool
+    {
+        try {
+            $sql = "UPDATE {$this->table} 
+                    SET nombre = :nombre, email = :email, updated_at = NOW() 
+                    WHERE {$this->primaryKey} = :id";
+            $stmt = $this->db->getConnection()->prepare($sql);
+            $stmt->bindValue(':nombre', $nombre, PDO::PARAM_STR);
+            $stmt->bindValue(':email', $email, PDO::PARAM_STR);
+            $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+            return $stmt->execute();
+        } catch (PDOException $e) {
+            error_log("Error updateDatos: " . $e->getMessage());
             return false;
         }
     }

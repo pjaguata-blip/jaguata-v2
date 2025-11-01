@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Jaguata\Models;
 
 use Jaguata\Services\DatabaseService;
-
+use PDOException;
 // 🔹 fallback opcional por si el autoload aún no cargó DatabaseService
 if (!class_exists(DatabaseService::class)) {
     require_once __DIR__ . '/../Services/DatabaseService.php';
@@ -93,10 +93,16 @@ abstract class BaseModel
     /**
      * Eliminar un registro por ID
      */
-    public function delete(int|string $id): bool
+    public function delete(int $id): bool
     {
-        $sql = "DELETE FROM {$this->table} WHERE {$this->primaryKey} = :{$this->primaryKey}";
-        return $this->db->executeQuery($sql, [$this->primaryKey => $id]);
+        try {
+            $conn = $this->db->getConnection();
+            $stmt = $conn->prepare("DELETE FROM {$this->table} WHERE {$this->primaryKey} = :id");
+            return $stmt->execute([':id' => $id]);
+        } catch (PDOException $e) {
+            error_log("Error BaseModel::delete => " . $e->getMessage());
+            return false;
+        }
     }
 
     /**

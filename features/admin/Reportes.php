@@ -19,19 +19,10 @@ if (!Session::isLoggedIn() || Session::getUsuarioRol() !== 'admin') {
 
 $reporteController = new ReporteController();
 $estadisticas = $reporteController->getEstadisticas();
-
-if (empty($estadisticas) || !is_array($estadisticas) || !isset($estadisticas['usuarios'])) {
-    $estadisticas = [
-        'usuarios' => 120,
-        'paseos_total' => 340,
-        'paseos_completos' => 300,
-        'paseos_pendientes' => 40,
-        'ingresos_totales' => 2350000,
-        'roles' => ['dueno' => 80, 'paseador' => 35, 'admin' => 5],
-        'paseos_por_dia' => ['Lun' => 40, 'Mar' => 55, 'Mié' => 47, 'Jue' => 60, 'Vie' => 50, 'Sáb' => 35, 'Dom' => 25],
-        'ingresos_por_mes' => ['Ene' => 850000, 'Feb' => 920000, 'Mar' => 1000000, 'Abr' => 1170000, 'May' => 1350000, 'Jun' => 1450000]
-    ];
+if (!isset($estadisticas['usuarios'])) {
+    $estadisticas = ['usuarios' => 0, 'paseos_total' => 0];
 }
+
 ?>
 <!DOCTYPE html>
 <html lang="es">

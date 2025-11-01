@@ -20,47 +20,10 @@ if (!Session::isLoggedIn() || Session::getUsuarioRol() !== 'admin') {
     exit;
 }
 
-// 🔹 Cargar registros
+// 🔹 Cargar registros reales desde la BD
 $auditoriaController = new AuditoriaController();
 $registros = $auditoriaController->index();
-
-// 🔹 Datos simulados
-if (empty($registros)) {
-    $registros = [
-        [
-            'id' => 1,
-            'fecha' => '2025-10-27 09:32:10',
-            'usuario' => 'admin@jaguata.com',
-            'accion' => 'Inicio de sesión',
-            'modulo' => 'Autenticación',
-            'detalles' => 'Inicio de sesión exitoso desde IP 192.168.0.12'
-        ],
-        [
-            'id' => 2,
-            'fecha' => '2025-10-27 09:45:01',
-            'usuario' => 'admin@jaguata.com',
-            'accion' => 'Actualización de datos',
-            'modulo' => 'Usuarios',
-            'detalles' => 'Se actualizó el rol de usuario "paseador1" a "admin"'
-        ],
-        [
-            'id' => 3,
-            'fecha' => '2025-10-27 10:05:22',
-            'usuario' => 'admin@jaguata.com',
-            'accion' => 'Eliminación de registro',
-            'modulo' => 'Mascotas',
-            'detalles' => 'Se eliminó la mascota con ID #23 (Rex)'
-        ],
-        [
-            'id' => 4,
-            'fecha' => '2025-10-27 10:45:09',
-            'usuario' => 'admin@jaguata.com',
-            'accion' => 'Pago confirmado',
-            'modulo' => 'Pagos',
-            'detalles' => 'Se confirmó pago del paseo #110 por ₲95.000'
-        ]
-    ];
-}
+$sinDatos = empty($registros);
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -262,6 +225,7 @@ if (empty($registros)) {
                         <option value="Pagos">Pagos</option>
                         <option value="Mascotas">Mascotas</option>
                         <option value="Autenticación">Autenticación</option>
+                        <option value="Paseos">Paseos</option>
                     </select>
                 </div>
                 <div class="col-md-3">
@@ -277,9 +241,9 @@ if (empty($registros)) {
 
         <!-- Botones exportación -->
         <div class="export-buttons">
-            <button class="btn btn-pdf"><i class="fas fa-file-pdf"></i> PDF</button>
-            <button class="btn btn-excel"><i class="fas fa-file-excel"></i> Excel</button>
-            <button class="btn btn-csv"><i class="fas fa-file-csv"></i> CSV</button>
+            <button class="btn btn-excel" onclick="window.location.href='/jaguata/public/api/auditoria/exportarAuditoria.php'">
+                <i class="fas fa-file-excel"></i> Excel
+            </button>
         </div>
 
         <!-- Tabla -->
@@ -296,20 +260,28 @@ if (empty($registros)) {
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($registros as $r): ?>
-                        <?php
-                        $accion = strtolower($r['accion']);
-                        $color = str_contains($accion, 'elimin') ? 'bg-danger' : (str_contains($accion, 'actualiz') ? 'bg-warning text-dark' : (str_contains($accion, 'inicio') ? 'bg-success' : 'bg-info text-dark'));
-                        ?>
-                        <tr data-modulo="<?= strtolower($r['modulo']) ?>">
-                            <td><strong>#<?= htmlspecialchars($r['id']) ?></strong></td>
-                            <td><?= date('d/m/Y H:i:s', strtotime($r['fecha'])) ?></td>
-                            <td><?= htmlspecialchars($r['usuario']) ?></td>
-                            <td><span class="badge <?= $color ?>"><?= htmlspecialchars($r['accion']) ?></span></td>
-                            <td><span class="badge bg-secondary"><?= htmlspecialchars($r['modulo']) ?></span></td>
-                            <td><?= htmlspecialchars($r['detalles']) ?></td>
+                    <?php if ($sinDatos): ?>
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-3">
+                                No hay registros de auditoría disponibles.
+                            </td>
                         </tr>
-                    <?php endforeach; ?>
+                    <?php else: ?>
+                        <?php foreach ($registros as $r): ?>
+                            <?php
+                            $accion = strtolower($r['accion']);
+                            $color = str_contains($accion, 'elimin') ? 'bg-danger' : (str_contains($accion, 'actualiz') ? 'bg-warning text-dark' : (str_contains($accion, 'inicio') ? 'bg-success' : 'bg-info text-dark'));
+                            ?>
+                            <tr data-modulo="<?= strtolower($r['modulo']) ?>">
+                                <td><strong>#<?= htmlspecialchars($r['id']) ?></strong></td>
+                                <td><?= date('d/m/Y H:i:s', strtotime($r['fecha'])) ?></td>
+                                <td><?= htmlspecialchars($r['usuario']) ?></td>
+                                <td><span class="badge <?= $color ?>"><?= htmlspecialchars($r['accion']) ?></span></td>
+                                <td><span class="badge bg-secondary"><?= htmlspecialchars($r['modulo']) ?></span></td>
+                                <td><?= htmlspecialchars($r['detalles']) ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
                 </tbody>
             </table>
         </div>
@@ -348,10 +320,6 @@ if (empty($registros)) {
         }
 
         [input, modulo, desde, hasta].forEach(el => el.addEventListener('input', aplicarFiltros));
-
-        document.querySelectorAll('.export-buttons .btn').forEach(btn => {
-            btn.addEventListener('click', () => alert(`Exportar a ${btn.textContent.trim()} aún no implementado 🚀`));
-        });
     </script>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

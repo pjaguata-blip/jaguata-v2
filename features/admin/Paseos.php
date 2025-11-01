@@ -304,9 +304,9 @@ if (empty($paseos) || isset($paseos['error'])) {
 
         <!-- EXPORT -->
         <div class="export-buttons">
-            <button class="btn btn-pdf"><i class="fas fa-file-pdf"></i> PDF</button>
-            <button class="btn btn-excel"><i class="fas fa-file-excel"></i> Excel</button>
-            <button class="btn btn-csv"><i class="fas fa-file-csv"></i> CSV</button>
+            <button class="btn btn-excel" onclick="window.location.href='/jaguata/public/api/paseos/exportarPaseos.php'">
+                <i class="fas fa-file-excel"></i> Excel
+            </button>
         </div>
 
         <!-- TABLA -->
@@ -385,7 +385,13 @@ if (empty($paseos) || isset($paseos['error'])) {
         [search, estado, desde, hasta].forEach(el => el.addEventListener('input', aplicarFiltros));
 
         document.querySelectorAll('.export-buttons .btn').forEach(btn => {
-            btn.addEventListener('click', () => alert(`Exportar a ${btn.textContent.trim()} aún no implementado 🚀`));
+            // si el botón es Excel, no bloquear el click
+            if (btn.classList.contains('btn-excel')) return;
+
+            btn.addEventListener('click', e => {
+                e.preventDefault();
+                alert(`Exportar a ${btn.textContent.trim()} aún no implementado 🚀`);
+            });
         });
     </script>
 </body>

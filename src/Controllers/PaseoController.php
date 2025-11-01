@@ -356,4 +356,38 @@ class PaseoController
         $paseoModel = new \Jaguata\Models\Paseo();
         return $paseoModel->getById($id);
     }
+    public function ejecutarAccion(string $accion, int $id): array
+    {
+        switch ($accion) {
+            case 'eliminar':
+                return $this->eliminarPaseo($id);
+            case 'finalizar':
+                return $this->finalizarPaseo($id);
+            default:
+                return ['ok' => false, 'mensaje' => 'Acción no reconocida'];
+        }
+    }
+
+    public function obtenerDatosExportacion(): array
+    {
+        // Devuelve los paseos para exportar
+        return $this->paseoModel->obtenerTodos(); // o la query que uses
+    }
+    public function eliminarPaseo(int $id): array
+    {
+        $ok = $this->paseoModel->eliminar($id);
+        return [
+            'ok' => $ok,
+            'mensaje' => $ok ? 'Paseo eliminado correctamente.' : 'No se pudo eliminar el paseo.'
+        ];
+    }
+
+    public function finalizarPaseo(int $id): array
+    {
+        $ok = $this->paseoModel->finalizar($id);
+        return [
+            'ok' => $ok,
+            'mensaje' => $ok ? 'Paseo finalizado correctamente.' : 'No se pudo finalizar el paseo.'
+        ];
+    }
 }

@@ -5,6 +5,7 @@ namespace Jaguata\Models;
 use Jaguata\Services\DatabaseService;
 use PDO;
 use Exception;
+use PDOException;
 
 class Paseo
 {
@@ -239,7 +240,9 @@ class Paseo
     }
     public function getById(int $id): ?array
     {
-        $sql = "SELECT 
+        try {
+            $sql = "
+            SELECT 
                 p.paseo_id,
                 p.inicio,
                 p.duracion,
@@ -249,34 +252,98 @@ class Paseo
                 p.puntos_ganados,
                 p.created_at,
                 p.updated_at,
-                u.nombre AS paseador_nombre,
-                m.nombre AS mascota_nombre
+                m.nombre AS nombre_mascota,
+                d.nombre AS nombre_dueno,
+                d.email AS dueno_email,
+                u.nombre AS nombre_paseador,
+                u.telefono AS telefono_paseador,
+                u.zona AS zona_paseador,
+                u.latitud AS paseador_latitud,
+                u.longitud AS paseador_longitud
             FROM paseos p
-            LEFT JOIN usuarios u ON u.usu_id = p.paseador_id
             LEFT JOIN mascotas m ON m.mascota_id = p.mascota_id
+            LEFT JOIN usuarios d ON d.usu_id = m.dueno_id
+            LEFT JOIN usuarios u ON u.usu_id = p.paseador_id
             WHERE p.paseo_id = :id
-            LIMIT 1";
+            LIMIT 1
+        ";
 
-        $stmt = $this->db->prepare($sql);
-        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
-        $stmt->execute();
+            $stmt = $this->db->prepare($sql);
+            $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+            $stmt->execute();
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        if (!$row) return null;
+            if (!$row) return null;
 
-        // 🔹 Normalizamos los nombres esperados por la vista VerPaseo.php
-        return [
-            'paseo_id'        => $row['paseo_id'],
-            'mascota_nombre'  => $row['mascota_nombre'] ?? '—',
-            'paseador_nombre' => $row['paseador_nombre'] ?? '—',
-            'fecha_inicio'    => $row['inicio'] ?? null,
-            'duracion'        => $row['duracion'],
-            'monto'           => $row['precio_total'],
-            'estado'          => $row['estado'],
-            'estado_pago'     => $row['estado_pago'],
-            'puntos_ganados'  => $row['puntos_ganados'],
-            'creado'          => $row['created_at'],
-            'actualizado'     => $row['updated_at']
-        ];
+            return [
+                'paseo_id'           => $row['paseo_id'],
+                'nombre_mascota'     => $row['nombre_mascota'] ?? '—',
+                'nombre_paseador'    => $row['nombre_paseador'] ?? '—',
+                'nombre_dueno'       => $row['nombre_dueno'] ?? '—',
+                'telefono_paseador'  => $row['telefono_paseador'] ?? '—',
+                'zona_paseador'      => $row['zona_paseador'] ?? '—',
+                'duracion'           => $row['duracion'] ?? 0,
+                'precio_total'       => $row['precio_total'] ?? 0,
+                'estado'             => $row['estado'] ?? 'pendiente',
+                'inicio'             => $row['inicio'] ?? null,
+                'updated_at'         => $row['updated_at'] ?? null,
+                'paseador_latitud'   => $row['paseador_latitud'] ?? null,
+                'paseador_longitud'  => $row['paseador_longitud'] ?? null,
+            ];
+        } catch (PDOException $e) {
+            error_log("❌ Error en getById(): " . $e->getMessage());
+            return null;
+        }
+    }
+
+
+    public function obtenerTodos(): array
+    {
+        try {
+            $sql = "SELECT 
+                    p.paseo_id AS id,
+                    d.nombre AS dueno_nombre,
+                    pa.nombre AS paseador_nombre,
+                    m.nombre AS mascota_nombre,
+                    p.inicio AS fecha_inicio,
+                    p.duracion,
+                    p.precio_total AS costo,
+                    p.estado,
+                    p.estado_pago,
+                    p.puntos_ganados
+                FROM paseos p
+                INNER JOIN mascotas m ON p.mascota_id = m.mascota_id
+                INNER JOIN usuarios d ON m.dueno_id = d.usu_id
+                INNER JOIN usuarios pa ON p.paseador_id = pa.usu_id
+                ORDER BY p.inicio DESC";
+
+            $stmt = $this->db->query($sql);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("❌ Error en Paseo::obtenerTodos(): " . $e->getMessage());
+            return [];
+        }
+    }
+
+    public function eliminar(int $id): bool
+    {
+        try {
+            $stmt = $this->db->prepare("DELETE FROM paseos WHERE id = ?");
+            return $stmt->execute([$id]);
+        } catch (PDOException $e) {
+            error_log("❌ Error eliminando paseo: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    public function finalizar(int $id): bool
+    {
+        try {
+            $stmt = $this->db->prepare("UPDATE paseos SET estado = 'finalizado' WHERE id = ?");
+            return $stmt->execute([$id]);
+        } catch (PDOException $e) {
+            error_log("❌ Error finalizando paseo: " . $e->getMessage());
+            return false;
+        }
     }
 }

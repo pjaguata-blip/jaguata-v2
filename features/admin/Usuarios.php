@@ -23,9 +23,13 @@ $usuarioController = new UsuarioController();
 $usuarios = $usuarioController->index();
 if (empty($usuarios)) {
     $usuarios = [
-        ['usu_id' => 1, 'nombre' => 'Juan Pérez', 'email' => 'juan@correo.com', 'rol' => 'paseador', 'estado' => 'activo'],
-        ['usu_id' => 2, 'nombre' => 'Ana Gómez', 'email' => 'ana@correo.com', 'rol' => 'dueno', 'estado' => 'inactivo'],
-        ['usu_id' => 3, 'nombre' => 'Carlos Rojas', 'email' => 'carlos@correo.com', 'rol' => 'admin', 'estado' => 'activo'],
+        [
+            'usu_id' => 1,
+            'nombre' => 'Juan Pérez',
+            'email' => 'juan@correo.com',
+            'rol' => 'paseador',
+            'estado' => 'pendiente'
+        ]
     ];
 }
 ?>
@@ -285,8 +289,10 @@ if (empty($usuarios)) {
                     <label class="form-label fw-semibold">Estado</label>
                     <select id="filterEstado" class="form-select">
                         <option value="">Todos</option>
-                        <option value="activo">Activo</option>
-                        <option value="inactivo">Inactivo</option>
+                        <option value="pendiente">Pendiente</option>
+                        <option value="aprobado">Aprobado</option>
+                        <option value="rechazado">Rechazado</option>
+                        <option value="cancelado">Cancelado</option>
                     </select>
                 </div>
             </form>
@@ -294,9 +300,9 @@ if (empty($usuarios)) {
 
         <!-- Botones exportar -->
         <div class="export-buttons">
-            <button class="btn btn-pdf"><i class="fas fa-file-pdf"></i> PDF</button>
-            <button class="btn btn-excel"><i class="fas fa-file-excel"></i> Excel</button>
-            <button class="btn btn-csv"><i class="fas fa-file-csv"></i> CSV</button>
+            <a class="btn btn-excel" href="/jaguata/public/api/usuarios/exportUsuarios.php">
+                <i class="fas fa-file-excel"></i> Excel
+            </a>
         </div>
 
         <!-- Tabla -->
@@ -315,8 +321,14 @@ if (empty($usuarios)) {
                 <tbody>
                     <?php foreach ($usuarios as $u): ?>
                         <?php
-                        $estado = strtolower($u['estado'] ?? 'activo');
-                        $badge = $estado === 'activo' ? 'bg-success' : 'bg-secondary';
+                        $estado = strtolower($u['estado'] ?? 'pendiente');
+                        $badge = match ($estado) {
+                            'aprobado' => 'bg-success',
+                            'pendiente' => 'bg-warning text-dark',
+                            'rechazado' => 'bg-danger',
+                            'cancelado' => 'bg-secondary',
+                            default => 'bg-light text-dark',
+                        };
                         ?>
                         <tr data-rol="<?= strtolower($u['rol']) ?>" data-estado="<?= $estado ?>">
                             <td><strong>#<?= htmlspecialchars($u['usu_id']) ?></strong></td>
@@ -325,12 +337,20 @@ if (empty($usuarios)) {
                             <td><span class="badge bg-info text-dark"><?= ucfirst($u['rol']) ?></span></td>
                             <td><span class="badge <?= $badge ?>"><?= ucfirst($estado) ?></span></td>
                             <td>
-                                <button class="btn-accion btn-editar"><i class="fas fa-edit"></i></button>
-                                <button class="btn-accion btn-eliminar"><i class="fas fa-trash"></i></button>
-                                <?php if ($estado === 'activo'): ?>
-                                    <button class="btn-accion btn-suspender"><i class="fas fa-user-slash"></i></button>
+                                <button class="btn-accion btn-editar" data-id="<?= htmlspecialchars($u['usu_id']) ?>">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn-accion btn-eliminar" data-id="<?= htmlspecialchars($u['usu_id']) ?>">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                                <?php if ($estado === 'aprobado'): ?>
+                                    <button class="btn-accion btn-suspender" data-id="<?= htmlspecialchars($u['usu_id']) ?>">
+                                        <i class="fas fa-user-slash"></i>
+                                    </button>
                                 <?php else: ?>
-                                    <button class="btn-accion btn-activar"><i class="fas fa-user-check"></i></button>
+                                    <button class="btn-accion btn-activar" data-id="<?= htmlspecialchars($u['usu_id']) ?>">
+                                        <i class="fas fa-user-check"></i>
+                                    </button>
                                 <?php endif; ?>
                             </td>
                         </tr>
@@ -367,10 +387,48 @@ if (empty($usuarios)) {
         filterRol.addEventListener('change', aplicarFiltros);
         filterEstado.addEventListener('change', aplicarFiltros);
 
-        // Simulación exportar (por ahora alerta)
-        document.querySelectorAll('.export-buttons .btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                alert(`Exportar a ${btn.textContent.trim()} aún no implementado 🚀`);
+        // === Acciones de los botones ===
+        document.addEventListener('DOMContentLoaded', () => {
+            const handleAction = async (id, accion, confirmMsg) => {
+                if (confirmMsg && !confirm(confirmMsg)) return;
+
+                const formData = new FormData();
+                formData.append('id', id);
+                formData.append('accion', accion);
+
+                const res = await fetch('/jaguata/public/api/usuarios/accionesUsuarios.php', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await res.json();
+                alert(data.mensaje);
+                if (data.ok) location.reload();
+            };
+
+            document.querySelectorAll('.btn-editar').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const id = btn.dataset.id;
+                    window.location.href = `/jaguata/public/admin/editar_usuario.php?id=${id}`;
+                });
+            });
+
+            document.querySelectorAll('.btn-eliminar').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    handleAction(btn.dataset.id, 'eliminar', '¿Seguro que deseas eliminar este usuario?');
+                });
+            });
+
+            document.querySelectorAll('.btn-suspender').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    handleAction(btn.dataset.id, 'suspender', '¿Suspender este usuario?');
+                });
+            });
+
+            document.querySelectorAll('.btn-activar').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    handleAction(btn.dataset.id, 'activar', '¿Activar este usuario?');
+                });
             });
         });
     </script>

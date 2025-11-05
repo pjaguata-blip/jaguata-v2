@@ -145,40 +145,40 @@ $baseFeatures = BASE_URL . "/features/{$rol}";
             </div>
 
             <!-- Main -->
-            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
-                <div class="page-header">
-                    <h1><i class="fas fa-star me-2"></i>Mis Puntos</h1>
-                    <a href="<?= $baseFeatures; ?>/Dashboard.php" class="btn btn-light btn-sm">
-                        <i class="fas fa-arrow-left me-1"></i> Volver
-                    </a>
-                </div>
 
-                <div class="row justify-content-center">
-                    <div class="col-lg-6 col-md-8">
-                        <div class="card text-center p-4 shadow-lg">
-                            <div class="card-body">
-                                <h2 class="fw-bold text-success mb-3">
-                                    <i class="fas fa-medal text-warning me-2"></i> ¡Tus Recompensas!
+            <div class="page-header">
+                <h1><i class="fas fa-star me-2"></i>Mis Puntos</h1>
+                <a href="<?= $baseFeatures; ?>/Dashboard.php" class="btn btn-light btn-sm">
+                    <i class="fas fa-arrow-left me-1"></i> Volver
+                </a>
+            </div>
+
+            <div class="row justify-content-center">
+                <div class="col-lg-6 col-md-8">
+                    <div class="card text-center p-4 shadow-lg">
+                        <div class="card-body">
+                            <h2 class="fw-bold text-success mb-3">
+                                <i class="fas fa-medal text-warning me-2"></i> ¡Tus Recompensas!
+                            </h2>
+                            <p class="text-muted mb-4">
+                                Cada paseo completado te otorga puntos 🐶 ¡Seguí sumando para desbloquear beneficios!
+                            </p>
+
+                            <div class="bg-light rounded-4 py-4 mb-4 border">
+                                <h2 class="display-3 fw-bold text-primary mb-0">
+                                    <?= number_format($puntos, 0, ',', '.') ?>
                                 </h2>
-                                <p class="text-muted mb-4">
-                                    Cada paseo completado te otorga puntos 🐶 ¡Seguí sumando para desbloquear beneficios!
-                                </p>
-
-                                <div class="bg-light rounded-4 py-4 mb-4 border">
-                                    <h2 class="display-3 fw-bold text-primary mb-0">
-                                        <?= number_format($puntos, 0, ',', '.') ?>
-                                    </h2>
-                                    <small class="text-secondary">puntos acumulados</small>
-                                </div>
-
-                                <a href="<?= $baseFeatures; ?>/Dashboard.php" class="btn btn-outline-secondary">
-                                    <i class="fas fa-arrow-left me-2"></i> Volver al Dashboard
-                                </a>
+                                <small class="text-secondary">puntos acumulados</small>
                             </div>
+
+                            <a href="<?= $baseFeatures; ?>/Dashboard.php" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-2"></i> Volver al Dashboard
+                            </a>
                         </div>
                     </div>
                 </div>
-            </main>
+            </div>
+
         </div>
     </div>
 

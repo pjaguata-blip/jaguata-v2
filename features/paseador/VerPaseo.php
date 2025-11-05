@@ -162,61 +162,60 @@ $baseFeatures = BASE_URL . "/features/paseador";
             </div>
 
             <!-- Contenido -->
-            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
 
-                <div class="page-header">
-                    <h2><i class="fas fa-walking me-2"></i> Detalle del Paseo</h2>
-                    <a href="MisPaseos.php" class="btn btn-outline-light btn-sm">
-                        <i class="fas fa-arrow-left me-1"></i> Volver
-                    </a>
-                </div>
+            <div class="page-header">
+                <h2><i class="fas fa-walking me-2"></i> Detalle del Paseo</h2>
+                <a href="MisPaseos.php" class="btn btn-outline-light btn-sm">
+                    <i class="fas fa-arrow-left me-1"></i> Volver
+                </a>
+            </div>
 
-                <div class="card-premium">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <p><strong><i class="fas fa-paw text-success me-2"></i>Mascota:</strong> <?= h($paseo['nombre_mascota'] ?? '—') ?></p>
-                            <p><strong><i class="fas fa-user text-secondary me-2"></i>Dueño:</strong> <?= h($paseo['nombre_dueno'] ?? '—') ?></p>
-                            <p><strong><i class="fas fa-calendar me-2"></i>Fecha:</strong> <?= isset($paseo['inicio']) ? date('d/m/Y H:i', strtotime($paseo['inicio'])) : '—' ?></p>
-                            <p><strong><i class="fas fa-hourglass-half me-2"></i>Duración:</strong> <?= h($paseo['duracion'] ?? $paseo['duracion_min'] ?? '—') ?> min</p>
-                        </div>
-                        <div class="col-md-6">
-                            <p><strong><i class="fas fa-map-marker-alt me-2"></i>Dirección:</strong> <?= h($paseo['direccion'] ?? '—') ?></p>
-                            <p><strong><i class="fas fa-dollar-sign me-2"></i>Precio Total:</strong> ₲<?= number_format((float)($paseo['precio_total'] ?? 0), 0, ',', '.') ?></p>
-                            <p><strong><i class="fas fa-info-circle me-2"></i>Estado:</strong>
-                                <span class="badge bg-<?= $badge ?>"><?= ucfirst($estado ?: '—') ?></span>
-                            </p>
-                        </div>
+            <div class="card-premium">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong><i class="fas fa-paw text-success me-2"></i>Mascota:</strong> <?= h($paseo['nombre_mascota'] ?? '—') ?></p>
+                        <p><strong><i class="fas fa-user text-secondary me-2"></i>Dueño:</strong> <?= h($paseo['nombre_dueno'] ?? '—') ?></p>
+                        <p><strong><i class="fas fa-calendar me-2"></i>Fecha:</strong> <?= isset($paseo['inicio']) ? date('d/m/Y H:i', strtotime($paseo['inicio'])) : '—' ?></p>
+                        <p><strong><i class="fas fa-hourglass-half me-2"></i>Duración:</strong> <?= h($paseo['duracion'] ?? $paseo['duracion_min'] ?? '—') ?> min</p>
                     </div>
-
-                    <hr>
-
-                    <div class="mt-3 d-flex gap-2">
-                        <?php if ($estado === 'confirmado'): ?>
-                            <a href="AccionPaseo.php?id=<?= (int)$paseo['paseo_id'] ?>&accion=iniciar"
-                                class="btn btn-gradient"
-                                onclick="return confirm('¿Iniciar este paseo?');">
-                                <i class="fas fa-play me-1"></i> Iniciar Paseo
-                            </a>
-                            <a href="AccionPaseo.php?id=<?= (int)$paseo['paseo_id'] ?>&accion=cancelar"
-                                class="btn btn-outline-danger"
-                                onclick="return confirm('¿Cancelar este paseo?');">
-                                <i class="fas fa-times me-1"></i> Cancelar
-                            </a>
-                        <?php elseif ($estado === 'en_curso'): ?>
-                            <a href="AccionPaseo.php?id=<?= (int)$paseo['paseo_id'] ?>&accion=completar"
-                                class="btn btn-gradient"
-                                onclick="return confirm('¿Marcar este paseo como completado?');">
-                                <i class="fas fa-check me-1"></i> Completar Paseo
-                            </a>
-                            <a href="AccionPaseo.php?id=<?= (int)$paseo['paseo_id'] ?>&accion=cancelar"
-                                class="btn btn-outline-danger"
-                                onclick="return confirm('¿Cancelar este paseo en curso?');">
-                                <i class="fas fa-times me-1"></i> Cancelar
-                            </a>
-                        <?php endif; ?>
+                    <div class="col-md-6">
+                        <p><strong><i class="fas fa-map-marker-alt me-2"></i>Dirección:</strong> <?= h($paseo['direccion'] ?? '—') ?></p>
+                        <p><strong><i class="fas fa-dollar-sign me-2"></i>Precio Total:</strong> ₲<?= number_format((float)($paseo['precio_total'] ?? 0), 0, ',', '.') ?></p>
+                        <p><strong><i class="fas fa-info-circle me-2"></i>Estado:</strong>
+                            <span class="badge bg-<?= $badge ?>"><?= ucfirst($estado ?: '—') ?></span>
+                        </p>
                     </div>
                 </div>
-            </main>
+
+                <hr>
+
+                <div class="mt-3 d-flex gap-2">
+                    <?php if ($estado === 'confirmado'): ?>
+                        <a href="AccionPaseo.php?id=<?= (int)$paseo['paseo_id'] ?>&accion=iniciar"
+                            class="btn btn-gradient"
+                            onclick="return confirm('¿Iniciar este paseo?');">
+                            <i class="fas fa-play me-1"></i> Iniciar Paseo
+                        </a>
+                        <a href="AccionPaseo.php?id=<?= (int)$paseo['paseo_id'] ?>&accion=cancelar"
+                            class="btn btn-outline-danger"
+                            onclick="return confirm('¿Cancelar este paseo?');">
+                            <i class="fas fa-times me-1"></i> Cancelar
+                        </a>
+                    <?php elseif ($estado === 'en_curso'): ?>
+                        <a href="AccionPaseo.php?id=<?= (int)$paseo['paseo_id'] ?>&accion=completar"
+                            class="btn btn-gradient"
+                            onclick="return confirm('¿Marcar este paseo como completado?');">
+                            <i class="fas fa-check me-1"></i> Completar Paseo
+                        </a>
+                        <a href="AccionPaseo.php?id=<?= (int)$paseo['paseo_id'] ?>&accion=cancelar"
+                            class="btn btn-outline-danger"
+                            onclick="return confirm('¿Cancelar este paseo en curso?');">
+                            <i class="fas fa-times me-1"></i> Cancelar
+                        </a>
+                    <?php endif; ?>
+                </div>
+            </div>
+
         </div>
     </div>
 

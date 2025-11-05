@@ -203,85 +203,84 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
             </div>
 
             <!-- Main -->
-            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
-                <div class="page-header">
-                    <h1><i class="fas fa-bell me-2"></i> Notificaciones</h1>
-                    <form method="post" class="m-0">
-                        <input type="hidden" name="action" value="markAllRead">
-                        <button type="submit" class="btn btn-light btn-sm">
-                            <i class="fas fa-check-double me-1"></i> Marcar todas
-                        </button>
+            <div class="page-header">
+                <h1><i class="fas fa-bell me-2"></i> Notificaciones</h1>
+                <form method="post" class="m-0">
+                    <input type="hidden" name="action" value="markAllRead">
+                    <button type="submit" class="btn btn-light btn-sm">
+                        <i class="fas fa-check-double me-1"></i> Marcar todas
+                    </button>
+                </form>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-body">
+                    <form class="row g-3" method="get">
+                        <div class="col-md-5">
+                            <input type="text" name="q" value="<?= htmlspecialchars($q) ?>" class="form-control" placeholder="Buscar notificación...">
+                        </div>
+                        <div class="col-md-3">
+                            <select name="leido" class="form-select">
+                                <option value="">Todas</option>
+                                <option value="0" <?= $leido === '0' ? 'selected' : '' ?>>No leídas</option>
+                                <option value="1" <?= $leido === '1' ? 'selected' : '' ?>>Leídas</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <button class="btn btn-outline-success w-100"><i class="fas fa-filter me-1"></i> Filtrar</button>
+                        </div>
                     </form>
                 </div>
+            </div>
 
-                <div class="card mb-4">
-                    <div class="card-body">
-                        <form class="row g-3" method="get">
-                            <div class="col-md-5">
-                                <input type="text" name="q" value="<?= htmlspecialchars($q) ?>" class="form-control" placeholder="Buscar notificación...">
+            <?php if (empty($notificaciones)): ?>
+                <div class="alert alert-info text-center py-5 shadow-sm rounded-4">
+                    <i class="fas fa-bell-slash fa-3x mb-3 text-muted"></i>
+                    <h5 class="fw-semibold">No tienes notificaciones</h5>
+                    <p class="text-muted mb-0">Te avisaremos cuando haya novedades 🐾</p>
+                </div>
+            <?php else: ?>
+                <div class="vstack gap-3 mb-4">
+                    <?php foreach ($notificaciones as $n):
+                        $isRead = (int)$n['leido'] === 1;
+                        $titulo = htmlspecialchars($n['titulo'] ?? '');
+                        $msg = htmlspecialchars($n['mensaje'] ?? '');
+                        $fecha = $n['created_at'] ? date('d/m/Y H:i', strtotime($n['created_at'])) : '';
+                    ?>
+                        <div class="card noti-card <?= $isRead ? 'read' : 'unread' ?> border-0">
+                            <div class="card-body d-flex justify-content-between align-items-start">
+                                <div class="flex-grow-1">
+                                    <h5 class="card-title mb-1">
+                                        <i class="fas fa-bell text-success me-2"></i><?= $titulo ?>
+                                    </h5>
+                                    <p class="text-muted text-truncate-2 mb-2"><?= $msg ?></p>
+                                    <small class="text-muted"><i class="far fa-clock me-1"></i><?= $fecha ?></small>
+                                </div>
+                                <?php if (!$isRead): ?>
+                                    <form method="post" class="ms-3">
+                                        <input type="hidden" name="action" value="markRead">
+                                        <input type="hidden" name="noti_id" value="<?= (int)$n['noti_id'] ?>">
+                                        <button class="btn btn-sm btn-outline-success rounded-circle shadow-sm"><i class="fas fa-check"></i></button>
+                                    </form>
+                                <?php endif; ?>
                             </div>
-                            <div class="col-md-3">
-                                <select name="leido" class="form-select">
-                                    <option value="">Todas</option>
-                                    <option value="0" <?= $leido === '0' ? 'selected' : '' ?>>No leídas</option>
-                                    <option value="1" <?= $leido === '1' ? 'selected' : '' ?>>Leídas</option>
-                                </select>
-                            </div>
-                            <div class="col-md-2">
-                                <button class="btn btn-outline-success w-100"><i class="fas fa-filter me-1"></i> Filtrar</button>
-                            </div>
-                        </form>
-                    </div>
+                        </div>
+                    <?php endforeach; ?>
                 </div>
 
-                <?php if (empty($notificaciones)): ?>
-                    <div class="alert alert-info text-center py-5 shadow-sm rounded-4">
-                        <i class="fas fa-bell-slash fa-3x mb-3 text-muted"></i>
-                        <h5 class="fw-semibold">No tienes notificaciones</h5>
-                        <p class="text-muted mb-0">Te avisaremos cuando haya novedades 🐾</p>
-                    </div>
-                <?php else: ?>
-                    <div class="vstack gap-3 mb-4">
-                        <?php foreach ($notificaciones as $n):
-                            $isRead = (int)$n['leido'] === 1;
-                            $titulo = htmlspecialchars($n['titulo'] ?? '');
-                            $msg = htmlspecialchars($n['mensaje'] ?? '');
-                            $fecha = $n['created_at'] ? date('d/m/Y H:i', strtotime($n['created_at'])) : '';
-                        ?>
-                            <div class="card noti-card <?= $isRead ? 'read' : 'unread' ?> border-0">
-                                <div class="card-body d-flex justify-content-between align-items-start">
-                                    <div class="flex-grow-1">
-                                        <h5 class="card-title mb-1">
-                                            <i class="fas fa-bell text-success me-2"></i><?= $titulo ?>
-                                        </h5>
-                                        <p class="text-muted text-truncate-2 mb-2"><?= $msg ?></p>
-                                        <small class="text-muted"><i class="far fa-clock me-1"></i><?= $fecha ?></small>
-                                    </div>
-                                    <?php if (!$isRead): ?>
-                                        <form method="post" class="ms-3">
-                                            <input type="hidden" name="action" value="markRead">
-                                            <input type="hidden" name="noti_id" value="<?= (int)$n['noti_id'] ?>">
-                                            <button class="btn btn-sm btn-outline-success rounded-circle shadow-sm"><i class="fas fa-check"></i></button>
-                                        </form>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-                        <?php endforeach; ?>
-                    </div>
-
-                    <?php if ($totalPages > 1): ?>
-                        <nav>
-                            <ul class="pagination justify-content-center">
-                                <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-                                    <li class="page-item <?= $i === $page ? 'active' : '' ?>">
-                                        <a class="page-link" href="?page=<?= $i ?>&q=<?= urlencode($q) ?>&leido=<?= urlencode($leido) ?>"><?= $i ?></a>
-                                    </li>
-                                <?php endfor; ?>
-                            </ul>
-                        </nav>
-                    <?php endif; ?>
+                <?php if ($totalPages > 1): ?>
+                    <nav>
+                        <ul class="pagination justify-content-center">
+                            <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+                                <li class="page-item <?= $i === $page ? 'active' : '' ?>">
+                                    <a class="page-link" href="?page=<?= $i ?>&q=<?= urlencode($q) ?>&leido=<?= urlencode($leido) ?>"><?= $i ?></a>
+                                </li>
+                            <?php endfor; ?>
+                        </ul>
+                    </nav>
                 <?php endif; ?>
-            </main>
+            <?php endif; ?>
+
         </div>
     </div>
 

@@ -4,15 +4,18 @@ namespace Jaguata\Controllers;
 
 use Jaguata\Models\Paseador;
 use Jaguata\Helpers\Session;
+use Jaguata\Services\DatabaseService; // ✅ agregado
 use Exception;
 
 class PaseadorController
 {
     private Paseador $paseadorModel;
+    private $db; // ✅ agregado
 
     public function __construct()
     {
         $this->paseadorModel = new Paseador();
+        $this->db = DatabaseService::getInstance()->getConnection(); // ✅ inicializado
     }
 
     public function index()
@@ -108,13 +111,15 @@ class PaseadorController
             ? $this->paseadorModel->all()
             : $this->paseadorModel->search($query);
     }
+
     public function obtenerDisponibilidad(int $paseadorId): array
     {
         try {
             $pdo = $this->db ?? \Jaguata\Config\AppConfig::db();
             $sql = "SELECT dias, hora_inicio, hora_fin 
-                FROM paseador_disponibilidad 
-                WHERE paseador_id = :id LIMIT 1";
+                    FROM paseador_disponibilidad 
+                    WHERE paseador_id = :id 
+                    LIMIT 1";
             $stmt = $pdo->prepare($sql);
             $stmt->execute([':id' => $paseadorId]);
             $data = $stmt->fetch(\PDO::FETCH_ASSOC);
@@ -138,13 +143,12 @@ class PaseadorController
             $pdo = $this->db ?? \Jaguata\Config\AppConfig::db();
             $jsonDias = json_encode($dias, JSON_UNESCAPED_UNICODE);
 
-            // Si ya existe, actualiza. Si no, inserta.
             $sql = "INSERT INTO paseador_disponibilidad (paseador_id, dias, hora_inicio, hora_fin)
-                VALUES (:id, :dias, :inicio, :fin)
-                ON DUPLICATE KEY UPDATE 
-                    dias = VALUES(dias),
-                    hora_inicio = VALUES(hora_inicio),
-                    hora_fin = VALUES(hora_fin)";
+                    VALUES (:id, :dias, :inicio, :fin)
+                    ON DUPLICATE KEY UPDATE 
+                        dias = VALUES(dias),
+                        hora_inicio = VALUES(hora_inicio),
+                        hora_fin = VALUES(hora_fin)";
             $stmt = $pdo->prepare($sql);
             $stmt->execute([
                 ':id' => $paseadorId,
@@ -159,10 +163,10 @@ class PaseadorController
             return ['error' => 'Error al guardar la disponibilidad.'];
         }
     }
+
     public function getDisponibilidad(int $paseadorId): array
     {
         // 🔹 Si todavía no tenés tabla de disponibilidad, devolvemos datos simulados
-        // Podés reemplazar luego con una consulta real al modelo
         $fakeData = [
             1 => [
                 ['dia' => 'Lunes', 'desde' => '08:00', 'hasta' => '16:00'],

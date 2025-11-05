@@ -6,8 +6,8 @@ use Jaguata\Models\Paseo;
 use Jaguata\Models\Usuario;
 use Jaguata\Helpers\Session;
 use Jaguata\Services\DatabaseService;
-use Jaguata\Config\AppConfig;   // ✅ agregar esto
-use PDO;                        // ✅ y esto
+use Jaguata\Config\AppConfig;
+use PDO;
 use Exception;
 
 class PaseoController
@@ -15,7 +15,6 @@ class PaseoController
     private PDO $db;
     private Paseo $paseoModel;
     private Usuario $usuarioModel;
-
 
     public function __construct()
     {
@@ -36,6 +35,7 @@ class PaseoController
             p.duracion,
             p.precio_total,
             p.estado,
+            p.ubicacion,  -- 🆕 incluir ubicación
             m.mascota_id,
             m.nombre AS nombre_mascota,
             d.usu_id AS dueno_id,
@@ -52,11 +52,10 @@ class PaseoController
         INNER JOIN usuarios d ON d.usu_id = m.dueno_id
         WHERE p.paseo_id = :id
         LIMIT 1
-    ";
+        ";
 
         $row = $db->fetchOne($sql, ['id' => $id]) ?: null;
 
-        // 🔹 agregar campo rated_id para el formulario de calificación
         if ($row) {
             $row['rated_id'] = $row['paseador_id'];
         }
@@ -64,10 +63,7 @@ class PaseoController
         return $row;
     }
 
-
-
-
-    // Listar todos los paseos
+    // Listar todos los paseos (para dueño)
     public function index(): array
     {
         $db = \Jaguata\Services\DatabaseService::connection();
@@ -79,6 +75,7 @@ class PaseoController
                 p.paseador_id,
                 p.inicio,
                 p.duracion,
+                p.ubicacion,     -- 🆕 mostrar ubicación
                 p.precio_total,
                 p.estado,
                 m.nombre AS nombre_mascota,
@@ -94,7 +91,7 @@ class PaseoController
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-
+    // Crear nuevo paseo (desde dueño)
     public function store()
     {
         if (!Session::isLoggedIn()) {
@@ -110,15 +107,37 @@ class PaseoController
                 'inicio'       => $_POST['inicio'] ?? date('Y-m-d H:i:s'),
                 'duracion'     => $_POST['duracion'] ?? 60,
                 'precio_total' => $_POST['precio_total'] ?? 0,
+                'ubicacion'    => trim($_POST['ubicacion'] ?? ''), // 🆕 nueva clave
             ];
 
-            return ['id' => $this->paseoModel->create($data)];
+            if (
+                empty($data['mascota_id']) ||
+                empty($data['paseador_id']) ||
+                empty($data['inicio']) ||
+                empty($data['ubicacion'])
+            ) {
+                $_SESSION['error'] = "Todos los campos obligatorios deben completarse (incluyendo la ubicación).";
+                header("Location: " . BASE_URL . "/features/dueno/SolicitarPaseo.php");
+                exit;
+            }
+
+            $paseoId = $this->paseoModel->create($data);
+
+            if ($paseoId) {
+                $_SESSION['success'] = "Tu solicitud fue enviada correctamente.";
+            } else {
+                $_SESSION['error'] = "No se pudo guardar el paseo. Intenta de nuevo.";
+            }
+
+            header("Location: " . BASE_URL . "/features/dueno/SolicitarPaseo.php");
+            exit;
         } catch (Exception $e) {
             error_log('Error en store: ' . $e->getMessage());
-            return ['error' => 'Error al crear el paseo'];
+            $_SESSION['error'] = "Ocurrió un error al crear el paseo: " . $e->getMessage();
+            header("Location: " . BASE_URL . "/features/dueno/SolicitarPaseo.php");
+            exit;
         }
     }
-
 
     public function update($id)
     {
@@ -126,6 +145,7 @@ class PaseoController
             'inicio'       => $_POST['inicio'] ?? '',
             'duracion'     => (int)($_POST['duracion'] ?? 0),
             'precio_total' => (float)($_POST['precio_total'] ?? 0),
+            'ubicacion'    => trim($_POST['ubicacion'] ?? ''), // 🆕 actualización posible
         ];
         return $this->paseoModel->update($id, $data);
     }
@@ -134,6 +154,7 @@ class PaseoController
     {
         return $this->paseoModel->delete($id);
     }
+
     public function indexByDueno(int $duenoId)
     {
         return $this->paseoModel->findByDueno($duenoId);
@@ -150,6 +171,7 @@ class PaseoController
                 p.paseo_id,
                 p.inicio,
                 p.duracion,
+                p.ubicacion,       -- 🆕 ubicación
                 p.precio_total,
                 m.nombre AS nombre_mascota,
                 u.nombre AS nombre_dueno
@@ -166,9 +188,6 @@ class PaseoController
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-
-
-
     public function getGananciasPorPaseador(int $paseadorId): float
     {
         $paseos = $this->paseoModel->getByPaseador($paseadorId);
@@ -181,41 +200,34 @@ class PaseoController
         return $total;
     }
 
-    /**
-     * Devuelve datos del paseo necesarios para la pantalla de pago del dueño.
-     * Retorna null si no existe.
-     * Nota: tu UI usa 'duracion_min'; mapeamos desde p.duracion.
-     */
     public function getDetalleParaPago(int $paseoId): ?array
     {
         $db = DatabaseService::getInstance();
 
         $sql = "
             SELECT 
-                p.paseo_id                             AS paseo_id,
-                m.dueno_id                             AS dueno_id,         -- dueño viene de mascotas
-                p.paseador_id                          AS paseador_id,
-                p.inicio                               AS inicio,
-                p.duracion                             AS duracion_min,     -- la pantalla espera 'duracion_min'
-                p.precio_total                         AS precio_total,
-
-                u.nombre                               AS nombre_paseador,
-
-                dp.banco                               AS paseador_banco,
-                dp.alias                               AS paseador_alias,
-                dp.cuenta                              AS paseador_cuenta
-
+                p.paseo_id AS paseo_id,
+                m.dueno_id AS dueno_id,
+                p.paseador_id AS paseador_id,
+                p.inicio AS inicio,
+                p.duracion AS duracion_min,
+                p.precio_total AS precio_total,
+                p.ubicacion AS ubicacion,       -- 🆕 para mostrar en pagos
+                u.nombre AS nombre_paseador,
+                dp.banco AS paseador_banco,
+                dp.alias AS paseador_alias,
+                dp.cuenta AS paseador_cuenta
             FROM paseos p
-            INNER JOIN mascotas m     ON m.mascota_id = p.mascota_id
-            INNER JOIN usuarios u     ON u.usu_id     = p.paseador_id
-            LEFT  JOIN datos_pago dp  ON dp.usuario_id = p.paseador_id
-
+            INNER JOIN mascotas m ON m.mascota_id = p.mascota_id
+            INNER JOIN usuarios u ON u.usu_id = p.paseador_id
+            LEFT  JOIN datos_pago dp ON dp.usuario_id = p.paseador_id
             WHERE p.paseo_id = :id
             LIMIT 1
         ";
 
         return $db->fetchOne($sql, ['id' => $paseoId]) ?: null;
     }
+
     public function listarMascotasDeDueno(int $duenoId): array
     {
         $db = \Jaguata\Services\DatabaseService::connection();
@@ -230,6 +242,7 @@ class PaseoController
         $stmt = $db->query("SELECT usu_id AS id, nombre FROM usuarios WHERE rol = 'paseador' AND estado = 'aprobado'");
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+
     public function getById(int $id): ?array
     {
         try {
@@ -238,6 +251,7 @@ class PaseoController
             return null;
         }
     }
+
     public function confirmar(int $id)
     {
         return $this->paseoModel->cambiarEstado($id, 'confirmado');
@@ -281,7 +295,6 @@ class PaseoController
         try {
             $db = AppConfig::db();
 
-            // Verificar si el paseo existe y su estado actual
             $stmt = $db->prepare("SELECT * FROM paseos WHERE paseo_id = :id");
             $stmt->bindValue(':id', $paseoId, PDO::PARAM_INT);
             $stmt->execute();
@@ -295,14 +308,13 @@ class PaseoController
                 return ['error' => 'Solo se pueden cancelar paseos pendientes o confirmados.'];
             }
 
-            // Actualizar estado
             $update = $db->prepare("
-            UPDATE paseos
-            SET estado = 'cancelado',
-                motivo_cancelacion = :motivo,
-                fecha_cancelacion = NOW()
-            WHERE paseo_id = :id
-        ");
+                UPDATE paseos
+                SET estado = 'cancelado',
+                    motivo_cancelacion = :motivo,
+                    fecha_cancelacion = NOW()
+                WHERE paseo_id = :id
+            ");
             $update->bindValue(':motivo', $motivo);
             $update->bindValue(':id', $paseoId, PDO::PARAM_INT);
             $update->execute();
@@ -312,12 +324,12 @@ class PaseoController
             return ['error' => 'Error al cancelar paseo: ' . $e->getMessage()];
         }
     }
+
     public function completarPaseo(int $paseoId, string $comentario = ''): array
     {
         try {
             $db = AppConfig::db();
 
-            // Validar que exista el paseo
             $stmt = $db->prepare("SELECT * FROM paseos WHERE paseo_id = :id");
             $stmt->bindValue(':id', $paseoId, PDO::PARAM_INT);
             $stmt->execute();
@@ -327,19 +339,17 @@ class PaseoController
                 return ['error' => 'No se encontró el paseo especificado.'];
             }
 
-            // Verificar que el estado permita completarlo
             if (!in_array($paseo['estado'], ['en_curso', 'confirmado'], true)) {
                 return ['error' => 'El paseo no puede ser marcado como completado en este estado.'];
             }
 
-            // Actualizar estado a completado
             $update = $db->prepare("
-            UPDATE paseos
-            SET estado = 'completado',
-                comentario_final = :comentario,
-                fecha_completado = NOW()
-            WHERE paseo_id = :id
-        ");
+                UPDATE paseos
+                SET estado = 'completado',
+                    comentario_final = :comentario,
+                    fecha_completado = NOW()
+                WHERE paseo_id = :id
+            ");
             $update->bindValue(':comentario', $comentario);
             $update->bindValue(':id', $paseoId, PDO::PARAM_INT);
             $update->execute();
@@ -353,11 +363,13 @@ class PaseoController
             return ['error' => 'Error al completar paseo: ' . $e->getMessage()];
         }
     }
+
     public function show(int $id): ?array
     {
         $paseoModel = new \Jaguata\Models\Paseo();
         return $paseoModel->getById($id);
     }
+
     public function ejecutarAccion(string $accion, int $id): array
     {
         switch ($accion) {
@@ -372,9 +384,9 @@ class PaseoController
 
     public function obtenerDatosExportacion(): array
     {
-        // Devuelve los paseos para exportar
-        return $this->paseoModel->obtenerTodos(); // o la query que uses
+        return $this->paseoModel->obtenerTodos();
     }
+
     public function eliminarPaseo(int $id): array
     {
         $ok = $this->paseoModel->eliminar($id);

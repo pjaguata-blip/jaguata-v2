@@ -197,50 +197,49 @@ $disponibilidadActual = [
             </div>
 
             <!-- === CONTENIDO === -->
-            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
-                <div class="page-header">
-                    <h2><i class="fas fa-calendar-check me-2"></i> Disponibilidad Semanal</h2>
-                    <a href="Dashboard.php" class="btn btn-outline-light btn-sm">
-                        <i class="fas fa-arrow-left me-1"></i> Volver
-                    </a>
-                </div>
 
-                <div class="card-premium">
-                    <p class="text-muted mb-4">
-                        Activá los días que estás disponible y definí tus horarios.
-                        <br><small class="text-secondary">Podés copiar tus horarios de un día a otro fácilmente.</small>
-                    </p>
-
-                    <form id="formDisponibilidad">
-                        <?php foreach ($diasSemana as $dia):
-                            $dispo = $disponibilidadActual[$dia] ?? null;
-                            $checked = $dispo ? 'checked' : '';
-                            $inicio = $dispo['inicio'] ?? '';
-                            $fin = $dispo['fin'] ?? '';
-                        ?>
-                            <div class="day-row">
-                                <div class="day-name"><?= $dia ?></div>
-                                <div class="form-switch">
-                                    <input type="checkbox" class="form-check-input toggle-dia" data-dia="<?= $dia ?>" <?= $checked ?>>
-                                </div>
-                                <div class="time-group <?= $checked ? '' : 'disabled' ?>">
-                                    <input type="time" class="hora-inicio" value="<?= $inicio ?>">
-                                    <span>–</span>
-                                    <input type="time" class="hora-fin" value="<?= $fin ?>">
-                                    <button type="button" class="copy-btn" title="Copiar horario a todos"><i class="fas fa-copy"></i></button>
-                                </div>
-                            </div>
-                        <?php endforeach; ?>
-
-                        <div class="text-end mt-4">
-                            <button type="submit" class="btn btn-gradient px-4 py-2">
-                                <i class="fas fa-save me-2"></i> Guardar Cambios
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </main>
+            <h2><i class="fas fa-calendar-check me-2"></i> Disponibilidad Semanal</h2>
+            <a href="Dashboard.php" class="btn btn-outline-light btn-sm">
+                <i class="fas fa-arrow-left me-1"></i> Volver
+            </a>
         </div>
+
+        <div class="card-premium">
+            <p class="text-muted mb-4">
+                Activá los días que estás disponible y definí tus horarios.
+                <br><small class="text-secondary">Podés copiar tus horarios de un día a otro fácilmente.</small>
+            </p>
+
+            <form id="formDisponibilidad">
+                <?php foreach ($diasSemana as $dia):
+                    $dispo = $disponibilidadActual[$dia] ?? null;
+                    $checked = $dispo ? 'checked' : '';
+                    $inicio = $dispo['inicio'] ?? '';
+                    $fin = $dispo['fin'] ?? '';
+                ?>
+                    <div class="day-row">
+                        <div class="day-name"><?= $dia ?></div>
+                        <div class="form-switch">
+                            <input type="checkbox" class="form-check-input toggle-dia" data-dia="<?= $dia ?>" <?= $checked ?>>
+                        </div>
+                        <div class="time-group <?= $checked ? '' : 'disabled' ?>">
+                            <input type="time" class="hora-inicio" value="<?= $inicio ?>">
+                            <span>–</span>
+                            <input type="time" class="hora-fin" value="<?= $fin ?>">
+                            <button type="button" class="copy-btn" title="Copiar horario a todos"><i class="fas fa-copy"></i></button>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+
+                <div class="text-end mt-4">
+                    <button type="submit" class="btn btn-gradient px-4 py-2">
+                        <i class="fas fa-save me-2"></i> Guardar Cambios
+                    </button>
+                </div>
+            </form>
+        </div>
+
+    </div>
     </div>
 
     <div id="alerta" class="alert alert-success">

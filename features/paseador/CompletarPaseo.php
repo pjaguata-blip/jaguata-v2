@@ -177,47 +177,47 @@ $monto = number_format((float)($paseo['monto'] ?? 0), 0, ',', '.');
             </div>
 
             <!-- Contenido principal -->
-            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
-                <div class="page-header">
-                    <h2><i class="fas fa-check-circle me-2"></i> Completar Paseo</h2>
-                    <a href="<?= $baseFeatures; ?>/MisPaseos.php" class="btn btn-outline-light btn-sm">
-                        <i class="fas fa-arrow-left me-1"></i> Volver
-                    </a>
-                </div>
 
-                <div class="card-premium">
-                    <h5 class="mb-3"><i class="fas fa-info-circle me-2 text-success"></i> Detalles del paseo</h5>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <p><strong><i class="fas fa-paw me-2 text-success"></i>Mascota:</strong> <?= $mascota ?></p>
-                            <p><strong><i class="fas fa-calendar me-2 text-secondary"></i>Fecha:</strong> <?= $fecha ?></p>
-                        </div>
-                        <div class="col-md-6">
-                            <p><strong><i class="fas fa-hourglass-half me-2 text-secondary"></i>Duración:</strong> <?= $duracion ?> min</p>
-                            <p><strong><i class="fas fa-dollar-sign me-2 text-secondary"></i>Monto:</strong> ₲ <?= $monto ?></p>
-                        </div>
+            <div class="page-header">
+                <h2><i class="fas fa-check-circle me-2"></i> Completar Paseo</h2>
+                <a href="<?= $baseFeatures; ?>/MisPaseos.php" class="btn btn-outline-light btn-sm">
+                    <i class="fas fa-arrow-left me-1"></i> Volver
+                </a>
+            </div>
+
+            <div class="card-premium">
+                <h5 class="mb-3"><i class="fas fa-info-circle me-2 text-success"></i> Detalles del paseo</h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong><i class="fas fa-paw me-2 text-success"></i>Mascota:</strong> <?= $mascota ?></p>
+                        <p><strong><i class="fas fa-calendar me-2 text-secondary"></i>Fecha:</strong> <?= $fecha ?></p>
                     </div>
-                    <hr>
-
-                    <form method="POST" id="formCompletar">
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">
-                                <i class="fas fa-comment-dots me-1 text-success"></i> Comentario del paseo (opcional)
-                            </label>
-                            <textarea class="form-control" name="comentario" rows="3" placeholder="Ej: Todo salió bien, la mascota fue tranquila..."></textarea>
-                        </div>
-
-                        <div class="d-flex justify-content-end gap-2 mt-3">
-                            <a href="<?= $baseFeatures; ?>/MisPaseos.php" class="btn btn-outline-secondary px-4">
-                                <i class="fas fa-times me-1"></i> Cancelar
-                            </a>
-                            <button type="submit" class="btn btn-gradient px-4">
-                                <i class="fas fa-check me-1"></i> Marcar como Completado
-                            </button>
-                        </div>
-                    </form>
+                    <div class="col-md-6">
+                        <p><strong><i class="fas fa-hourglass-half me-2 text-secondary"></i>Duración:</strong> <?= $duracion ?> min</p>
+                        <p><strong><i class="fas fa-dollar-sign me-2 text-secondary"></i>Monto:</strong> ₲ <?= $monto ?></p>
+                    </div>
                 </div>
-            </main>
+                <hr>
+
+                <form method="POST" id="formCompletar">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">
+                            <i class="fas fa-comment-dots me-1 text-success"></i> Comentario del paseo (opcional)
+                        </label>
+                        <textarea class="form-control" name="comentario" rows="3" placeholder="Ej: Todo salió bien, la mascota fue tranquila..."></textarea>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2 mt-3">
+                        <a href="<?= $baseFeatures; ?>/MisPaseos.php" class="btn btn-outline-secondary px-4">
+                            <i class="fas fa-times me-1"></i> Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-gradient px-4">
+                            <i class="fas fa-check me-1"></i> Marcar como Completado
+                        </button>
+                    </div>
+                </form>
+            </div>
+
         </div>
     </div>
 

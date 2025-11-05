@@ -204,178 +204,177 @@ $ingresosTotales   = array_reduce($by('completo'), fn($a, $p) => $a + (float)($p
             </div>
 
             <!-- Contenido -->
-            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
-                <div class="page-header">
-                    <h2><i class="fas fa-walking me-2"></i> Mis Paseos Asignados</h2>
-                    <a href="Dashboard.php" class="btn btn-outline-light btn-sm">
-                        <i class="fas fa-arrow-left me-1"></i> Volver
-                    </a>
-                </div>
+            <div class="page-header">
+                <h2><i class="fas fa-walking me-2"></i> Mis Paseos Asignados</h2>
+                <a href="Dashboard.php" class="btn btn-outline-light btn-sm">
+                    <i class="fas fa-arrow-left me-1"></i> Volver
+                </a>
+            </div>
 
-                <!-- Resumen -->
-                <div class="row mb-4">
-                    <div class="col-xl-3 col-md-6 mb-4">
-                        <div class="card text-center">
-                            <div class="card-body">
-                                <h6 class="text-muted text-uppercase">Total Paseos</h6>
-                                <h3 class="fw-bold"><?= $totalPaseos ?></h3>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-xl-3 col-md-6 mb-4">
-                        <div class="card text-center">
-                            <div class="card-body">
-                                <h6 class="text-muted text-uppercase">Pendientes</h6>
-                                <h3 class="fw-bold text-warning"><?= $paseosPendientes ?></h3>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-xl-3 col-md-6 mb-4">
-                        <div class="card text-center">
-                            <div class="card-body">
-                                <h6 class="text-muted text-uppercase">Completados</h6>
-                                <h3 class="fw-bold text-success"><?= $paseosCompletados ?></h3>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-xl-3 col-md-6 mb-4">
-                        <div class="card text-center">
-                            <div class="card-body">
-                                <h6 class="text-muted text-uppercase">Ingresos Totales</h6>
-                                <h3 class="fw-bold text-primary">₲<?= number_format($ingresosTotales, 0, ',', '.') ?></h3>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- EXPORT -->
-                <div class="export-buttons">
-                    <button class="btn btn-excel" onclick="window.location.href='/jaguata/public/api/paseos/exportarPaseosPaseador.php'">
-                        <i class="fas fa-file-excel"></i> Excel
-                    </button>
-                </div>
-
-                <!-- FILTROS -->
-                <div class="card mb-4">
-                    <div class="card-header"><i class="fas fa-filter me-2"></i> Filtros</div>
-                    <div class="card-body">
-                        <div class="row g-3 align-items-end">
-                            <div class="col-md-3">
-                                <label class="form-label">Buscar</label>
-                                <input type="text" id="searchInput" class="form-control" placeholder="Mascota o dueño...">
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">Estado</label>
-                                <select id="filterEstado" class="form-select">
-                                    <option value="">Todos</option>
-                                    <?php foreach ($estadosValidos as $v): ?>
-                                        <option value="<?= $v ?>" <?= $estadoFiltro === $v ? 'selected' : '' ?>>
-                                            <?= ucfirst(str_replace('_', ' ', $v)) ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">Desde</label>
-                                <input type="date" id="filterDesde" class="form-control">
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">Hasta</label>
-                                <input type="date" id="filterHasta" class="form-control">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Lista -->
-                <?php if (empty($paseos)): ?>
-                    <div class="text-center py-5">
-                        <i class="fas fa-dog fa-5x text-secondary mb-4"></i>
-                        <h4 class="text-muted">No tienes paseos asignados por el momento</h4>
-                    </div>
-                <?php else: ?>
-                    <div class="card shadow">
-                        <div class="card-header"><i class="fas fa-list me-2"></i> Lista de Paseos</div>
+            <!-- Resumen -->
+            <div class="row mb-4">
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card text-center">
                         <div class="card-body">
-                            <div class="table-responsive">
-                                <table class="table table-hover align-middle" id="tablaPaseos">
-                                    <thead class="table-light">
-                                        <tr>
-                                            <th>Mascota</th>
-                                            <th>Dueño</th>
-                                            <th>Fecha</th>
-                                            <th>Duración</th>
-                                            <th>Estado</th>
-                                            <th>Pago</th>
-                                            <th>Acciones</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <?php foreach ($paseos as $p):
-                                            $estado  = strtolower($p['estado']);
-                                            $paseoId = (int)$p['paseo_id'];
-                                            $badge = match ($estado) {
-                                                'completo'   => 'success',
-                                                'cancelado'  => 'danger',
-                                                'en_curso'   => 'info',
-                                                'confirmado' => 'primary',
-                                                default      => 'warning'
-                                            };
-                                        ?>
-                                            <tr data-estado="<?= $estado ?>">
-                                                <td><?= h($p['nombre_mascota'] ?? '') ?></td>
-                                                <td><?= h($p['nombre_dueno'] ?? '') ?></td>
-                                                <td>
-                                                    <strong><?= isset($p['inicio']) ? date('d/m/Y', strtotime($p['inicio'])) : '—' ?></strong><br>
-                                                    <small><?= isset($p['inicio']) ? date('H:i', strtotime($p['inicio'])) : '—' ?></small>
-                                                </td>
-                                                <td><?= h($p['duracion'] ?? $p['duracion_min'] ?? '') ?> min</td>
-                                                <td><span class="badge bg-<?= $badge ?>"><?= ucfirst(str_replace('_', ' ', $estado)) ?></span></td>
-                                                <td>
-                                                    <?php if (($p['estado_pago'] ?? '') === 'procesado'): ?>
-                                                        <span class="text-success">Pagado</span>
-                                                    <?php elseif (($p['estado_pago'] ?? '') === 'pendiente'): ?>
-                                                        <span class="text-warning">Pendiente</span>
-                                                    <?php else: ?>
-                                                        <span class="text-muted">—</span>
-                                                    <?php endif; ?>
-                                                </td>
-                                                <td>
-                                                    <div class="btn-group" role="group">
-                                                        <!-- Botón Ver (no es formulario) -->
-                                                        <a href="VerPaseo.php?id=<?= $paseoId ?>" class="btn btn-sm btn-outline-primary" title="Ver" type="button">
-                                                            <i class="fas fa-eye"></i>
-                                                        </a>
-
-                                                        <?php if ($estado === 'pendiente'): ?>
-                                                            <form action="AccionPaseo.php" method="post" class="d-inline">
-                                                                <input type="hidden" name="id" value="<?= $paseoId ?>">
-                                                                <input type="hidden" name="accion" value="confirmar">
-                                                                <button type="submit" class="btn btn-sm btn-outline-success" onclick="return confirm('¿Confirmar este paseo?');" title="Confirmar">
-                                                                    <i class="fas fa-check"></i>
-                                                                </button>
-                                                            </form>
-
-                                                            <form action="AccionPaseo.php" method="post" class="d-inline">
-                                                                <input type="hidden" name="id" value="<?= $paseoId ?>">
-                                                                <input type="hidden" name="accion" value="cancelar">
-                                                                <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Cancelar este paseo?');" title="Cancelar">
-                                                                    <i class="fas fa-times"></i>
-                                                                </button>
-                                                            </form>
-                                                        <?php endif; ?>
-                                                    </div>
-
-                                                </td>
-                                            </tr>
-                                        <?php endforeach; ?>
-                                    </tbody>
-                                </table>
-                            </div>
+                            <h6 class="text-muted text-uppercase">Total Paseos</h6>
+                            <h3 class="fw-bold"><?= $totalPaseos ?></h3>
                         </div>
                     </div>
-                <?php endif; ?>
-            </main>
+                </div>
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h6 class="text-muted text-uppercase">Pendientes</h6>
+                            <h3 class="fw-bold text-warning"><?= $paseosPendientes ?></h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h6 class="text-muted text-uppercase">Completados</h6>
+                            <h3 class="fw-bold text-success"><?= $paseosCompletados ?></h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h6 class="text-muted text-uppercase">Ingresos Totales</h6>
+                            <h3 class="fw-bold text-primary">₲<?= number_format($ingresosTotales, 0, ',', '.') ?></h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- EXPORT -->
+            <div class="export-buttons">
+                <button class="btn btn-excel" onclick="window.location.href='/jaguata/public/api/paseos/exportarPaseosPaseador.php'">
+                    <i class="fas fa-file-excel"></i> Excel
+                </button>
+            </div>
+
+            <!-- FILTROS -->
+            <div class="card mb-4">
+                <div class="card-header"><i class="fas fa-filter me-2"></i> Filtros</div>
+                <div class="card-body">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-3">
+                            <label class="form-label">Buscar</label>
+                            <input type="text" id="searchInput" class="form-control" placeholder="Mascota o dueño...">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Estado</label>
+                            <select id="filterEstado" class="form-select">
+                                <option value="">Todos</option>
+                                <?php foreach ($estadosValidos as $v): ?>
+                                    <option value="<?= $v ?>" <?= $estadoFiltro === $v ? 'selected' : '' ?>>
+                                        <?= ucfirst(str_replace('_', ' ', $v)) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Desde</label>
+                            <input type="date" id="filterDesde" class="form-control">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Hasta</label>
+                            <input type="date" id="filterHasta" class="form-control">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lista -->
+            <?php if (empty($paseos)): ?>
+                <div class="text-center py-5">
+                    <i class="fas fa-dog fa-5x text-secondary mb-4"></i>
+                    <h4 class="text-muted">No tienes paseos asignados por el momento</h4>
+                </div>
+            <?php else: ?>
+                <div class="card shadow">
+                    <div class="card-header"><i class="fas fa-list me-2"></i> Lista de Paseos</div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle" id="tablaPaseos">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Mascota</th>
+                                        <th>Dueño</th>
+                                        <th>Fecha</th>
+                                        <th>Duración</th>
+                                        <th>Estado</th>
+                                        <th>Pago</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($paseos as $p):
+                                        $estado  = strtolower($p['estado']);
+                                        $paseoId = (int)$p['paseo_id'];
+                                        $badge = match ($estado) {
+                                            'completo'   => 'success',
+                                            'cancelado'  => 'danger',
+                                            'en_curso'   => 'info',
+                                            'confirmado' => 'primary',
+                                            default      => 'warning'
+                                        };
+                                    ?>
+                                        <tr data-estado="<?= $estado ?>">
+                                            <td><?= h($p['nombre_mascota'] ?? '') ?></td>
+                                            <td><?= h($p['nombre_dueno'] ?? '') ?></td>
+                                            <td>
+                                                <strong><?= isset($p['inicio']) ? date('d/m/Y', strtotime($p['inicio'])) : '—' ?></strong><br>
+                                                <small><?= isset($p['inicio']) ? date('H:i', strtotime($p['inicio'])) : '—' ?></small>
+                                            </td>
+                                            <td><?= h($p['duracion'] ?? $p['duracion_min'] ?? '') ?> min</td>
+                                            <td><span class="badge bg-<?= $badge ?>"><?= ucfirst(str_replace('_', ' ', $estado)) ?></span></td>
+                                            <td>
+                                                <?php if (($p['estado_pago'] ?? '') === 'procesado'): ?>
+                                                    <span class="text-success">Pagado</span>
+                                                <?php elseif (($p['estado_pago'] ?? '') === 'pendiente'): ?>
+                                                    <span class="text-warning">Pendiente</span>
+                                                <?php else: ?>
+                                                    <span class="text-muted">—</span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td>
+                                                <div class="btn-group" role="group">
+                                                    <!-- Botón Ver (no es formulario) -->
+                                                    <a href="VerPaseo.php?id=<?= $paseoId ?>" class="btn btn-sm btn-outline-primary" title="Ver" type="button">
+                                                        <i class="fas fa-eye"></i>
+                                                    </a>
+
+                                                    <?php if ($estado === 'pendiente'): ?>
+                                                        <form action="AccionPaseo.php" method="post" class="d-inline">
+                                                            <input type="hidden" name="id" value="<?= $paseoId ?>">
+                                                            <input type="hidden" name="accion" value="confirmar">
+                                                            <button type="submit" class="btn btn-sm btn-outline-success" onclick="return confirm('¿Confirmar este paseo?');" title="Confirmar">
+                                                                <i class="fas fa-check"></i>
+                                                            </button>
+                                                        </form>
+
+                                                        <form action="AccionPaseo.php" method="post" class="d-inline">
+                                                            <input type="hidden" name="id" value="<?= $paseoId ?>">
+                                                            <input type="hidden" name="accion" value="cancelar">
+                                                            <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Cancelar este paseo?');" title="Cancelar">
+                                                                <i class="fas fa-times"></i>
+                                                            </button>
+                                                        </form>
+                                                    <?php endif; ?>
+                                                </div>
+
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            <?php endif; ?>
+
         </div>
     </div>
 

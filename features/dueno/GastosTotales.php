@@ -238,153 +238,153 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
             </div>
 
             <!-- Main -->
-            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
-                <div class="page-header">
-                    <h1><i class="fas fa-coins me-2"></i>Gastos Totales</h1>
-                    <a href="?<?= http_build_query(array_merge($_GET, ['export' => 'csv'])) ?>" class="btn btn-light btn-sm">
-                        <i class="fas fa-file-csv me-1"></i> Exportar CSV
-                    </a>
-                </div>
 
-                <!-- Filtros -->
-                <div class="card mb-4">
-                    <div class="card-header"><i class="fas fa-filter me-2"></i>Filtros</div>
-                    <div class="card-body">
-                        <form class="row g-3" method="get">
-                            <div class="col-md-3"><label class="form-label">Desde</label>
-                                <input type="date" class="form-control" name="from" value="<?= h($from) ?>">
-                            </div>
-                            <div class="col-md-3"><label class="form-label">Hasta</label>
-                                <input type="date" class="form-control" name="to" value="<?= h($to) ?>">
-                            </div>
-                            <div class="col-md-3"><label class="form-label">Mascota</label>
-                                <select class="form-select" name="mascota_id">
-                                    <option value="">Todas</option>
-                                    <?php foreach ($mascotas as $m): ?>
-                                        <option value="<?= $m['id'] ?>" <?= ($mascotaId == $m['id']) ? 'selected' : '' ?>><?= h($m['nombre'] ?? '#' . $m['id']) ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                            <div class="col-md-3"><label class="form-label">Paseador</label>
-                                <select class="form-select" name="paseador_id">
-                                    <option value="">Todos</option>
-                                    <?php foreach ($paseadores as $p): ?>
-                                        <option value="<?= $p['id'] ?>" <?= ($paseadorId == $p['id']) ? 'selected' : '' ?>><?= h($p['nombre'] ?? '#' . $p['id']) ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                            <div class="col-md-3"><label class="form-label">Método</label>
-                                <select class="form-select" name="metodo">
-                                    <option value="">Todos</option>
-                                    <option value="EFECTIVO" <?= $metodo === 'EFECTIVO' ? 'selected' : '' ?>>EFECTIVO</option>
-                                    <option value="TRANSFERENCIA" <?= $metodo === 'TRANSFERENCIA' ? 'selected' : '' ?>>TRANSFERENCIA</option>
-                                </select>
-                            </div>
-                            <div class="col-md-3"><label class="form-label">Estado</label>
-                                <select class="form-select" name="estado">
-                                    <option value="">Todos</option>
-                                    <option value="PENDIENTE" <?= $estado === 'PENDIENTE' ? 'selected' : '' ?>>PENDIENTE</option>
-                                    <option value="CONFIRMADO" <?= $estado === 'CONFIRMADO' ? 'selected' : '' ?>>CONFIRMADO</option>
-                                    <option value="RECHAZADO" <?= $estado === 'RECHAZADO' ? 'selected' : '' ?>>RECHAZADO</option>
-                                </select>
-                            </div>
-                            <div class="col-12 d-flex gap-2">
-                                <button class="btn btn-outline-success"><i class="fas fa-search me-1"></i> Aplicar</button>
-                                <a href="GastosTotales.php" class="btn btn-outline-secondary"><i class="fas fa-undo me-1"></i> Limpiar</a>
-                            </div>
-                        </form>
-                    </div>
-                </div>
+            <div class="page-header">
+                <h1><i class="fas fa-coins me-2"></i>Gastos Totales</h1>
+                <a href="?<?= http_build_query(array_merge($_GET, ['export' => 'csv'])) ?>" class="btn btn-light btn-sm">
+                    <i class="fas fa-file-csv me-1"></i> Exportar CSV
+                </a>
+            </div>
 
-                <!-- Estadísticas -->
-                <div class="row mb-4 text-center">
-                    <div class="col-md-4">
-                        <div class="card border-left-primary py-3">
-                            <div class="card-body">
-                                <div class="fw-bold text-primary small text-uppercase">Total Gastado (PYG)</div>
-                                <div class="fs-4 fw-bold text-success mt-1">₲<?= moneyPy($total) ?></div>
-                                <small class="text-muted"><?= $estado ? 'Según filtro' : 'Solo confirmados' ?></small>
-                            </div>
+            <!-- Filtros -->
+            <div class="card mb-4">
+                <div class="card-header"><i class="fas fa-filter me-2"></i>Filtros</div>
+                <div class="card-body">
+                    <form class="row g-3" method="get">
+                        <div class="col-md-3"><label class="form-label">Desde</label>
+                            <input type="date" class="form-control" name="from" value="<?= h($from) ?>">
                         </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="card border-left-success py-3">
-                            <div class="card-body">
-                                <div class="fw-bold text-success small text-uppercase">Registros</div>
-                                <div class="fs-4 fw-bold"><?= count($rows) ?></div>
-                            </div>
+                        <div class="col-md-3"><label class="form-label">Hasta</label>
+                            <input type="date" class="form-control" name="to" value="<?= h($to) ?>">
                         </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="card border-left-info py-3">
-                            <div class="card-body">
-                                <div class="fw-bold text-info small text-uppercase">Rango</div>
-                                <div class="fs-6"><?= h(($from ?? '—') . ' a ' . ($to ?? '—')) ?></div>
-                            </div>
+                        <div class="col-md-3"><label class="form-label">Mascota</label>
+                            <select class="form-select" name="mascota_id">
+                                <option value="">Todas</option>
+                                <?php foreach ($mascotas as $m): ?>
+                                    <option value="<?= $m['id'] ?>" <?= ($mascotaId == $m['id']) ? 'selected' : '' ?>><?= h($m['nombre'] ?? '#' . $m['id']) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-md-3"><label class="form-label">Paseador</label>
+                            <select class="form-select" name="paseador_id">
+                                <option value="">Todos</option>
+                                <?php foreach ($paseadores as $p): ?>
+                                    <option value="<?= $p['id'] ?>" <?= ($paseadorId == $p['id']) ? 'selected' : '' ?>><?= h($p['nombre'] ?? '#' . $p['id']) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-md-3"><label class="form-label">Método</label>
+                            <select class="form-select" name="metodo">
+                                <option value="">Todos</option>
+                                <option value="EFECTIVO" <?= $metodo === 'EFECTIVO' ? 'selected' : '' ?>>EFECTIVO</option>
+                                <option value="TRANSFERENCIA" <?= $metodo === 'TRANSFERENCIA' ? 'selected' : '' ?>>TRANSFERENCIA</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3"><label class="form-label">Estado</label>
+                            <select class="form-select" name="estado">
+                                <option value="">Todos</option>
+                                <option value="PENDIENTE" <?= $estado === 'PENDIENTE' ? 'selected' : '' ?>>PENDIENTE</option>
+                                <option value="CONFIRMADO" <?= $estado === 'CONFIRMADO' ? 'selected' : '' ?>>CONFIRMADO</option>
+                                <option value="RECHAZADO" <?= $estado === 'RECHAZADO' ? 'selected' : '' ?>>RECHAZADO</option>
+                            </select>
+                        </div>
+                        <div class="col-12 d-flex gap-2">
+                            <button class="btn btn-outline-success"><i class="fas fa-search me-1"></i> Aplicar</button>
+                            <a href="GastosTotales.php" class="btn btn-outline-secondary"><i class="fas fa-undo me-1"></i> Limpiar</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Estadísticas -->
+            <div class="row mb-4 text-center">
+                <div class="col-md-4">
+                    <div class="card border-left-primary py-3">
+                        <div class="card-body">
+                            <div class="fw-bold text-primary small text-uppercase">Total Gastado (PYG)</div>
+                            <div class="fs-4 fw-bold text-success mt-1">₲<?= moneyPy($total) ?></div>
+                            <small class="text-muted"><?= $estado ? 'Según filtro' : 'Solo confirmados' ?></small>
                         </div>
                     </div>
                 </div>
+                <div class="col-md-4">
+                    <div class="card border-left-success py-3">
+                        <div class="card-body">
+                            <div class="fw-bold text-success small text-uppercase">Registros</div>
+                            <div class="fs-4 fw-bold"><?= count($rows) ?></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-left-info py-3">
+                        <div class="card-body">
+                            <div class="fw-bold text-info small text-uppercase">Rango</div>
+                            <div class="fs-6"><?= h(($from ?? '—') . ' a ' . ($to ?? '—')) ?></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-                <!-- Tabla -->
-                <div class="card">
-                    <div class="card-header"><i class="fas fa-list me-2"></i>Detalle de Pagos</div>
-                    <div class="card-body">
-                        <div class="table-responsive">
-                            <table class="table table-hover align-middle text-center">
-                                <thead>
+            <!-- Tabla -->
+            <div class="card">
+                <div class="card-header"><i class="fas fa-list me-2"></i>Detalle de Pagos</div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle text-center">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Fecha pago</th>
+                                    <th>Monto</th>
+                                    <th>Método</th>
+                                    <th>Estado</th>
+                                    <th>Mascota</th>
+                                    <th>Paseador</th>
+                                    <th>ID Paseo</th>
+                                    <th>Fecha paseo</th>
+                                    <th>Referencia</th>
+                                    <th>Observación</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php if (empty($rows)): ?>
                                     <tr>
-                                        <th>#</th>
-                                        <th>Fecha pago</th>
-                                        <th>Monto</th>
-                                        <th>Método</th>
-                                        <th>Estado</th>
-                                        <th>Mascota</th>
-                                        <th>Paseador</th>
-                                        <th>ID Paseo</th>
-                                        <th>Fecha paseo</th>
-                                        <th>Referencia</th>
-                                        <th>Observación</th>
+                                        <td colspan="11" class="text-muted py-4">No hay registros disponibles</td>
                                     </tr>
-                                </thead>
-                                <tbody>
-                                    <?php if (empty($rows)): ?>
+                                    <?php else: foreach ($rows as $r):
+                                        $st = strtoupper((string)($r['estado'] ?? ''));
+                                        $badge = ['CONFIRMADO' => 'success', 'PENDIENTE' => 'warning', 'RECHAZADO' => 'danger'][$st] ?? 'secondary';
+                                    ?>
                                         <tr>
-                                            <td colspan="11" class="text-muted py-4">No hay registros disponibles</td>
+                                            <td><?= $r['id'] ?></td>
+                                            <td><?= h($r['fecha_pago']) ?></td>
+                                            <td class="fw-bold text-success">₲<?= moneyPy((float)$r['monto']) ?></td>
+                                            <td><?= h($r['metodo']) ?></td>
+                                            <td><span class="badge bg-<?= $badge ?>"><?= $st ?></span></td>
+                                            <td><?= h($r['mascota']) ?></td>
+                                            <td><?= h($r['paseador']) ?></td>
+                                            <td><?= $r['paseo_id'] ?></td>
+                                            <td><?= h($r['fecha_paseo']) ?></td>
+                                            <td><?= h($r['referencia']) ?></td>
+                                            <td><?= h($r['observacion']) ?></td>
                                         </tr>
-                                        <?php else: foreach ($rows as $r):
-                                            $st = strtoupper((string)($r['estado'] ?? ''));
-                                            $badge = ['CONFIRMADO' => 'success', 'PENDIENTE' => 'warning', 'RECHAZADO' => 'danger'][$st] ?? 'secondary';
-                                        ?>
-                                            <tr>
-                                                <td><?= $r['id'] ?></td>
-                                                <td><?= h($r['fecha_pago']) ?></td>
-                                                <td class="fw-bold text-success">₲<?= moneyPy((float)$r['monto']) ?></td>
-                                                <td><?= h($r['metodo']) ?></td>
-                                                <td><span class="badge bg-<?= $badge ?>"><?= $st ?></span></td>
-                                                <td><?= h($r['mascota']) ?></td>
-                                                <td><?= h($r['paseador']) ?></td>
-                                                <td><?= $r['paseo_id'] ?></td>
-                                                <td><?= h($r['fecha_paseo']) ?></td>
-                                                <td><?= h($r['referencia']) ?></td>
-                                                <td><?= h($r['observacion']) ?></td>
-                                            </tr>
-                                    <?php endforeach;
-                                    endif; ?>
-                                </tbody>
-                                <?php if ($rows): ?>
-                                    <tfoot>
-                                        <tr class="table-light fw-bold">
-                                            <td colspan="2">TOTAL (<?= $estado ?: 'CONFIRMADO' ?>)</td>
-                                            <td>₲<?= moneyPy($total) ?></td>
-                                            <td colspan="8"></td>
-                                        </tr>
-                                    </tfoot>
-                                <?php endif; ?>
-                            </table>
-                        </div>
+                                <?php endforeach;
+                                endif; ?>
+                            </tbody>
+                            <?php if ($rows): ?>
+                                <tfoot>
+                                    <tr class="table-light fw-bold">
+                                        <td colspan="2">TOTAL (<?= $estado ?: 'CONFIRMADO' ?>)</td>
+                                        <td>₲<?= moneyPy($total) ?></td>
+                                        <td colspan="8"></td>
+                                    </tr>
+                                </tfoot>
+                            <?php endif; ?>
+                        </table>
                     </div>
                 </div>
-            </main>
+            </div>
+
         </div>
     </div>
 

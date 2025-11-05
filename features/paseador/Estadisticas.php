@@ -198,62 +198,62 @@ $ingresosPorSemana = array_values($porSemana);
             </div>
 
             <!-- Contenido principal -->
-            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 py-4">
-                <div class="page-header">
-                    <h2><i class="fas fa-chart-line me-2"></i> Estadísticas del Paseador</h2>
-                    <span class="fw-bold">🐾 <?= $usuarioNombre ?></span>
-                </div>
 
-                <div class="row g-4 mb-4">
-                    <div class="col-md-3">
-                        <div class="card text-center p-3">
-                            <h5 class="text-muted">Paseos Completados</h5>
-                            <h2><?= $paseosCompletados ?></h2>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="card text-center p-3">
-                            <h5 class="text-muted">Paseos Cancelados</h5>
-                            <h2 class="text-danger"><?= $paseosCancelados ?></h2>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="card text-center p-3">
-                            <h5 class="text-muted">Ingresos Totales</h5>
-                            <h3>Gs <?= number_format($ingresosTotales, 0, ',', '.') ?></h3>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="card text-center p-3">
-                            <h5 class="text-muted">Calificación Promedio</h5>
-                            <h3 class="text-warning"><?= $promedioCalificacion ?> <i class="fa-solid fa-star"></i></h3>
-                        </div>
+            <div class="page-header">
+                <h2><i class="fas fa-chart-line me-2"></i> Estadísticas del Paseador</h2>
+                <span class="fw-bold">🐾 <?= $usuarioNombre ?></span>
+            </div>
+
+            <div class="row g-4 mb-4">
+                <div class="col-md-3">
+                    <div class="card text-center p-3">
+                        <h5 class="text-muted">Paseos Completados</h5>
+                        <h2><?= $paseosCompletados ?></h2>
                     </div>
                 </div>
-
-                <div class="row g-4">
-                    <div class="col-lg-6">
-                        <div class="card p-3">
-                            <h5 class="text-success mb-3"><i class="fa-solid fa-clock me-1"></i> Paseos por hora</h5>
-                            <canvas id="graficoHoras"></canvas>
-                        </div>
-                    </div>
-
-                    <div class="col-lg-6">
-                        <div class="card p-3">
-                            <h5 class="text-success mb-3"><i class="fa-solid fa-star me-1"></i> Calificaciones</h5>
-                            <canvas id="graficoCalificaciones"></canvas>
-                        </div>
-                    </div>
-
-                    <div class="col-lg-12">
-                        <div class="card p-3">
-                            <h5 class="text-success mb-3"><i class="fa-solid fa-wallet me-1"></i> Ingresos por semana</h5>
-                            <canvas id="graficoIngresos"></canvas>
-                        </div>
+                <div class="col-md-3">
+                    <div class="card text-center p-3">
+                        <h5 class="text-muted">Paseos Cancelados</h5>
+                        <h2 class="text-danger"><?= $paseosCancelados ?></h2>
                     </div>
                 </div>
-            </main>
+                <div class="col-md-3">
+                    <div class="card text-center p-3">
+                        <h5 class="text-muted">Ingresos Totales</h5>
+                        <h3>Gs <?= number_format($ingresosTotales, 0, ',', '.') ?></h3>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center p-3">
+                        <h5 class="text-muted">Calificación Promedio</h5>
+                        <h3 class="text-warning"><?= $promedioCalificacion ?> <i class="fa-solid fa-star"></i></h3>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-4">
+                <div class="col-lg-6">
+                    <div class="card p-3">
+                        <h5 class="text-success mb-3"><i class="fa-solid fa-clock me-1"></i> Paseos por hora</h5>
+                        <canvas id="graficoHoras"></canvas>
+                    </div>
+                </div>
+
+                <div class="col-lg-6">
+                    <div class="card p-3">
+                        <h5 class="text-success mb-3"><i class="fa-solid fa-star me-1"></i> Calificaciones</h5>
+                        <canvas id="graficoCalificaciones"></canvas>
+                    </div>
+                </div>
+
+                <div class="col-lg-12">
+                    <div class="card p-3">
+                        <h5 class="text-success mb-3"><i class="fa-solid fa-wallet me-1"></i> Ingresos por semana</h5>
+                        <canvas id="graficoIngresos"></canvas>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
 

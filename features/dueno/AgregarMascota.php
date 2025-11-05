@@ -227,100 +227,100 @@ $baseFeatures = AppConfig::getBaseUrl() . "/features/dueno";
             </div>
 
             <!-- Main -->
-            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 py-4">
-                <div class="page-header">
-                    <h2><i class="fas fa-dog me-2"></i> Agregar Mascota</h2>
-                    <a href="MisMascotas.php" class="btn btn-light btn-sm"><i class="fas fa-arrow-left me-1"></i> Volver</a>
+
+            <div class="page-header">
+                <h2><i class="fas fa-dog me-2"></i> Agregar Mascota</h2>
+                <a href="MisMascotas.php" class="btn btn-light btn-sm"><i class="fas fa-arrow-left me-1"></i> Volver</a>
+            </div>
+
+            <?php if (isset($_SESSION['success'])): ?>
+                <div class="alert alert-success alert-dismissible fade show shadow-sm">
+                    <i class="fas fa-check-circle me-2"></i><?= $_SESSION['success'];
+                                                            unset($_SESSION['success']); ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
+            <?php endif; ?>
 
-                <?php if (isset($_SESSION['success'])): ?>
-                    <div class="alert alert-success alert-dismissible fade show shadow-sm">
-                        <i class="fas fa-check-circle me-2"></i><?= $_SESSION['success'];
-                                                                unset($_SESSION['success']); ?>
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                <?php endif; ?>
+            <?php if (isset($_SESSION['error'])): ?>
+                <div class="alert alert-danger alert-dismissible fade show shadow-sm">
+                    <i class="fas fa-exclamation-triangle me-2"></i><?= $_SESSION['error'];
+                                                                    unset($_SESSION['error']); ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            <?php endif; ?>
 
-                <?php if (isset($_SESSION['error'])): ?>
-                    <div class="alert alert-danger alert-dismissible fade show shadow-sm">
-                        <i class="fas fa-exclamation-triangle me-2"></i><?= $_SESSION['error'];
-                                                                        unset($_SESSION['error']); ?>
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                <?php endif; ?>
+            <div class="card">
+                <div class="card-header"><i class="fas fa-info-circle me-2"></i> Información de la Mascota</div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Nombre *</label>
+                                <input type="text" class="form-control" name="nombre" required value="<?= htmlspecialchars($_POST['nombre'] ?? '') ?>">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Raza</label>
+                                <select class="form-select" id="raza" name="raza">
+                                    <option value="">Seleccione una raza</option>
+                                    <?php foreach ($razasDisponibles as $r): ?>
+                                        <option value="<?= htmlspecialchars($r) ?>" <?= (($_POST['raza'] ?? '') === $r ? 'selected' : '') ?>><?= htmlspecialchars($r) ?></option>
+                                    <?php endforeach; ?>
+                                    <option value="Otra" <?= (($_POST['raza'] ?? '') === 'Otra' ? 'selected' : '') ?>>Otra</option>
+                                </select>
+                                <input type="text" class="form-control mt-2 d-none" id="raza_otra" name="raza_otra" placeholder="Especifique la raza" value="<?= htmlspecialchars($_POST['raza_otra'] ?? '') ?>">
+                            </div>
 
-                <div class="card">
-                    <div class="card-header"><i class="fas fa-info-circle me-2"></i> Información de la Mascota</div>
-                    <div class="card-body">
-                        <form method="POST">
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <label class="form-label">Nombre *</label>
-                                    <input type="text" class="form-control" name="nombre" required value="<?= htmlspecialchars($_POST['nombre'] ?? '') ?>">
+                            <div class="col-md-6">
+                                <label class="form-label">Peso (kg) *</label>
+                                <input type="number" step="0.1" min="0" class="form-control" id="peso_kg" name="peso_kg" required value="<?= htmlspecialchars($pesoPost) ?>">
+                                <div class="form-text">El tamaño se determina automáticamente según el peso.</div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">Tamaño</label>
+                                <div class="btn-group w-100 flex-wrap" role="group">
+                                    <input type="radio" class="btn-check" name="tamano" id="tam_peq" value="pequeno" <?= $tamanoPost === 'pequeno' ? 'checked' : ''; ?>>
+                                    <label class="btn btn-outline-success" for="tam_peq">Pequeño</label>
+
+                                    <input type="radio" class="btn-check" name="tamano" id="tam_med" value="mediano" <?= $tamanoPost === 'mediano' ? 'checked' : ''; ?>>
+                                    <label class="btn btn-outline-warning" for="tam_med">Mediano</label>
+
+                                    <input type="radio" class="btn-check" name="tamano" id="tam_gra" value="grande" <?= $tamanoPost === 'grande' ? 'checked' : ''; ?>>
+                                    <label class="btn btn-outline-danger" for="tam_gra">Grande</label>
+
+                                    <input type="radio" class="btn-check" name="tamano" id="tam_gig" value="gigante" <?= $tamanoPost === 'gigante' ? 'checked' : ''; ?>>
+                                    <label class="btn btn-outline-dark" for="tam_gig">Gigante</label>
                                 </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">Raza</label>
-                                    <select class="form-select" id="raza" name="raza">
-                                        <option value="">Seleccione una raza</option>
-                                        <?php foreach ($razasDisponibles as $r): ?>
-                                            <option value="<?= htmlspecialchars($r) ?>" <?= (($_POST['raza'] ?? '') === $r ? 'selected' : '') ?>><?= htmlspecialchars($r) ?></option>
-                                        <?php endforeach; ?>
-                                        <option value="Otra" <?= (($_POST['raza'] ?? '') === 'Otra' ? 'selected' : '') ?>>Otra</option>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">Edad</label>
+                                <div class="input-group">
+                                    <input type="number" min="0" step="1" class="form-control" id="edad_valor" name="edad_valor" placeholder="Ej: 8" value="<?= htmlspecialchars($edadValorPost) ?>">
+                                    <select class="form-select" id="edad_unidad" name="edad_unidad">
+                                        <option value="meses" <?= $edadUnidadPost === 'meses' ? 'selected' : ''; ?>>Meses</option>
+                                        <option value="anios" <?= $edadUnidadPost === 'anios' ? 'selected' : ''; ?>>Años</option>
                                     </select>
-                                    <input type="text" class="form-control mt-2 d-none" id="raza_otra" name="raza_otra" placeholder="Especifique la raza" value="<?= htmlspecialchars($_POST['raza_otra'] ?? '') ?>">
-                                </div>
-
-                                <div class="col-md-6">
-                                    <label class="form-label">Peso (kg) *</label>
-                                    <input type="number" step="0.1" min="0" class="form-control" id="peso_kg" name="peso_kg" required value="<?= htmlspecialchars($pesoPost) ?>">
-                                    <div class="form-text">El tamaño se determina automáticamente según el peso.</div>
-                                </div>
-
-                                <div class="col-md-6">
-                                    <label class="form-label">Tamaño</label>
-                                    <div class="btn-group w-100 flex-wrap" role="group">
-                                        <input type="radio" class="btn-check" name="tamano" id="tam_peq" value="pequeno" <?= $tamanoPost === 'pequeno' ? 'checked' : ''; ?>>
-                                        <label class="btn btn-outline-success" for="tam_peq">Pequeño</label>
-
-                                        <input type="radio" class="btn-check" name="tamano" id="tam_med" value="mediano" <?= $tamanoPost === 'mediano' ? 'checked' : ''; ?>>
-                                        <label class="btn btn-outline-warning" for="tam_med">Mediano</label>
-
-                                        <input type="radio" class="btn-check" name="tamano" id="tam_gra" value="grande" <?= $tamanoPost === 'grande' ? 'checked' : ''; ?>>
-                                        <label class="btn btn-outline-danger" for="tam_gra">Grande</label>
-
-                                        <input type="radio" class="btn-check" name="tamano" id="tam_gig" value="gigante" <?= $tamanoPost === 'gigante' ? 'checked' : ''; ?>>
-                                        <label class="btn btn-outline-dark" for="tam_gig">Gigante</label>
-                                    </div>
-                                </div>
-
-                                <div class="col-md-6">
-                                    <label class="form-label">Edad</label>
-                                    <div class="input-group">
-                                        <input type="number" min="0" step="1" class="form-control" id="edad_valor" name="edad_valor" placeholder="Ej: 8" value="<?= htmlspecialchars($edadValorPost) ?>">
-                                        <select class="form-select" id="edad_unidad" name="edad_unidad">
-                                            <option value="meses" <?= $edadUnidadPost === 'meses' ? 'selected' : ''; ?>>Meses</option>
-                                            <option value="anios" <?= $edadUnidadPost === 'anios' ? 'selected' : ''; ?>>Años</option>
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <div class="col-12">
-                                    <label class="form-label">Observaciones</label>
-                                    <textarea class="form-control" name="observaciones" rows="4"><?= htmlspecialchars($_POST['observaciones'] ?? '') ?></textarea>
                                 </div>
                             </div>
 
-                            <div class="text-end mt-4">
-                                <button type="submit" class="btn btn-gradient px-4">
-                                    <i class="fas fa-save me-1"></i> Guardar Mascota
-                                </button>
+                            <div class="col-12">
+                                <label class="form-label">Observaciones</label>
+                                <textarea class="form-control" name="observaciones" rows="4"><?= htmlspecialchars($_POST['observaciones'] ?? '') ?></textarea>
                             </div>
-                        </form>
-                    </div>
+                        </div>
+
+                        <div class="text-end mt-4">
+                            <button type="submit" class="btn btn-gradient px-4">
+                                <i class="fas fa-save me-1"></i> Guardar Mascota
+                            </button>
+                        </div>
+                    </form>
                 </div>
+            </div>
 
-                <footer>© <?= date('Y') ?> Jaguata — Todos los derechos reservados.</footer>
-            </main>
+            <footer>© <?= date('Y') ?> Jaguata — Todos los derechos reservados.</footer>
+
         </div>
     </div>
 

@@ -236,74 +236,74 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
             </div>
 
             <!-- Contenido principal -->
-            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
 
-                <div class="page-header">
-                    <h2><i class="fas fa-user me-2"></i> Mi Perfil - Paseador</h2>
-                    <div class="d-flex flex-wrap gap-2">
-                        <a href="Dashboard.php" class="btn btn-outline-light btn-sm">
-                            <i class="fas fa-arrow-left me-1"></i> Volver
-                        </a>
-                        <a href="EditarPerfil.php" class="btn btn-light btn-sm text-success">
-                            <i class="fas fa-edit me-1"></i> Editar
-                        </a>
-                    </div>
+
+            <div class="page-header">
+                <h2><i class="fas fa-user me-2"></i> Mi Perfil - Paseador</h2>
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="Dashboard.php" class="btn btn-outline-light btn-sm">
+                        <i class="fas fa-arrow-left me-1"></i> Volver
+                    </a>
+                    <a href="EditarPerfil.php" class="btn btn-light btn-sm text-success">
+                        <i class="fas fa-edit me-1"></i> Editar
+                    </a>
                 </div>
+            </div>
 
-                <div class="row g-3">
-                    <!-- Columna izquierda -->
-                    <div class="col-lg-4">
-                        <div class="card shadow-sm h-100">
-                            <div class="card-body text-center">
-                                <img src="<?= htmlspecialchars($foto) ?>" alt="Foto de perfil"
-                                    class="rounded-circle mb-3" style="width:160px;height:160px;object-fit:cover;">
-                                <h4 class="mb-1"><?= h($usuario['nombre'] ?? null, 'Sin nombre') ?></h4>
-                                <span class="badge bg-primary-subtle">Paseador</span>
+            <div class="row g-3">
+                <!-- Columna izquierda -->
+                <div class="col-lg-4">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-body text-center">
+                            <img src="<?= htmlspecialchars($foto) ?>" alt="Foto de perfil"
+                                class="rounded-circle mb-3" style="width:160px;height:160px;object-fit:cover;">
+                            <h4 class="mb-1"><?= h($usuario['nombre'] ?? null, 'Sin nombre') ?></h4>
+                            <span class="badge bg-primary-subtle">Paseador</span>
 
-                                <div class="mt-3 text-start small">
-                                    <div class="mb-2"><i class="fa-solid fa-envelope me-2"></i><strong>Email:</strong> <?= h($usuario['email']) ?></div>
-                                    <div class="mb-2"><i class="fa-solid fa-phone me-2"></i><strong>Teléfono:</strong> <?= h($usuario['telefono']) ?></div>
-                                    <div class="mb-2"><i class="fa-solid fa-cake-candles me-2"></i><strong>Cumpleaños:</strong>
-                                        <?php if (!empty($usuario['fecha_nacimiento'])): ?>
-                                            <?= fechaLatina($usuario['fecha_nacimiento']) ?>
-                                            <?= $edad !== null ? " <span class=\"text-muted\">({$edad} años)</span>" : "" ?>
-                                        <?php else: ?><span class="text-muted">No especificado</span><?php endif; ?>
-                                    </div>
+                            <div class="mt-3 text-start small">
+                                <div class="mb-2"><i class="fa-solid fa-envelope me-2"></i><strong>Email:</strong> <?= h($usuario['email']) ?></div>
+                                <div class="mb-2"><i class="fa-solid fa-phone me-2"></i><strong>Teléfono:</strong> <?= h($usuario['telefono']) ?></div>
+                                <div class="mb-2"><i class="fa-solid fa-cake-candles me-2"></i><strong>Cumpleaños:</strong>
+                                    <?php if (!empty($usuario['fecha_nacimiento'])): ?>
+                                        <?= fechaLatina($usuario['fecha_nacimiento']) ?>
+                                        <?= $edad !== null ? " <span class=\"text-muted\">({$edad} años)</span>" : "" ?>
+                                    <?php else: ?><span class="text-muted">No especificado</span><?php endif; ?>
                                 </div>
                             </div>
                         </div>
                     </div>
+                </div>
 
-                    <!-- Columna derecha -->
-                    <div class="col-lg-8">
-                        <div class="card shadow-sm mb-3">
-                            <div class="card-header"><i class="fa-solid fa-map-location-dot me-2"></i> Zonas de trabajo</div>
-                            <div class="card-body">
-                                <?php if (empty($zonas)): ?>
-                                    <span class="text-muted">Sin zonas registradas.</span>
-                                <?php else: ?>
-                                    <div class="d-flex flex-wrap gap-2">
-                                        <?php foreach ($zonas as $z): ?>
-                                            <span class="badge bg-success-subtle text-success-emphasis"><?= htmlspecialchars($z) ?></span>
-                                        <?php endforeach; ?>
-                                    </div>
-                                <?php endif; ?>
-                            </div>
+                <!-- Columna derecha -->
+                <div class="col-lg-8">
+                    <div class="card shadow-sm mb-3">
+                        <div class="card-header"><i class="fa-solid fa-map-location-dot me-2"></i> Zonas de trabajo</div>
+                        <div class="card-body">
+                            <?php if (empty($zonas)): ?>
+                                <span class="text-muted">Sin zonas registradas.</span>
+                            <?php else: ?>
+                                <div class="d-flex flex-wrap gap-2">
+                                    <?php foreach ($zonas as $z): ?>
+                                        <span class="badge bg-success-subtle text-success-emphasis"><?= htmlspecialchars($z) ?></span>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php endif; ?>
                         </div>
+                    </div>
 
-                        <div class="card shadow-sm">
-                            <div class="card-header"><i class="fa-solid fa-briefcase me-2"></i> Experiencia</div>
-                            <div class="card-body">
-                                <?php if (!empty($usuario['experiencia'])): ?>
-                                    <div class="text-muted" style="white-space: pre-wrap;"><?= htmlspecialchars($usuario['experiencia']) ?></div>
-                                <?php else: ?>
-                                    <span class="text-muted">No especificada.</span>
-                                <?php endif; ?>
-                            </div>
+                    <div class="card shadow-sm">
+                        <div class="card-header"><i class="fa-solid fa-briefcase me-2"></i> Experiencia</div>
+                        <div class="card-body">
+                            <?php if (!empty($usuario['experiencia'])): ?>
+                                <div class="text-muted" style="white-space: pre-wrap;"><?= htmlspecialchars($usuario['experiencia']) ?></div>
+                            <?php else: ?>
+                                <span class="text-muted">No especificada.</span>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
-            </main>
+            </div>
+
         </div>
     </div>
 

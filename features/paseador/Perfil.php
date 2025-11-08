@@ -92,24 +92,34 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mi Perfil - Paseador | Jaguata</title>
+
     <link href="<?= ASSETS_URL; ?>/css/jaguata-theme.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
 
     <style>
+        html,
         body {
-            background-color: #f5f7fa;
-            font-family: "Poppins", sans-serif;
             margin: 0;
-            overflow-x: hidden;
+            height: 100%;
+            font-family: "Poppins", sans-serif;
+            background-color: #f6f9f7;
         }
 
+        .layout {
+            display: flex;
+            min-height: 100vh;
+            width: 100%;
+        }
+
+        /* === SIDEBAR === */
         .sidebar {
             background: linear-gradient(180deg, #1e1e2f 0%, #292a3a 100%);
-            color: #f8f9fa;
-            min-height: 100vh;
-            padding-top: 1rem;
+            color: #fff;
+            width: 240px;
+            flex-shrink: 0;
             box-shadow: 4px 0 12px rgba(0, 0, 0, 0.15);
+            padding-top: 1.5rem;
         }
 
         .sidebar .nav-link {
@@ -119,31 +129,25 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
             margin: 4px 8px;
             display: flex;
             align-items: center;
-            transition: background 0.2s, transform 0.2s;
             font-weight: 500;
+            transition: background 0.2s, transform 0.2s;
         }
 
-        .sidebar .nav-link i {
-            width: 20px;
-            margin-right: 10px;
-        }
-
-        .sidebar .nav-link:hover {
-            background-color: #343454;
+        .sidebar .nav-link:hover,
+        .sidebar .nav-link.active {
+            background-color: #3c6255;
             color: #fff;
             transform: translateX(4px);
         }
 
-        .sidebar .nav-link.active {
-            background-color: #3c6255;
-            color: #fff;
+        /* === CONTENIDO === */
+        main.content {
+            flex-grow: 1;
+            padding: 2.5rem;
+            background-color: #f6f9f7;
         }
 
-        main {
-            background-color: #f5f7fa;
-            padding: 2rem;
-        }
-
+        /* === HEADER === */
         .page-header {
             background: linear-gradient(90deg, #20c997, #3c6255);
             color: #fff;
@@ -153,11 +157,7 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
             justify-content: space-between;
             align-items: center;
             margin-bottom: 2rem;
-        }
-
-        .page-header h2 {
-            font-weight: 600;
-            margin: 0;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
         }
 
         .card {
@@ -171,23 +171,11 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
             background: linear-gradient(90deg, #3c6255, #20c997);
             color: #fff;
             font-weight: 600;
-            padding: 0.75rem 1rem;
-        }
-
-        .card-body {
-            background-color: #fff;
-            color: #333;
-            padding: 1.25rem;
         }
 
         img.rounded-circle {
             border: 4px solid #3c6255;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.15);
-            transition: transform 0.2s ease-in-out;
-        }
-
-        img.rounded-circle:hover {
-            transform: scale(1.05);
         }
 
         .badge.bg-primary-subtle {
@@ -198,46 +186,26 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
             padding: 0.4em 0.6em;
         }
 
-        .btn-primary {
-            background-color: #3c6255;
-            border: none;
-        }
-
-        .btn-primary:hover {
-            background-color: #2e4d44;
-        }
-
-        .btn-outline-secondary {
-            border-color: #3c6255;
-            color: #3c6255;
-        }
-
-        .btn-outline-secondary:hover {
+        footer {
             background-color: #3c6255;
             color: #fff;
+            text-align: center;
+            padding: 1.2rem 0;
+            width: 100%;
+            margin-top: 3rem;
         }
     </style>
 </head>
 
 <body>
-    <div class="container-fluid">
-        <div class="row">
-            <!-- Sidebar -->
-            <div class="col-md-3 col-lg-2 d-md-block sidebar">
-                <div class="position-sticky pt-3">
-                    <ul class="nav flex-column gap-1">
-                        <li><a class="nav-link active" href="<?= $baseFeatures; ?>/Dashboard.php"><i class="fas fa-home"></i> Inicio</a></li>
-                        <li><a class="nav-link" href="<?= $baseFeatures; ?>/MisPaseos.php"><i class="fas fa-list"></i> Mis Paseos</a></li>
-                        <li><a class="nav-link" href="<?= $baseFeatures; ?>/Disponibilidad.php"><i class="fas fa-calendar-check"></i> Disponibilidad</a></li>
-                        <li><a class="nav-link" href="<?= $baseFeatures; ?>/Perfil.php"><i class="fas fa-user"></i> Mi Perfil</a></li>
-                        <li><a class="nav-link text-danger" href="<?= BASE_URL; ?>/logout.php"><i class="fas fa-sign-out-alt"></i> Cerrar sesión</a></li>
-                    </ul>
-                </div>
-            </div>
+    <?php include __DIR__ . '/../../src/Templates/Navbar.php'; ?>
 
-            <!-- Contenido principal -->
+    <div class="layout">
+        <?php include __DIR__ . '/../../src/Templates/SidebarPaseador.php'; ?>
 
 
+        <!-- Contenido principal -->
+        <main class="content">
             <div class="page-header">
                 <h2><i class="fas fa-user me-2"></i> Mi Perfil - Paseador</h2>
                 <div class="d-flex flex-wrap gap-2">
@@ -303,10 +271,10 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
                     </div>
                 </div>
             </div>
-
-        </div>
+        </main>
     </div>
 
+    <footer>© <?= date('Y') ?> Jaguata — Todos los derechos reservados.</footer>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 

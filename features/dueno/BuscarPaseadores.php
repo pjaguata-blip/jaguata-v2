@@ -261,20 +261,7 @@ $baseFeatures = BASE_URL . "/features/{$rol}";
     <button class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
     <div class="layout">
         <!-- Sidebar -->
-        <aside class="sidebar" id="sidebar">
-            <div class="text-center mb-4">
-                <img src="<?= ASSETS_URL; ?>/uploads/perfiles/logojag.png" alt="Jaguata" width="50">
-                <hr class="text-light">
-            </div>
-            <ul class="nav flex-column gap-1 px-2">
-                <li><a class="nav-link" href="<?= $baseFeatures; ?>/Dashboard.php"><i class="fas fa-home"></i> Inicio</a></li>
-                <li><a class="nav-link active" href="#"><i class="fas fa-search"></i> Buscar Paseadores</a></li>
-                <li><a class="nav-link" href="<?= $baseFeatures; ?>/MisPaseos.php"><i class="fas fa-walking"></i> Mis Paseos</a></li>
-                <li><a class="nav-link" href="<?= $baseFeatures; ?>/MisMascotas.php"><i class="fas fa-paw"></i> Mis Mascotas</a></li>
-                <li><a class="nav-link" href="<?= $baseFeatures; ?>/MiPerfil.php"><i class="fas fa-user"></i> Perfil</a></li>
-                <li><a class="nav-link text-danger" href="<?= BASE_URL; ?>/logout.php"><i class="fas fa-sign-out-alt"></i> Cerrar sesión</a></li>
-            </ul>
-        </aside>
+        <?php include __DIR__ . '/../../src/Templates/SidebarDueno.php'; ?>
 
         <!-- Contenido -->
         <main class="content">

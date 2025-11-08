@@ -246,22 +246,7 @@ if (empty($paseos) || isset($paseos['error'])) {
 
 <body>
 
-    <!-- SIDEBAR -->
-    <aside class="sidebar">
-        <div class="text-center mb-4">
-            <img src="<?= ASSETS_URL ?>/uploads/perfiles/logojag.png" alt="Logo" width="70" class="rounded-circle bg-light p-2">
-            <h6 class="mt-2 fw-bold text-success">Jaguata Admin</h6>
-            <hr class="text-light">
-        </div>
-        <ul class="nav flex-column gap-1 px-2">
-            <li><a class="nav-link" href="Dashboard.php"><i class="fas fa-chart-line"></i> Dashboard</a></li>
-            <li><a class="nav-link" href="Usuarios.php"><i class="fas fa-users"></i> Usuarios</a></li>
-            <li><a class="nav-link active" href="#"><i class="fas fa-dog"></i> Paseos</a></li>
-            <li><a class="nav-link" href="Pagos.php"><i class="fas fa-wallet"></i> Pagos</a></li>
-            <li><a class="nav-link" href="Reportes.php"><i class="fas fa-file-alt"></i> Reportes</a></li>
-            <li><a class="nav-link text-danger" href="/jaguata/public/logout.php"><i class="fas fa-sign-out-alt"></i> Cerrar sesión</a></li>
-        </ul>
-    </aside>
+    <?php include __DIR__ . '/../../src/Templates/SidebarAdmin.php'; ?>
 
     <!-- CONTENIDO -->
     <main>

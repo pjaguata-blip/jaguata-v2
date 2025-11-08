@@ -16,7 +16,7 @@ AppConfig::init();
 
 /* 🔒 Auth */
 $auth = new AuthController();
-$auth->checkRole('dueno');
+$auth->checkRole('paseador');
 
 $notiCtrl = new NotificacionController();
 
@@ -53,7 +53,7 @@ $data = $notiCtrl->index([
 $notificaciones = $data['data'] ?? [];
 $totalPages     = $data['totalPages'] ?? 1;
 
-$rolMenu      = Session::getUsuarioRol() ?: 'dueno';
+$rolMenu      = Session::getUsuarioRol() ?: 'paseador';
 $baseFeatures = BASE_URL . "/features/{$rolMenu}";
 
 function h(?string $v): string
@@ -66,7 +66,7 @@ function h(?string $v): string
 
 <head>
     <meta charset="utf-8">
-    <title>Notificaciones - Jaguata</title>
+    <title>Notificaciones - Paseador | Jaguata</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
@@ -228,7 +228,7 @@ function h(?string $v): string
 <body>
 
     <!-- Sidebar -->
-    <?php include __DIR__ . '/../../src/Templates/SidebarDueno.php'; ?>
+    <?php include __DIR__ . '/../../src/Templates/SidebarPaseador.php'; ?>
 
     <!-- Contenido -->
     <main>
@@ -319,7 +319,7 @@ function h(?string $v): string
             <?php endif; ?>
         <?php endif; ?>
 
-        <footer><small>© <?= date('Y') ?> Jaguata — Panel del Dueño</small></footer>
+        <footer><small>© <?= date('Y') ?> Jaguata — Panel del Paseador</small></footer>
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

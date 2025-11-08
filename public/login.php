@@ -23,7 +23,7 @@ if (Session::isLoggedIn()) {
 
     // Redirigir automáticamente al Dashboard correspondiente
     if ($rol === 'admin') {
-        header('Location: ' . BASE_URL . '/public/admin.php');
+        header('Location: ' . BASE_URL . '/public/Dashboard.php');
     } else {
         header('Location: ' . BASE_URL . "/features/{$rol}/Dashboard.php");
     }
@@ -53,7 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             // Redirigir según el rol del usuario
             if ($usuario['rol'] === 'admin') {
-                header('Location: ' . BASE_URL . '/public/admin.php');
+                header('Location: ' . BASE_URL . '/public/Dashboard.php');
             } else {
                 header('Location: ' . BASE_URL . "/features/{$usuario['rol']}/Dashboard.php");
             }

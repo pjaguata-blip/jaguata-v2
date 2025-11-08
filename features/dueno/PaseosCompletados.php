@@ -218,108 +218,102 @@ $paseos = array_values(array_filter($soloDueno, function ($p) use ($q, $tsDesde,
     <?php include __DIR__ . '/../../src/Templates/Navbar.php'; ?>
 
     <div class="container-fluid">
-        <div class="row">
+        <div class="row flex-nowrap">
             <!-- Sidebar -->
-            <div class="col-md-3 col-lg-2 d-md-block sidebar">
-                <div class="position-sticky pt-3">
-                    <ul class="nav flex-column">
-                        <li><a class="nav-link" href="<?= $baseFeatures; ?>/Dashboard.php"><i class="fas fa-home me-2"></i>Inicio</a></li>
-                        <li><a class="nav-link" href="<?= $baseFeatures; ?>/MisMascotas.php"><i class="fas fa-paw me-2"></i>Mis Mascotas</a></li>
-                        <li><a class="nav-link active" href="#"><i class="fas fa-check-circle me-2"></i>Paseos</a></li>
-                        <li><a class="nav-link" href="<?= $baseFeatures; ?>/GastosTotales.php"><i class="fas fa-wallet me-2"></i>Gastos</a></li>
-                        <li><a class="nav-link" href="<?= $baseFeatures; ?>/Notificaciones.php"><i class="fas fa-bell me-2"></i>Notificaciones</a></li>
-                        <li><a class="nav-link text-danger" href="<?= BASE_URL; ?>/logout.php"><i class="fas fa-sign-out-alt me-2"></i>Salir</a></li>
-                    </ul>
+            <?php include __DIR__ . '/../../src/Templates/SidebarDueno.php'; ?>
+
+            <!-- Contenido principal -->
+            <main class="col py-3">
+                <div class="page-header">
+                    <h1><i class="fas fa-check-circle me-2"></i>Paseos Completados</h1>
+                    <a href="ExportarDashboard.php?estado=completo" class="btn btn-light btn-sm">
+                        <i class="fas fa-file-export me-1"></i> Exportar
+                    </a>
                 </div>
-            </div>
 
-            <!-- Main -->
-
-            <div class="page-header">
-                <h1><i class="fas fa-check-circle me-2"></i>Paseos Completados</h1>
-                <a href="ExportarDashboard.php?estado=completo" class="btn btn-light btn-sm">
-                    <i class="fas fa-file-export me-1"></i> Exportar
-                </a>
-            </div>
-
-            <!-- Filtros -->
-            <div class="card mb-4">
-                <div class="card-body">
-                    <form class="row g-3" method="get">
-                        <div class="col-sm-3">
-                            <label class="form-label fw-semibold">Desde</label>
-                            <input type="date" name="desde" value="<?= htmlspecialchars((string)$desde) ?>" class="form-control">
-                        </div>
-                        <div class="col-sm-3">
-                            <label class="form-label fw-semibold">Hasta</label>
-                            <input type="date" name="hasta" value="<?= htmlspecialchars((string)$hasta) ?>" class="form-control">
-                        </div>
-                        <div class="col-sm-4">
-                            <label class="form-label fw-semibold">Buscar</label>
-                            <input type="text" name="q" value="<?= htmlspecialchars($q) ?>" placeholder="Mascota, paseador..." class="form-control">
-                        </div>
-                        <div class="col-sm-2 d-flex align-items-end">
-                            <button class="btn btn-outline-success w-100"><i class="fas fa-search me-1"></i> Filtrar</button>
-                        </div>
-                    </form>
+                <!-- Filtros -->
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <form class="row g-3" method="get">
+                            <div class="col-sm-3">
+                                <label class="form-label fw-semibold">Desde</label>
+                                <input type="date" name="desde" value="<?= htmlspecialchars((string)$desde) ?>" class="form-control">
+                            </div>
+                            <div class="col-sm-3">
+                                <label class="form-label fw-semibold">Hasta</label>
+                                <input type="date" name="hasta" value="<?= htmlspecialchars((string)$hasta) ?>" class="form-control">
+                            </div>
+                            <div class="col-sm-4">
+                                <label class="form-label fw-semibold">Buscar</label>
+                                <input type="text" name="q" value="<?= htmlspecialchars($q) ?>" placeholder="Mascota, paseador..." class="form-control">
+                            </div>
+                            <div class="col-sm-2 d-flex align-items-end">
+                                <button class="btn btn-outline-success w-100">
+                                    <i class="fas fa-search me-1"></i> Filtrar
+                                </button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
-            </div>
 
-            <!-- Tabla -->
-            <div class="card">
-                <div class="card-body">
-                    <?php if (empty($paseos)): ?>
-                        <div class="text-center py-5 text-muted">
-                            <i class="fas fa-dog fa-3x mb-3 text-success"></i>
-                            <p>No hay paseos completados con los filtros aplicados.</p>
-                        </div>
-                    <?php else: ?>
-                        <div class="table-responsive">
-                            <table class="table table-hover align-middle text-center">
-                                <thead>
-                                    <tr>
-                                        <th>Mascota</th>
-                                        <th>Paseador</th>
-                                        <th>Inicio</th>
-                                        <th>Fin</th>
-                                        <th>Duración</th>
-                                        <th>Precio</th>
-                                        <th>Estado</th>
-                                        <th>Acción</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php foreach ($paseos as $p):
-                                        $inicio = fmtDate($p['inicio'] ?? null);
-                                        $fin = fmtDate($p['fin'] ?? null);
-                                        $duracion = fmtInt($p['duracion_min'] ?? $p['duracion'] ?? null);
-                                        $precio = fmtGs($p['precio_total'] ?? null);
-                                        [$cls, $txt] = estadoToBadge((string)($p['estado'] ?? ''));
-                                    ?>
+                <!-- Tabla -->
+                <div class="card">
+                    <div class="card-body">
+                        <?php if (empty($paseos)): ?>
+                            <div class="text-center py-5 text-muted">
+                                <i class="fas fa-dog fa-3x mb-3 text-success"></i>
+                                <p>No hay paseos completados con los filtros aplicados.</p>
+                            </div>
+                        <?php else: ?>
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle text-center">
+                                    <thead>
                                         <tr>
-                                            <td><?= htmlspecialchars($p['nombre_mascota'] ?? '-') ?></td>
-                                            <td><?= htmlspecialchars($p['nombre_paseador'] ?? '-') ?></td>
-                                            <td><?= $inicio ?></td>
-                                            <td><?= $fin ?></td>
-                                            <td><?= $duracion ?></td>
-                                            <td><?= $precio ?></td>
-                                            <td><span class="badge bg-<?= $cls ?>"><?= $txt ?></span></td>
-                                            <td>
-                                                <a href="DetallePaseo.php?paseo_id=<?= (int)$p['paseo_id'] ?>" class="btn btn-sm btn-outline-success shadow-sm">
-                                                    <i class="fas fa-eye me-1"></i> Ver
-                                                </a>
-                                            </td>
+                                            <th>Mascota</th>
+                                            <th>Paseador</th>
+                                            <th>Inicio</th>
+                                            <th>Fin</th>
+                                            <th>Duración</th>
+                                            <th>Precio</th>
+                                            <th>Estado</th>
+                                            <th>Acción</th>
                                         </tr>
-                                    <?php endforeach; ?>
-                                </tbody>
-                            </table>
-                        </div>
-                    <?php endif; ?>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($paseos as $p):
+                                            $inicio = fmtDate($p['inicio'] ?? null);
+                                            $fin = fmtDate($p['fin'] ?? null);
+                                            $duracion = fmtInt($p['duracion_min'] ?? $p['duracion'] ?? null);
+                                            $precio = fmtGs($p['precio_total'] ?? null);
+                                            [$cls, $txt] = estadoToBadge((string)($p['estado'] ?? ''));
+                                        ?>
+                                            <tr>
+                                                <td><?= htmlspecialchars($p['nombre_mascota'] ?? '-') ?></td>
+                                                <td><?= htmlspecialchars($p['nombre_paseador'] ?? '-') ?></td>
+                                                <td><?= $inicio ?></td>
+                                                <td><?= $fin ?></td>
+                                                <td><?= $duracion ?></td>
+                                                <td><?= $precio ?></td>
+                                                <td><span class="badge bg-<?= $cls ?>"><?= $txt ?></span></td>
+                                                <td>
+                                                    <a href="DetallePaseo.php?paseo_id=<?= (int)$p['paseo_id'] ?>" class="btn btn-sm btn-outline-success shadow-sm">
+                                                        <i class="fas fa-eye me-1"></i> Ver
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <?php endif; ?>
+                    </div>
                 </div>
-            </div>
 
+                <footer class="text-center text-muted mt-4">© <?= date('Y') ?> Jaguata — Todos los derechos reservados.</footer>
+            </main>
         </div>
     </div>
+
 
     <?php include __DIR__ . '/../../src/Templates/Footer.php'; ?>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

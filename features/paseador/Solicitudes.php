@@ -132,26 +132,7 @@ function h($v)
 <body>
     <div class="container-fluid">
         <div class="row">
-            <!-- Sidebar -->
-            <div class="col-md-3 col-lg-2 d-md-block sidebar">
-                <div class="text-center mb-4">
-                    <img src="<?= ASSETS_URL; ?>/uploads/perfiles/logojag.png" alt="Jaguata" width="50">
-                    <hr class="text-light">
-                </div>
-
-                <ul class="nav flex-column gap-1 px-2">
-                    <li><a class="nav-link" href="<?= $baseFeatures; ?>/Dashboard.php"><i class="fas fa-home me-2"></i>Inicio</a></li>
-                    <li><a class="nav-link active" href="<?= $baseFeatures; ?>/Solicitudes.php"><i class="fas fa-envelope-open-text me-2"></i>Solicitudes</a></li>
-                    <li><a class="nav-link" href="<?= $baseFeatures; ?>/MisPaseos.php"><i class="fas fa-list me-2"></i>Mis Paseos</a></li>
-                    <li><a class="nav-link" href="<?= $baseFeatures; ?>/Disponibilidad.php"><i class="fas fa-calendar-check me-2"></i>Disponibilidad</a></li>
-                    <li><a class="nav-link" href="<?= $baseFeatures; ?>/Pagos.php"><i class="fas fa-wallet me-2"></i>Pagos</a></li>
-                    <li><a class="nav-link" href="<?= $baseFeatures; ?>/Estadisticas.php"><i class="fas fa-chart-line me-2"></i>Estadísticas</a></li>
-                    <li><a class="nav-link" href="../mensajeria/chat.php"><i class="fas fa-comments me-2"></i>Mensajería</a></li>
-                    <li><a class="nav-link" href="<?= $baseFeatures; ?>/Notificaciones.php"><i class="fas fa-bell me-2"></i>Notificaciones</a></li>
-                    <li><a class="nav-link" href="<?= $baseFeatures; ?>/Perfil.php"><i class="fas fa-user me-2"></i>Mi Perfil</a></li>
-                    <li><a class="nav-link text-danger" href="<?= BASE_URL; ?>/logout.php"><i class="fas fa-sign-out-alt me-2"></i>Cerrar sesión</a></li>
-                </ul>
-            </div>
+            <?php include __DIR__ . '/../../src/Templates/SidebarPaseador.php'; ?>
 
             <!-- Contenido -->
             <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">

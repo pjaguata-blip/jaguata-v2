@@ -202,21 +202,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
 
 <body>
     <div class="layout">
-        <!-- Sidebar -->
-        <aside class="sidebar">
-            <div class="text-center mb-4">
-                <img src="<?= ASSETS_URL; ?>/uploads/perfiles/logojag.png" alt="Jaguata" width="55">
-                <hr class="text-light">
-            </div>
-            <ul class="nav flex-column gap-1 px-2">
-                <li><a class="nav-link" href="<?= $baseFeatures; ?>/Dashboard.php"><i class="fas fa-home"></i>Inicio</a></li>
-                <li><a class="nav-link" href="<?= $baseFeatures; ?>/MisPaseos.php"><i class="fas fa-list"></i>Mis Paseos</a></li>
-                <li><a class="nav-link" href="<?= $baseFeatures; ?>/Disponibilidad.php"><i class="fas fa-calendar-check"></i>Disponibilidad</a></li>
-                <li><a class="nav-link active" href="#"><i class="fas fa-wallet"></i>Pagos y Ganancias</a></li>
-                <li><a class="nav-link" href="<?= $baseFeatures; ?>/Configuracion.php"><i class="fas fa-cogs"></i>Configuración</a></li>
-                <li><a class="nav-link text-danger" href="<?= BASE_URL; ?>/logout.php"><i class="fas fa-sign-out-alt"></i>Salir</a></li>
-            </ul>
-        </aside>
+        <?php include __DIR__ . '/../../src/Templates/SidebarPaseador.php'; ?>
 
         <!-- Contenido -->
         <main class="content">

@@ -19,7 +19,7 @@ $baseFeatures = BASE_URL . "/features/{$rol}";
 
 $diasSemana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
-// Simulación (en producción viene de BD)
+// Simulación temporal
 $disponibilidadActual = [
     'Lunes' => ['inicio' => '08:00', 'fin' => '12:00'],
     'Martes' => ['inicio' => '09:00', 'fin' => '13:00'],
@@ -32,29 +32,41 @@ $disponibilidadActual = [
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Disponibilidad - Paseador | Jaguata</title>
+    <link href="<?= ASSETS_URL; ?>/css/jaguata-theme.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+
     <style>
         :root {
             --verde-jaguata: #3c6255;
             --verde-claro: #20c997;
-            --gris-fondo: #f5f7fa;
+            --gris-fondo: #f6f9f7;
             --blanco: #ffffff;
         }
 
+        html,
         body {
+            margin: 0;
+            height: 100%;
             background: var(--gris-fondo);
             font-family: "Poppins", sans-serif;
-            color: #333;
+        }
+
+        /* === LAYOUT === */
+        .layout {
+            display: flex;
+            min-height: 100vh;
+            width: 100%;
         }
 
         /* === SIDEBAR === */
         .sidebar {
             background: linear-gradient(180deg, #1e1e2f 0%, #292a3a 100%);
             color: #f8f9fa;
-            min-height: 100vh;
-            padding-top: 1rem;
+            width: 240px;
+            flex-shrink: 0;
             box-shadow: 4px 0 12px rgba(0, 0, 0, 0.15);
+            padding-top: 1rem;
         }
 
         .sidebar .nav-link {
@@ -74,17 +86,29 @@ $disponibilidadActual = [
             color: var(--blanco);
         }
 
+        /* === CONTENIDO === */
+        main.content {
+            flex-grow: 1;
+            padding: 2.5rem;
+            background: var(--gris-fondo);
+        }
+
         /* === CABECERA === */
         .page-header {
             background: linear-gradient(90deg, var(--verde-claro), var(--verde-jaguata));
             color: #fff;
-            padding: 1.4rem 2rem;
-            border-radius: 14px;
+            padding: 1.2rem 2rem;
+            border-radius: 12px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 2rem;
             box-shadow: 0 4px 20px rgba(0, 0, 0, .1);
+        }
+
+        .page-header h2 {
+            margin: 0;
+            font-weight: 600;
         }
 
         /* === TARJETA === */
@@ -164,83 +188,73 @@ $disponibilidadActual = [
             font-size: 0.95rem;
         }
 
-        .copy-btn {
-            background: none;
-            border: none;
-            color: var(--verde-jaguata);
-            cursor: pointer;
-            transition: color .2s;
-        }
-
-        .copy-btn:hover {
-            color: var(--verde-claro);
+        /* === FOOTER === */
+        footer {
+            background-color: var(--verde-jaguata);
+            color: #fff;
+            text-align: center;
+            padding: 1.2rem 0;
+            width: 100%;
+            margin-top: 3rem;
         }
     </style>
 </head>
 
 <body>
-    <div class="container-fluid">
-        <div class="row">
-            <!-- === SIDEBAR === -->
-            <div class="col-md-3 col-lg-2 d-md-block sidebar">
-                <div class="text-center mb-4">
-                    <img src="<?= ASSETS_URL; ?>/uploads/perfiles/logojag.png" alt="Jaguata" width="55">
-                    <hr class="text-light">
-                </div>
-                <ul class="nav flex-column gap-1 px-2">
-                    <li><a class="nav-link" href="<?= $baseFeatures; ?>/Dashboard.php"><i class="fas fa-home"></i> Inicio</a></li>
-                    <li><a class="nav-link" href="<?= $baseFeatures; ?>/MisPaseos.php"><i class="fas fa-list"></i> Mis Paseos</a></li>
-                    <li><a class="nav-link active" href="#"><i class="fas fa-calendar-check"></i> Disponibilidad</a></li>
-                    <li><a class="nav-link" href="<?= $baseFeatures; ?>/Configuracion.php"><i class="fas fa-cogs"></i> Configuración</a></li>
-                    <li><a class="nav-link text-danger" href="<?= BASE_URL; ?>/logout.php"><i class="fas fa-sign-out-alt"></i> Salir</a></li>
-                </ul>
+    <?php include __DIR__ . '/../../src/Templates/Navbar.php'; ?>
+
+    <div class="layout">
+        <!-- === SIDEBAR === -->
+        <?php include __DIR__ . '/../../src/Templates/SidebarPaseador.php'; ?>
+
+
+        <!-- === CONTENIDO PRINCIPAL === -->
+        <main class="content">
+            <div class="page-header">
+                <h2><i class="fas fa-calendar-check me-2"></i> Disponibilidad Semanal</h2>
+                <a href="Dashboard.php" class="btn btn-outline-light btn-sm">
+                    <i class="fas fa-arrow-left me-1"></i> Volver
+                </a>
             </div>
 
-            <!-- === CONTENIDO === -->
+            <div class="card-premium">
+                <p class="text-muted mb-4">
+                    Activá los días que estás disponible y definí tus horarios.
+                    <br><small class="text-secondary">Podés copiar tus horarios de un día a otro fácilmente.</small>
+                </p>
 
-            <h2><i class="fas fa-calendar-check me-2"></i> Disponibilidad Semanal</h2>
-            <a href="Dashboard.php" class="btn btn-outline-light btn-sm">
-                <i class="fas fa-arrow-left me-1"></i> Volver
-            </a>
-        </div>
-
-        <div class="card-premium">
-            <p class="text-muted mb-4">
-                Activá los días que estás disponible y definí tus horarios.
-                <br><small class="text-secondary">Podés copiar tus horarios de un día a otro fácilmente.</small>
-            </p>
-
-            <form id="formDisponibilidad">
-                <?php foreach ($diasSemana as $dia):
-                    $dispo = $disponibilidadActual[$dia] ?? null;
-                    $checked = $dispo ? 'checked' : '';
-                    $inicio = $dispo['inicio'] ?? '';
-                    $fin = $dispo['fin'] ?? '';
-                ?>
-                    <div class="day-row">
-                        <div class="day-name"><?= $dia ?></div>
-                        <div class="form-switch">
-                            <input type="checkbox" class="form-check-input toggle-dia" data-dia="<?= $dia ?>" <?= $checked ?>>
+                <form id="formDisponibilidad">
+                    <?php foreach ($diasSemana as $dia):
+                        $dispo = $disponibilidadActual[$dia] ?? null;
+                        $checked = $dispo ? 'checked' : '';
+                        $inicio = $dispo['inicio'] ?? '';
+                        $fin = $dispo['fin'] ?? '';
+                    ?>
+                        <div class="day-row">
+                            <div class="day-name"><?= $dia ?></div>
+                            <div class="form-switch">
+                                <input type="checkbox" class="form-check-input toggle-dia" data-dia="<?= $dia ?>" <?= $checked ?>>
+                            </div>
+                            <div class="time-group <?= $checked ? '' : 'disabled' ?>">
+                                <input type="time" class="hora-inicio" value="<?= $inicio ?>">
+                                <span>–</span>
+                                <input type="time" class="hora-fin" value="<?= $fin ?>">
+                                <button type="button" class="copy-btn" title="Copiar horario a todos"><i class="fas fa-copy"></i></button>
+                            </div>
                         </div>
-                        <div class="time-group <?= $checked ? '' : 'disabled' ?>">
-                            <input type="time" class="hora-inicio" value="<?= $inicio ?>">
-                            <span>–</span>
-                            <input type="time" class="hora-fin" value="<?= $fin ?>">
-                            <button type="button" class="copy-btn" title="Copiar horario a todos"><i class="fas fa-copy"></i></button>
-                        </div>
+                    <?php endforeach; ?>
+
+                    <div class="text-end mt-4">
+                        <button type="submit" class="btn btn-gradient px-4 py-2">
+                            <i class="fas fa-save me-2"></i> Guardar Cambios
+                        </button>
                     </div>
-                <?php endforeach; ?>
-
-                <div class="text-end mt-4">
-                    <button type="submit" class="btn btn-gradient px-4 py-2">
-                        <i class="fas fa-save me-2"></i> Guardar Cambios
-                    </button>
-                </div>
-            </form>
-        </div>
-
+                </form>
+            </div>
+        </main>
     </div>
-    </div>
+
+    <footer>© <?= date('Y') ?> Jaguata — Todos los derechos reservados.</footer>
 
     <div id="alerta" class="alert alert-success">
         <i class="fas fa-check-circle me-2"></i> Disponibilidad guardada correctamente.
@@ -251,7 +265,6 @@ $disponibilidadActual = [
         const alerta = document.getElementById('alerta');
         const form = document.getElementById('formDisponibilidad');
 
-        // Activar/desactivar campos de horario
         document.querySelectorAll('.toggle-dia').forEach(toggle => {
             toggle.addEventListener('change', e => {
                 const grupo = e.target.closest('.day-row').querySelector('.time-group');
@@ -259,7 +272,6 @@ $disponibilidadActual = [
             });
         });
 
-        // Copiar horario a todos los días activos
         document.querySelectorAll('.copy-btn').forEach(btn => {
             btn.addEventListener('click', e => {
                 const row = e.target.closest('.day-row');
@@ -278,7 +290,6 @@ $disponibilidadActual = [
             });
         });
 
-        // Simular guardado
         form.addEventListener('submit', e => {
             e.preventDefault();
             alerta.style.display = 'block';

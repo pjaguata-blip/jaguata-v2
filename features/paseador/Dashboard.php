@@ -220,26 +220,7 @@ $paseosRecientes = array_slice($paseosAsignados, 0, 5);
     <button class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
 
     <div class="layout">
-        <!-- Sidebar -->
-        <aside class="sidebar" id="sidebar">
-            <div class="text-center mb-4">
-                <img src="<?= ASSETS_URL; ?>/uploads/perfiles/logojag.png" alt="Logo" width="50">
-                <hr class="text-light">
-            </div>
-
-            <ul class="nav flex-column gap-1 px-2">
-                <li><a class="nav-link active" href="<?= $baseFeatures; ?>/Dashboard.php"><i class="fas fa-home"></i> Inicio</a></li>
-                <li><a class="nav-link" href="<?= $baseFeatures; ?>/Solicitudes.php"><i class="fas fa-envelope-open-text"></i> Solicitudes</a></li>
-                <li><a class="nav-link" href="<?= $baseFeatures; ?>/MisPaseos.php"><i class="fas fa-list"></i> Mis Paseos</a></li>
-                <li><a class="nav-link" href="<?= $baseFeatures; ?>/Disponibilidad.php"><i class="fas fa-calendar-check"></i> Disponibilidad</a></li>
-                <li><a class="nav-link" href="<?= $baseFeatures; ?>/Pagos.php"><i class="fas fa-wallet"></i> Pagos</a></li>
-                <li><a class="nav-link" href="<?= $baseFeatures; ?>/Estadisticas.php"><i class="fas fa-chart-line"></i> Estadísticas</a></li>
-                <li><a class="nav-link" href="../mensajeria/chat.php"><i class="fas fa-comments"></i> Mensajería</a></li>
-                <li><a class="nav-link" href="<?= $baseFeatures; ?>/Notificaciones.php"><i class="fas fa-bell"></i> Notificaciones</a></li>
-                <li><a class="nav-link" href="<?= $baseFeatures; ?>/Perfil.php"><i class="fas fa-user"></i> Mi Perfil</a></li>
-                <li><a class="nav-link text-danger" href="<?= BASE_URL; ?>/logout.php"><i class="fas fa-sign-out-alt"></i> Cerrar sesión</a></li>
-            </ul>
-        </aside>
+        <?php include __DIR__ . '/../../src/Templates/SidebarPaseador.php'; ?>
 
         <!-- Contenido -->
         <main class="content">

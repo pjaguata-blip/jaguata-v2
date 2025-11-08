@@ -265,3 +265,46 @@ main.content {
   background: #b4b4b4;
   border-radius: 4px;
 }
+/* ===== Sidebar colapsable Jaguata ===== */
+.sidebar .nav-link {
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.sidebar .collapse .nav-link {
+  padding-left: 1.5rem;
+  font-size: 0.9rem;
+}
+
+.sidebar .collapse .collapse .nav-link {
+  padding-left: 2rem;
+  font-size: 0.88rem;
+}
+
+.sidebar .nav-link i.fas.fa-chevron-down {
+  transition: transform 0.2s ease;
+}
+
+.sidebar .collapse.show > .nav-link i.fas.fa-chevron-down {
+  transform: rotate(180deg);
+}
+
+/* Indicadores visuales de niveles */
+.sidebar ul ul {
+  border-left: 2px solid rgba(255, 255, 255, 0.1);
+  margin-left: 4px;
+  padding-left: 6px;
+}
+.sidebar {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #101424 0%, #1c2035 100%);
+  transition: all 0.3s;
+}
+.sidebar .nav-link:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+}
+.sidebar .nav-link.active {
+  background-color: #0d6efd;
+  border-radius: 8px;
+}

@@ -216,22 +216,7 @@ $config = array_merge([
 </head>
 
 <body>
-    <!-- Sidebar -->
-    <aside class="sidebar">
-        <div class="text-center mb-4">
-            <img src="<?= ASSETS_URL; ?>/uploads/perfiles/logojag.png" alt="Logo" width="50">
-            <hr class="text-light">
-        </div>
-        <ul class="nav flex-column gap-1 px-2">
-            <li><a class="nav-link" href="Dashboard.php"><i class="fas fa-chart-line"></i> Dashboard</a></li>
-            <li><a class="nav-link" href="Usuarios.php"><i class="fas fa-users"></i> Usuarios</a></li>
-            <li><a class="nav-link" href="Paseos.php"><i class="fas fa-dog"></i> Paseos</a></li>
-            <li><a class="nav-link" href="Pagos.php"><i class="fas fa-wallet"></i> Pagos</a></li>
-            <li><a class="nav-link active" href="#"><i class="fas fa-cogs"></i> Configuración</a></li>
-            <li><a class="nav-link" href="Auditoria.php"><i class="fas fa-shield-halved"></i> Auditoría</a></li>
-            <li><a class="nav-link text-danger" href="/jaguata/public/logout.php"><i class="fas fa-sign-out-alt"></i> Salir</a></li>
-        </ul>
-    </aside>
+    <?php include __DIR__ . '/../../src/Templates/SidebarAdmin.php'; ?>
 
     <!-- Contenido -->
     <main>

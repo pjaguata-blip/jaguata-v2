@@ -51,12 +51,24 @@ $paseosRecientes = array_slice($paseosAsignados, 0, 5);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Paseador - Jaguata</title>
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+
     <style>
+        :root {
+            --verde-jaguata: #3c6255;
+            --verde-claro: #20c997;
+            --gris-fondo: #f4f6f9;
+            --gris-texto: #555;
+            --blanco: #fff;
+        }
+
         body {
-            background-color: #f5f7fa;
             font-family: "Poppins", sans-serif;
+            background-color: var(--gris-fondo);
+            color: var(--gris-texto);
             overflow-x: hidden;
         }
 
@@ -67,49 +79,41 @@ $paseosRecientes = array_slice($paseosAsignados, 0, 5);
             min-height: 100vh;
         }
 
-        /* === Sidebar === */
+        /* ===== SIDEBAR (MISMO QUE ADMIN) ===== */
         .sidebar {
             background: linear-gradient(180deg, #1e1e2f 0%, #292a3a 100%);
-            color: #f8f9fa;
-            width: 240px;
+            color: var(--blanco);
+            width: 250px;
             height: 100vh;
             position: fixed;
             top: 0;
             left: 0;
             padding-top: 1.5rem;
-            box-shadow: 4px 0 12px rgba(0, 0, 0, 0.15);
+            box-shadow: 3px 0 10px rgba(0, 0, 0, 0.2);
             z-index: 1000;
             transition: transform 0.3s ease-in-out;
         }
 
         .sidebar .nav-link {
-            color: #ddd;
+            color: #ccc;
             display: flex;
             align-items: center;
-            padding: 10px 16px;
+            gap: .8rem;
+            padding: 12px 18px;
             border-radius: 8px;
-            margin: 4px 8px;
-            transition: background 0.2s, transform 0.2s;
-            font-weight: 500;
+            margin: 6px 10px;
+            transition: all .2s ease;
+            font-size: 0.95rem;
         }
 
-        .sidebar .nav-link i {
-            width: 22px;
-            margin-right: 10px;
-        }
-
-        .sidebar .nav-link:hover {
-            background-color: #343454;
-            color: #fff;
+        .sidebar .nav-link:hover,
+        .sidebar .nav-link.active {
+            background: var(--verde-claro);
+            color: var(--blanco);
             transform: translateX(4px);
         }
 
-        .sidebar .nav-link.active {
-            background: #3c6255;
-            color: #fff;
-        }
-
-        /* === Botón móvil === */
+        /* ===== BOTÓN MÓVIL ===== */
         .menu-toggle {
             display: none;
             position: fixed;
@@ -137,13 +141,12 @@ $paseosRecientes = array_slice($paseosAsignados, 0, 5);
             }
         }
 
-        /* === Main === */
+        /* ===== MAIN (MISMO QUE ADMIN) ===== */
         main.content {
             flex-grow: 1;
-            margin-left: 240px;
-            background-color: #f5f7fa;
-            padding: 2rem 2.5rem;
-            width: calc(100% - 240px);
+            margin-left: 250px;
+            padding: 2rem;
+            width: calc(100% - 250px);
             transition: margin-left 0.3s ease;
         }
 
@@ -155,44 +158,84 @@ $paseosRecientes = array_slice($paseosAsignados, 0, 5);
             }
         }
 
-        /* === Header === */
+        /* ===== HEADER / WELCOME BOX ===== */
         .welcome-box {
-            background: linear-gradient(90deg, #20c997, #3c6255);
-            color: #fff;
-            padding: 1.5rem 2rem;
-            border-radius: 14px;
+            background: linear-gradient(90deg, var(--verde-claro), var(--verde-jaguata));
+            color: var(--blanco);
+            padding: 1.8rem 2rem;
+            border-radius: 16px;
             display: flex;
-            align-items: center;
             justify-content: space-between;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            align-items: center;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
         }
 
+        .welcome-box h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: .25rem;
+        }
+
+        .welcome-box p {
+            margin: 0;
+            font-size: 0.95rem;
+        }
+
+        /* ===== STAT CARDS (IGUAL QUE ADMIN) ===== */
         .stat-card {
-            background: #fff;
-            border-radius: 12px;
+            background: var(--blanco);
+            border-radius: 14px;
             text-align: center;
-            padding: 1.2rem 0.8rem;
-            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.05);
-            border: 1px solid #e6e6e6;
+            padding: 1.5rem 1rem;
+            box-shadow: 0 3px 15px rgba(0, 0, 0, 0.08);
+            transition: transform 0.2s;
         }
 
-        .stat-icon {
-            font-size: 1.8rem;
-            margin-bottom: 0.4rem;
+        .stat-card:hover {
+            transform: translateY(-5px);
         }
 
-        .stat-title {
-            color: #6c757d;
+        .stat-card i {
+            font-size: 2rem;
+            margin-bottom: .5rem;
+        }
+
+        .stat-card h4 {
+            font-size: 1.6rem;
+            font-weight: 600;
+            margin-bottom: .25rem;
+        }
+
+        .stat-card p {
+            margin: 0;
             font-size: 0.9rem;
+            color: #777;
         }
 
+        /* ===== TABLAS / CARDS ===== */
         .table thead {
-            background: #3c6255;
-            color: #fff;
+            background: var(--verde-jaguata);
+            color: var(--blanco);
         }
 
         .table-hover tbody tr:hover {
             background-color: #eef8f2;
+        }
+
+        .badge {
+            display: inline-block;
+            min-width: 90px;
+            text-align: center;
+            font-size: 0.9rem;
+            padding: 0.45em 0.75em;
+            border-radius: 10px;
+            font-weight: 500;
+        }
+
+        .card-header {
+            font-weight: 600;
+            font-size: 1rem;
         }
 
         footer {
@@ -202,19 +245,9 @@ $paseosRecientes = array_slice($paseosAsignados, 0, 5);
             padding: 1rem 0;
             margin-top: 2rem;
         }
-
-        .badge {
-            display: inline-block;
-            min-width: 90px;
-            /* fuerza un ancho mínimo */
-            text-align: center;
-            font-size: 0.9rem;
-            padding: 0.45em 0.75em;
-            border-radius: 10px;
-            font-weight: 500;
-        }
     </style>
 </head>
+
 
 <body>
     <button class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
@@ -235,30 +268,35 @@ $paseosRecientes = array_slice($paseosAsignados, 0, 5);
             <!-- Estadísticas -->
             <div class="row g-3 mb-4">
                 <div class="col-md-3">
-                    <div class="stat-card"><i class="fas fa-list stat-icon text-success"></i>
-                        <h5><?= $totalPaseos ?></h5>
-                        <p class="stat-title">Paseos asignados</p>
+                    <div class="stat-card">
+                        <i class="fas fa-list text-success"></i>
+                        <h4><?= $totalPaseos ?></h4>
+                        <p>Paseos asignados</p>
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <div class="stat-card"><i class="fas fa-check-circle stat-icon text-primary"></i>
-                        <h5><?= count($paseosCompletados) ?></h5>
-                        <p class="stat-title">Completados</p>
+                    <div class="stat-card">
+                        <i class="fas fa-check-circle text-primary"></i>
+                        <h4><?= count($paseosCompletados) ?></h4>
+                        <p>Completados</p>
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <div class="stat-card"><i class="fas fa-hourglass-half stat-icon text-warning"></i>
-                        <h5><?= count($paseosPendientes) ?></h5>
-                        <p class="stat-title">Pendientes</p>
+                    <div class="stat-card">
+                        <i class="fas fa-hourglass-half text-warning"></i>
+                        <h4><?= count($paseosPendientes) ?></h4>
+                        <p>Pendientes</p>
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <div class="stat-card"><i class="fas fa-wallet stat-icon text-info"></i>
-                        <h5>₲<?= number_format($ingresosTotales, 0, ',', '.') ?></h5>
-                        <p class="stat-title">Ingresos totales</p>
+                    <div class="stat-card">
+                        <i class="fas fa-wallet text-info"></i>
+                        <h4>₲<?= number_format($ingresosTotales, 0, ',', '.') ?></h4>
+                        <p>Ingresos totales</p>
                     </div>
                 </div>
             </div>
+
 
             <!-- Paseos recientes -->
             <div class="row">

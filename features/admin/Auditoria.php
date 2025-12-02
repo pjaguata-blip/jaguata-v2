@@ -1,8 +1,10 @@
 <?php
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
 
-// ✅ Dependencias
+declare(strict_types=1);
+
+error_reporting(E_ALL);
+ini_set('display_errors', '1');
+
 require_once dirname(__DIR__, 2) . '/src/Config/AppConfig.php';
 require_once dirname(__DIR__, 2) . '/src/Helpers/Session.php';
 require_once dirname(__DIR__, 2) . '/src/Controllers/AuditoriaController.php';
@@ -11,183 +13,37 @@ use Jaguata\Config\AppConfig;
 use Jaguata\Helpers\Session;
 use Jaguata\Controllers\AuditoriaController;
 
-// 🔹 Inicialización
 AppConfig::init();
 
-// 🔹 Seguridad
+// Seguridad admin
 if (!Session::isLoggedIn() || Session::getUsuarioRol() !== 'admin') {
-    header('Location: /jaguata/public/login.php?error=unauthorized');
+    header('Location: ' . BASE_URL . '/public/login.php?error=unauthorized');
     exit;
 }
 
-// 🔹 Cargar registros reales desde la BD
 $auditoriaController = new AuditoriaController();
 $registros = $auditoriaController->index();
-$sinDatos = empty($registros);
+$sinDatos  = empty($registros);
 ?>
 <!DOCTYPE html>
 <html lang="es">
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Auditoría del Sistema - Jaguata</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
-
-    <style>
-        :root {
-            --verde-jaguata: #3c6255;
-            --verde-claro: #20c997;
-            --gris-fondo: #f5f7fa;
-            --blanco: #fff;
-        }
-
-        body {
-            font-family: "Poppins", sans-serif;
-            background-color: var(--gris-fondo);
-        }
-
-        /* === Sidebar === */
-        .sidebar {
-            background: linear-gradient(180deg, #1e1e2f 0%, #292a3a 100%);
-            width: 250px;
-            height: 100vh;
-            position: fixed;
-            color: #fff;
-            top: 0;
-            left: 0;
-            padding-top: 1.5rem;
-        }
-
-        .sidebar .nav-link {
-            color: #ddd;
-            padding: 10px 16px;
-            border-radius: 8px;
-            margin: 4px 8px;
-        }
-
-        .sidebar .nav-link:hover,
-        .sidebar .nav-link.active {
-            background: var(--verde-claro);
-            color: #fff;
-            transform: translateX(4px);
-        }
-
-        /* === Main === */
-        main {
-            margin-left: 250px;
-            padding: 2rem;
-        }
-
-        /* === Header === */
-        .welcome-box {
-            background: linear-gradient(90deg, var(--verde-claro), var(--verde-jaguata));
-            color: #fff;
-            padding: 1.5rem 2rem;
-            border-radius: 14px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 2rem;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-        }
-
-        /* === Filtros === */
-        .filtros {
-            background: var(--blanco);
-            padding: 1rem 1.5rem;
-            border-radius: 14px;
-            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
-            margin-bottom: 1.5rem;
-        }
-
-        .filtros input,
-        .filtros select {
-            border-radius: 10px;
-            font-size: 0.95rem;
-        }
-
-        /* === Export Buttons === */
-        .export-buttons {
-            display: flex;
-            justify-content: flex-end;
-            gap: .5rem;
-            margin-bottom: 1rem;
-        }
-
-        .export-buttons .btn {
-            border: none;
-            border-radius: 8px;
-            font-size: 0.9rem;
-            color: #fff;
-            transition: 0.2s;
-        }
-
-        .btn-pdf {
-            background: #dc3545;
-        }
-
-        .btn-excel {
-            background: #198754;
-        }
-
-        .btn-csv {
-            background: #20c997;
-        }
-
-        .btn-pdf:hover {
-            background: #b02a37;
-        }
-
-        .btn-excel:hover {
-            background: #157347;
-        }
-
-        .btn-csv:hover {
-            background: var(--verde-jaguata);
-        }
-
-        /* === Tabla === */
-        .table {
-            background: var(--blanco);
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
-        }
-
-        .table thead {
-            background: var(--verde-jaguata);
-            color: #fff;
-        }
-
-        .table-hover tbody tr:hover {
-            background: #eef8f2;
-        }
-
-        .badge {
-            font-size: 0.85rem;
-            padding: 0.4em 0.7em;
-            border-radius: 8px;
-        }
-
-        /* === Footer === */
-        footer {
-            text-align: center;
-            color: #777;
-            font-size: 0.85rem;
-            margin-top: 2rem;
-        }
-    </style>
+    <link href="<?= BASE_URL; ?>/public/assets/css/jaguata-theme.css" rel="stylesheet">
 </head>
 
 <body>
 
     <?php include __DIR__ . '/../../src/Templates/SidebarAdmin.php'; ?>
 
-    <!-- Contenido -->
     <main>
-        <div class="welcome-box">
+        <div class="header-box header-auditoria">
             <div>
                 <h1>Auditoría del Sistema</h1>
                 <p>Registro detallado de acciones realizadas por usuarios 🕵️‍♂️</p>
@@ -224,9 +80,11 @@ $sinDatos = empty($registros);
             </form>
         </div>
 
-        <!-- Botones exportación -->
+
+        <!-- EXPORT -->
         <div class="export-buttons">
-            <button class="btn btn-excel" onclick="window.location.href='/jaguata/public/api/auditoria/exportarAuditoria.php'">
+            <button class="btn btn-excel"
+                onclick="window.location.href='<?= BASE_URL; ?>/public/api/auditoria/exportarAuditoria.php'">
                 <i class="fas fa-file-excel"></i> Excel
             </button>
         </div>
@@ -254,16 +112,24 @@ $sinDatos = empty($registros);
                     <?php else: ?>
                         <?php foreach ($registros as $r): ?>
                             <?php
-                            $accion = strtolower($r['accion']);
-                            $color = str_contains($accion, 'elimin') ? 'bg-danger' : (str_contains($accion, 'actualiz') ? 'bg-warning text-dark' : (str_contains($accion, 'inicio') ? 'bg-success' : 'bg-info text-dark'));
+                            $accion = strtolower($r['accion'] ?? '');
+                            $color  = str_contains($accion, 'elimin') ? 'bg-danger'
+                                : (str_contains($accion, 'actualiz') ? 'bg-warning text-dark'
+                                    : (str_contains($accion, 'inicio') ? 'bg-success'
+                                        : 'bg-info text-dark'));
                             ?>
-                            <tr data-modulo="<?= strtolower($r['modulo']) ?>">
-                                <td><strong>#<?= htmlspecialchars($r['id']) ?></strong></td>
-                                <td><?= date('d/m/Y H:i:s', strtotime($r['fecha'])) ?></td>
-                                <td><?= htmlspecialchars($r['usuario']) ?></td>
-                                <td><span class="badge <?= $color ?>"><?= htmlspecialchars($r['accion']) ?></span></td>
-                                <td><span class="badge bg-secondary"><?= htmlspecialchars($r['modulo']) ?></span></td>
-                                <td><?= htmlspecialchars($r['detalles']) ?></td>
+                            <tr data-modulo="<?= strtolower($r['modulo'] ?? '') ?>">
+                                <td><strong>#<?= htmlspecialchars((string)($r['id'] ?? '')) ?></strong></td>
+                                <td>
+                                    <?php
+                                    $fechaRaw = $r['fecha'] ?? null;
+                                    echo $fechaRaw ? date('d/m/Y H:i:s', strtotime($fechaRaw)) : '-';
+                                    ?>
+                                </td>
+                                <td><?= htmlspecialchars((string)($r['usuario'] ?? '')) ?></td>
+                                <td><span class="badge <?= $color ?>"><?= htmlspecialchars((string)($r['accion'] ?? '')) ?></span></td>
+                                <td><span class="badge bg-secondary"><?= htmlspecialchars((string)($r['modulo'] ?? '')) ?></span></td>
+                                <td><?= htmlspecialchars((string)($r['detalles'] ?? '')) ?></td>
                             </tr>
                         <?php endforeach; ?>
                     <?php endif; ?>
@@ -291,16 +157,23 @@ $sinDatos = empty($registros);
 
             rows.forEach(row => {
                 const contenido = row.textContent.toLowerCase();
-                const moduloRow = row.dataset.modulo;
-                const fechaTexto = row.cells[1].textContent.split(' ')[0];
-                const [d, m, y] = fechaTexto.split('/');
-                const fechaRow = new Date(`${y}-${m}-${d}`);
+                const moduloRow = (row.dataset.modulo || '').toLowerCase();
+                const fechaTexto = row.cells[1].textContent.split(' ')[0]; // dd/mm/YYYY
+                let coincideFecha = true;
+
+                if (fechaTexto && fechaTexto.includes('/')) {
+                    const [d, m, y] = fechaTexto.split('/');
+                    const fechaRow = new Date(`${y}-${m}-${d}`);
+
+                    coincideFecha =
+                        (!fDesde || fechaRow >= fDesde) &&
+                        (!fHasta || fechaRow <= fHasta);
+                }
 
                 const coincideTexto = contenido.includes(texto);
-                const coincideModulo = !modVal || moduloRow === modVal;
-                const coincideFecha = (!fDesde || fechaRow >= fDesde) && (!fHasta || fechaRow <= fHasta);
+                const coincideModulo = !modVal || moduloRow === modVal.toLowerCase();
 
-                row.style.display = coincideTexto && coincideModulo && coincideFecha ? '' : 'none';
+                row.style.display = (coincideTexto && coincideModulo && coincideFecha) ? '' : 'none';
             });
         }
 

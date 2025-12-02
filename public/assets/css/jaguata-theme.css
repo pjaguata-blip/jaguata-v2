@@ -1,310 +1,930 @@
-/* ==========================================================
-   Jaguata Theme 🌿 — Panel, Dashboard & Layout
-   ========================================================== */
+/* ==============================
+   FUENTE GLOBAL
+   ============================== */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
 
-/* === Base general === */
-body {
-  font-family: 'Poppins', sans-serif;
-  background-color: #f6f9f7;
-  color: #3c6255;
-  margin: 0;
-  padding: 0;
-  overflow-x: hidden;
+:root {
+    --verde-jaguata: #3c6255;
+    --verde-claro: #20c997;
+    --gris-fondo: #f4f6f9;
+    --blanco: #ffffff;
 }
 
-h1, h2, h3, h4, h5, h6 {
-  color: #3c6255;
-  font-weight: 600;
+html, body {
+    font-family: "Poppins", sans-serif !important;
+    color: #333;
+    background: var(--gris-fondo);
+    height: 100%;
+    margin: 0;
+    padding: 0;
 }
 
-a {
-  color: #20c997;
-  text-decoration: none;
-}
-a:hover {
-  color: #3c6255;
-}
-
-/* === Botones === */
-.btn-success {
-  background-color: #3c6255;
-  border: none;
-  border-radius: 10px;
-  font-weight: 600;
-  transition: all .3s ease;
-}
-.btn-success:hover {
-  background-color: #2f4e45;
-  transform: translateY(-2px);
+/* Asegurar Poppins en todos los elementos */
+h1, h2, h3, h4, h5, h6,
+p, span, label,
+input, select, button,
+table, th, td,
+.form-control, .form-select {
+    font-family: "Poppins", sans-serif !important;
 }
 
-.btn-outline-secondary {
-  border-radius: 10px;
-}
-
-.btn-gradient {
-  background: linear-gradient(90deg, #3c6255, #20c997);
-  border: none;
-  color: #fff;
-  font-weight: 500;
-  border-radius: 10px;
-}
-.btn-gradient:hover {
-  opacity: 0.9;
-}
-
-/* === Cards === */
-.card, .card-premium {
-  border: none;
-  border-radius: 14px;
-  box-shadow: 0 5px 20px rgba(0, 0, 0, .05);
-  background: #fff;
-}
-.card-premium {
-  padding: 1.5rem;
-}
-
-/* === Inputs === */
-.form-control {
-  border-radius: 10px;
-  border: 2px solid #e9ecef;
-  transition: all .3s ease;
-}
-.form-control:focus {
-  border-color: #20c997;
-  box-shadow: 0 0 0 .2rem rgba(32, 201, 151, .25);
-}
-
-/* ==========================================================
-   Sidebar 🌒
-   ========================================================== */
+/* ==============================
+   SIDEBAR UNIFICADO
+   ============================== */
 .sidebar {
-  background: linear-gradient(180deg, #1e1e2f 0%, #292a3a 100%);
-  color: #f8f9fa;
-  width: 240px;
-  height: 100vh;
-  position: fixed;
-  top: 0;
-  left: 0;
-  padding-top: 1.5rem;
-  box-shadow: 4px 0 12px rgba(0, 0, 0, 0.15);
-  z-index: 1000;
-  transition: transform 0.3s ease-in-out;
+    background: linear-gradient(180deg, #1e1e2f 0%, #292a3a 100%);
+    color: #f8f9fa;
+    width: 250px;
+    height: 100vh;
+    position: fixed;
+    left: 0;
+    top: 0;
+    padding-top: 1.2rem;
+    box-shadow: 4px 0 12px rgba(0, 0, 0, 0.15);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    z-index: 999;
 }
+
+.sidebar-inner {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+/* Scroll SOLO en el menú */
+.sidebar-menu-scroll {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-bottom: 1rem;
+}
+
+/* Scrollbar elegante */
+.sidebar-menu-scroll::-webkit-scrollbar {
+    width: 6px;
+}
+.sidebar-menu-scroll::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.35);
+    border-radius: 10px;
+}
+
+/* LINKS */
 .sidebar .nav-link {
-  color: #ddd;
-  display: flex;
-  align-items: center;
-  padding: 10px 16px;
-  border-radius: 8px;
-  margin: 4px 8px;
-  transition: background 0.2s, transform 0.2s;
-  font-weight: 500;
+    color: #ddd;
+    padding: 12px 18px;
+    margin: 6px 12px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    font-size: .95rem;
+    font-weight: 500;
+    transition: .2s ease;
 }
-.sidebar .nav-link i {
-  width: 22px;
-  margin-right: 10px;
-}
+
 .sidebar .nav-link:hover {
-  background-color: #343454;
-  color: #fff;
-  transform: translateX(4px);
+    background: #343454;
+    color: #fff;
+    transform: translateX(4px);
 }
+
 .sidebar .nav-link.active {
-  background-color: #3c6255;
-  color: #fff;
+    background: var(--verde-claro);
+    color: #fff !important;
+    transform: translateX(4px);
 }
 
-/* Responsive sidebar */
-.menu-toggle {
-  display: none;
-  position: fixed;
-  top: 16px;
-  left: 16px;
-  background-color: #1e1e2f;
-  color: white;
-  border: none;
-  padding: 8px 10px;
-  border-radius: 6px;
-  z-index: 1100;
-}
-@media (max-width: 768px) {
-  .menu-toggle { display: block; }
-  .sidebar { transform: translateX(-100%); }
-  .sidebar.show { transform: translateX(0); }
-}
-
-/* ==========================================================
-   Layout principal 🧩
-   ========================================================== */
-.layout {
-  display: flex;
-  flex-wrap: nowrap;
-  width: 100%;
-  min-height: 100vh;
-}
-main.content {
-  flex-grow: 1;
-  margin-left: 240px;
-  background-color: #f6f9f7;
-  padding: 2rem 2.5rem;
-  transition: margin-left 0.3s ease;
-  width: calc(100% - 240px);
-}
-@media (max-width: 768px) {
-  main.content {
-    margin-left: 0;
-    padding: 1.5rem;
-    width: 100%;
-  }
-}
-
-/* ==========================================================
-   Header verde de bienvenida 🌱
-   ========================================================== */
-.welcome-box {
-  background: linear-gradient(90deg, #20c997, #3c6255);
-  color: #fff;
-  padding: 1.5rem 2rem;
-  border-radius: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-}
-.welcome-box h1 {
-  font-weight: 600;
-  margin-bottom: 4px;
-}
-.welcome-box p {
-  font-size: 0.95rem;
-  opacity: 0.9;
-}
-
-/* ==========================================================
-   Navbar interna blanca 🐶
-   ========================================================== */
-.navbar-panel {
-  background: #fff;
-  border-radius: 14px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-  padding: 0.6rem 1.2rem;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-}
-.navbar-panel .form-control {
-  border-radius: 10px 0 0 10px;
-  border: 1px solid #dcdcdc;
-  box-shadow: none;
-}
-.navbar-panel .btn-success {
-  background: #3c6255;
-  border: none;
-  border-radius: 0 10px 10px 0;
-}
-.navbar-panel .btn-success:hover {
-  background: #2e4d44;
-}
-.navbar-panel .dropdown-menu {
-  border-radius: 12px;
-  font-size: 0.95rem;
-}
-.navbar-panel .dropdown-item:hover {
-  background-color: #f0f3f0;
-}
-
-/* ==========================================================
-   Tablas 📋
-   ========================================================== */
-.table thead {
-  background: #3c6255;
-  color: #fff;
-}
-.table-hover tbody tr:hover {
-  background-color: #eef8f2;
-}
-
-/* ==========================================================
-   Footer 🌿
-   ========================================================== */
-.footer-jaguata {
-  background: #f6f9f7;
-  color: #3c6255;
-  border-top: 3px solid #20c997;
-}
-.footer-jaguata .footer-link {
-  color: #3c6255;
-  text-decoration: none;
-  transition: all .3s ease;
-}
-.footer-jaguata .footer-link:hover {
-  color: #20c997;
-  text-decoration: underline;
-}
-.footer-jaguata .social-links a:hover {
-  color: #20c997 !important;
-}
-
-/* ==========================================================
-   SweetAlert 2 💬
-   ========================================================== */
-.swal2-popup {
-  border-radius: 16px !important;
-  font-family: 'Poppins', sans-serif !important;
-}
-
-/* ==========================================================
-   Scrollbar
-   ========================================================== */
-::-webkit-scrollbar {
-  width: 8px;
-}
-::-webkit-scrollbar-thumb {
-  background: #b4b4b4;
-  border-radius: 4px;
-}
-/* ===== Sidebar colapsable Jaguata ===== */
-.sidebar .nav-link {
-  font-size: 0.95rem;
-  cursor: pointer;
-}
-
+/* Submenús */
 .sidebar .collapse .nav-link {
-  padding-left: 1.5rem;
-  font-size: 0.9rem;
+    padding-left: 2rem;
 }
 
-.sidebar .collapse .collapse .nav-link {
-  padding-left: 2rem;
-  font-size: 0.88rem;
+/* ==============================
+   CONTENT AREA
+   ============================== */
+main {
+    margin-left: 250px;
+    padding: 2rem;
 }
 
-.sidebar .nav-link i.fas.fa-chevron-down {
-  transition: transform 0.2s ease;
+@media (max-width: 992px) {
+    main {
+        margin-left: 0;
+        margin-top: 70px;
+    }
 }
 
-.sidebar .collapse.show > .nav-link i.fas.fa-chevron-down {
-  transform: rotate(180deg);
+/* Sidebar responsive (ocultar en mobile) */
+@media (max-width: 768px) {
+    .sidebar {
+        transform: translateX(-100%);
+        transition: transform .3s ease-in-out;
+    }
+    .sidebar.show {
+        transform: translateX(0);
+    }
 }
 
-/* Indicadores visuales de niveles */
-.sidebar ul ul {
-  border-left: 2px solid rgba(255, 255, 255, 0.1);
-  margin-left: 4px;
-  padding-left: 6px;
+/* ==============================
+   HEADERS POR PANTALLA
+   ============================== */
+.header-box {
+    color: white;
+    padding: 1.8rem 2.2rem;
+    border-radius: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0px 5px 20px rgba(0, 0, 0, .12);
+    margin-bottom: 2rem;
 }
+/* Títulos y textos dentro de cualquier header-box */
+.header-box h1 {
+    font-size: 1.9rem;
+    font-weight: 700;
+    margin-bottom: 0.2rem;
+}
+
+.header-box p {
+    font-size: 0.95rem;
+    margin-bottom: 0;
+}
+
+
+/* Colores específicos */
+.header-dashboard {
+    background: linear-gradient(90deg, #20c997, #3c6255);
+}
+
+.header-usuarios {
+    background: linear-gradient(90deg, #20c997, #08a39a);
+}
+
+.header-paseos {
+    background: linear-gradient(90deg, #00c6ff, #0072ff);
+}
+
+.header-pagos {
+    background: linear-gradient(90deg, #ff9a9e, #f6416c);
+}
+
+.header-notificaciones {
+    background: linear-gradient(90deg, #ffdd57, #ff8a00);
+}
+
+.header-auditoria {
+    background: linear-gradient(90deg, #8e2de2, #4a00e0);
+}
+
+.header-configuracion {
+    background: linear-gradient(90deg, #3c6255, #0f2027);
+}
+
+/* ==============================
+   FILTROS GENERALES
+   ============================== */
+.filtros {
+    background: var(--blanco);
+    padding: 1rem 1.5rem;
+    border-radius: 16px;
+    box-shadow: 0px 3px 12px rgba(0, 0, 0, .07);
+    margin-bottom: 1.5rem;
+}
+
+.filtros label {
+    font-weight: 600;
+    color: #444;
+}
+
+.filtros input,
+.filtros select {
+    border-radius: 10px;
+    font-size: .95rem;
+}
+
+/* ==============================
+   TABLAS & BADGES
+   ============================== */
+.table {
+    background: var(--blanco);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0px 3px 10px rgba(0, 0, 0, .09);
+}
+
+.table thead {
+    background: var(--verde-jaguata);
+    color: white;
+}
+
+.table tbody tr:hover {
+    background: #eef7f2;
+}
+
+.badge-estado {
+    padding: .45em .8em;
+    border-radius: 10px;
+    font-size: 0.85rem;
+}
+
+/* ESTADOS */
+.estado-aprobado, .estado-activo { background:#19875433; color:#198754; }
+.estado-pendiente { background:#ffc10733; color:#856404; }
+.estado-rechazado { background:#dc354533; color:#dc3545; }
+.estado-suspendido { background:#ffca2c33; color:#8c6d1f; }
+.estado-inactivo, .estado-cancelado { background:#adb5bd33; color:#6c757d; }
+
+/* ACCIONES (usuarios) */
+.btn-accion {
+    font-size: .8rem;
+    margin: 0 2px;
+    border-radius: 6px;
+    padding: 5px 8px;
+    border: none;
+}
+
+.btn-editar { background: var(--verde-claro); color: #fff; }
+.btn-eliminar { background: #dc3545; color: #fff; }
+.btn-suspender { background:#ffc107; color:#000; }
+.btn-activar { background:#198754; color:#fff; }
+.btn-desactivar { background:#6c757d; color:#fff; }
+.btn-aprobar { background:#0d6efd; color:#fff; }
+.btn-rechazar { background:#dc3545; color:#fff; }
+
+/* ==============================
+   DASHBOARD
+   ============================== */
+.stat-card {
+    background: var(--blanco);
+    border-radius: 14px;
+    text-align: center;
+    padding: 1.5rem 1rem;
+    box-shadow: 0 3px 15px rgba(0, 0, 0, 0.08);
+    transition: transform 0.2s;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+}
+
+.stat-card i {
+    font-size: 2rem;
+    margin-bottom: .5rem;
+}
+
+.chart-container {
+    position: relative;
+    height: 300px;
+}
+
+/* ==============================
+   BOTONES EXPORT (Paseos / Pagos / Auditoría)
+   ============================== */
+.export-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: .5rem;
+    margin: 1.2rem 0;
+}
+
+.export-buttons .btn {
+    border: none;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    color: #fff;
+    transition: 0.25s;
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+}
+
+.btn-excel {
+    background: #198754;
+}
+.btn-excel:hover {
+    background: #157347;
+}
+
+/* ==============================
+   PASEOS
+   ============================== */
+.btn-ver {
+    background-color: var(--verde-claro);
+    color: #fff;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    transition: all 0.2s ease-in-out;
+}
+.btn-ver:hover {
+    background-color: var(--verde-jaguata);
+}
+
+/* ==============================
+   NOTIFICACIONES
+   ============================== */
+.btn-enviar {
+    background: var(--verde-jaguata);
+    color: #fff;
+    border: none;
+    padding: .6rem 1.3rem;
+    border-radius: 8px;
+    transition: 0.2s ease;
+}
+.btn-enviar:hover {
+    background: var(--verde-claro);
+    transform: translateY(-2px);
+}
+
+.badge-pendiente {
+    background: #ffc107;
+    color: #000;
+}
+.badge-enviado {
+    background: #20c997;
+    color: #fff;
+}
+
+/* ==============================
+   CONFIGURACIÓN
+   ============================== */
+.section-card {
+    background: var(--blanco);
+    border-radius: 14px;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
+    padding: 1.8rem 2rem;
+    margin-bottom: 1.5rem;
+    border-left: 6px solid var(--verde-claro);
+    transition: all 0.25s ease;
+}
+.section-card:hover {
+    transform: translateY(-3px);
+}
+.section-header {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--verde-jaguata);
+    border-bottom: 1px solid #dce2dc;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+}
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 30px;
+}
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+    border-radius: 30px;
+}
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 22px;
+    width: 22px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+input:checked + .slider {
+    background-color: var(--verde-claro);
+}
+input:checked + .slider:before {
+    transform: translateX(30px);
+}
+.btn-guardar {
+    background: var(--verde-jaguata);
+    color: #fff;
+    border: none;
+    padding: 0.7rem 1.8rem;
+    border-radius: 10px;
+    font-weight: 500;
+    margin-top: 1rem;
+    transition: all 0.2s;
+}
+.btn-guardar:hover {
+    background: var(--verde-claro);
+    transform: scale(1.03);
+}
+
+/* ==============================
+   FOOTER
+   ============================== */
+footer {
+    margin-top: 2rem;
+    text-align: center;
+    color: #555;
+    font-size: .85rem;
+}
+/* Color base para TODOS los headers */
+.header-dashboard,
+.header-usuarios,
+.header-paseos,
+.header-pagos,
+.header-notificaciones,
+.header-auditoria,
+.header-configuracion {
+    background: linear-gradient(90deg, #20c997, #3c6255);
+}
+/* ==============================
+   FUENTE GLOBAL
+   ============================== */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+:root {
+    --verde-jaguata: #3c6255;
+    --verde-claro: #20c997;
+    --gris-fondo: #f4f6f9;
+    --blanco: #ffffff;
+}
+
+html, body {
+    font-family: "Poppins", sans-serif !important;
+    color: #333;
+    background: var(--gris-fondo);
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+/* Asegurar Poppins en todos los elementos */
+h1, h2, h3, h4, h5, h6,
+p, span, label,
+input, select, button,
+table, th, td,
+.form-control, .form-select, .btn {
+    font-family: "Poppins", sans-serif !important;
+}
+
+/* ==============================
+   SIDEBAR UNIFICADO
+   ============================== */
 .sidebar {
-  min-height: 100vh;
-  background: linear-gradient(180deg, #101424 0%, #1c2035 100%);
-  transition: all 0.3s;
+    background: linear-gradient(180deg, #1e1e2f 0%, #292a3a 100%);
+    color: #f8f9fa;
+    width: 250px;
+    height: 100vh;
+    position: fixed;
+    left: 0;
+    top: 0;
+    padding-top: 1.2rem;
+    box-shadow: 4px 0 12px rgba(0, 0, 0, 0.15);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    z-index: 999;
+    transition: transform .3s ease-in-out;
 }
+
+.sidebar-inner {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+/* Scroll SOLO en el menú */
+.sidebar-menu-scroll {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-bottom: 1rem;
+}
+
+/* Scrollbar elegante */
+.sidebar-menu-scroll::-webkit-scrollbar {
+    width: 6px;
+}
+.sidebar-menu-scroll::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.35);
+    border-radius: 10px;
+}
+
+/* LINKS */
+.sidebar .nav-link {
+    color: #ddd;
+    padding: 12px 18px;
+    margin: 6px 12px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    font-size: .95rem;
+    font-weight: 500;
+    transition: .2s ease;
+}
+
 .sidebar .nav-link:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
+    background: #343454;
+    color: #fff;
+    transform: translateX(4px);
 }
+
 .sidebar .nav-link.active {
-  background-color: #0d6efd;
-  border-radius: 8px;
+    background: var(--verde-claro);
+    color: #fff !important;
+    transform: translateX(4px);
 }
+
+/* Submenús (si usás collapse) */
+.sidebar .collapse .nav-link {
+    padding-left: 2rem;
+}
+
+/* ==============================
+   OVERLAY PARA MOBILE
+   ============================== */
+.sidebar-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 998;
+}
+
+/* ==============================
+   TOPBAR MOBILE
+   ============================== */
+.topbar-admin {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    background: #1e1e2f;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 .75rem 0 1rem;
+    z-index: 998;
+}
+
+.topbar-admin-title {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.topbar-admin-title img {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+}
+
+.topbar-admin button {
+    border: none;
+    background: transparent;
+    color: #fff;
+    font-size: 1.6rem;
+}
+
+/* Mostrar topbar solo en mobile/tablet */
+@media (min-width: 992px) {
+    .topbar-admin {
+        display: none;
+    }
+}
+
+/* ==============================
+   CONTENT AREA
+   ============================== */
+main {
+    margin-left: 250px;
+    padding: 2rem;
+}
+
+@media (max-width: 992px) {
+    main {
+        margin-left: 0;
+        margin-top: 70px; /* espacio para la topbar mobile */
+    }
+}
+
+/* Sidebar responsive (oculta por defecto en mobile) */
+@media (max-width: 992px) {
+    .sidebar {
+        transform: translateX(-100%);
+    }
+    .sidebar.show {
+        transform: translateX(0);
+    }
+    .sidebar-backdrop.show {
+        display: block;
+    }
+}
+
+/* ==============================
+   HEADER BOX (para todos los módulos)
+   ============================== */
+.header-box {
+    background: linear-gradient(90deg, var(--verde-claro), var(--verde-jaguata));
+    color: white;
+    padding: 1.8rem 2.2rem;
+    border-radius: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0px 5px 20px rgba(0, 0, 0, .12);
+    margin-bottom: 2rem;
+}
+
+/* Títulos / textos uniformes en headers */
+.header-box h1 {
+    font-size: 1.9rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+}
+
+.header-box p {
+    font-size: 0.95rem;
+    margin-bottom: 0;
+}
+
+/* Si querés diferenciar algunos (opcional)
+.header-pagos { background: linear-gradient(90deg, #ff6b81, #ff9f43); }
+.header-auditoria { background: linear-gradient(90deg, #20c997, #3c6255); }
+... */
+
+/* ==============================
+   TABLAS & BADGES
+   ============================== */
+.table {
+    background: var(--blanco);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0px 3px 10px rgba(0, 0, 0, .09);
+}
+
+.table thead {
+    background: var(--verde-jaguata);
+    color: white;
+}
+
+.table tbody tr:hover {
+    background: #eef7f2;
+}
+
+.badge-estado {
+    padding: .45em .8em;
+    border-radius: 10px;
+    font-size: 0.85rem;
+}
+
+/* ESTADOS */
+.estado-aprobado,
+.estado-activo { background:#19875433; color:#198754; }
+.estado-pendiente { background:#ffc10733; color:#856404; }
+.estado-rechazado { background:#dc354533; color:#dc3545; }
+.estado-suspendido { background:#ffca2c33; color:#8c6d1f; }
+.estado-inactivo,
+.estado-cancelado { background:#adb5bd33; color:#6c757d; }
+
+/* ACCIONES */
+.btn-accion {
+    font-size: .8rem;
+    margin: 0 2px;
+    border-radius: 6px;
+    padding: 5px 8px;
+    border: none;
+}
+
+.btn-editar { background: var(--verde-claro); color: #fff; }
+.btn-eliminar { background: #dc3545; color: #fff; }
+.btn-suspender { background:#ffc107; color:#000; }
+.btn-activar { background:#198754; color:#fff; }
+.btn-desactivar { background:#6c757d; color:#fff; }
+.btn-aprobar { background:#0d6efd; color:#fff; }
+.btn-rechazar { background:#dc3545; color:#fff; }
+
+/* FOOTER */
+footer {
+    margin-top: 2rem;
+    text-align: center;
+    color: #555;
+    font-size: .85rem;
+}
+/* ==============================
+   PANTALLA: VER PASEO (DETALLE)
+   ============================== */
+
+.btn-volver {
+    border-radius: 999px;
+    padding: 0.4rem 1rem;
+    border: none;
+    background: #e9ecef;
+    color: #333;
+    font-size: 0.9rem;
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    text-decoration: none;
+}
+
+.btn-volver:hover {
+    background: #d1d5db;
+    color: #111;
+}
+
+.card-header {
+    font-weight: 600;
+    background: #ffffff;
+    border-bottom: 1px solid #e3e6ea;
+}
+
+.info-label {
+    font-weight: 600;
+    margin-bottom: .15rem;
+    color: #555;
+    font-size: 0.9rem;
+}
+
+#map {
+    width: 100%;
+    height: 320px;
+    border-radius: 14px;
+}
+
+.action-buttons .btn {
+    min-width: 190px;
+}
+
+@media (max-width: 768px) {
+    .action-buttons .btn {
+        width: 100%;
+        margin-bottom: .5rem;
+    }
+}
+/* ==============================
+   BOTONES DE ACCIÓN (VER / ETC)
+   ============================== */
+.btn-ver {
+    background-color: var(--verde-claro);
+    color: #fff;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.btn-ver i {
+    font-size: 0.9rem;
+}
+
+.btn-ver:hover {
+    background-color: var(--verde-jaguata);
+    color: #fff;
+    transform: translateY(-1px);
+}
+/* ===========================
+   MODAL JAGUATA PREMIUM
+   =========================== */
+
+.modal-jaguata {
+    border-radius: 18px;
+    overflow: hidden;
+    border: none;
+    box-shadow: 0 10px 35px rgba(0, 0, 0, 0.15);
+}
+
+/* Header bonito */
+.jaguata-modal-header {
+    background: linear-gradient(90deg, var(--verde-claro), var(--verde-jaguata));
+    color: #fff;
+    border-bottom: none;
+    padding: 1rem 1.5rem;
+}
+
+.jaguata-modal-header .modal-title i {
+    font-size: 1.4rem;
+}
+
+/* Labels */
+.modal-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--verde-jaguata);
+    margin-bottom: 0.2rem;
+}
+
+/* Valores */
+.modal-value {
+    background: #f8fafb;
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 1px solid #e2e2e2;
+    margin: 0;
+    font-weight: 500;
+    color: #333;
+}
+
+/* Badge del modal */
+.badge-modal {
+    padding: 0.5em 1em;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+/* Footer */
+.jaguata-modal-footer {
+    background: #f8f9fa;
+    border-top: none;
+}
+
+/* ==============================
+   PANTALLA: EDITAR USUARIO
+   ============================== */
+
+.editar-usuario-wrapper {
+    max-width: 1150px;
+    margin: 1.5rem auto 0;
+}
+
+/* Botón volver */
+.btn-volver-listado {
+    border-radius: 999px;
+    padding: 0.45rem 1.3rem;
+    font-size: 0.9rem;
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+}
+
+/* Card principal de edición */
+.card-editar-usuario {
+    border-radius: 16px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    border: none;
+}
+
+.card-editar-usuario-header {
+    background: var(--verde-jaguata);
+    color: #fff;
+    padding: 1rem 1.5rem;
+    border-bottom: none;
+}
+
+.card-editar-usuario .form-label {
+    font-weight: 600;
+    color: #444;
+}
+
+.card-editar-usuario .form-control,
+.card-editar-usuario .form-select {
+    border-radius: 10px;
+    font-size: 0.95rem;
+}
+
+/* Card lateral: documento del usuario */
+.card-doc-usuario {
+    border-radius: 16px;
+    border: none;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+}
+
+.card-doc-usuario-header {
+    background: #f1f3f5;
+    border-bottom: 1px solid #e2e6ea;
+    padding: 0.8rem 1.1rem;
+}
+
+.btn-ver-doc {
+    background: var(--verde-claro);
+    color: #fff;
+    border-radius: 10px;
+    font-size: 0.9rem;
+}
+
+.btn-ver-doc:hover {
+    background: var(--verde-jaguata);
+    color: #fff;
+}
+
+.btn-descargar-doc {
+    border-radius: 10px;
+    font-size: 0.9rem;
+}
+

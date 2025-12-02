@@ -2,73 +2,60 @@
 
 namespace Jaguata\Config;
 
+use PDO;
+use PDOException;
+
 class Database
 {
-    private $host = 'localhost';
-    private $db_name = 'jaguata';
-    private $username = 'root';
-    private $password = '';
-    private $charset = 'utf8mb4';
-    private $conn;
-
-    // 🔹 Instancia singleton
-    private static ?\PDO $instance = null;
+    /**
+     * Instancia singleton global
+     */
+    private static ?PDO $instance = null;
 
     /**
-     * Método de instancia (uso: (new Database())->getConnection())
+     * Devuelve una instancia PDO reutilizable.
+     * Preferí usar este método en tus modelos:
+     *
+     *   $db = Database::getConnection();
      */
-    public function getConnection()
+    public static function getConnection(): PDO
     {
-        $this->conn = null;
+        if (self::$instance instanceof PDO) {
+            return self::$instance;
+        }
+
+        // Nos aseguramos de que AppConfig esté inicializado
+        if (!AppConfig::isInitialized()) {
+            AppConfig::init();
+        }
 
         try {
-            $dsn = "mysql:host=" . $this->host . ";dbname=" . $this->db_name . ";charset=" . $this->charset;
-            $this->conn = new \PDO($dsn, $this->username, $this->password);
-            $this->conn->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
-            $this->conn->setAttribute(\PDO::ATTR_DEFAULT_FETCH_MODE, \PDO::FETCH_ASSOC);
-        } catch (\PDOException $e) {
-            echo "Connection Error: " . $e->getMessage();
+            $dsn = "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET;
+            self::$instance = new PDO($dsn, DB_USER, DB_PASS, [
+                PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                PDO::ATTR_EMULATE_PREPARES   => false,
+            ]);
+        } catch (PDOException $e) {
+            AppConfig::log('Static Connection Error: ' . $e->getMessage());
+            throw $e;
         }
 
-        return $this->conn;
-    }
-
-    /**
-     * Método estático (uso: Database::getConnection())
-     */
-    public static function getStaticConnection(): \PDO
-    {
-        if (self::$instance === null) {
-            try {
-                $host = 'localhost';
-                $db_name = 'jaguata';
-                $username = 'root';
-                $password = '';
-                $charset = 'utf8mb4';
-
-                $dsn = "mysql:host=$host;dbname=$db_name;charset=$charset";
-                self::$instance = new \PDO($dsn, $username, $password);
-                self::$instance->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
-                self::$instance->setAttribute(\PDO::ATTR_DEFAULT_FETCH_MODE, \PDO::FETCH_ASSOC);
-            } catch (\PDOException $e) {
-                echo "Static Connection Error: " . $e->getMessage();
-            }
-        }
         return self::$instance;
     }
 
     /**
-     * Cerrar conexión (solo para instancias normales)
+     * Alias para compatibilidad: Database::getStaticConnection()
      */
-    public function closeConnection()
+    public static function getStaticConnection(): PDO
     {
-        $this->conn = null;
+        return self::getConnection();
     }
 
     /**
-     * Cerrar conexión estática
+     * Cerrar conexión estática (si querés forzar reconexión)
      */
-    public static function closeStaticConnection()
+    public static function closeStaticConnection(): void
     {
         self::$instance = null;
     }

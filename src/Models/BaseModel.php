@@ -5,141 +5,86 @@ declare(strict_types=1);
 namespace Jaguata\Models;
 
 use Jaguata\Services\DatabaseService;
+use PDO;
 use PDOException;
-// 🔹 fallback opcional por si el autoload aún no cargó DatabaseService
+
 if (!class_exists(DatabaseService::class)) {
     require_once __DIR__ . '/../Services/DatabaseService.php';
 }
 
-/**
- * Clase base para todos los modelos
- * Provee operaciones CRUD genéricas y helpers de consulta
- */
 abstract class BaseModel
 {
-    protected DatabaseService $db;
+    protected \PDO $db;
+
+    // Cada modelo debe definir estos:
     protected string $table;
     protected string $primaryKey = 'id';
 
     public function __construct()
     {
-        // 🔹 inicializamos la instancia de base de datos de forma segura
-        $this->db = DatabaseService::getInstance();
+        $this->db = DatabaseService::getInstance()->getConnection();
     }
 
-    /**
-     * Buscar un registro por ID
-     */
-    public function find(int|string $id): ?array
+    // ==========
+    // CRUD BÁSICO
+    // ==========
+
+    public function find(int $id): ?array
     {
-        $sql = "SELECT * FROM {$this->table} WHERE {$this->primaryKey} = :id";
-        return $this->db->fetchOne($sql, ['id' => $id]);
+        $sql  = "SELECT * FROM {$this->table} WHERE {$this->primaryKey} = :id LIMIT 1";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':id' => $id]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row !== false ? $row : null;
     }
 
-    /**
-     * Obtener todos los registros con condiciones opcionales
-     */
-    public function findAll(array $conditions = [], string $orderBy = ''): array
+    public function all(): array
     {
-        $sql = "SELECT * FROM {$this->table}";
-        $params = [];
-
-        if (!empty($conditions)) {
-            $clauses = [];
-            foreach ($conditions as $field => $value) {
-                $clauses[] = "$field = :$field";
-                $params[$field] = $value;
-            }
-            $sql .= " WHERE " . implode(" AND ", $clauses);
-        }
-
-        if ($orderBy) {
-            $sql .= " ORDER BY $orderBy";
-        }
-
-        return $this->db->fetchAll($sql, $params);
+        $sql  = "SELECT * FROM {$this->table}";
+        $stmt = $this->db->query($sql);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    /**
-     * Insertar un registro
-     */
     public function create(array $data): int
     {
-        $fields = implode(', ', array_keys($data));
-        $placeholders = ':' . implode(', :', array_keys($data));
+        $columns = array_keys($data);
+        $fields  = implode(', ', $columns);
+        $params  = ':' . implode(', :', $columns);
 
-        $sql = "INSERT INTO {$this->table} ($fields) VALUES ($placeholders)";
-        $this->db->executeQuery($sql, $data);
+        $sql = "INSERT INTO {$this->table} ({$fields}) VALUES ({$params})";
 
-        return (int) $this->db->getConnection()->lastInsertId();
-    }
-
-    /**
-     * Actualizar un registro por ID
-     */
-    public function update(int|string $id, array $data): bool
-    {
-        if (empty($data)) {
-            return false;
+        $stmt = $this->db->prepare($sql);
+        foreach ($data as $col => $value) {
+            $stmt->bindValue(':' . $col, $value);
         }
 
-        $fields = implode(', ', array_map(fn($f) => "$f = :$f", array_keys($data)));
-        $sql = "UPDATE {$this->table} SET $fields WHERE {$this->primaryKey} = :{$this->primaryKey}";
-        $data[$this->primaryKey] = $id;
-
-        return $this->db->executeQuery($sql, $data);
+        $stmt->execute();
+        return (int)$this->db->lastInsertId();
     }
 
-    /**
-     * Eliminar un registro por ID
-     */
+    public function update(int $id, array $data): bool
+    {
+        $set = [];
+        foreach ($data as $col => $value) {
+            $set[] = "{$col} = :{$col}";
+        }
+        $setStr = implode(', ', $set);
+
+        $sql = "UPDATE {$this->table} SET {$setStr} WHERE {$this->primaryKey} = :id";
+
+        $stmt = $this->db->prepare($sql);
+        foreach ($data as $col => $value) {
+            $stmt->bindValue(':' . $col, $value);
+        }
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+
+        return $stmt->execute();
+    }
+
     public function delete(int $id): bool
     {
-        try {
-            $conn = $this->db->getConnection();
-            $stmt = $conn->prepare("DELETE FROM {$this->table} WHERE {$this->primaryKey} = :id");
-            return $stmt->execute([':id' => $id]);
-        } catch (PDOException $e) {
-            error_log("Error BaseModel::delete => " . $e->getMessage());
-            return false;
-        }
-    }
-
-    /**
-     * Helper: fetchOne (atajo a DatabaseService)
-     */
-    public function fetchOne(string $sql, array $params = []): ?array
-    {
-        return $this->db->fetchOne($sql, $params);
-    }
-
-    /**
-     * Helper: fetchAll (atajo a DatabaseService)
-     */
-    public function fetchAll(string $sql, array $params = []): array
-    {
-        return $this->db->fetchAll($sql, $params);
-    }
-
-    // --------------------------------------------------------------------
-    // 🔹 Alias en español (manteniendo compatibilidad con tus controladores)
-    // --------------------------------------------------------------------
-
-    /** Alias de create */
-    public function crear(array $data): int
-    {
-        return $this->create($data);
-    }
-
-    /** Alias de update */
-    public function actualizar(int|string $id, array $data): bool
-    {
-        return $this->update($id, $data);
-    }
-
-    /** Alias de delete */
-    public function eliminar(int|string $id): bool
-    {
-        return $this->delete($id);
+        $sql  = "DELETE FROM {$this->table} WHERE {$this->primaryKey} = :id";
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute([':id' => $id]);
     }
 }

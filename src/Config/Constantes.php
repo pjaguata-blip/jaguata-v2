@@ -18,7 +18,7 @@ if (!defined('APP_AUTHOR')) {
     define('APP_AUTHOR', 'Equipo Jaguata');
 }
 
-// URLs y rutas (se definirán dinámicamente en AppConfig, pero valores por defecto aquí)
+// URLs y rutas (por defecto, AppConfig los recalcula dinámicamente)
 if (!defined('BASE_URL')) {
     define('BASE_URL', 'http://localhost/jaguata');
 }
@@ -49,7 +49,7 @@ if (!defined('UPLOADS_PATH')) {
     define('UPLOADS_PATH', ASSETS_PATH . '/uploads');
 }
 
-// Configuración de base de datos (valores por defecto, AppConfig puede sobrescribir)
+// Configuración de base de datos (AppConfig puede sobrescribir leyendo .env)
 if (!defined('DB_HOST')) {
     define('DB_HOST', 'localhost');
 }
@@ -96,9 +96,6 @@ if (!defined('MAX_ITEMS_PER_PAGE')) {
     define('MAX_ITEMS_PER_PAGE', 50);
 }
 
-// === CONSTANTES INDIVIDUALES PARA COMPATIBILIDAD CON EL CÓDIGO ===
-// Estas constantes individuales son necesarias para el código que hemos desarrollado
-
 // Estados básicos
 if (!defined('ESTADO_ACTIVO')) {
     define('ESTADO_ACTIVO', 1);
@@ -116,7 +113,7 @@ if (!defined('ESTADO_COMPLETADO')) {
     define('ESTADO_COMPLETADO', 4);
 }
 
-// Tipos de usuario (individuales para compatibilidad)
+// Tipos de usuario
 if (!defined('TIPO_USUARIO_ADMIN')) {
     define('TIPO_USUARIO_ADMIN', 'admin');
 }
@@ -127,7 +124,7 @@ if (!defined('TIPO_USUARIO_PASEADOR')) {
     define('TIPO_USUARIO_PASEADOR', 'paseador');
 }
 
-// Tamaños de mascotas (individuales para compatibilidad con el modelo Mascota)
+// Tamaños de mascotas (individuales)
 if (!defined('TAMANO_PEQUENO')) {
     define('TAMANO_PEQUENO', 'pequeno');
 }
@@ -141,7 +138,7 @@ if (!defined('TAMANO_EXTRA_GRANDE')) {
     define('TAMANO_EXTRA_GRANDE', 'extra_grande');
 }
 
-// Estados de paseo (individuales para compatibilidad)
+// Estados de paseo
 if (!defined('PASEO_PENDIENTE')) {
     define('PASEO_PENDIENTE', 'pendiente');
 }
@@ -158,7 +155,7 @@ if (!defined('PASEO_CANCELADO')) {
     define('PASEO_CANCELADO', 'cancelado');
 }
 
-// Estados de pago (individuales)
+// Estados de pago
 if (!defined('PAGO_PENDIENTE')) {
     define('PAGO_PENDIENTE', 'pendiente');
 }
@@ -175,9 +172,7 @@ if (!defined('PAGO_REEMBOLSADO')) {
     define('PAGO_REEMBOLSADO', 'reembolsado');
 }
 
-// === CONSTANTES DE ARRAYS (TU ESTRUCTURA ORIGINAL) ===
-
-// Configuración de notificaciones
+// Tipos de notificación (arrays + individuales)
 if (!defined('NOTIFICATION_TYPES')) {
     define('NOTIFICATION_TYPES', [
         'paseo_Pendiente' => 'Paseo Pendiente',
@@ -193,7 +188,7 @@ if (!defined('NOTIFICATION_TYPES')) {
     ]);
 }
 
-// Configuración de roles
+// Roles (array)
 if (!defined('ROLES')) {
     define('ROLES', [
         'dueno' => 'Dueño de Mascota',
@@ -202,7 +197,7 @@ if (!defined('ROLES')) {
     ]);
 }
 
-// Configuración de estados de paseo (array para UI)
+// Estados de paseo (UI)
 if (!defined('PASEO_ESTADOS')) {
     define('PASEO_ESTADOS', [
         'Pendiente' => 'pendiente',
@@ -213,7 +208,7 @@ if (!defined('PASEO_ESTADOS')) {
     ]);
 }
 
-// Configuración de estados de pago (array para UI)
+// Estados de pago (UI)
 if (!defined('PAGO_ESTADOS')) {
     define('PAGO_ESTADOS', [
         'pendiente' => 'pendiente',
@@ -222,7 +217,7 @@ if (!defined('PAGO_ESTADOS')) {
     ]);
 }
 
-// Configuración de métodos de pago
+// Métodos de pago
 if (!defined('METODOS_PAGO')) {
     define('METODOS_PAGO', [
         'transferencia' => 'Transferencia Bancaria',
@@ -230,7 +225,7 @@ if (!defined('METODOS_PAGO')) {
     ]);
 }
 
-// Configuración de tamaños de mascotas con rangos de peso
+// Tamaños de mascotas con rangos
 if (!defined('TAMANOS_MASCOTA')) {
     define('TAMANOS_MASCOTA', [
         'pequeno' => [
@@ -252,8 +247,7 @@ if (!defined('TAMANOS_MASCOTA')) {
     ]);
 }
 
-
-// Configuración de zonas
+// Zonas disponibles
 if (!defined('ZONAS_DISPONIBLES')) {
     define('ZONAS_DISPONIBLES', [
         'Asunción Centro',
@@ -269,7 +263,7 @@ if (!defined('ZONAS_DISPONIBLES')) {
     ]);
 }
 
-// Configuración de puntos
+// Puntos por actividades
 if (!defined('PUNTOS_ACTIVIDADES')) {
     define('PUNTOS_ACTIVIDADES', [
         'registro_usuario' => 20,
@@ -285,22 +279,18 @@ if (!defined('PUNTOS_ACTIVIDADES')) {
     ]);
 }
 
-// === CONFIGURACIÓN FINANCIERA ===
-
-// Configuración de tarifas
+// Configuración financiera
 if (!defined('TARIFA_PLATAFORMA')) {
-    define('TARIFA_PLATAFORMA', 0.10); // 10% de comisión
+    define('TARIFA_PLATAFORMA', 0.10);
 }
 if (!defined('TARIFA_MINIMA')) {
-    define('TARIFA_MINIMA', 1000); // Tarifa mínima en guaraníes
+    define('TARIFA_MINIMA', 1000);
 }
 if (!defined('TARIFA_MAXIMA')) {
-    define('TARIFA_MAXIMA', 100000); // Tarifa máxima en guaraníes
+    define('TARIFA_MAXIMA', 100000);
 }
-
-// Configuración de precios base (agregado para compatibilidad con constantes anteriores)
 if (!defined('PRECIO_BASE_30MIN')) {
-    define('PRECIO_BASE_30MIN', 50000); // En guaraníes
+    define('PRECIO_BASE_30MIN', 50000);
 }
 if (!defined('PRECIO_BASE_60MIN')) {
     define('PRECIO_BASE_60MIN', 80000);
@@ -311,32 +301,26 @@ if (!defined('PRECIO_BASE_90MIN')) {
 if (!defined('PRECIO_BASE_120MIN')) {
     define('PRECIO_BASE_120MIN', 140000);
 }
-
-// Comisiones
 if (!defined('COMISION_PLATAFORMA')) {
-    define('COMISION_PLATAFORMA', 0.15); // 15%
+    define('COMISION_PLATAFORMA', 0.15);
 }
 if (!defined('IVA_PARAGUAYO')) {
-    define('IVA_PARAGUAYO', 0.10); // 10%
+    define('IVA_PARAGUAYO', 0.10);
 }
 
-// === CONFIGURACIÓN DE TIEMPO ===
-
-// Configuración de tiempo
+// Tiempo / paseos
 if (!defined('TIEMPO_MINIMO_PASEO')) {
-    define('TIEMPO_MINIMO_PASEO', 15); // minutos
+    define('TIEMPO_MINIMO_PASEO', 15);
 }
 if (!defined('TIEMPO_MAXIMO_PASEO')) {
-    define('TIEMPO_MAXIMO_PASEO', 240); // 4 horas
+    define('TIEMPO_MAXIMO_PASEO', 240);
 }
 if (!defined('ANTICIPACION_MINIMA')) {
-    define('ANTICIPACION_MINIMA', 2); // horas antes del paseo
+    define('ANTICIPACION_MINIMA', 2);
 }
 if (!defined('ANTICIPACION_MAXIMA')) {
-    define('ANTICIPACION_MAXIMA', 168); // 7 días antes del paseo
+    define('ANTICIPACION_MAXIMA', 168);
 }
-
-// Duraciones estándar
 if (!defined('DURACION_30_MIN')) {
     define('DURACION_30_MIN', 30);
 }
@@ -350,9 +334,7 @@ if (!defined('DURACION_120_MIN')) {
     define('DURACION_120_MIN', 120);
 }
 
-// === CONFIGURACIÓN DE CALIFICACIONES ===
-
-// Configuración de calificaciones
+// Calificaciones
 if (!defined('CALIFICACION_MINIMA')) {
     define('CALIFICACION_MINIMA', 1);
 }
@@ -369,17 +351,13 @@ if (!defined('CALIFICACION_MAX')) {
     define('CALIFICACION_MAX', 5);
 }
 
-// === CONFIGURACIÓN DE NOTIFICACIONES ===
-
-// Configuración de notificaciones
+// Notificaciones
 if (!defined('NOTIFICACIONES_EXPIRACION')) {
-    define('NOTIFICACIONES_EXPIRACION', 30); // días
+    define('NOTIFICACIONES_EXPIRACION', 30);
 }
 if (!defined('NOTIFICACIONES_MAXIMAS')) {
-    define('NOTIFICACIONES_MAXIMAS', 100); // por usuario
+    define('NOTIFICACIONES_MAXIMAS', 100);
 }
-
-// Tipos de notificación individuales
 if (!defined('NOTIF_NUEVO_PASEO')) {
     define('NOTIF_NUEVO_PASEO', 'nuevo_paseo');
 }
@@ -402,14 +380,12 @@ if (!defined('NOTIF_NUEVA_CALIFICACION')) {
     define('NOTIF_NUEVA_CALIFICACION', 'nueva_calificacion');
 }
 
-// === CONFIGURACIÓN DE SEGURIDAD ===
-
-// Configuración de seguridad
+// Seguridad / login
 if (!defined('MAX_LOGIN_ATTEMPTS')) {
     define('MAX_LOGIN_ATTEMPTS', 5);
 }
 if (!defined('LOGIN_LOCKOUT_TIME')) {
-    define('LOGIN_LOCKOUT_TIME', 900); // 15 minutos
+    define('LOGIN_LOCKOUT_TIME', 900);
 }
 if (!defined('PASSWORD_MIN_LENGTH')) {
     define('PASSWORD_MIN_LENGTH', 8);
@@ -417,8 +393,6 @@ if (!defined('PASSWORD_MIN_LENGTH')) {
 if (!defined('PASSWORD_REQUIRE_SPECIAL')) {
     define('PASSWORD_REQUIRE_SPECIAL', true);
 }
-
-// Límites adicionales
 if (!defined('MAX_MASCOTAS_POR_USUARIO')) {
     define('MAX_MASCOTAS_POR_USUARIO', 10);
 }
@@ -429,28 +403,24 @@ if (!defined('MAX_INTENTOS_LOGIN')) {
     define('MAX_INTENTOS_LOGIN', 5);
 }
 if (!defined('TIEMPO_BLOQUEO_LOGIN')) {
-    define('TIEMPO_BLOQUEO_LOGIN', 900); // 15 minutos
+    define('TIEMPO_BLOQUEO_LOGIN', 900);
 }
 
-// === CONFIGURACIÓN DE API ===
-
-// Configuración de API
+// API
 if (!defined('API_RATE_LIMIT')) {
-    define('API_RATE_LIMIT', 100); // requests por hora
+    define('API_RATE_LIMIT', 100);
 }
 if (!defined('API_TOKEN_LIFETIME')) {
-    define('API_TOKEN_LIFETIME', 3600); // 1 hora
+    define('API_TOKEN_LIFETIME', 3600);
 }
 if (!defined('API_VERSION')) {
     define('API_VERSION', 'v1');
 }
 if (!defined('API_TOKEN_EXPIRY')) {
-    define('API_TOKEN_EXPIRY', 3600); // 1 hour
+    define('API_TOKEN_EXPIRY', 3600);
 }
 
-// === CONFIGURACIÓN DE EMAIL ===
-
-// Configuración de email
+// Email
 if (!defined('SMTP_HOST')) {
     define('SMTP_HOST', 'smtp.gmail.com');
 }
@@ -470,9 +440,7 @@ if (!defined('SMTP_FROM_NAME')) {
     define('SMTP_FROM_NAME', 'Jaguata');
 }
 
-// === CONFIGURACIÓN DE LOCALIZACIÓN ===
-
-// Configuración de moneda
+// Localización
 if (!defined('CURRENCY')) {
     define('CURRENCY', 'PYG');
 }
@@ -482,8 +450,6 @@ if (!defined('CURRENCY_SYMBOL')) {
 if (!defined('CURRENCY_DECIMALS')) {
     define('CURRENCY_DECIMALS', 0);
 }
-
-// Configuración de idioma
 if (!defined('DEFAULT_LANGUAGE')) {
     define('DEFAULT_LANGUAGE', 'es');
 }
@@ -496,8 +462,6 @@ if (!defined('LANG_DEFAULT')) {
 if (!defined('LANG_AVAILABLE')) {
     define('LANG_AVAILABLE', ['es', 'pt', 'en']);
 }
-
-// Configuración de zona horaria
 if (!defined('TIMEZONE')) {
     define('TIMEZONE', 'America/Asuncion');
 }
@@ -505,23 +469,19 @@ if (!defined('TIMEZONE_DEFAULT')) {
     define('TIMEZONE_DEFAULT', 'America/Asuncion');
 }
 
-// === CONFIGURACIÓN DE LOGS Y DEBUG ===
-
-// Configuración de logs
+// Logs / debug
 if (!defined('LOG_LEVEL')) {
-    define('LOG_LEVEL', 'INFO'); // DEBUG, INFO, WARNING, ERROR
+    define('LOG_LEVEL', 'INFO');
 }
 if (!defined('LOG_FILE')) {
     define('LOG_FILE', ROOT_PATH . '/logs/app.log');
 }
 if (!defined('LOG_MAX_SIZE')) {
-    define('LOG_MAX_SIZE', 10 * 1024 * 1024); // 10MB
+    define('LOG_MAX_SIZE', 10 * 1024 * 1024);
 }
 if (!defined('LOG_MAX_FILES')) {
     define('LOG_MAX_FILES', 5);
 }
-
-// Niveles de log individuales
 if (!defined('LOG_LEVEL_DEBUG')) {
     define('LOG_LEVEL_DEBUG', 'debug');
 }
@@ -537,8 +497,6 @@ if (!defined('LOG_LEVEL_ERROR')) {
 if (!defined('LOG_LEVEL_CRITICAL')) {
     define('LOG_LEVEL_CRITICAL', 'critical');
 }
-
-// Configuración de desarrollo
 if (!defined('DEBUG_MODE')) {
     define('DEBUG_MODE', true);
 }
@@ -549,33 +507,27 @@ if (!defined('LOG_QUERIES')) {
     define('LOG_QUERIES', false);
 }
 
-// === CONFIGURACIÓN DE CACHE ===
-
-// Configuración de cache
+// Cache
 if (!defined('CACHE_ENABLED')) {
     define('CACHE_ENABLED', true);
 }
 if (!defined('CACHE_LIFETIME')) {
-    define('CACHE_LIFETIME', 3600); // 1 hora
+    define('CACHE_LIFETIME', 3600);
 }
 if (!defined('CACHE_PATH')) {
     define('CACHE_PATH', ROOT_PATH . '/cache');
 }
-
-// TTL de cache
 if (!defined('CACHE_TTL_SHORT')) {
-    define('CACHE_TTL_SHORT', 300); // 5 minutos
+    define('CACHE_TTL_SHORT', 300);
 }
 if (!defined('CACHE_TTL_MEDIUM')) {
-    define('CACHE_TTL_MEDIUM', 3600); // 1 hora
+    define('CACHE_TTL_MEDIUM', 3600);
 }
 if (!defined('CACHE_TTL_LONG')) {
-    define('CACHE_TTL_LONG', 86400); // 24 horas
+    define('CACHE_TTL_LONG', 86400);
 }
 
-// === CONFIGURACIÓN DE BACKUP ===
-
-// Configuración de backup
+// Backups
 if (!defined('BACKUP_ENABLED')) {
     define('BACKUP_ENABLED', true);
 }
@@ -586,9 +538,7 @@ if (!defined('BACKUP_RETENTION_DAYS')) {
     define('BACKUP_RETENTION_DAYS', 30);
 }
 
-// === CONFIGURACIÓN DE REPORTES ===
-
-// Configuración de reportes
+// Reportes
 if (!defined('REPORT_FORMATS')) {
     define('REPORT_FORMATS', ['pdf', 'excel', 'csv']);
 }
@@ -596,9 +546,7 @@ if (!defined('REPORT_MAX_RECORDS')) {
     define('REPORT_MAX_RECORDS', 10000);
 }
 
-// === CONFIGURACIÓN DE VALIDACIÓN ===
-
-// Configuración de validación
+// Validación
 if (!defined('VALIDATION_RULES')) {
     define('VALIDATION_RULES', [
         'email' => '/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/',
@@ -606,8 +554,6 @@ if (!defined('VALIDATION_RULES')) {
         'password' => '/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/'
     ]);
 }
-
-// Regex individuales
 if (!defined('REGEX_EMAIL')) {
     define('REGEX_EMAIL', '/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/');
 }
@@ -617,8 +563,6 @@ if (!defined('REGEX_PHONE_PY')) {
 if (!defined('REGEX_CEDULA_PY')) {
     define('REGEX_CEDULA_PY', '/^[0-9]{1,8}$/');
 }
-
-// Validación de campos
 if (!defined('PHONE_MIN_LENGTH')) {
     define('PHONE_MIN_LENGTH', 9);
 }
@@ -626,9 +570,7 @@ if (!defined('PHONE_MAX_LENGTH')) {
     define('PHONE_MAX_LENGTH', 15);
 }
 
-// === CONFIGURACIÓN DE DISTANCIAS Y UBICACIÓN ===
-
-// Configuración de distancia
+// Distancias / horarios
 if (!defined('RADIO_BUSQUEDA_KM')) {
     define('RADIO_BUSQUEDA_KM', 10);
 }
@@ -638,8 +580,6 @@ if (!defined('DISTANCIA_MINIMA_KM')) {
 if (!defined('DISTANCIA_MAXIMA_KM')) {
     define('DISTANCIA_MAXIMA_KM', 50);
 }
-
-// Configuración de horarios
 if (!defined('HORA_INICIO_SERVICIO')) {
     define('HORA_INICIO_SERVICIO', '06:00');
 }
@@ -647,12 +587,10 @@ if (!defined('HORA_FIN_SERVICIO')) {
     define('HORA_FIN_SERVICIO', '22:00');
 }
 if (!defined('MINUTOS_ANTICIPACION')) {
-    define('MINUTOS_ANTICIPACION', 60); // 1 hora de anticipación mínima
+    define('MINUTOS_ANTICIPACION', 60);
 }
 
-// === CONFIGURACIÓN DE EMERGENCIA Y SOPORTE ===
-
-// Configuración de emergencia
+// Emergencia / soporte
 if (!defined('TELEFONO_EMERGENCIA')) {
     define('TELEFONO_EMERGENCIA', '911');
 }
@@ -660,9 +598,7 @@ if (!defined('TELEFONO_SOPORTE')) {
     define('TELEFONO_SOPORTE', '+595971234567');
 }
 
-// === CONFIGURACIÓN DE MENSAJES Y UI ===
-
-// Configuración de mensajes
+// Mensajes
 if (!defined('MESSAGES')) {
     define('MESSAGES', [
         'success' => [
@@ -686,8 +622,6 @@ if (!defined('MESSAGES')) {
         ]
     ]);
 }
-
-// Mensajes de error comunes (individuales)
 if (!defined('MSG_ERROR_GENERICO')) {
     define('MSG_ERROR_GENERICO', 'Ha ocurrido un error inesperado. Por favor, inténtelo más tarde.');
 }
@@ -703,8 +637,6 @@ if (!defined('MSG_ERROR_AUTORIZACION')) {
 if (!defined('MSG_ERROR_NO_ENCONTRADO')) {
     define('MSG_ERROR_NO_ENCONTRADO', 'El recurso solicitado no fue encontrado.');
 }
-
-// Mensajes de éxito comunes
 if (!defined('MSG_EXITO_CREADO')) {
     define('MSG_EXITO_CREADO', 'Creado exitosamente.');
 }
@@ -718,7 +650,7 @@ if (!defined('MSG_EXITO_ENVIADO')) {
     define('MSG_EXITO_ENVIADO', 'Enviado exitosamente.');
 }
 
-// Configuración de colores para la interfaz
+// Colores UI
 if (!defined('COLORS')) {
     define('COLORS', [
         'primary' => '#2E7D32',
@@ -733,7 +665,7 @@ if (!defined('COLORS')) {
     ]);
 }
 
-// Configuración de iconos
+// Iconos UI
 if (!defined('ICONS')) {
     define('ICONS', [
         'mascota' => '🐕',
@@ -746,8 +678,6 @@ if (!defined('ICONS')) {
         'admin' => '👨‍💼'
     ]);
 }
-
-// === CONFIGURACIÓN HTTP ===
 
 // Métodos HTTP
 if (!defined('HTTP_GET')) {
@@ -766,7 +696,7 @@ if (!defined('HTTP_PATCH')) {
     define('HTTP_PATCH', 'PATCH');
 }
 
-// Códigos de respuesta HTTP
+// Códigos HTTP
 if (!defined('HTTP_OK')) {
     define('HTTP_OK', 200);
 }
@@ -798,9 +728,7 @@ if (!defined('HTTP_INTERNAL_SERVER_ERROR')) {
     define('HTTP_INTERNAL_SERVER_ERROR', 500);
 }
 
-// === CONFIGURACIÓN DE FORMATOS ===
-
-// Formatos de fecha
+// Formatos de fecha/hora
 if (!defined('DATE_FORMAT')) {
     define('DATE_FORMAT', 'Y-m-d');
 }
@@ -817,8 +745,6 @@ if (!defined('DISPLAY_DATETIME_FORMAT')) {
     define('DISPLAY_DATETIME_FORMAT', 'd/m/Y H:i');
 }
 
-// === CONFIGURACIÓN DE MASCOTA ESPECÍFICA ===
-
 // Tipos de mascota
 if (!defined('TIPO_MASCOTA_PERRO')) {
     define('TIPO_MASCOTA_PERRO', 'perro');
@@ -830,9 +756,7 @@ if (!defined('TIPO_MASCOTA_OTRO')) {
     define('TIPO_MASCOTA_OTRO', 'otro');
 }
 
-// === CONFIGURACIÓN DE VERIFICACIÓN ===
-
-// Tipos de verificación
+// Verificaciones
 if (!defined('VERIFICACION_IDENTIDAD')) {
     define('VERIFICACION_IDENTIDAD', 'identidad');
 }
@@ -845,8 +769,6 @@ if (!defined('VERIFICACION_EMAIL')) {
 if (!defined('VERIFICACION_ANTECEDENTES')) {
     define('VERIFICACION_ANTECEDENTES', 'antecedentes');
 }
-
-// === CONFIGURACIÓN DE ROLES (individuales) ===
 
 // Roles específicos
 if (!defined('ROL_SUPER_ADMIN')) {

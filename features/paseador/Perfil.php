@@ -20,8 +20,8 @@ $authController->checkRole('paseador');
 
 // Datos del usuario
 $usuarioModel = new Usuario();
-$usuarioId = Session::get('usuario_id');
-$usuario = $usuarioModel->getById((int)$usuarioId);
+$usuarioId    = Session::get('usuario_id');
+$usuario      = $usuarioModel->getById((int)$usuarioId);
 
 if (!$usuario) {
     echo "Error: No se encontró el usuario.";
@@ -82,7 +82,7 @@ if (!empty($usuario['zona'])) {
     }
 }
 
-$rolMenu = Session::getUsuarioRol() ?: 'paseador';
+$rolMenu      = Session::getUsuarioRol() ?: 'paseador';
 $baseFeatures = BASE_URL . "/features/{$rolMenu}";
 ?>
 <!DOCTYPE html>
@@ -96,14 +96,24 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
     <link href="<?= ASSETS_URL; ?>/css/jaguata-theme.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <style>
+        :root {
+            --verde-jaguata: #3c6255;
+            --verde-claro: #20c997;
+            --gris-fondo: #f4f6f9;
+            --gris-texto: #555;
+            --blanco: #fff;
+        }
+
         html,
         body {
             margin: 0;
             height: 100%;
             font-family: "Poppins", sans-serif;
-            background-color: #f6f9f7;
+            background-color: var(--gris-fondo);
+            color: var(--gris-texto);
         }
 
         .layout {
@@ -112,52 +122,99 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
             width: 100%;
         }
 
-        /* === SIDEBAR === */
+        /* === SIDEBAR unificada (igual que las demás) === */
         .sidebar {
             background: linear-gradient(180deg, #1e1e2f 0%, #292a3a 100%);
             color: #fff;
-            width: 240px;
-            flex-shrink: 0;
-            box-shadow: 4px 0 12px rgba(0, 0, 0, 0.15);
+            width: 250px;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
             padding-top: 1.5rem;
+            box-shadow: 3px 0 10px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
         }
 
         .sidebar .nav-link {
-            color: #ddd;
+            color: #ccc;
             border-radius: 8px;
-            padding: 10px 16px;
-            margin: 4px 8px;
+            padding: 12px 18px;
+            margin: 6px 10px;
             display: flex;
             align-items: center;
+            gap: .8rem;
             font-weight: 500;
-            transition: background 0.2s, transform 0.2s;
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
         }
 
         .sidebar .nav-link:hover,
         .sidebar .nav-link.active {
-            background-color: #3c6255;
+            background-color: var(--verde-claro);
             color: #fff;
             transform: translateX(4px);
+        }
+
+        /* === BOTÓN MENÚ MOBILE === */
+        .menu-toggle {
+            display: none;
+            position: fixed;
+            top: 16px;
+            left: 16px;
+            background-color: #1e1e2f;
+            color: #fff;
+            border: none;
+            padding: 8px 10px;
+            border-radius: 6px;
+            z-index: 1100;
         }
 
         /* === CONTENIDO === */
         main.content {
             flex-grow: 1;
             padding: 2.5rem;
-            background-color: #f6f9f7;
+            background-color: var(--gris-fondo);
+            margin-left: 250px;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s ease-in-out;
+            }
+
+            .sidebar.show {
+                transform: translateX(0);
+            }
+
+            main.content {
+                margin-left: 0;
+                padding: 1.5rem;
+            }
+
+            .menu-toggle {
+                display: block;
+            }
         }
 
         /* === HEADER === */
         .page-header {
-            background: linear-gradient(90deg, #20c997, #3c6255);
+            background: linear-gradient(90deg, var(--verde-claro), var(--verde-jaguata));
             color: #fff;
-            padding: 1rem 1.5rem;
-            border-radius: 10px;
+            padding: 1.5rem 2rem;
+            border-radius: 16px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 2rem;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .page-header h2 {
+            margin: 0;
+            font-size: 1.6rem;
+            font-weight: 600;
         }
 
         .card {
@@ -200,9 +257,12 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
 <body>
     <?php include __DIR__ . '/../../src/Templates/Navbar.php'; ?>
 
+    <button class="menu-toggle" id="menuToggle">
+        <i class="fas fa-bars"></i>
+    </button>
+
     <div class="layout">
         <?php include __DIR__ . '/../../src/Templates/SidebarPaseador.php'; ?>
-
 
         <!-- Contenido principal -->
         <main class="content">
@@ -224,18 +284,29 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
                     <div class="card shadow-sm h-100">
                         <div class="card-body text-center">
                             <img src="<?= htmlspecialchars($foto) ?>" alt="Foto de perfil"
-                                class="rounded-circle mb-3" style="width:160px;height:160px;object-fit:cover;">
+                                class="rounded-circle mb-3"
+                                style="width:160px;height:160px;object-fit:cover;">
                             <h4 class="mb-1"><?= h($usuario['nombre'] ?? null, 'Sin nombre') ?></h4>
                             <span class="badge bg-primary-subtle">Paseador</span>
 
                             <div class="mt-3 text-start small">
-                                <div class="mb-2"><i class="fa-solid fa-envelope me-2"></i><strong>Email:</strong> <?= h($usuario['email']) ?></div>
-                                <div class="mb-2"><i class="fa-solid fa-phone me-2"></i><strong>Teléfono:</strong> <?= h($usuario['telefono']) ?></div>
-                                <div class="mb-2"><i class="fa-solid fa-cake-candles me-2"></i><strong>Cumpleaños:</strong>
+                                <div class="mb-2">
+                                    <i class="fa-solid fa-envelope me-2"></i>
+                                    <strong>Email:</strong> <?= h($usuario['email']) ?>
+                                </div>
+                                <div class="mb-2">
+                                    <i class="fa-solid fa-phone me-2"></i>
+                                    <strong>Teléfono:</strong> <?= h($usuario['telefono']) ?>
+                                </div>
+                                <div class="mb-2">
+                                    <i class="fa-solid fa-cake-candles me-2"></i>
+                                    <strong>Cumpleaños:</strong>
                                     <?php if (!empty($usuario['fecha_nacimiento'])): ?>
                                         <?= fechaLatina($usuario['fecha_nacimiento']) ?>
                                         <?= $edad !== null ? " <span class=\"text-muted\">({$edad} años)</span>" : "" ?>
-                                    <?php else: ?><span class="text-muted">No especificado</span><?php endif; ?>
+                                    <?php else: ?>
+                                        <span class="text-muted">No especificado</span>
+                                    <?php endif; ?>
                                 </div>
                             </div>
                         </div>
@@ -245,14 +316,18 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
                 <!-- Columna derecha -->
                 <div class="col-lg-8">
                     <div class="card shadow-sm mb-3">
-                        <div class="card-header"><i class="fa-solid fa-map-location-dot me-2"></i> Zonas de trabajo</div>
+                        <div class="card-header">
+                            <i class="fa-solid fa-map-location-dot me-2"></i> Zonas de trabajo
+                        </div>
                         <div class="card-body">
                             <?php if (empty($zonas)): ?>
                                 <span class="text-muted">Sin zonas registradas.</span>
                             <?php else: ?>
                                 <div class="d-flex flex-wrap gap-2">
                                     <?php foreach ($zonas as $z): ?>
-                                        <span class="badge bg-success-subtle text-success-emphasis"><?= htmlspecialchars($z) ?></span>
+                                        <span class="badge bg-success-subtle text-success-emphasis">
+                                            <?= htmlspecialchars($z) ?>
+                                        </span>
                                     <?php endforeach; ?>
                                 </div>
                             <?php endif; ?>
@@ -260,10 +335,14 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
                     </div>
 
                     <div class="card shadow-sm">
-                        <div class="card-header"><i class="fa-solid fa-briefcase me-2"></i> Experiencia</div>
+                        <div class="card-header">
+                            <i class="fa-solid fa-briefcase me-2"></i> Experiencia
+                        </div>
                         <div class="card-body">
                             <?php if (!empty($usuario['experiencia'])): ?>
-                                <div class="text-muted" style="white-space: pre-wrap;"><?= htmlspecialchars($usuario['experiencia']) ?></div>
+                                <div class="text-muted" style="white-space: pre-wrap;">
+                                    <?= htmlspecialchars($usuario['experiencia']) ?>
+                                </div>
                             <?php else: ?>
                                 <span class="text-muted">No especificada.</span>
                             <?php endif; ?>
@@ -275,7 +354,19 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
     </div>
 
     <footer>© <?= date('Y') ?> Jaguata — Todos los derechos reservados.</footer>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Toggle sidebar en mobile
+        const toggle = document.getElementById('menuToggle');
+        const sidebar = document.getElementById('sidebar'); // id en SidebarPaseador.php
+
+        if (toggle && sidebar) {
+            toggle.addEventListener('click', () => {
+                sidebar.classList.toggle('show');
+            });
+        }
+    </script>
 </body>
 
 </html>

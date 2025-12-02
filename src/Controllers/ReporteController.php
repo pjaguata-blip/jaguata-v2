@@ -22,71 +22,152 @@ class ReporteController
     {
         try {
             // Total de usuarios
-            $usuariosTotal = (int)$this->db->query("SELECT COUNT(*) FROM usuarios")->fetchColumn();
+            $usuariosTotal = (int)$this->db->query("
+                SELECT COUNT(*) FROM usuarios
+            ")->fetchColumn();
 
             // Total de paseos
-            $paseosTotal = (int)$this->db->query("SELECT COUNT(*) FROM paseos")->fetchColumn();
+            $paseosTotal = (int)$this->db->query("
+                SELECT COUNT(*) FROM paseos
+            ")->fetchColumn();
 
-            // Paseos completados
-            $paseosCompletos = (int)$this->db->query("SELECT COUNT(*) FROM paseos WHERE estado = 'completo'")->fetchColumn();
+            // Paseos completados (completo / finalizado)
+            $paseosCompletos = (int)$this->db->query("
+                SELECT COUNT(*) 
+                FROM paseos 
+                WHERE estado IN ('completo', 'finalizado')
+            ")->fetchColumn();
 
             // Paseos pendientes
-            $paseosPendientes = (int)$this->db->query("SELECT COUNT(*) FROM paseos WHERE estado IN ('solicitado', 'confirmado', 'en_curso')")->fetchColumn();
+            $paseosPendientes = (int)$this->db->query("
+                SELECT COUNT(*) 
+                FROM paseos 
+                WHERE estado IN ('pendiente', 'solicitado', 'confirmado', 'en_curso')
+            ")->fetchColumn();
 
-            // Ingresos totales (suma de precio_total de paseos completados)
-            $ingresosTotales = (float)$this->db->query("SELECT COALESCE(SUM(precio_total), 0) FROM paseos WHERE estado = 'completo'")->fetchColumn();
+            // Ingresos totales (suma precio_total de paseos completados)
+            $ingresosTotales = (float)$this->db->query("
+                SELECT COALESCE(SUM(precio_total), 0) 
+                FROM paseos 
+                WHERE estado IN ('completo', 'finalizado')
+            ")->fetchColumn();
 
             // Usuarios por rol
             $roles = [];
-            $stmtRoles = $this->db->query("SELECT rol, COUNT(*) AS total FROM usuarios GROUP BY rol");
+            $stmtRoles = $this->db->query("
+                SELECT rol, COUNT(*) AS total 
+                FROM usuarios 
+                GROUP BY rol
+            ");
             foreach ($stmtRoles->fetchAll(PDO::FETCH_ASSOC) as $r) {
                 $roles[$r['rol']] = (int)$r['total'];
             }
+
+            // 🔤 Traducciones EN -> ES
+            $diasMap = [
+                'Mon' => 'Lun',
+                'Tue' => 'Mar',
+                'Wed' => 'Mié',
+                'Thu' => 'Jue',
+                'Fri' => 'Vie',
+                'Sat' => 'Sáb',
+                'Sun' => 'Dom',
+            ];
+
+            $mesesMap = [
+                'Jan' => 'Ene',
+                'Feb' => 'Feb',
+                'Mar' => 'Mar',
+                'Apr' => 'Abr',
+                'May' => 'May',
+                'Jun' => 'Jun',
+                'Jul' => 'Jul',
+                'Aug' => 'Ago',
+                'Sep' => 'Sep',
+                'Oct' => 'Oct',
+                'Nov' => 'Nov',
+                'Dec' => 'Dic',
+            ];
 
             // Paseos por día (últimos 7 días)
             $paseosPorDia = [];
             $stmtDias = $this->db->query("
                 SELECT 
-                    DATE_FORMAT(inicio, '%a') AS dia,
+                    DATE(inicio) AS fecha,
+                    DATE_FORMAT(inicio, '%a') AS dia_en,
                     COUNT(*) AS total
                 FROM paseos
                 WHERE inicio >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
-                GROUP BY DATE_FORMAT(inicio, '%a')
-                ORDER BY DATE(inicio)
+                GROUP BY DATE(inicio), DATE_FORMAT(inicio, '%a')
+                ORDER BY fecha
             ");
             foreach ($stmtDias->fetchAll(PDO::FETCH_ASSOC) as $d) {
-                $paseosPorDia[$d['dia']] = (int)$d['total'];
+                $diaEn = $d['dia_en'];
+                $diaEs = $diasMap[$diaEn] ?? $diaEn;
+                $paseosPorDia[$diaEs] = (int)$d['total'];
             }
 
             // Ingresos por mes (últimos 6 meses)
             $ingresosPorMes = [];
             $stmtMes = $this->db->query("
                 SELECT 
-                    DATE_FORMAT(inicio, '%b') AS mes,
+                    DATE_FORMAT(inicio, '%b') AS mes_en,
+                    MIN(inicio) AS fecha_ref,
                     SUM(precio_total) AS total
                 FROM paseos
-                WHERE estado = 'completo'
+                WHERE estado IN ('completo', 'finalizado')
                 AND inicio >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
                 GROUP BY DATE_FORMAT(inicio, '%b')
-                ORDER BY MIN(inicio)
+                ORDER BY fecha_ref
             ");
             foreach ($stmtMes->fetchAll(PDO::FETCH_ASSOC) as $m) {
-                $ingresosPorMes[$m['mes']] = (float)$m['total'];
+                $mesEn = $m['mes_en'];
+                $mesEs = $mesesMap[$mesEn] ?? $mesEn;
+                $ingresosPorMes[$mesEs] = (float)$m['total'];
+            }
+
+            // 💰 Ingresos por paseador (para el nuevo gráfico)
+            // Ajustá "paseador_id" si tu columna tiene otro nombre
+            $ingresosPorPaseador = [];
+            $stmtPaseadores = $this->db->query("
+                SELECT 
+                    u.nombre AS paseador,
+                    COALESCE(SUM(p.precio_total), 0) AS total
+                FROM paseos p
+                JOIN usuarios u ON u.usu_id = p.paseador_id
+                WHERE p.estado IN ('completo', 'finalizado')
+                GROUP BY u.nombre
+                ORDER BY total DESC
+            ");
+            foreach ($stmtPaseadores->fetchAll(PDO::FETCH_ASSOC) as $row) {
+                $ingresosPorPaseador[$row['paseador']] = (float)$row['total'];
             }
 
             return [
-                'usuarios' => $usuariosTotal,
-                'paseos_total' => $paseosTotal,
-                'paseos_completos' => $paseosCompletos,
-                'paseos_pendientes' => $paseosPendientes,
-                'ingresos_totales' => $ingresosTotales,
-                'roles' => $roles,
-                'paseos_por_dia' => $paseosPorDia,
-                'ingresos_por_mes' => $ingresosPorMes
+                'usuarios'               => $usuariosTotal,
+                'paseos_total'           => $paseosTotal,
+                'paseos_completos'       => $paseosCompletos,
+                'paseos_pendientes'      => $paseosPendientes,
+                'ingresos_totales'       => $ingresosTotales,
+                'roles'                  => $roles,
+                'paseos_por_dia'         => $paseosPorDia,
+                'ingresos_por_mes'       => $ingresosPorMes,
+                'ingresos_por_paseador'  => $ingresosPorPaseador,
             ];
         } catch (PDOException $e) {
             error_log("❌ Error en ReporteController::getEstadisticas(): " . $e->getMessage());
-            return ['error' => 'Error al obtener estadísticas'];
+            return [
+                'usuarios'               => 0,
+                'paseos_total'           => 0,
+                'paseos_completos'       => 0,
+                'paseos_pendientes'      => 0,
+                'ingresos_totales'       => 0,
+                'roles'                  => [],
+                'paseos_por_dia'         => [],
+                'ingresos_por_mes'       => [],
+                'ingresos_por_paseador'  => [],
+                'error'                  => 'Error al obtener estadísticas',
+            ];
         }
     }
 }

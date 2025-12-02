@@ -7,286 +7,419 @@ require_once dirname(__DIR__, 2) . '/src/Helpers/Session.php';
 require_once dirname(__DIR__, 2) . '/src/Controllers/UsuarioController.php';
 require_once dirname(__DIR__, 2) . '/src/Controllers/PaseoController.php';
 require_once dirname(__DIR__, 2) . '/src/Controllers/MascotaController.php';
+require_once dirname(__DIR__, 2) . '/src/Controllers/ReporteController.php';
 
 use Jaguata\Config\AppConfig;
 use Jaguata\Helpers\Session;
 use Jaguata\Controllers\UsuarioController;
 use Jaguata\Controllers\PaseoController;
 use Jaguata\Controllers\MascotaController;
+use Jaguata\Controllers\ReporteController;
 
 AppConfig::init();
 
 // 🔒 Autenticación
 if (!Session::isLoggedIn()) {
-    header('Location: /jaguata/public/login.php');
+    header('Location: ' . BASE_URL . '/public/login.php');
     exit;
 }
 if (Session::getUsuarioRol() !== 'admin') {
-    header('Location: /jaguata/public/login.php?error=unauthorized');
+    header('Location: ' . BASE_URL . '/public/login.php?error=unauthorized');
     exit;
 }
 
-// Controladores
+// Controladores base
 $usuarioController = new UsuarioController();
 $paseoController   = new PaseoController();
 $mascotaController = new MascotaController();
 
-// Datos
+// Datos base
 $usuarios = $usuarioController->index() ?: [];
 $paseos   = $paseoController->index() ?: [];
 $mascotas = $mascotaController->index() ?: [];
 
-// Métricas
+// Métricas base
 $totalUsuarios   = count($usuarios);
 $totalPaseos     = count($paseos);
 $totalMascotas   = count($mascotas);
-$paseosActivos   = array_filter($paseos, fn($p) => in_array(strtolower($p['estado'] ?? ''), ['activo', 'pendiente']));
-$paseosCompletos = array_filter($paseos, fn($p) => strtolower($p['estado'] ?? '') === 'completo');
+$paseosActivos   = array_filter($paseos, fn($p) => in_array(strtolower($p['estado'] ?? ''), ['pendiente', 'solicitado', 'confirmado', 'en_curso']));
+$paseosCompletos = array_filter($paseos, fn($p) => in_array(strtolower($p['estado'] ?? ''), ['completo', 'finalizado']));
 $totalPagosPend  = count(array_filter($paseos, fn($p) => strtolower($p['estado_pago'] ?? '') === 'pendiente'));
 $totalPagosReal  = count(array_filter($paseos, fn($p) => strtolower($p['estado_pago'] ?? '') === 'pagado'));
 
-// Datos simulados
-$totalServicios      = 4;
+// Dummy extras (si querés, los cambiamos después)
 $totalNotificaciones = 5;
 $totalRoles          = 3;
 $totalMensajes       = 12;
-$totalTickets        = 2; // soporte pendiente
+$totalTickets        = 2;
+
+// =============================
+//   REPORTES (ReporteController)
+// =============================
+$reporteController = new ReporteController();
+$estadisticas = $reporteController->getEstadisticas();
+
+// Merge con valores por defecto
+$estadisticas = array_merge([
+    'usuarios'              => $totalUsuarios,
+    'paseos_total'          => $totalPaseos,
+    'paseos_completos'      => count($paseosCompletos),
+    'paseos_pendientes'     => $totalPaseos - count($paseosCompletos),
+    'ingresos_totales'      => 0,
+    'roles'                 => [],
+    'paseos_por_dia'        => [],
+    'ingresos_por_mes'      => [],
+    'ingresos_por_paseador' => [],
+], $estadisticas);
+
 ?>
 <!DOCTYPE html>
 <html lang="es">
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Panel de Administración - Jaguata</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Estilos -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
-    <style>
-        :root {
-            --verde-jaguata: #3c6255;
-            --verde-claro: #20c997;
-            --gris-fondo: #f4f6f9;
-            --gris-texto: #555;
-            --blanco: #fff;
-        }
+    <link href="<?= BASE_URL; ?>/public/assets/css/jaguata-theme.css" rel="stylesheet">
 
-        body {
-            font-family: "Poppins", sans-serif;
-            background-color: var(--gris-fondo);
-            color: var(--gris-texto);
-        }
-
-        /* Sidebar */
-        .sidebar {
-            background: linear-gradient(180deg, #1e1e2f 0%, #292a3a 100%);
-            color: var(--blanco);
-            width: 250px;
-            height: 100vh;
-            position: fixed;
-            top: 0;
-            left: 0;
-            padding-top: 1.5rem;
-            box-shadow: 3px 0 10px rgba(0, 0, 0, 0.2);
-        }
-
-        .sidebar .nav-link {
-            color: #ccc;
-            display: flex;
-            align-items: center;
-            gap: .8rem;
-            padding: 12px 18px;
-            border-radius: 8px;
-            margin: 6px 10px;
-            transition: all .2s ease;
-            font-size: 0.95rem;
-        }
-
-        .sidebar .nav-link:hover,
-        .sidebar .nav-link.active {
-            background: var(--verde-claro);
-            color: var(--blanco);
-            transform: translateX(4px);
-        }
-
-        /* Main layout */
-        main {
-            margin-left: 250px;
-            padding: 2rem;
-        }
-
-        .welcome-box {
-            background: linear-gradient(90deg, var(--verde-claro), var(--verde-jaguata));
-            color: var(--blanco);
-            padding: 1.8rem 2rem;
-            border-radius: 16px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 2rem;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-        }
-
-        .stat-card {
-            background: var(--blanco);
-            border-radius: 14px;
-            text-align: center;
-            padding: 1.5rem 1rem;
-            box-shadow: 0 3px 15px rgba(0, 0, 0, 0.08);
-            transition: transform 0.2s;
-        }
-
-        .stat-card:hover {
-            transform: translateY(-5px);
-        }
-
-        .stat-card i {
-            font-size: 2rem;
-            margin-bottom: .5rem;
-        }
-
-        .chart-container {
-            position: relative;
-            height: 300px;
-        }
-
-        footer {
-            text-align: center;
-            padding: 1rem;
-            color: #777;
-            font-size: 0.9rem;
-            margin-top: 3rem;
-        }
-    </style>
+    <!-- Charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
 <body>
     <?php include __DIR__ . '/../../src/Templates/SidebarAdmin.php'; ?>
 
-    <!-- Contenido -->
     <main>
-        <div class="welcome-box">
+        <!-- HEADER PRINCIPAL -->
+        <div class="header-box header-dashboard">
             <div>
                 <h1 class="fw-bold">Panel de Administración</h1>
-                <p>Bienvenido, <?= htmlspecialchars(Session::getUsuarioNombre() ?? 'Administrador'); ?> 👋</p>
+                <p class="mb-0">Bienvenido, <?= htmlspecialchars(Session::getUsuarioNombre() ?? 'Administrador'); ?> 👋</p>
             </div>
             <i class="fas fa-user-shield fa-3x opacity-75"></i>
         </div>
 
-        <!-- Métricas -->
+        <!-- ========== BLOQUE 1: MÉTRICAS GENERALES ========== -->
         <div class="row g-3 mb-4">
             <div class="col-md-3">
-                <div class="stat-card"><i class="fas fa-users text-primary"></i>
+                <div class="stat-card">
+                    <i class="fas fa-users text-primary"></i>
                     <h4><?= $totalUsuarios ?></h4>
-                    <p>Usuarios</p>
+                    <p>Usuarios registrados</p>
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="stat-card"><i class="fas fa-dog text-success"></i>
+                <div class="stat-card">
+                    <i class="fas fa-dog text-success"></i>
                     <h4><?= $totalMascotas ?></h4>
-                    <p>Mascotas</p>
+                    <p>Mascotas registradas</p>
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="stat-card"><i class="fas fa-walking text-warning"></i>
-                    <h4><?= count($paseosActivos) ?></h4>
-                    <p>Paseos activos</p>
+                <div class="stat-card">
+                    <i class="fas fa-walking text-warning"></i>
+                    <h4><?= $totalPaseos ?></h4>
+                    <p>Paseos totales</p>
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="stat-card"><i class="fas fa-check-circle text-info"></i>
-                    <h4><?= count($paseosCompletos) ?></h4>
-                    <p>Paseos completados</p>
+                <div class="stat-card">
+                    <i class="fas fa-wallet text-info"></i>
+                    <h4>₲<?= number_format((float)$estadisticas['ingresos_totales'], 0, ',', '.') ?></h4>
+                    <p>Ingresos totales</p>
                 </div>
             </div>
         </div>
 
+        <!-- ========== BLOQUE 2: ESTADO DEL SISTEMA ========== -->
         <div class="row g-3 mb-4">
             <div class="col-md-3">
-                <div class="stat-card"><i class="fas fa-wallet text-success"></i>
+                <div class="stat-card">
+                    <i class="fas fa-check-circle text-success"></i>
+                    <h4><?= (int)$estadisticas['paseos_completos'] ?></h4>
+                    <p>Paseos completados</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <i class="fas fa-hourglass-half text-warning"></i>
+                    <h4><?= (int)$estadisticas['paseos_pendientes'] ?></h4>
+                    <p>Paseos pendientes</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <i class="fas fa-money-check-alt text-success"></i>
                     <h4><?= $totalPagosReal ?></h4>
                     <p>Pagos realizados</p>
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="stat-card"><i class="fas fa-hourglass-half text-danger"></i>
+                <div class="stat-card">
+                    <i class="fas fa-hourglass text-danger"></i>
                     <h4><?= $totalPagosPend ?></h4>
                     <p>Pagos pendientes</p>
                 </div>
             </div>
-            <div class="col-md-3">
-                <div class="stat-card"><i class="fas fa-comments text-secondary"></i>
-                    <h4><?= $totalMensajes ?></h4>
-                    <p>Mensajes</p>
+        </div>
+
+        <!-- ========== BLOQUE 3: FILTROS DE REPORTES ========== -->
+        <div class="filtros mb-4">
+            <form class="row g-3 align-items-end">
+                <div class="col-md-5">
+                    <label class="form-label">Buscar</label>
+                    <input type="text" id="searchReportInput"
+                        class="form-control"
+                        placeholder="Escribí: usuarios, paseos, ingresos...">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Mostrar gráfico de</label>
+                    <select id="filterGrafico" class="form-select">
+                        <option value="todos">Todos</option>
+                        <option value="dia">Paseos por día</option>
+                        <option value="mes">Ingresos por mes</option>
+                        <option value="roles">Usuarios por rol</option>
+                        <option value="paseadores">Ingresos por paseador</option>
+                        <option value="resumen">Resumen general</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Fecha desde</label>
+                    <input type="date" class="form-control">
+                </div>
+            </form>
+        </div>
+
+
+
+        <!-- ========== BLOQUE 5: GRÁFICOS ========== -->
+        <div class="row" id="chartGroup">
+            <!-- Paseos por día -->
+            <div class="col-lg-6 mb-4 chart-item" data-type="dia">
+                <div class="card p-4 shadow-sm h-100">
+                    <h5 class="mb-3">
+                        <i class="fas fa-chart-bar me-2"></i>Paseos por día
+                    </h5>
+                    <canvas id="chartPaseosPorDia"></canvas>
                 </div>
             </div>
-            <div class="col-md-3">
-                <div class="stat-card"><i class="fas fa-headset text-primary"></i>
-                    <h4><?= $totalTickets ?></h4>
-                    <p>Soporte</p>
+
+            <!-- Ingresos por mes -->
+            <div class="col-lg-6 mb-4 chart-item" data-type="mes">
+                <div class="card p-4 shadow-sm h-100">
+                    <h5 class="mb-3">
+                        <i class="fas fa-chart-line me-2"></i>Ingresos por mes
+                    </h5>
+                    <canvas id="chartIngresosMes"></canvas>
+                </div>
+            </div>
+
+            <!-- Usuarios por rol -->
+            <div class="col-lg-6 mb-4 chart-item" data-type="roles">
+                <div class="card p-4 shadow-sm h-100">
+                    <h5 class="mb-3">
+                        <i class="fas fa-user-group me-2"></i>Usuarios por rol
+                    </h5>
+                    <canvas id="chartRoles"></canvas>
+                </div>
+            </div>
+
+            <!-- Ingresos por paseador -->
+            <div class="col-lg-6 mb-4 chart-item" data-type="paseadores">
+                <div class="card p-4 shadow-sm h-100">
+                    <h5 class="mb-3">
+                        <i class="fas fa-user-tie me-2"></i>Ingresos por paseador
+                    </h5>
+                    <canvas id="chartPaseadores"></canvas>
+                    <p class="text-muted small mt-2 mb-0">
+                        Mostrando distribución porcentual de ingresos entre paseadores.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Resumen general -->
+            <div class="col-lg-6 mb-4 chart-item" data-type="resumen">
+                <div class="card p-4 shadow-sm h-100">
+                    <h5 class="mb-3">
+                        <i class="fas fa-table me-2"></i>Resumen general
+                    </h5>
+                    <table class="table table-sm table-striped">
+                        <thead class="table-success">
+                            <tr>
+                                <th>Concepto</th>
+                                <th>Cantidad</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Usuarios totales</td>
+                                <td><?= (int)$estadisticas['usuarios'] ?></td>
+                            </tr>
+                            <tr>
+                                <td>Paseos totales</td>
+                                <td><?= (int)$estadisticas['paseos_total'] ?></td>
+                            </tr>
+                            <tr>
+                                <td>Paseos completados</td>
+                                <td><?= (int)$estadisticas['paseos_completos'] ?></td>
+                            </tr>
+                            <tr>
+                                <td>Paseos pendientes</td>
+                                <td><?= (int)$estadisticas['paseos_pendientes'] ?></td>
+                            </tr>
+                            <tr>
+                                <td>Ingresos totales</td>
+                                <td>₲<?= number_format((float)$estadisticas['ingresos_totales'], 0, ',', '.') ?></td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
 
-        <div class="row g-3 mb-4">
-            <div class="col-md-4">
-                <div class="stat-card"><i class="fas fa-bell text-warning"></i>
-                    <h4><?= $totalNotificaciones ?></h4>
-                    <p>Notificaciones</p>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="stat-card"><i class="fas fa-briefcase text-dark"></i>
-                    <h4><?= $totalServicios ?></h4>
-                    <p>Servicios activos</p>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="stat-card"><i class="fas fa-user-lock text-dark"></i>
-                    <h4><?= $totalRoles ?></h4>
-                    <p>Roles del sistema</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Gráfico -->
-        <div class="card p-4 shadow-sm mt-4">
-            <h5 class="mb-3 text-success fw-bold"><i class="fas fa-chart-line me-2"></i>Estadísticas Semanales</h5>
-            <div class="chart-container"><canvas id="chartPaseos"></canvas></div>
-        </div>
-
-        <footer><small>© <?= date('Y') ?> Jaguata — Panel de Administración</small></footer>
+        <footer>
+            <small>© <?= date('Y') ?> Jaguata — Panel de Administración</small>
+        </footer>
     </main>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- JS Bootstrap -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Charts -->
     <script>
-        const ctx = document.getElementById('chartPaseos');
-        new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
-                datasets: [{
-                    label: 'Paseos por día',
-                    data: [12, 19, 8, 17, 14, 10, 6],
-                    backgroundColor: 'rgba(32,201,151,0.25)',
-                    borderColor: '#3c6255',
-                    fill: true,
-                    tension: 0.4
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: {
-                        display: false
-                    }
+        const paseosPorDiaLabels = <?= json_encode(array_values(array_keys($estadisticas['paseos_por_dia'])), JSON_UNESCAPED_UNICODE); ?>;
+        const paseosPorDiaData = <?= json_encode(array_values($estadisticas['paseos_por_dia']), JSON_UNESCAPED_UNICODE); ?>;
+
+        const ingresosMesLabels = <?= json_encode(array_values(array_keys($estadisticas['ingresos_por_mes'])), JSON_UNESCAPED_UNICODE); ?>;
+        const ingresosMesData = <?= json_encode(array_values($estadisticas['ingresos_por_mes']), JSON_UNESCAPED_UNICODE); ?>;
+
+        const rolesLabels = <?= json_encode(array_values(array_keys($estadisticas['roles'])), JSON_UNESCAPED_UNICODE); ?>;
+        const rolesData = <?= json_encode(array_values($estadisticas['roles']), JSON_UNESCAPED_UNICODE); ?>;
+
+        const paseadoresLabels = <?= json_encode(array_values(array_keys($estadisticas['ingresos_por_paseador'])), JSON_UNESCAPED_UNICODE); ?>;
+        const paseadoresData = <?= json_encode(array_values($estadisticas['ingresos_por_paseador']), JSON_UNESCAPED_UNICODE); ?>;
+
+        // Paseos por día
+        if (document.getElementById('chartPaseosPorDia')) {
+            new Chart(document.getElementById('chartPaseosPorDia'), {
+                type: 'bar',
+                data: {
+                    labels: paseosPorDiaLabels,
+                    datasets: [{
+                        label: 'Paseos',
+                        data: paseosPorDiaData,
+                        backgroundColor: '#3c6255',
+                        borderRadius: 5
+                    }]
                 },
-                scales: {
-                    y: {
-                        beginAtZero: true
+                options: {
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
                     }
                 }
-            }
-        });
+            });
+        }
+
+        // Ingresos por mes
+        if (document.getElementById('chartIngresosMes')) {
+            new Chart(document.getElementById('chartIngresosMes'), {
+                type: 'line',
+                data: {
+                    labels: ingresosMesLabels,
+                    datasets: [{
+                        label: 'Ingresos (₲)',
+                        data: ingresosMesData,
+                        borderColor: '#20c997',
+                        backgroundColor: 'rgba(32,201,151,0.25)',
+                        tension: 0.3,
+                        fill: true
+                    }]
+                },
+                options: {
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+
+        // Usuarios por rol
+        if (document.getElementById('chartRoles')) {
+            new Chart(document.getElementById('chartRoles'), {
+                type: 'doughnut',
+                data: {
+                    labels: rolesLabels,
+                    datasets: [{
+                        data: rolesData,
+                        backgroundColor: ['#3c6255', '#20c997', '#f6c23e', '#ff7f50', '#6c757d']
+                    }]
+                }
+            });
+        }
+
+        // Ingresos por paseador (doughnut con %)
+        if (document.getElementById('chartPaseadores')) {
+            const totalIngresosPaseadores = paseadoresData.reduce((a, b) => a + Number(b), 0);
+
+            new Chart(document.getElementById('chartPaseadores'), {
+                type: 'doughnut',
+                data: {
+                    labels: paseadoresLabels,
+                    datasets: [{
+                        data: paseadoresData,
+                        backgroundColor: ['#3c6255', '#20c997', '#f6c23e', '#ff7f50', '#6c757d', '#0d6efd', '#198754']
+                    }]
+                },
+                options: {
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(ctx) {
+                                    const valor = ctx.parsed;
+                                    const porcentaje = totalIngresosPaseadores > 0 ?
+                                        ((valor / totalIngresosPaseadores) * 100).toFixed(1) :
+                                        0;
+                                    const label = ctx.label || '';
+                                    return `${label}: ₲${valor.toLocaleString('es-PY')} (${porcentaje}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Filtros de gráficos
+        const searchReportInput = document.getElementById('searchReportInput');
+        const filterGrafico = document.getElementById('filterGrafico');
+        const chartItems = document.querySelectorAll('.chart-item');
+
+        if (filterGrafico) {
+            filterGrafico.addEventListener('change', () => {
+                const val = filterGrafico.value;
+                chartItems.forEach(c => {
+                    c.style.display = (val === 'todos' || c.dataset.type === val) ? '' : 'none';
+                });
+            });
+        }
+
+        if (searchReportInput) {
+            searchReportInput.addEventListener('input', () => {
+                const text = searchReportInput.value.toLowerCase();
+                chartItems.forEach(c => {
+                    const visible = c.textContent.toLowerCase().includes(text);
+                    c.style.display = visible ? '' : 'none';
+                });
+            });
+        }
     </script>
 </body>
 

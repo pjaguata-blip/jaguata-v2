@@ -4,7 +4,7 @@ namespace Jaguata\Helpers;
 
 class Session
 {
-    /** Asegura que la sesión esté iniciada con el nombre correcto */
+    /** Inicia la sesión con el nombre adecuado */
     private static function start(): void
     {
         if (session_status() === PHP_SESSION_NONE) {
@@ -13,85 +13,76 @@ class Session
         }
     }
 
+    // ==========
+    // LOGIN / LOGOUT
+    // ==========
+
     public static function login(array $usuario): void
     {
         self::start();
-        $_SESSION['usuario_id']   = $usuario['usu_id'] ?? null;
-        $_SESSION['nombre']       = $usuario['nombre'] ?? '';
-        $_SESSION['email']        = $usuario['email'] ?? '';
-        $_SESSION['rol']          = strtolower($usuario['rol'] ?? 'dueno'); // 🔹 agregado strtolower
-        $_SESSION['usuario_tipo'] = strtolower($usuario['rol'] ?? 'dueno');
+
+        $_SESSION['usuario_id']   = $usuario['usu_id']   ?? null;
+        $_SESSION['usuario_nombre'] = $usuario['nombre'] ?? null;
+        $_SESSION['usuario_email']  = $usuario['email']  ?? null;
+        $_SESSION['usuario_rol']    = $usuario['rol']    ?? null;
     }
 
-    /** Cierra la sesión limpiando variables, cookie e ID de sesión */
     public static function logout(): void
     {
         self::start();
-
         $_SESSION = [];
-
         if (ini_get('session.use_cookies')) {
-            $p = session_get_cookie_params();
-            setcookie(session_name(), '', time() - 42000, $p['path'] ?? '/', $p['domain'] ?? '', $p['secure'] ?? false, $p['httponly'] ?? true);
+            $params = session_get_cookie_params();
+            setcookie(
+                session_name(),
+                '',
+                time() - 42000,
+                $params['path'],
+                $params['domain'],
+                $params['secure'],
+                $params['httponly']
+            );
         }
-
         session_destroy();
-
-        // sesión limpia para evitar reutilización de ID
-        session_start();
-        session_regenerate_id(true);
-        $_SESSION = [];
     }
 
     public static function isLoggedIn(): bool
     {
         self::start();
-        return isset($_SESSION['usuario_id']);
+        return !empty($_SESSION['usuario_id']);
     }
 
-    public static function getUsuarioRol(): ?string
-    {
-        self::start();
-        return $_SESSION['rol'] ?? null;
-    }
+    // ==========
+    // GETTERS
+    // ==========
 
-    public static function getUsuarioRolSeguro(): ?string
+    public static function getUsuarioId(): ?int
     {
         self::start();
-        $rol = $_SESSION['rol'] ?? null;
-        return ($rol && in_array($rol, ['dueno', 'paseador'], true)) ? $rol : null;
+        return isset($_SESSION['usuario_id']) ? (int)$_SESSION['usuario_id'] : null;
     }
 
     public static function getUsuarioNombre(): ?string
     {
         self::start();
-        return $_SESSION['nombre'] ?? null;
+        return $_SESSION['usuario_nombre'] ?? null;
     }
 
-    /** ✅ Nuevo método: obtener email del usuario logueado */
     public static function getUsuarioEmail(): ?string
     {
         self::start();
-        return $_SESSION['email'] ?? null;
+        return $_SESSION['usuario_email'] ?? null;
     }
 
-    public static function getUsuarioId(): ?int
+    public static function getUsuarioRol(): ?string
     {
         self::start();
-        return $_SESSION['usuario_id'] ?? null;
+        return $_SESSION['usuario_rol'] ?? null;
     }
 
-    public static function get(string $key, mixed $default = null): mixed
-    {
-        self::start();
-        return $_SESSION[$key] ?? $default;
-    }
-
-    public static function set(string $key, mixed $value): void
-    {
-        self::start();
-        $_SESSION[$key] = $value;
-    }
+    // ==========
+    // FLASH / MENSAJES
+    // ==========
 
     public static function setFlash(string $key, string $message): void
     {
@@ -102,25 +93,17 @@ class Session
     public static function getFlash(string $key): ?string
     {
         self::start();
-        if (isset($_SESSION['flash'][$key])) {
-            $msg = $_SESSION['flash'][$key];
-            unset($_SESSION['flash'][$key]);
-            return $msg;
+        if (!isset($_SESSION['flash'][$key])) {
+            return null;
         }
-        return null;
+        $msg = $_SESSION['flash'][$key];
+        unset($_SESSION['flash'][$key]);
+        return $msg;
     }
 
-    public static function getFlashMessages(): array
+    public static function setError(string $message): void
     {
-        self::start();
-        $messages = $_SESSION['flash'] ?? [];
-        unset($_SESSION['flash']);
-        return $messages;
-    }
-
-    public static function setError(string $mensaje): void
-    {
-        self::setFlash('error', $mensaje);
+        self::setFlash('error', $message);
     }
 
     public static function getError(): ?string
@@ -128,9 +111,9 @@ class Session
         return self::getFlash('error');
     }
 
-    public static function setSuccess(string $mensaje): void
+    public static function setSuccess(string $message): void
     {
-        self::setFlash('success', $mensaje);
+        self::setFlash('success', $message);
     }
 
     public static function getSuccess(): ?string

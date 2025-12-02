@@ -21,13 +21,13 @@ $auth = new AuthController();
 $auth->checkRole('paseador');
 
 // ==== Datos del usuario logueado ====
-$usuario = Session::get('usuario') ?? [];
+$usuario       = Session::get('usuario') ?? [];
 $usuarioNombre = htmlspecialchars($usuario['nombre'] ?? 'Paseador');
-$paseadorId = (int)($usuario['usu_id'] ?? Session::get('usuario_id') ?? 0);
+$paseadorId    = (int)($usuario['usu_id'] ?? Session::get('usuario_id') ?? 0);
 
 // ==== Controlador ====
 $paseoController = new PaseoController();
-$paseos = $paseoController->indexForPaseador($paseadorId);
+$paseos          = $paseoController->indexForPaseador($paseadorId);
 
 // ==== Si no hay paseos ====
 if (empty($paseos)) {
@@ -36,16 +36,16 @@ if (empty($paseos)) {
 
 // ==== Estadísticas ====
 $paseosCompletados = 0;
-$paseosCancelados = 0;
-$ingresosTotales = 0;
-$calificaciones = [];
-$porHora = [];
-$porSemana = [];
+$paseosCancelados  = 0;
+$ingresosTotales   = 0;
+$calificaciones    = [];
+$porHora           = [];
+$porSemana         = [];
 
 foreach ($paseos as $p) {
     $estado = strtolower($p['estado'] ?? '');
-    $fecha = isset($p['inicio']) ? new DateTime($p['inicio']) : null;
-    $hora = $fecha ? $fecha->format('H') . "h" : '—';
+    $fecha  = isset($p['inicio']) ? new DateTime($p['inicio']) : null;
+    $hora   = $fecha ? $fecha->format('H') . "h" : '—';
     $semana = $fecha ? "Semana " . $fecha->format('W') : '—';
 
     if ($estado === 'completo' || $estado === 'finalizado') {
@@ -55,25 +55,37 @@ foreach ($paseos as $p) {
         $paseosCancelados++;
     }
 
-    if ($hora !== '—') $porHora[$hora] = ($porHora[$hora] ?? 0) + 1;
-    if ($semana !== '—') $porSemana[$semana] = ($porSemana[$semana] ?? 0) + (float)($p['precio_total'] ?? 0);
-    if (isset($p['calificacion']) && is_numeric($p['calificacion'])) $calificaciones[] = (int)$p['calificacion'];
+    if ($hora !== '—') {
+        $porHora[$hora] = ($porHora[$hora] ?? 0) + 1;
+    }
+    if ($semana !== '—') {
+        $porSemana[$semana] = ($porSemana[$semana] ?? 0) + (float)($p['precio_total'] ?? 0);
+    }
+    if (isset($p['calificacion']) && is_numeric($p['calificacion'])) {
+        $calificaciones[] = (int)$p['calificacion'];
+    }
 }
 
-$promedioCalificacion = count($calificaciones) ? round(array_sum($calificaciones) / count($calificaciones), 1) : 0.0;
+$promedioCalificacion = count($calificaciones)
+    ? round(array_sum($calificaciones) / count($calificaciones), 1)
+    : 0.0;
 
 $cantPorEstrella = [5 => 0, 4 => 0, 3 => 0, 2 => 0, 1 => 0];
-foreach ($calificaciones as $c) if (isset($cantPorEstrella[$c])) $cantPorEstrella[$c]++;
+foreach ($calificaciones as $c) {
+    if (isset($cantPorEstrella[$c])) {
+        $cantPorEstrella[$c]++;
+    }
+}
 
 ksort($porHora);
 ksort($porSemana);
 
-$horas = array_keys($porHora);
-$cantidadPorHora = array_values($porHora);
-$estrellas = array_keys($cantPorEstrella);
+$horas              = array_keys($porHora);
+$cantidadPorHora    = array_values($porHora);
+$estrellas          = array_keys($cantPorEstrella);
 $cantidadesEstrellas = array_values($cantPorEstrella);
-$semanas = array_keys($porSemana);
-$ingresosPorSemana = array_values($porSemana);
+$semanas            = array_keys($porSemana);
+$ingresosPorSemana  = array_values($porSemana);
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -82,16 +94,27 @@ $ingresosPorSemana = array_values($porSemana);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Estadísticas - Paseador | Jaguata</title>
-    <link href="<?= ASSETS_URL; ?>/css/jaguata-theme.css" rel="stylesheet">
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+
     <style>
+        :root {
+            --verde-jaguata: #3c6255;
+            --verde-claro: #20c997;
+            --gris-fondo: #f4f6f9;
+            --gris-texto: #555;
+            --blanco: #fff;
+        }
+
         html,
         body {
             margin: 0;
             height: 100%;
-            background-color: #f6f9f7;
             font-family: "Poppins", sans-serif;
+            background-color: var(--gris-fondo);
+            color: var(--gris-texto);
         }
 
         .layout {
@@ -100,50 +123,85 @@ $ingresosPorSemana = array_values($porSemana);
             width: 100%;
         }
 
-        /* === SIDEBAR === */
+        /* === SIDEBAR (MISMO ESTILO DASHBOARD) === */
         .sidebar {
             background: linear-gradient(180deg, #1e1e2f 0%, #292a3a 100%);
-            color: #fff;
-            width: 240px;
+            color: var(--blanco);
+            width: 250px;
             flex-shrink: 0;
-            box-shadow: 4px 0 12px rgba(0, 0, 0, 0.15);
+            box-shadow: 3px 0 10px rgba(0, 0, 0, 0.2);
             padding-top: 1.5rem;
         }
 
         .sidebar .nav-link {
-            color: #ddd;
-            border-radius: 8px;
-            padding: 10px 16px;
-            margin: 4px 8px;
+            color: #ccc;
             display: flex;
             align-items: center;
-            font-weight: 500;
-            transition: all 0.2s ease-in-out;
+            gap: .8rem;
+            padding: 12px 18px;
+            border-radius: 8px;
+            margin: 6px 10px;
+            transition: all .2s ease;
+            font-size: 0.95rem;
         }
 
         .sidebar .nav-link:hover,
         .sidebar .nav-link.active {
-            background-color: #3c6255;
-            color: #fff;
+            background: var(--verde-claro);
+            color: var(--blanco);
+            transform: translateX(4px);
         }
 
         /* === CONTENIDO === */
         main.content {
             flex-grow: 1;
-            padding: 2.5rem;
-            background-color: #f6f9f7;
+            padding: 2rem;
+            background-color: var(--gris-fondo);
         }
 
+        /* Igual al “welcome-box” del dashboard */
         .page-header {
-            background: linear-gradient(90deg, #20c997, #3c6255);
+            background: linear-gradient(90deg, var(--verde-claro), var(--verde-jaguata));
             color: #fff;
-            padding: 1.4rem 2rem;
-            border-radius: 12px;
+            padding: 1.8rem 2rem;
+            border-radius: 16px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 2rem;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, .08);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, .1);
+        }
+
+        .page-header h2 {
+            margin: 0;
+            font-size: 1.6rem;
+            font-weight: 600;
+        }
+
+        /* === STAT CARDS IGUALES A DASHBOARD === */
+        .stat-card {
+            background: var(--blanco);
+            border-radius: 14px;
+            text-align: center;
+            padding: 1.5rem 1rem;
+            box-shadow: 0 3px 15px rgba(0, 0, 0, 0.08);
+            transition: transform 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-card h2,
+        .stat-card h3 {
+            margin: 0.25rem 0 0;
+            font-weight: 600;
+        }
+
+        .stat-card h6 {
+            margin: 0;
+            font-size: 0.9rem;
+            color: #777;
         }
 
         .card {
@@ -152,8 +210,12 @@ $ingresosPorSemana = array_values($porSemana);
             box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
         }
 
+        .card h6 {
+            font-weight: 600;
+        }
+
         footer {
-            background-color: #3c6255;
+            background-color: var(--verde-jaguata);
             color: #fff;
             text-align: center;
             padding: 1.2rem 0;
@@ -172,32 +234,34 @@ $ingresosPorSemana = array_values($porSemana);
         <!-- CONTENIDO PRINCIPAL -->
         <main class="content">
             <div class="page-header">
-                <h2><i class="fas fa-chart-line me-2"></i> Estadísticas del Paseador</h2>
-                <a href="Dashboard.php" class="btn btn-outline-light btn-sm"><i class="fas fa-arrow-left me-1"></i> Volver</a>
+                <h2><i class="fas fa-chart-line me-2"></i>Estadísticas del Paseador</h2>
+                <a href="Dashboard.php" class="btn btn-outline-light btn-sm">
+                    <i class="fas fa-arrow-left me-1"></i> Volver
+                </a>
             </div>
 
             <div class="row g-4 mb-4">
                 <div class="col-md-3">
-                    <div class="card text-center p-3">
-                        <h6 class="text-muted">Paseos Completados</h6>
+                    <div class="stat-card">
+                        <h6>Paseos completados</h6>
                         <h2 class="text-success"><?= $paseosCompletados ?></h2>
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <div class="card text-center p-3">
-                        <h6 class="text-muted">Paseos Cancelados</h6>
+                    <div class="stat-card">
+                        <h6>Paseos cancelados</h6>
                         <h2 class="text-danger"><?= $paseosCancelados ?></h2>
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <div class="card text-center p-3">
-                        <h6 class="text-muted">Ingresos Totales</h6>
+                    <div class="stat-card">
+                        <h6>Ingresos totales</h6>
                         <h3>₲ <?= number_format($ingresosTotales, 0, ',', '.') ?></h3>
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <div class="card text-center p-3">
-                        <h6 class="text-muted">Calificación Promedio</h6>
+                    <div class="stat-card">
+                        <h6>Calificación promedio</h6>
                         <h3 class="text-warning"><?= $promedioCalificacion ?> <i class="fa-solid fa-star"></i></h3>
                     </div>
                 </div>
@@ -206,21 +270,27 @@ $ingresosPorSemana = array_values($porSemana);
             <div class="row g-4">
                 <div class="col-lg-6">
                     <div class="card p-3">
-                        <h6 class="text-success mb-3"><i class="fa-solid fa-clock me-1"></i> Paseos por hora</h6>
+                        <h6 class="text-success mb-3">
+                            <i class="fa-solid fa-clock me-1"></i>Paseos por hora
+                        </h6>
                         <canvas id="graficoHoras"></canvas>
                     </div>
                 </div>
 
                 <div class="col-lg-6">
                     <div class="card p-3">
-                        <h6 class="text-success mb-3"><i class="fa-solid fa-star me-1"></i> Calificaciones</h6>
+                        <h6 class="text-success mb-3">
+                            <i class="fa-solid fa-star me-1"></i>Calificaciones
+                        </h6>
                         <canvas id="graficoCalificaciones"></canvas>
                     </div>
                 </div>
 
                 <div class="col-lg-12">
                     <div class="card p-3">
-                        <h6 class="text-success mb-3"><i class="fa-solid fa-wallet me-1"></i> Ingresos por semana</h6>
+                        <h6 class="text-success mb-3">
+                            <i class="fa-solid fa-wallet me-1"></i>Ingresos por semana
+                        </h6>
                         <canvas id="graficoIngresos"></canvas>
                     </div>
                 </div>
@@ -244,7 +314,7 @@ $ingresosPorSemana = array_values($porSemana);
             data: {
                 labels: horas,
                 datasets: [{
-                    label: 'Cantidad de Paseos',
+                    label: 'Cantidad de paseos',
                     data: cantidadPorHora,
                     backgroundColor: '#20c997'
                 }]

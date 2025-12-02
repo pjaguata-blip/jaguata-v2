@@ -2,12 +2,16 @@
 
 namespace Jaguata\Controllers;
 
-use Jaguata\Models\Usuario;
-use Exception;
+require_once __DIR__ . '/../Config/AppConfig.php';
+require_once __DIR__ . '/../Helpers/Session.php';
+require_once __DIR__ . '/../Models/Usuario.php';
 
-/**
- * Controlador para gestionar usuarios (admin)
- */
+use Jaguata\Config\AppConfig;
+use Jaguata\Helpers\Session;
+use Jaguata\Models\Usuario;
+
+AppConfig::init();
+
 class UsuarioController
 {
     private Usuario $usuarioModel;
@@ -17,149 +21,189 @@ class UsuarioController
         $this->usuarioModel = new Usuario();
     }
 
-    /** 🔹 Listar todos los usuarios */
+    /**
+     * Listar todos los usuarios (para admin)
+     */
     public function index(): array
     {
-        try {
-            return $this->usuarioModel->getAllUsuarios();
-        } catch (Exception $e) {
-            error_log("Error UsuarioController::index => " . $e->getMessage());
-            return [];
-        }
+        return $this->usuarioModel->all();
     }
+
     public function getById(int $id): ?array
     {
-        try {
-            $usuarioModel = new \Jaguata\Models\Usuario();
-            return $usuarioModel->getById($id);
-        } catch (\Exception $e) {
-            error_log("Error getById UsuarioController: " . $e->getMessage());
-            return null;
+        return $this->usuarioModel->find($id);
+    }
+
+    public function actualizarUsuario(int $id, array $data): bool
+    {
+        // Evitar que intenten cambiar el PK
+        unset($data['usu_id']);
+        return $this->usuarioModel->update($id, $data);
+    }
+
+    /**
+     * Datos formateados para exportación a Excel
+     * Coincide con las columnas:
+     * ID, Nombre, Email, Rol, Estado, Fecha Creación, Fecha Actualización
+     */
+    public function obtenerDatosExportacion(): array
+    {
+        // Traemos todos los usuarios desde el modelo
+        $usuarios = $this->usuarioModel->all() ?? [];
+
+        $export = [];
+
+        foreach ($usuarios as $u) {
+            $export[] = [
+                'usu_id'       => (string)($u['usu_id']       ?? ''), // string para evitar líos en Excel
+                'nombre'       => (string)($u['nombre']       ?? ''),
+                'email'        => (string)($u['email']        ?? ''),
+                'rol'          => (string)($u['rol']          ?? ''),
+                'estado'       => (string)($u['estado']       ?? ''),
+                'created_at'   => (string)($u['created_at']   ?? ''),
+                'updated_at'   => (string)($u['updated_at']   ?? ''),
+            ];
         }
+
+        return $export;
     }
-
-
-    /** 🔹 Eliminar usuario */
-    public function destroy(int $id): bool
-    {
-        try {
-            $ok = $this->usuarioModel->deleteUsuario($id);
-
-            if (!$ok) {
-                error_log("⚠️ No se eliminó el usuario con ID: $id");
-            }
-
-            return $ok;
-        } catch (Exception $e) {
-            error_log("Error UsuarioController::destroy => " . $e->getMessage());
-            return false;
-        }
-    }
-
-
-    /** 🔹 Cambiar el estado (pendiente/aprobado/rechazado/cancelado) */
-    public function cambiarEstado(int $id, string $nuevoEstado): bool
-    {
-        try {
-            $validos = ['pendiente', 'aprobado', 'rechazado', 'cancelado'];
-            if (!in_array($nuevoEstado, $validos, true)) {
-                throw new Exception("Estado inválido: $nuevoEstado");
-            }
-            return $this->usuarioModel->updateEstado($id, $nuevoEstado);
-        } catch (Exception $e) {
-            error_log("Error UsuarioController::cambiarEstado => " . $e->getMessage());
-            return false;
-        }
-    }
-
-    public function activarUsuario(int $id): bool
-    {
-        return $this->cambiarEstado($id, 'aprobado');
-    }
-
-    public function suspenderUsuario(int $id): bool
-    {
-        return $this->cambiarEstado($id, 'rechazado');
-    }
-
-    /** 🔹 Ejecutar acción del panel (para AJAX) */
+    /**
+     * Ejecuta una acción de admin sobre el usuario
+     * Acciones soportadas:
+     *  - eliminar
+     *  - suspender
+     *  - activar
+     *  - desactivar
+     *  - aprobar
+     *  - rechazar
+     */
     public function ejecutarAccion(string $accion, int $id): array
     {
-        try {
-            $usuarioModel = new \Jaguata\Models\Usuario();
+        $accion = strtolower(trim($accion));
 
-            // Buscar usuario
-            $usuario = $usuarioModel->findById($id);
-            if (!$usuario) {
-                return ['ok' => false, 'mensaje' => 'Usuario no encontrado.'];
-            }
+        // Verificar que el usuario exista
+        $usuario = $this->getById($id);
+        if (!$usuario) {
+            return [
+                'ok'      => false,
+                'mensaje' => 'Usuario no encontrado.'
+            ];
+        }
+
+        try {
+            $ok      = false;
+            $mensaje = 'Acción procesada.';
 
             switch ($accion) {
+                case 'eliminar':
+                    $ok      = $this->usuarioModel->delete($id);
+                    $mensaje = $ok
+                        ? 'Usuario eliminado correctamente.'
+                        : 'No se pudo eliminar el usuario.';
+                    break;
+
                 case 'suspender':
-                    $ok = $usuarioModel->updateEstado($id, 'suspendido');
-                    $mensaje = "Usuario suspendido correctamente.";
+                    $ok      = $this->cambiarEstado($id, 'suspendido');
+                    $mensaje = $ok
+                        ? 'Usuario suspendido correctamente.'
+                        : 'No se pudo suspender el usuario.';
                     break;
 
                 case 'activar':
-                    $ok = $usuarioModel->updateEstado($id, 'activo');
-                    $mensaje = "Usuario activado correctamente.";
+                    $ok      = $this->cambiarEstado($id, 'activo');
+                    $mensaje = $ok
+                        ? 'Usuario activado correctamente.'
+                        : 'No se pudo activar el usuario.';
                     break;
 
-                case 'eliminar':
-                    $ok = $usuarioModel->deleteById($id);
+                case 'desactivar':
+                    $ok      = $this->cambiarEstado($id, 'inactivo');
                     $mensaje = $ok
-                        ? "Usuario eliminado correctamente."
-                        : "No se pudo eliminar el usuario (puede tener datos asociados).";
+                        ? 'Usuario desactivado correctamente.'
+                        : 'No se pudo desactivar el usuario.';
+                    break;
+
+                case 'aprobar':
+                    $ok      = $this->cambiarEstado($id, 'aprobado');
+                    $mensaje = $ok
+                        ? 'Usuario aprobado correctamente.'
+                        : 'No se pudo aprobar el usuario.';
+                    break;
+
+                case 'rechazar':
+                    $ok      = $this->cambiarEstado($id, 'rechazado');
+                    $mensaje = $ok
+                        ? 'Usuario rechazado correctamente.'
+                        : 'No se pudo rechazar el usuario.';
                     break;
 
                 default:
-                    return ['ok' => false, 'mensaje' => 'Acción no reconocida.'];
+                    return [
+                        'ok'      => false,
+                        'mensaje' => 'Acción no válida.'
+                    ];
             }
 
-            return ['ok' => $ok, 'mensaje' => $mensaje];
-        } catch (Exception $e) {
-            return ['ok' => false, 'mensaje' => 'Error interno: ' . $e->getMessage()];
+            return [
+                'ok'      => (bool)$ok,
+                'mensaje' => $mensaje
+            ];
+        } catch (\Throwable $e) {
+            error_log('❌ Error en UsuarioController::ejecutarAccion(): ' . $e->getMessage());
+            return [
+                'ok'      => false,
+                'mensaje' => 'Ocurrió un error al procesar la acción.'
+            ];
         }
     }
 
-    /** 🔹 Datos para exportar */
-    public function obtenerDatosExportacion(): array
+    /**
+     * Helper interno para cambiar estado
+     */
+    private function cambiarEstado(int $id, string $estado): bool
     {
-        try {
-            return $this->usuarioModel->getAllUsuarios();
-        } catch (Exception $e) {
-            error_log("Error UsuarioController::obtenerDatosExportacion => " . $e->getMessage());
-            return [];
+        return $this->usuarioModel->update($id, [
+            'estado' => $estado
+        ]);
+    }
+    /**
+     * Cambia la contraseña del usuario actualmente logueado (admin, dueño o paseador).
+     */
+    public function cambiarPasswordActual(string $passActual, string $passNueva): array
+    {
+        if (!Session::isLoggedIn()) {
+            return ['success' => false, 'error' => 'Sesión no válida. Inicia sesión nuevamente.'];
         }
-    }
-    private function respuesta(bool $ok, string $mensaje): array
-    {
-        return [
-            'ok' => $ok,
-            'mensaje' => $mensaje,
-            'timestamp' => date('Y-m-d H:i:s')
-        ];
-    }
-    /** 🔹 Obtener usuario por ID */
-    public function show(int $id): ?array
-    {
-        try {
-            return $this->usuarioModel->getById($id);
-        } catch (Exception $e) {
-            error_log("Error UsuarioController::show => " . $e->getMessage());
-            return null;
-        }
-    }
 
-    /** 🔹 Actualizar usuario desde el panel */
-    public function actualizarUsuario(int $id, array $data): bool
-    {
+        $usuarioId = Session::getUsuarioId();
+
         try {
-            $usuarioModel = new \Jaguata\Models\Usuario();
-            return $usuarioModel->updateUsuario($id, $data);
-        } catch (Exception $e) {
-            error_log("Error actualizarUsuario: " . $e->getMessage());
-            return false;
+            $usuario = $this->usuarioModel->find($usuarioId);
+
+            if (!$usuario || empty($usuario['pass'])) {
+                return ['success' => false, 'error' => 'Usuario no encontrado.'];
+            }
+
+            if (!password_verify($passActual, $usuario['pass'])) {
+                return ['success' => false, 'error' => 'La contraseña actual es incorrecta.'];
+            }
+
+            if (strlen($passNueva) < 6) {
+                return ['success' => false, 'error' => 'La nueva contraseña debe tener al menos 6 caracteres.'];
+            }
+
+            $hash = password_hash($passNueva, PASSWORD_DEFAULT);
+
+            $ok = $this->usuarioModel->actualizarPassword($usuarioId, $hash);
+
+            if (!$ok) {
+                return ['success' => false, 'error' => 'No se pudo actualizar la contraseña.'];
+            }
+
+            return ['success' => true];
+        } catch (\PDOException $e) {
+            error_log('Error UsuarioController::cambiarPasswordActual => ' . $e->getMessage());
+            return ['success' => false, 'error' => 'Error interno al cambiar la contraseña.'];
         }
     }
 }

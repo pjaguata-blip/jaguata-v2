@@ -34,12 +34,7 @@ $currentFile = basename($_SERVER['PHP_SELF']);
                 </a>
             </li>
 
-            <li class="nav-item">
-                <a href="<?= $baseFeatures; ?>/Estadisticas.php"
-                    class="nav-link text-white <?= $currentFile === 'Estadisticas.php' ? 'active' : '' ?>">
-                    <i class="fas fa-chart-line me-2"></i>Estadísticas
-                </a>
-            </li>
+
 
             <li class="nav-item">
                 <a href="<?= $baseFeatures; ?>/Solicitudes.php"
@@ -98,7 +93,7 @@ $currentFile = basename($_SERVER['PHP_SELF']);
             </li>
 
             <!-- Submenú Perfil -->
-            <?php $filesPerfil = ['Perfil.php', 'EditarPerfil.php', 'Disponibilidad.php']; ?>
+            <?php $filesPerfil = ['Perfil.php', 'EditarPerfil.php']; ?>
             <li class="nav-item">
                 <button class="nav-link text-white w-100 text-start d-flex justify-content-between align-items-center <?= in_array($currentFile, $filesPerfil) ? 'active' : '' ?>"
                     data-bs-toggle="collapse"
@@ -119,11 +114,6 @@ $currentFile = basename($_SERVER['PHP_SELF']);
                     <a href="<?= $baseFeatures; ?>/EditarPerfil.php"
                         class="nav-link text-white ps-5 <?= $currentFile === 'EditarPerfil.php' ? 'active' : '' ?>">
                         <i class="fas fa-user-edit me-2"></i>Editar Perfil
-                    </a>
-
-                    <a href="<?= $baseFeatures; ?>/Disponibilidad.php"
-                        class="nav-link text-white ps-5 <?= $currentFile === 'Disponibilidad.php' ? 'active' : '' ?>">
-                        <i class="fas fa-calendar-check me-2"></i>Disponibilidad
                     </a>
                 </div>
             </li>

@@ -12,55 +12,53 @@ use Jaguata\Controllers\AuthController;
 use Jaguata\Controllers\PaseoController;
 use Jaguata\Helpers\Session;
 
-// Inicializar app
 AppConfig::init();
 
-// Verificar autenticación y rol
+// 🔒 Solo paseador
 $authController = new AuthController();
 $authController->checkRole('paseador');
 
-// Validar parámetros
-$id      = (int)($_POST['id'] ?? 0);
-$accion  = trim($_POST['accion'] ?? '');
-$redirect = $_POST['redirect_to'] ?? 'Solicitudes.php';
-
-// Si faltan datos
-if ($id <= 0 || $accion === '') {
-    $_SESSION['error'] = 'Datos incompletos';
-    header("Location: $redirect");
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    header('Location: ' . BASE_URL . '/features/paseador/Solicitudes.php');
     exit;
 }
 
-// Instanciar controlador
-$paseoController = new PaseoController();
+$paseadorId = (int)(Session::getUsuarioId() ?? 0);
+$accion     = $_POST['accion'] ?? '';
+$id         = (int)($_POST['id'] ?? 0);
+$redirectTo = trim($_POST['redirect_to'] ?? 'Solicitudes.php');
 
-// Procesar acción
-switch ($accion) {
-    case 'confirmar':
-        $resultado = $paseoController->confirmar($id);
-        $_SESSION['success'] = 'Solicitud aceptada correctamente.';
-        break;
+// Normalizamos ruta de redirección
+if ($redirectTo === '') {
+    $redirectTo = 'Solicitudes.php';
+}
+$redirectUrl = BASE_URL . '/features/paseador/' . $redirectTo;
 
-    case 'iniciar':
-        $resultado = $paseoController->apiIniciar($id);
-        $_SESSION['success'] = 'Paseo iniciado correctamente.';
-        break;
+$controller = new PaseoController();
 
-    case 'completar':
-        $resultado = $paseoController->apiCompletar($id);
-        $_SESSION['success'] = 'Paseo marcado como completado.';
-        break;
-
-    case 'cancelar':
-        $resultado = $paseoController->apiCancelar($id);
-        $_SESSION['success'] = 'Paseo cancelado correctamente.';
-        break;
-
-    default:
-        $_SESSION['error'] = 'Acción no válida.';
-        break;
+if ($paseadorId <= 0 || $id <= 0) {
+    $_SESSION['error'] = 'Datos inválidos de la solicitud.';
+    header('Location: ' . $redirectUrl);
+    exit;
 }
 
-// Redirigir de nuevo
-header("Location: $redirect");
+$result = null;
+
+if ($accion === 'confirmar') {
+    $result = $controller->confirmarPaseoPaseador($id, $paseadorId);
+} elseif ($accion === 'cancelar') {
+    $result = $controller->rechazarPaseoPaseador($id, $paseadorId);
+} else {
+    $_SESSION['error'] = 'Acción no válida.';
+    header('Location: ' . $redirectUrl);
+    exit;
+}
+
+if (!empty($result['success'])) {
+    $_SESSION['success'] = $result['mensaje'] ?? 'Operación realizada correctamente.';
+} else {
+    $_SESSION['error'] = $result['error'] ?? 'No se pudo procesar la acción.';
+}
+
+header('Location: ' . $redirectUrl);
 exit;

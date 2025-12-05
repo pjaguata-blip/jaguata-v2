@@ -2,12 +2,10 @@
 
 declare(strict_types=1);
 
-$rootPath = realpath(__DIR__ . '/../../');
-require_once $rootPath . '/vendor/autoload.php';
-require_once $rootPath . '/src/Config/AppConfig.php';
-require_once $rootPath . '/src/Controllers/AuthController.php';
-require_once $rootPath . '/src/Controllers/PaseoController.php';
-require_once $rootPath . '/src/Helpers/Session.php';
+require_once __DIR__ . '/../../src/Config/AppConfig.php';
+require_once __DIR__ . '/../../src/Controllers/AuthController.php';
+require_once __DIR__ . '/../../src/Controllers/PaseoController.php';
+require_once __DIR__ . '/../../src/Helpers/Session.php';
 
 use Jaguata\Config\AppConfig;
 use Jaguata\Controllers\AuthController;
@@ -21,9 +19,14 @@ $auth = new AuthController();
 $auth->checkRole('paseador');
 
 // ==== Datos del usuario logueado ====
-$usuario       = Session::get('usuario') ?? [];
-$usuarioNombre = htmlspecialchars($usuario['nombre'] ?? 'Paseador');
-$paseadorId    = (int)($usuario['usu_id'] ?? Session::get('usuario_id') ?? 0);
+// ⚠️ NADA de Session::get('...'), usamos los helpers que sí existen
+$paseadorId    = (int)(Session::getUsuarioId() ?? 0);
+$usuarioNombre = Session::getUsuarioNombre() ?? 'Paseador';
+
+if ($paseadorId <= 0) {
+    header('Location: ' . BASE_URL . '/public/login.php?error=unauthorized');
+    exit;
+}
 
 // ==== Controlador ====
 $paseoController = new PaseoController();
@@ -80,12 +83,12 @@ foreach ($calificaciones as $c) {
 ksort($porHora);
 ksort($porSemana);
 
-$horas              = array_keys($porHora);
-$cantidadPorHora    = array_values($porHora);
-$estrellas          = array_keys($cantPorEstrella);
+$horas               = array_keys($porHora);
+$cantidadPorHora     = array_values($porHora);
+$estrellas           = array_keys($cantPorEstrella);
 $cantidadesEstrellas = array_values($cantPorEstrella);
-$semanas            = array_keys($porSemana);
-$ingresosPorSemana  = array_values($porSemana);
+$semanas             = array_keys($porSemana);
+$ingresosPorSemana   = array_values($porSemana);
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -95,9 +98,11 @@ $ingresosPorSemana  = array_values($porSemana);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Estadísticas - Paseador | Jaguata</title>
 
+    <!-- Bootstrap + FontAwesome -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- (Opcional) tu tema global -->
+    <link href="<?= ASSETS_URL; ?>/css/jaguata-theme.css" rel="stylesheet">
 
     <style>
         :root {
@@ -123,7 +128,7 @@ $ingresosPorSemana  = array_values($porSemana);
             width: 100%;
         }
 
-        /* === SIDEBAR (MISMO ESTILO DASHBOARD) === */
+        /* === SIDEBAR (mismo estilo que Dashboard Paseador) === */
         .sidebar {
             background: linear-gradient(180deg, #1e1e2f 0%, #292a3a 100%);
             color: var(--blanco);
@@ -133,33 +138,12 @@ $ingresosPorSemana  = array_values($porSemana);
             padding-top: 1.5rem;
         }
 
-        .sidebar .nav-link {
-            color: #ccc;
-            display: flex;
-            align-items: center;
-            gap: .8rem;
-            padding: 12px 18px;
-            border-radius: 8px;
-            margin: 6px 10px;
-            transition: all .2s ease;
-            font-size: 0.95rem;
-        }
-
-        .sidebar .nav-link:hover,
-        .sidebar .nav-link.active {
-            background: var(--verde-claro);
-            color: var(--blanco);
-            transform: translateX(4px);
-        }
-
-        /* === CONTENIDO === */
         main.content {
             flex-grow: 1;
             padding: 2rem;
             background-color: var(--gris-fondo);
         }
 
-        /* Igual al “welcome-box” del dashboard */
         .page-header {
             background: linear-gradient(90deg, var(--verde-claro), var(--verde-jaguata));
             color: #fff;
@@ -178,7 +162,6 @@ $ingresosPorSemana  = array_values($porSemana);
             font-weight: 600;
         }
 
-        /* === STAT CARDS IGUALES A DASHBOARD === */
         .stat-card {
             background: var(--blanco);
             border-radius: 14px;

@@ -25,11 +25,15 @@ class MetodoPago extends BaseModel
     {
         // Primero quitar el anterior default
         $sql1 = "UPDATE {$this->table} SET is_default = 0 WHERE usu_id = :usu_id";
-        $this->db->executeQuery($sql1, ['usu_id' => $usuId]);
+        // 🔴 ANTES: $this->db->executeQuery(...)
+        $this->executeQuery($sql1, ['usu_id' => $usuId]);
 
         // Ahora poner el nuevo
-        $sql2 = "UPDATE {$this->table} SET is_default = 1 WHERE metodo_id = :metodo_id AND usu_id = :usu_id";
-        return $this->db->executeQuery($sql2, [
+        $sql2 = "UPDATE {$this->table} 
+                 SET is_default = 1 
+                 WHERE metodo_id = :metodo_id AND usu_id = :usu_id";
+        // 🔴 ANTES: return $this->db->executeQuery(...)
+        return $this->executeQuery($sql2, [
             'metodo_id' => $metodoId,
             'usu_id'    => $usuId
         ]);

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 require_once __DIR__ . '/../../src/Config/AppConfig.php';
 require_once __DIR__ . '/../../src/Controllers/AuthController.php';
 require_once __DIR__ . '/../../src/Models/Usuario.php';
@@ -12,14 +14,23 @@ use Jaguata\Helpers\Session;
 
 AppConfig::init();
 
-// Solo paseador
+/* 🔒 Solo paseador */
 $authController = new AuthController();
 $authController->checkRole('paseador');
 
-// Datos del usuario
+/* 📌 Datos del usuario logueado */
 $usuarioModel = new Usuario();
-$usuarioId    = Session::get('usuario_id');
-$usuario      = $usuarioModel->getById($usuarioId);
+// 👇 usar helper correcto de Session
+$usuarioId = Session::getUsuarioId();
+
+if (!$usuarioId) {
+    echo "Error: Sesión inválida.";
+    exit;
+}
+
+// 👇 el modelo Usuario NO tiene getById, pero sí find() (de BaseModel)
+$usuario = $usuarioModel->find((int)$usuarioId);
+
 if (!$usuario) {
     echo "Error: No se encontró el usuario.";
     exit;
@@ -28,11 +39,29 @@ if (!$usuario) {
 $mensaje = '';
 $error   = '';
 
-$DEPARTAMENTOS = ['Concepción', 'San Pedro', 'Cordillera', 'Guairá', 'Caaguazú', 'Caazapá', 'Itapúa', 'Misiones', 'Paraguarí', 'Alto Paraná', 'Central', 'Ñeembucú', 'Amambay', 'Canindeyú', 'Presidente Hayes', 'Boquerón', 'Alto Paraguay'];
+$DEPARTAMENTOS = [
+    'Concepción',
+    'San Pedro',
+    'Cordillera',
+    'Guairá',
+    'Caaguazú',
+    'Caazapá',
+    'Itapúa',
+    'Misiones',
+    'Paraguarí',
+    'Alto Paraná',
+    'Central',
+    'Ñeembucú',
+    'Amambay',
+    'Canindeyú',
+    'Presidente Hayes',
+    'Boquerón',
+    'Alto Paraguay'
+];
 
-$depActual      = $usuario['departamento'] ?? '';
-$fotoActual     = $usuario['foto_perfil'] ?? ($usuario['perfil_foto'] ?? '');
-$fechaNacActual = $usuario['fecha_nacimiento'] ?? '';
+$depActual      = $usuario['departamento']      ?? '';
+$fotoActual     = $usuario['foto_perfil']       ?? ($usuario['perfil_foto'] ?? '');
+$fechaNacActual = $usuario['fecha_nacimiento']  ?? '';
 
 $zonasActuales = [];
 if (!empty($usuario['zona'])) {
@@ -42,16 +71,16 @@ if (!empty($usuario['zona'])) {
     $zonasActuales = array_values(array_filter(array_map('trim', $zonasActuales)));
 }
 
-// Guardar cambios
+/* ===== Guardar cambios ===== */
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $nombre       = trim($_POST['nombre'] ?? '');
-    $email        = trim($_POST['email'] ?? '');
-    $departamento = trim($_POST['departamento'] ?? '');
-    $telefono     = trim($_POST['telefono'] ?? '');
-    $direccion    = trim($_POST['direccion'] ?? '');
-    $experiencia  = trim($_POST['experiencia'] ?? '');
+    $nombre       = trim($_POST['nombre']          ?? '');
+    $email        = trim($_POST['email']           ?? '');
+    $departamento = trim($_POST['departamento']    ?? '');
+    $telefono     = trim($_POST['telefono']        ?? '');
+    $direccion    = trim($_POST['direccion']       ?? '');
+    $experiencia  = trim($_POST['experiencia']     ?? '');
     $fechaNac     = trim($_POST['fecha_nacimiento'] ?? '');
-    $zonaJsonPost = trim($_POST['zona_json'] ?? '[]');
+    $zonaJsonPost = trim($_POST['zona_json']       ?? '[]');
     $zonasTrabajo = json_decode($zonaJsonPost, true) ?? [];
 
     if ($nombre === '' || $email === '') {
@@ -59,16 +88,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($departamento === '' || !in_array($departamento, $DEPARTAMENTOS, true)) {
         $error = "Seleccione un departamento válido.";
     } else {
+        /* 📷 Manejo de foto */
         $rutaFotoNueva = null;
         if (!empty($_FILES['foto_perfil']['name'])) {
             $file = $_FILES['foto_perfil'];
+
             if ($file['error'] === UPLOAD_ERR_OK) {
-                $max = 2 * 1024 * 1024;
+                $max = 2 * 1024 * 1024; // 2MB
                 if ($file['size'] > $max) {
                     $error = "La foto supera el tamaño máximo de 2MB.";
                 } else {
-                    $permitidos = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
-                    $mime       = mime_content_type($file['tmp_name']);
+                    $permitidos = [
+                        'image/jpeg' => 'jpg',
+                        'image/png'  => 'png',
+                        'image/webp' => 'webp'
+                    ];
+                    $mime = mime_content_type($file['tmp_name']);
                     if (!isset($permitidos[$mime])) {
                         $error = "Formato no permitido (usa JPG, PNG o WebP).";
                     } else {
@@ -80,6 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $nombreArchivo = 'paseador-' . $usuarioId . '-' . date('YmdHis') . '.' . $ext;
                         $destinoFs     = $dirFs . '/' . $nombreArchivo;
                         $destinoUrl    = '/assets/uploads/perfiles/' . $nombreArchivo;
+
                         if (move_uploaded_file($file['tmp_name'], $destinoFs)) {
                             $rutaFotoNueva = $destinoUrl;
                         } else {
@@ -92,22 +128,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($error === '') {
             $data = [
-                'nombre'          => $nombre,
-                'email'           => $email,
-                'telefono'        => $telefono,
-                'direccion'       => $direccion,
-                'experiencia'     => $experiencia,
-                'departamento'    => $departamento,
+                'nombre'           => $nombre,
+                'email'            => $email,
+                'telefono'         => $telefono,
+                'direccion'        => $direccion,
+                'experiencia'      => $experiencia,
+                'departamento'     => $departamento,
                 'fecha_nacimiento' => ($fechaNac ?: null),
-                'zona'            => json_encode($zonasTrabajo, JSON_UNESCAPED_UNICODE),
+                'zona'             => json_encode($zonasTrabajo, JSON_UNESCAPED_UNICODE),
             ];
+
             if ($rutaFotoNueva) {
                 $data['foto_perfil'] = $rutaFotoNueva;
             }
 
-            if ($usuarioModel->update($usuarioId, $data)) {
+            // 👇 BaseModel sí tiene update($id, $data)
+            if ($usuarioModel->update((int)$usuarioId, $data)) {
                 $mensaje = "Perfil actualizado correctamente.";
-                $usuario = $usuarioModel->getById($usuarioId);
+                // refrescar datos
+                $usuario = $usuarioModel->find((int)$usuarioId);
+                $depActual      = $usuario['departamento']      ?? '';
+                $fotoActual     = $usuario['foto_perfil']       ?? ($usuario['perfil_foto'] ?? '');
+                $fechaNacActual = $usuario['fecha_nacimiento']  ?? '';
+                $z = $usuario['zona'] ?? '[]';
+                $decoded = json_decode($z, true);
+                $zonasActuales = json_last_error() === JSON_ERROR_NONE ? $decoded : explode(',', $z);
+                $zonasActuales = array_values(array_filter(array_map('trim', $zonasActuales)));
             } else {
                 $error = "Error al guardar los cambios.";
             }
@@ -122,7 +168,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Editar Perfil - Paseador | Jaguata</title>
+
+    <!-- 🎨 CSS global (incluye estilos de sidebar y layout) -->
     <link href="<?= ASSETS_URL; ?>/css/jaguata-theme.css" rel="stylesheet">
+    <!-- Bootstrap + Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -150,58 +199,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             width: 100%;
         }
 
-        /* Sidebar unificada (250px fija como en las otras pantallas) */
-        .sidebar {
-            background: linear-gradient(180deg, #1e1e2f 0%, #292a3a 100%);
-            color: #fff;
-            width: 250px;
-            height: 100vh;
-            position: fixed;
-            top: 0;
-            left: 0;
-            padding-top: 1.5rem;
-            box-shadow: 3px 0 10px rgba(0, 0, 0, 0.2);
-            z-index: 1000;
-        }
+        /* ⚠️ NO tocamos .sidebar aquí, lo maneja jaguata-theme + SidebarPaseador */
 
-        .sidebar .nav-link {
-            color: #ccc;
-            border-radius: 8px;
-            padding: 12px 18px;
-            margin: 6px 10px;
-            display: flex;
-            align-items: center;
-            gap: .8rem;
-            font-weight: 500;
-            font-size: 0.95rem;
-            transition: all 0.2s;
-        }
-
-        .sidebar .nav-link:hover,
-        .sidebar .nav-link.active {
-            background-color: var(--verde-claro);
-            color: #fff;
-            transform: translateX(4px);
-        }
-
-        /* Contenido */
         main.content {
             flex-grow: 1;
             padding: 2.5rem;
             background-color: var(--gris-fondo);
             margin-left: 250px;
+            /* coincide con ancho del sidebar */
         }
 
         @media (max-width: 768px) {
-            .sidebar {
-                transform: translateX(-100%);
-                transition: transform 0.3s ease-in-out;
-            }
-
-            .sidebar.show {
-                transform: translateX(0);
-            }
-
             main.content {
                 margin-left: 0;
                 padding: 1.5rem;
@@ -308,7 +316,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <div class="card-body text-center">
                                 <?php
                                 $src = $fotoActual
-                                    ? (str_starts_with($fotoActual, 'http') ? $fotoActual : (BASE_URL . $fotoActual))
+                                    ? (preg_match('#^https?://#i', (string)$fotoActual)
+                                        ? $fotoActual
+                                        : (BASE_URL . $fotoActual))
                                     : (ASSETS_URL . '/images/user-placeholder.png');
                                 ?>
                                 <img id="previewFoto" src="<?= htmlspecialchars($src) ?>"
@@ -371,8 +381,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     </div>
                                     <div class="col-12 mb-3">
                                         <label for="experiencia" class="form-label">Experiencia</label>
-                                        <textarea class="form-control" name="experiencia" rows="3">
-<?= htmlspecialchars($usuario['experiencia'] ?? '') ?></textarea>
+                                        <textarea class="form-control" name="experiencia" rows="3"><?= htmlspecialchars($usuario['experiencia'] ?? '') ?></textarea>
                                     </div>
                                 </div>
 
@@ -407,7 +416,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <script>
         // Toggle sidebar en mobile
         const toggle = document.getElementById('menuToggle');
-        const sidebar = document.getElementById('sidebar'); // id definido en SidebarPaseador.php
+        const sidebar = document.getElementById('sidebar'); // id en SidebarPaseador.php
         if (toggle && sidebar) {
             toggle.addEventListener('click', () => {
                 sidebar.classList.toggle('show');

@@ -125,4 +125,29 @@ class Paseo extends BaseModel
 
         return $stmt->rowCount() > 0;
     }
+    public function getExportByPaseador(int $paseadorId): array
+    {
+        $sql = "
+        SELECT 
+            p.paseo_id,
+            m.nombre      AS nombre_mascota,
+            u.nombre      AS nombre_dueno,
+            p.inicio,
+            -- en la BD se llama 'duracion', la aliasamos como duracion_min
+            p.duracion    AS duracion_min,
+            p.estado,
+            p.estado_pago,
+            p.precio_total
+        FROM paseos p
+        INNER JOIN mascotas m ON m.mascota_id = p.mascota_id
+        INNER JOIN usuarios u ON u.usu_id = m.dueno_id
+        WHERE p.paseador_id = :id
+        ORDER BY p.inicio DESC
+    ";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':id' => $paseadorId]);
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
 }

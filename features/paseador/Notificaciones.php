@@ -40,7 +40,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($action === 'markAllRead') {
         $cant = $notiCtrl->marcarTodasForCurrentUser();
-        Session::setSuccess($cant . ' notificación(es) marcadas como leídas ✅');
+        if ($cant > 0) {
+            Session::setSuccess($cant . ' notificación(es) marcadas como leídas ✅');
+        } else {
+            Session::setError('No se pudo marcar ninguna notificación como leída.');
+        }
         header('Location: ' . $selfUrl);
         exit;
     }
@@ -112,7 +116,7 @@ function h(?string $v): string
             <div class="alert alert-danger"><?= h($mensajeError); ?></div>
         <?php endif; ?>
 
-        <!-- FILTROS (usa .filtros de tu CSS) -->
+        <!-- FILTROS -->
         <div class="filtros mb-4">
             <form class="row g-3 align-items-end" method="get" action="">
                 <div class="col-md-6">

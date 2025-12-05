@@ -4,33 +4,33 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../../src/Config/AppConfig.php';
 require_once __DIR__ . '/../../src/Controllers/AuthController.php';
+require_once __DIR__ . '/../../src/Controllers/DisponibilidadController.php';
 require_once __DIR__ . '/../../src/Models/Usuario.php';
 require_once __DIR__ . '/../../src/Helpers/Session.php';
+require_once __DIR__ . '/../../vendor/autoload.php';
 
 use Jaguata\Config\AppConfig;
 use Jaguata\Controllers\AuthController;
+use Jaguata\Controllers\DisponibilidadController;
 use Jaguata\Models\Usuario;
 use Jaguata\Helpers\Session;
 
 AppConfig::init();
 
-// Solo paseador
-$authController = new AuthController();
-$authController->checkRole('paseador');
+/* 🔒 Solo paseador */
+$auth = new AuthController();
+$auth->checkRole('paseador');
 
-// Datos del usuario
 $usuarioModel = new Usuario();
-$usuarioId    = Session::get('usuario_id');
-$usuario      = $usuarioModel->getById((int)$usuarioId);
+$usuarioId    = (int) Session::getUsuarioId();
+$usuario      = $usuarioModel->find($usuarioId);
 
 if (!$usuario) {
     echo "Error: No se encontró el usuario.";
     exit;
 }
 
-/* =========================
-   Helpers
-   ========================= */
+/* ===== Helpers perfil ===== */
 function h(?string $v, string $fallback = '—'): string
 {
     $v = trim((string)($v ?? ''));
@@ -58,9 +58,7 @@ function esUrlAbsoluta(string $p): bool
     return (bool)preg_match('#^https?://#i', $p);
 }
 
-/* =========================
-   Datos derivados
-   ========================= */
+/* ===== Datos derivados perfil ===== */
 $foto = $usuario['foto_perfil'] ?? ($usuario['perfil_foto'] ?? '');
 if ($foto && !esUrlAbsoluta($foto)) {
     $foto = rtrim(BASE_URL, '/') . $foto;
@@ -82,8 +80,12 @@ if (!empty($usuario['zona'])) {
     }
 }
 
-$rolMenu      = Session::getUsuarioRol() ?: 'paseador';
-$baseFeatures = BASE_URL . "/features/{$rolMenu}";
+/* ===== Datos disponibilidad ===== */
+$diasSemana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+
+$dispCtrl             = new DisponibilidadController();
+$disponibilidadActual = $dispCtrl->getFormDataByPaseador($usuarioId); // ['Lunes' => ['inicio'=>..]]
+
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -93,113 +95,18 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mi Perfil - Paseador | Jaguata</title>
 
+    <!-- CSS global Jaguata (sidebar + layout) -->
     <link href="<?= ASSETS_URL; ?>/css/jaguata-theme.css" rel="stylesheet">
+    <!-- Bootstrap y FontAwesome -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <style>
-        :root {
-            --verde-jaguata: #3c6255;
-            --verde-claro: #20c997;
-            --gris-fondo: #f4f6f9;
-            --gris-texto: #555;
-            --blanco: #fff;
-        }
+        /* Solo estilos específicos de esta página (no tocamos .sidebar ni main) */
 
-        html,
-        body {
-            margin: 0;
-            height: 100%;
-            font-family: "Poppins", sans-serif;
-            background-color: var(--gris-fondo);
-            color: var(--gris-texto);
-        }
-
-        .layout {
-            display: flex;
-            min-height: 100vh;
-            width: 100%;
-        }
-
-        /* === SIDEBAR unificada (igual que las demás) === */
-        .sidebar {
-            background: linear-gradient(180deg, #1e1e2f 0%, #292a3a 100%);
-            color: #fff;
-            width: 250px;
-            height: 100vh;
-            position: fixed;
-            top: 0;
-            left: 0;
-            padding-top: 1.5rem;
-            box-shadow: 3px 0 10px rgba(0, 0, 0, 0.2);
-            z-index: 1000;
-        }
-
-        .sidebar .nav-link {
-            color: #ccc;
-            border-radius: 8px;
-            padding: 12px 18px;
-            margin: 6px 10px;
-            display: flex;
-            align-items: center;
-            gap: .8rem;
-            font-weight: 500;
-            font-size: 0.95rem;
-            transition: all 0.2s ease;
-        }
-
-        .sidebar .nav-link:hover,
-        .sidebar .nav-link.active {
-            background-color: var(--verde-claro);
-            color: #fff;
-            transform: translateX(4px);
-        }
-
-        /* === BOTÓN MENÚ MOBILE === */
-        .menu-toggle {
-            display: none;
-            position: fixed;
-            top: 16px;
-            left: 16px;
-            background-color: #1e1e2f;
-            color: #fff;
-            border: none;
-            padding: 8px 10px;
-            border-radius: 6px;
-            z-index: 1100;
-        }
-
-        /* === CONTENIDO === */
-        main.content {
-            flex-grow: 1;
-            padding: 2.5rem;
-            background-color: var(--gris-fondo);
-            margin-left: 250px;
-        }
-
-        @media (max-width: 768px) {
-            .sidebar {
-                transform: translateX(-100%);
-                transition: transform 0.3s ease-in-out;
-            }
-
-            .sidebar.show {
-                transform: translateX(0);
-            }
-
-            main.content {
-                margin-left: 0;
-                padding: 1.5rem;
-            }
-
-            .menu-toggle {
-                display: block;
-            }
-        }
-
-        /* === HEADER === */
-        .page-header {
+        .page-header-perfil {
+            background: linear_gradient(90deg, var(--verde-claro), var(--verde-jaguata));
             background: linear-gradient(90deg, var(--verde-claro), var(--verde-jaguata));
             color: #fff;
             padding: 1.5rem 2rem;
@@ -211,45 +118,118 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
         }
 
-        .page-header h2 {
+        .page-header-perfil h2 {
             margin: 0;
             font-size: 1.6rem;
             font-weight: 600;
         }
 
-        .card {
+        .card-perfil {
             border: none;
             border-radius: 12px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-            overflow: hidden;
-        }
-
-        .card-header {
-            background: linear-gradient(90deg, #3c6255, #20c997);
-            color: #fff;
-            font-weight: 600;
         }
 
         img.rounded-circle {
-            border: 4px solid #3c6255;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.15);
+            border: 4px solid var(--verde-jaguata);
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.12);
         }
 
-        .badge.bg-primary-subtle {
+        .badge-rol {
             background-color: #e6f4ea;
-            color: #3c6255;
+            color: var(--verde-jaguata);
             border-radius: 8px;
             font-size: 0.85rem;
             padding: 0.4em 0.6em;
         }
 
-        footer {
-            background-color: #3c6255;
+        /* ===== Disponibilidad ===== */
+        .card-disponibilidad {
+            border: none;
+            border-radius: 18px;
+            background: var(--blanco);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, .05);
+            padding: 1.8rem 1.8rem 2.2rem;
+            margin-top: 1.5rem;
+        }
+
+        .day-row {
+            display: grid;
+            grid-template-columns: 130px 100px 1fr;
+            align-items: center;
+            border-bottom: 1px solid #eaeaea;
+            padding: 0.8rem 0;
+            gap: 1rem;
+        }
+
+        .day-name {
+            font-weight: 600;
+            font-size: 1rem;
+            color: var(--verde-jaguata);
+        }
+
+        .form-switch .form-check-input {
+            width: 3.2em;
+            height: 1.5em;
+        }
+
+        .form-check-input:checked {
+            background-color: var(--verde-claro);
+            border-color: var(--verde-claro);
+        }
+
+        .time-group input[type="time"] {
+            border-radius: 8px;
+            border: 1px solid #d0d0d0;
+            padding: 0.4rem 0.6rem;
+            font-size: 0.9rem;
+            width: 115px;
+        }
+
+        .time-group span {
+            color: #888;
+            margin: 0 0.3rem;
+        }
+
+        .time-group.disabled input,
+        .time-group.disabled button {
+            opacity: 0.4;
+            pointer-events: none;
+        }
+
+        .copy-btn {
+            border: none;
+            background: transparent;
+            margin-left: 0.5rem;
+        }
+
+        .copy-btn i {
+            color: var(--verde-jaguata);
+        }
+
+        .btn-gradient {
+            background: linear-gradient(90deg, var(--verde-jaguata), var(--verde-claro));
+            border: none;
             color: #fff;
-            text-align: center;
-            padding: 1.2rem 0;
-            width: 100%;
-            margin-top: 3rem;
+            font-weight: 500;
+            border-radius: 10px;
+            transition: 0.3s;
+        }
+
+        .btn-gradient:hover {
+            transform: translateY(-1px);
+            opacity: 0.95;
+        }
+
+        #alerta {
+            position: fixed;
+            bottom: 25px;
+            right: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, .2);
+            display: none;
+            font-size: 0.95rem;
+            z-index: 2000;
         }
     </style>
 </head>
@@ -266,7 +246,7 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
 
         <!-- Contenido principal -->
         <main class="content">
-            <div class="page-header">
+            <div class="page-header-perfil">
                 <h2><i class="fas fa-user me-2"></i> Mi Perfil - Paseador</h2>
                 <div class="d-flex flex-wrap gap-2">
                     <a href="Dashboard.php" class="btn btn-outline-light btn-sm">
@@ -279,15 +259,15 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
             </div>
 
             <div class="row g-3">
-                <!-- Columna izquierda -->
+                <!-- Columna izquierda: Info básica -->
                 <div class="col-lg-4">
-                    <div class="card shadow-sm h-100">
+                    <div class="card-perfil card h-100">
                         <div class="card-body text-center">
                             <img src="<?= htmlspecialchars($foto) ?>" alt="Foto de perfil"
                                 class="rounded-circle mb-3"
                                 style="width:160px;height:160px;object-fit:cover;">
                             <h4 class="mb-1"><?= h($usuario['nombre'] ?? null, 'Sin nombre') ?></h4>
-                            <span class="badge bg-primary-subtle">Paseador</span>
+                            <span class="badge badge-rol">Paseador</span>
 
                             <div class="mt-3 text-start small">
                                 <div class="mb-2">
@@ -303,7 +283,9 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
                                     <strong>Cumpleaños:</strong>
                                     <?php if (!empty($usuario['fecha_nacimiento'])): ?>
                                         <?= fechaLatina($usuario['fecha_nacimiento']) ?>
-                                        <?= $edad !== null ? " <span class=\"text-muted\">({$edad} años)</span>" : "" ?>
+                                        <?php if ($edad !== null): ?>
+                                            <span class="text-muted">(<?= $edad ?> años)</span>
+                                        <?php endif; ?>
                                     <?php else: ?>
                                         <span class="text-muted">No especificado</span>
                                     <?php endif; ?>
@@ -313,10 +295,10 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
                     </div>
                 </div>
 
-                <!-- Columna derecha -->
+                <!-- Columna derecha: zonas + experiencia + disponibilidad -->
                 <div class="col-lg-8">
-                    <div class="card shadow-sm mb-3">
-                        <div class="card-header">
+                    <div class="card-perfil card mb-3">
+                        <div class="card-header bg-success text-white">
                             <i class="fa-solid fa-map-location-dot me-2"></i> Zonas de trabajo
                         </div>
                         <div class="card-body">
@@ -334,8 +316,8 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
                         </div>
                     </div>
 
-                    <div class="card shadow-sm">
-                        <div class="card-header">
+                    <div class="card-perfil card mb-3">
+                        <div class="card-header bg-primary text-white">
                             <i class="fa-solid fa-briefcase me-2"></i> Experiencia
                         </div>
                         <div class="card-body">
@@ -348,12 +330,62 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
                             <?php endif; ?>
                         </div>
                     </div>
+
+                    <!-- ===== Disponibilidad semanal dentro del mismo Perfil ===== -->
+                    <div class="card-disponibilidad">
+                        <h5 class="mb-3">
+                            <i class="fas fa-calendar-check me-2"></i> Disponibilidad semanal
+                        </h5>
+                        <p class="text-muted mb-3">
+                            Activá los días que estás disponible y definí tus horarios.
+                            <br><small class="text-secondary">Podés copiar tus horarios de un día a otro fácilmente.</small>
+                        </p>
+
+                        <form id="formDisponibilidad">
+                            <?php foreach ($diasSemana as $dia):
+                                $dispo   = $disponibilidadActual[$dia] ?? null;
+                                $activo  = $dispo['activo'] ?? false;
+                                $checked = $activo ? 'checked' : '';
+                                $inicio  = $dispo['inicio'] ?? '';
+                                $fin     = $dispo['fin'] ?? '';
+                            ?>
+                                <div class="day-row">
+                                    <div class="day-name"><?= $dia ?></div>
+                                    <div class="form-switch">
+                                        <input type="checkbox"
+                                            class="form-check-input toggle-dia"
+                                            data-dia="<?= $dia ?>"
+                                            <?= $checked ?>>
+                                    </div>
+                                    <div class="time-group <?= $checked ? '' : 'disabled' ?>">
+                                        <input type="time" class="hora-inicio" value="<?= $inicio ?>">
+                                        <span>–</span>
+                                        <input type="time" class="hora-fin" value="<?= $fin ?>">
+                                        <button type="button" class="copy-btn" title="Copiar horario a todos">
+                                            <i class="fas fa-copy"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+
+                            <div class="text-end mt-4">
+                                <button type="submit" class="btn btn-gradient px-4 py-2">
+                                    <i class="fas fa-save me-2"></i> Guardar cambios
+                                </button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             </div>
+
+            <footer class="mt-4">
+                © <?= date('Y') ?> Jaguata — Todos los derechos reservados.
+            </footer>
         </main>
     </div>
 
-    <footer>© <?= date('Y') ?> Jaguata — Todos los derechos reservados.</footer>
+    <!-- Alertita flotante -->
+    <div id="alerta" class="alert" role="alert"></div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
@@ -366,7 +398,106 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
                 sidebar.classList.toggle('show');
             });
         }
+
+        /* ===== Lógica de Disponibilidad ===== */
+        const alerta = document.getElementById('alerta');
+        const form = document.getElementById('formDisponibilidad');
+
+        // 👇 ID del paseador inyectado desde PHP
+        const PASEADOR_ID = <?= (int)$usuarioId ?>;
+
+        document.querySelectorAll('.toggle-dia').forEach(toggle => {
+            toggle.addEventListener('change', e => {
+                const grupo = e.target.closest('.day-row').querySelector('.time-group');
+                grupo.classList.toggle('disabled', !e.target.checked);
+            });
+        });
+
+        document.querySelectorAll('.copy-btn').forEach(btn => {
+            btn.addEventListener('click', e => {
+                const row = e.target.closest('.day-row');
+                const inicio = row.querySelector('.hora-inicio').value;
+                const fin = row.querySelector('.hora-fin').value;
+
+                if (!inicio || !fin) {
+                    alert("Completá los horarios antes de copiar.");
+                    return;
+                }
+
+                document.querySelectorAll('.day-row').forEach(r => {
+                    const activo = r.querySelector('.toggle-dia').checked;
+                    if (activo) {
+                        r.querySelector('.hora-inicio').value = inicio;
+                        r.querySelector('.hora-fin').value = fin;
+                    }
+                });
+            });
+        });
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const disponibilidad = [];
+
+            document.querySelectorAll('.day-row').forEach(row => {
+                const dia = row.querySelector('.toggle-dia').dataset.dia;
+                const activo = row.querySelector('.toggle-dia').checked;
+                const inicio = row.querySelector('.hora-inicio').value;
+                const fin = row.querySelector('.hora-fin').value;
+
+                if (activo && inicio && fin) {
+                    disponibilidad.push({
+                        dia,
+                        inicio,
+                        fin,
+                        activo: 1
+                    });
+                }
+            });
+
+            console.log('Enviando disponibilidad:', disponibilidad);
+
+            try {
+                const resp = await fetch('<?= BASE_URL ?>/public/api/paseador/guardarDisponibilidad.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        paseador_id: PASEADOR_ID,
+                        disponibilidad
+                    })
+                });
+
+                const raw = await resp.text();
+                console.log('Status:', resp.status);
+                console.log('Respuesta cruda:', raw);
+
+                let data;
+                try {
+                    data = JSON.parse(raw);
+                } catch (e) {
+                    data = {
+                        ok: false,
+                        mensaje: 'Respuesta inválida del servidor'
+                    };
+                }
+
+                alerta.className = 'alert ' + (data.ok ? 'alert-success' : 'alert-danger');
+                alerta.innerHTML = `<i class="fas fa-${data.ok ? 'check-circle' : 'exclamation-triangle'} me-2"></i>${data.mensaje || ''}`;
+                alerta.style.display = 'block';
+                setTimeout(() => alerta.style.display = 'none', 2500);
+
+            } catch (err) {
+                console.error(err);
+                alerta.className = 'alert alert-danger';
+                alerta.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i>Error al guardar la disponibilidad.';
+                alerta.style.display = 'block';
+                setTimeout(() => alerta.style.display = 'none', 2500);
+            }
+        });
     </script>
+
 </body>
 
 </html>

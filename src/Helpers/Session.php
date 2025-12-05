@@ -51,6 +51,11 @@ class Session
         self::start();
         return !empty($_SESSION['usuario_id']);
     }
+    public static function get(string $key, $default = null)
+    {
+        self::start();
+        return $_SESSION[$key] ?? $default;
+    }
 
     // ==========
     // GETTERS

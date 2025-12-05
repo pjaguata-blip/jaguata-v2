@@ -1,138 +1,97 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Jaguata\Models;
 
-require_once __DIR__ . '/BaseModel.php';
+use PDO;
+use PDOException;
 
 class Paseador extends BaseModel
 {
+    // 👇 Estos los usa BaseModel para find(), all(), etc.
     protected string $table = 'paseadores';
     protected string $primaryKey = 'paseador_id';
 
-    /**
-     * === NUEVO ===
-     * Listar todos los paseadores (lo usa PaseadorController::index)
-     */
-    public function all(): array
+    public function __construct()
     {
-        // Orden por recientes (created_at si existe) y luego calificación/paseos
-        $sql = "SELECT *
-                FROM {$this->table}
-                ORDER BY created_at DESC, calificacion DESC, total_paseos DESC, {$this->primaryKey} DESC";
-        return $this->fetchAll($sql);
+        // Usa el constructor de BaseModel (que ya crea $this->db)
+        parent::__construct();
     }
 
     /**
-     * Obtener todos los paseadores disponibles (tu método existente).
-     * Nota: conservamos el JOIN a usuarios como ya lo tenías.
+     * 🔹 Obtiene el listado de paseadores disponibles para el dueño.
+     *
+     * - Solo devuelve paseadores marcados como disponibles.
+     * - Junta datos de la tabla usuarios: ciudad, barrio, teléfono, etc.
+     * - $fecha es opcional. Por ahora se mantiene en la firma para no romper
+     *   el código, pero la versión simple no filtra por fecha.
      */
-    public function getDisponibles(): array
+    public function getDisponibles(?string $fecha = null): array
     {
-        $sql = "SELECT p.*, u.nombre, u.email
+        try {
+            $sql = "
+                SELECT 
+                    p.paseador_id,
+                    p.nombre,
+                    p.experiencia,
+                    p.zona,
+                    p.descripcion,
+                    p.foto_url,
+                    p.precio_hora,
+                    p.calificacion,
+                    p.total_paseos,
+                    u.ciudad,
+                    u.barrio,
+                    u.telefono,
+                    u.nombre AS usuario_nombre
                 FROM {$this->table} p
-                JOIN usuarios u ON u.usu_id = p.paseador_id
-                WHERE p.disponibilidad = 1
-                ORDER BY p.calificacion DESC, p.total_paseos DESC, p.{$this->primaryKey} DESC";
-        return $this->fetchAll($sql);
+                INNER JOIN usuarios u 
+                    ON u.usu_id = p.paseador_id
+                WHERE p.disponible = 1
+                  AND p.disponibilidad = 1
+                  AND u.estado = 'aprobado'
+            ";
+
+            // Más adelante podés agregar filtro por $fecha si querés
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute();
+
+            return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        } catch (PDOException $e) {
+            error_log('❌ Error Paseador::getDisponibles => ' . $e->getMessage());
+            return [];
+        }
     }
 
     /**
-     * Crear un paseador (tu método existente).
-     */
-    public function createPaseador(array $data): int
-    {
-        return $this->create($data);
-    }
-
-    /**
-     * Actualizar datos del paseador (tu método existente).
-     */
-    public function updatePaseador(int $id, array $data): bool
-    {
-        return $this->update($id, $data);
-    }
-
-    /**
-     * Obtener un paseador por ID (tu método existente).
+     * (Opcional) Obtener un paseador puntual por ID
      */
     public function getById(int $id): ?array
     {
-        return $this->find($id) ?: null;
-    }
-
-    /**
-     * Sumar paseo + calificación (tu método existente).
-     * Nota: este promedio es simplificado (no pondera por cantidad de reseñas).
-     */
-    public function registrarPaseo(int $id, float $nuevaCalificacion): bool
-    {
-        $sql = "UPDATE {$this->table}
-                SET calificacion = :calificacion
-                WHERE {$this->primaryKey} = :id";
-        return $this->db->executeQuery($sql, [
-            'id' => $id,
-            'calificacion' => $nuevaCalificacion
-        ]);
-    }
-
-    /**
-     * === NUEVO ===
-     * Cambiar disponibilidad visible (lo usa PaseadorController::apiSetDisponible)
-     */
-    public function setDisponible(int $id, bool $estado): bool
-    {
-        $sql = "UPDATE {$this->table}
-                SET disponible = :estado
-                WHERE {$this->primaryKey} = :id";
-        return $this->db->executeQuery($sql, [
-            'estado' => (int)$estado,
-            'id'     => $id,
-        ]);
-    }
-
-    /**
-     * === NUEVO ===
-     * Actualizar calificación (lo usa PaseadorController::apiUpdateCalificacion)
-     */
-    public function updateCalificacion(int $id, float $valor): bool
-    {
-        $sql = "UPDATE {$this->table}
-                SET calificacion = :cal
-                WHERE {$this->primaryKey} = :id";
-        return $this->db->executeQuery($sql, [
-            'cal' => $valor,
-            'id'  => $id,
-        ]);
-    }
-
-    /**
-     * === NUEVO ===
-     * Incrementar contador de paseos (lo usa PaseadorController::apiIncrementarPaseos)
-     */
-    public function incrementarPaseos(int $id): bool
-    {
-        $sql = "UPDATE {$this->table}
-                SET total_paseos = total_paseos + 1
-                WHERE {$this->primaryKey} = :id";
-        return $this->db->executeQuery($sql, [
-            'id' => $id,
-        ]);
-    }
-    public function search(string $query): array
-    {
         try {
-            $pdo = $this->db ?? \Jaguata\Config\AppConfig::db();
-            $sql = "SELECT * FROM paseadores 
-                WHERE nombre LIKE :query 
-                   OR email LIKE :query 
-                   OR telefono LIKE :query
-                ORDER BY calificacion DESC";
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute([':query' => '%' . $query . '%']);
-            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
-        } catch (\Throwable $e) {
-            error_log("Error en Paseador::search(): " . $e->getMessage());
-            return [];
+            $sql = "
+                SELECT 
+                    p.*,
+                    u.ciudad,
+                    u.barrio,
+                    u.telefono,
+                    u.nombre AS usuario_nombre
+                FROM {$this->table} p
+                INNER JOIN usuarios u 
+                    ON u.usu_id = p.paseador_id
+                WHERE p.paseador_id = :id
+            ";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+            $stmt->execute();
+
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $row ?: null;
+        } catch (PDOException $e) {
+            error_log('❌ Error Paseador::getById => ' . $e->getMessage());
+            return null;
         }
     }
 }

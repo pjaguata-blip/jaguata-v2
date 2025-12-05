@@ -28,7 +28,7 @@ $paseoController = new PaseoController();
 $paseo = $paseoController->show($paseoId);
 if (!$paseo) die('No se encontró el paseo.');
 
-if ((int)($paseo['paseador_id'] ?? 0) !== (int)Session::get('usuario_id')) {
+if ((int)($paseo['paseador_id'] ?? 0) !== (int)(Session::getUsuarioId() ?? 0)) {
     die('No tienes permiso para ver este paseo.');
 }
 

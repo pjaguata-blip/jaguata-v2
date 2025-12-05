@@ -92,7 +92,9 @@ $estadisticas = array_merge([
 
 <body>
     <?php include __DIR__ . '/../../src/Templates/SidebarAdmin.php'; ?>
-
+    <button class="btn btn-outline-secondary d-md-none ms-2 mt-3" id="toggleSidebar">
+        <i class="fas fa-bars"></i>
+    </button>
     <main>
         <!-- HEADER PRINCIPAL -->
         <div class="header-box header-dashboard">
@@ -421,6 +423,12 @@ $estadisticas = array_merge([
             });
         }
     </script>
+    <script>
+        document.getElementById('toggleSidebar')?.addEventListener('click', function() {
+            document.getElementById('sidebar')?.classList.toggle('sidebar-open');
+        });
+    </script>
+
 </body>
 
 </html>

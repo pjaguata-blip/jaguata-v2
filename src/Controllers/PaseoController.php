@@ -379,4 +379,199 @@ class PaseoController
                 : 'No se pudo actualizar el estado del paseo.'
         ];
     }
+    /**
+     * 🔹 Iniciar paseo (paseador)
+     * Cambia estado a 'en_curso' si el paseo es del paseador logueado
+     */
+    public function apiIniciar(int $paseoId): bool
+    {
+        if ($paseoId <= 0) {
+            return false;
+        }
+
+        $paseo = $this->getById($paseoId);
+        if (!$paseo) {
+            return false;
+        }
+
+        // Valida que el paseo sea del paseador logueado
+        $paseadorActualId = (int)(Session::getUsuarioId() ?? 0);
+        if ($paseadorActualId <= 0 || (int)($paseo['paseador_id'] ?? 0) !== $paseadorActualId) {
+            return false;
+        }
+
+        $estadoActual = strtolower($paseo['estado'] ?? '');
+        // Solo permitir iniciar si está confirmado o pendiente
+        if (!in_array($estadoActual, ['confirmado', 'pendiente', 'solicitado'], true)) {
+            return false;
+        }
+
+        return $this->paseoModel->actualizarEstado($paseoId, 'en_curso');
+    }
+
+    /**
+     * 🔹 Completar paseo (paseador)
+     * Cambia estado a 'completo'. Si querés guardar comentario,
+     * asegurate de tener una columna en la tabla (ej: comentario_paseador).
+     */
+    public function completarPaseo(int $paseoId, string $comentario = ''): array
+    {
+        if ($paseoId <= 0) {
+            return ['success' => false, 'error' => 'ID de paseo inválido.'];
+        }
+
+        $paseo = $this->getById($paseoId);
+        if (!$paseo) {
+            return ['success' => false, 'error' => 'Paseo no encontrado.'];
+        }
+
+        // Valida que sea del paseador logueado
+        $paseadorActualId = (int)(Session::getUsuarioId() ?? 0);
+        if ($paseadorActualId <= 0 || (int)($paseo['paseador_id'] ?? 0) !== $paseadorActualId) {
+            return ['success' => false, 'error' => 'No tienes permiso sobre este paseo.'];
+        }
+
+        $estadoActual = strtolower($paseo['estado'] ?? '');
+        if (!in_array($estadoActual, ['en_curso', 'confirmado'], true)) {
+            return ['success' => false, 'error' => 'El paseo no se puede completar desde su estado actual.'];
+        }
+
+        try {
+            // Solo cambiamos el estado a completo
+            $ok = $this->paseoModel->actualizarEstado($paseoId, 'completo');
+
+            // 🔸 Si TENÉS una columna para comentario, podés descomentar esto
+            /*
+            if ($ok && $comentario !== '') {
+                $sql = "
+                    UPDATE paseos
+                    SET comentario_paseador = :comentario,
+                        updated_at = NOW()
+                    WHERE paseo_id = :id
+                ";
+                $stmt = $this->db->prepare($sql);
+                $stmt->execute([
+                    ':comentario' => $comentario,
+                    ':id'         => $paseoId,
+                ]);
+            }
+            */
+
+            return [
+                'success' => $ok,
+                'error'   => $ok ? null : 'No se pudo marcar el paseo como completo.'
+            ];
+        } catch (PDOException $e) {
+            error_log('PaseoController::completarPaseo error: ' . $e->getMessage());
+            return [
+                'success' => false,
+                'error'   => 'Error al completar el paseo.'
+            ];
+        }
+    }
+
+    /**
+     * 🔹 Solicitudes pendientes para un paseador (estado solicitado/pendiente)
+     * Usado en: features/paseador/Solicitudes.php
+     */
+    public function getSolicitudesPendientes(int $paseadorId): array
+    {
+        if ($paseadorId <= 0) {
+            return [];
+        }
+
+        $sql = "
+            SELECT 
+                p.paseo_id,
+                p.mascota_id,
+                p.paseador_id,
+                p.inicio,
+                p.duracion,
+                p.precio_total,
+                p.estado,
+                m.nombre    AS nombre_mascota,
+                d.nombre    AS nombre_dueno
+            FROM paseos p
+            INNER JOIN mascotas m ON m.mascota_id = p.mascota_id
+            INNER JOIN usuarios d ON d.usu_id     = m.dueno_id
+            WHERE p.paseador_id = :paseador_id
+              AND p.estado IN ('solicitado', 'pendiente')
+            ORDER BY p.inicio ASC
+        ";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':paseador_id' => $paseadorId]);
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    /**
+     * 🔹 Confirmar solicitud de paseo (paseador)
+     */
+    public function confirmarPaseoPaseador(int $paseoId, int $paseadorId): array
+    {
+        if ($paseoId <= 0 || $paseadorId <= 0) {
+            return ['success' => false, 'error' => 'Datos inválidos.'];
+        }
+
+        $paseo = $this->getById($paseoId);
+        if (!$paseo) {
+            return ['success' => false, 'error' => 'Paseo no encontrado.'];
+        }
+
+        if ((int)($paseo['paseador_id'] ?? 0) !== $paseadorId) {
+            return ['success' => false, 'error' => 'No tienes permiso sobre este paseo.'];
+        }
+
+        $estadoActual = strtolower($paseo['estado'] ?? '');
+        if (!in_array($estadoActual, ['solicitado', 'pendiente'], true)) {
+            return ['success' => false, 'error' => 'El paseo ya fue gestionado.'];
+        }
+
+        $ok = $this->paseoModel->actualizarEstado($paseoId, 'confirmado');
+
+        return [
+            'success' => $ok,
+            'mensaje' => $ok
+                ? 'Solicitud confirmada correctamente.'
+                : 'No se pudo confirmar la solicitud.'
+        ];
+    }
+
+    /**
+     * 🔹 Rechazar / cancelar solicitud de paseo (paseador)
+     */
+    public function rechazarPaseoPaseador(int $paseoId, int $paseadorId): array
+    {
+        if ($paseoId <= 0 || $paseadorId <= 0) {
+            return ['success' => false, 'error' => 'Datos inválidos.'];
+        }
+
+        $paseo = $this->getById($paseoId);
+        if (!$paseo) {
+            return ['success' => false, 'error' => 'Paseo no encontrado.'];
+        }
+
+        if ((int)($paseo['paseador_id'] ?? 0) !== $paseadorId) {
+            return ['success' => false, 'error' => 'No tienes permiso sobre este paseo.'];
+        }
+
+        $estadoActual = strtolower($paseo['estado'] ?? '');
+        if (!in_array($estadoActual, ['solicitado', 'pendiente'], true)) {
+            return ['success' => false, 'error' => 'El paseo ya fue gestionado.'];
+        }
+
+        $ok = $this->paseoModel->actualizarEstado($paseoId, 'cancelado');
+
+        return [
+            'success' => $ok,
+            'mensaje' => $ok
+                ? 'Solicitud rechazada correctamente.'
+                : 'No se pudo rechazar la solicitud.'
+        ];
+    }
+    public function obtenerDatosExportacionPaseador(int $paseadorId): array
+    {
+        return $this->paseoModel->getExportByPaseador($paseadorId);
+    }
 }

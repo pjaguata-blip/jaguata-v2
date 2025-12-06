@@ -47,7 +47,6 @@ foreach ($paseos as $p) {
 
     $pagos[] = [
         'id'       => (int)($p['paseo_id'] ?? 0),
-        // pago_id debe venir del SELECT del PaseoController::indexForPaseador
         'pago_id'  => isset($p['pago_id']) ? (int)$p['pago_id'] : null,
         'paseo'    => 'Paseo de ' . ($p['mascota_nombre'] ?? $p['nombre_mascota'] ?? 'Mascota'),
         'monto'    => (float)($p['precio_total'] ?? 0),
@@ -264,6 +263,7 @@ $gananciasTotales = array_sum(
                                                 ? 'bg-success'
                                                 : 'bg-warning text-dark';
                                             $tieneComprobante = $p['estado'] === 'pagado' && !empty($p['pago_id']);
+
                                             ?>
                                             <tr>
                                                 <td>#<?= (int)$p['id'] ?></td>
@@ -282,6 +282,7 @@ $gananciasTotales = array_sum(
                                                             target="_blank">
                                                             <i class="fas fa-file-pdf me-1"></i> Ver
                                                         </a>
+
                                                     <?php else: ?>
                                                         <span class="text-muted small">—</span>
                                                     <?php endif; ?>

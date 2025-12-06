@@ -23,7 +23,7 @@ $paseoController = new PaseoController();
 $paseadorId      = (int)(Session::getUsuarioId() ?? 0);
 $paseos          = $paseoController->indexForPaseador($paseadorId);
 
-$estadosValidos = ['pendiente', 'confirmado', 'en_curso', 'completo', 'cancelado'];
+$estadosValidos = ['solicitado', 'confirmado', 'en_curso', 'completo', 'cancelado'];
 $estadoFiltro   = strtolower(trim((string)($_GET['estado'] ?? '')));
 
 if ($estadoFiltro !== '' && in_array($estadoFiltro, $estadosValidos, true)) {
@@ -35,10 +35,10 @@ if ($estadoFiltro !== '' && in_array($estadoFiltro, $estadosValidos, true)) {
     );
 }
 
-$by = fn($s) => array_filter($paseos, fn($p) => strtolower($p['estado']) === $s);
+$by = fn($s) => array_filter($paseos, fn($p) => strtolower(trim((string)$p['estado'])) === $s);
 
 $totalPaseos       = count($paseos);
-$paseosPendientes  = count($by('pendiente')) + count($by('confirmado'));
+$paseosPendientes  = count($by('solicitado')) + count($by('confirmado'));
 $paseosCompletados = count($by('completo'));
 $paseosCancelados  = count($by('cancelado'));
 $ingresosTotales   = array_reduce(
@@ -46,6 +46,8 @@ $ingresosTotales   = array_reduce(
     fn($a, $p) => $a + (float)($p['precio_total'] ?? 0),
     0
 );
+
+
 
 // Para links base
 $rolMenu      = Session::getUsuarioRol() ?: 'paseador';
@@ -171,6 +173,13 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
                 </div>
 
                 <!-- Tabla de paseos -->
+                <?php
+                // DEBUG: ver qué trae el back
+                // (luego BORRÁS esto)
+                echo '<!-- CANTIDAD PASEOS: ' . count($paseos) . " -->\n";
+                // echo '<pre>'; print_r($paseos); echo '</pre>';
+                ?>
+
                 <?php if (empty($paseos)): ?>
                     <div class="text-center py-5">
                         <i class="fas fa-dog fa-5x text-secondary mb-4"></i>
@@ -197,17 +206,28 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
                                     </thead>
                                     <tbody>
                                         <?php foreach ($paseos as $p):
-                                            $estado  = strtolower($p['estado']);
-                                            $paseoId = (int)$p['paseo_id'];
+
+                                            // 🔹 Normalizamos el estado:
+                                            //  - si viene NULL o vacío => lo tratamos como 'solicitado'
+                                            $estadoRaw = trim((string)($p['estado'] ?? ''));
+                                            $estado    = strtolower($estadoRaw !== '' ? $estadoRaw : 'solicitado');
+
+                                            $paseoId   = (int)$p['paseo_id'];
+
+                                            // 🔹 Badge segun estado (usando tus enums reales)
                                             $badge = match ($estado) {
                                                 'completo'   => 'success',
                                                 'cancelado'  => 'danger',
                                                 'en_curso'   => 'info',
                                                 'confirmado' => 'primary',
-                                                default      => 'warning'
+                                                'solicitado' => 'warning',
+                                                default      => 'secondary'
                                             };
+
+                                            // 🔹 Estados en los que el paseador puede "aceptar / rechazar"
+                                            $esSolicitado = ($estado === 'solicitado');
                                         ?>
-                                            <tr data-estado="<?= $estado ?>">
+                                            <tr data-estado="<?= h($estado) ?>">
                                                 <td><?= h($p['mascota_nombre'] ?? $p['nombre_mascota'] ?? '') ?></td>
                                                 <td><?= h($p['dueno_nombre'] ?? $p['nombre_dueno'] ?? '') ?></td>
                                                 <td>
@@ -217,8 +237,10 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
                                                 <td><?= h($p['duracion'] ?? $p['duracion_min'] ?? '') ?> min</td>
                                                 <td>
                                                     <span class="badge bg-<?= $badge ?>">
-                                                        <?= ucfirst(str_replace('_', ' ', $estado)) ?>
+                                                        <?= ucfirst(str_replace('_', ' ', $estado ?: '—')) ?>
                                                     </span>
+                                                    <!-- DEBUG opcional: ver lo que viene crudo de la BD -->
+                                                    <!-- <br><small class="text-muted">[<?= h($estadoRaw) ?>]</small> -->
                                                 </td>
                                                 <td>
                                                     <?php if (($p['estado_pago'] ?? '') === 'procesado'): ?>
@@ -231,30 +253,72 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
                                                 </td>
                                                 <td>
                                                     <div class="btn-group">
-                                                        <a href="VerPaseo.php?id=<?= $paseoId ?>" class="btn btn-sm btn-outline-primary" title="Ver">
+                                                        <!-- 👁 Ver detalle -->
+                                                        <a href="VerPaseo.php?id=<?= $paseoId ?>" class="btn btn-sm btn-outline-primary" title="Ver detalle">
                                                             <i class="fas fa-eye"></i>
                                                         </a>
-                                                        <?php if ($estado === 'pendiente'): ?>
+
+                                                        <?php if ($esSolicitado): ?>
+                                                            <!-- 🟡 solicitado → confirmar / cancelar -->
                                                             <form action="AccionPaseo.php" method="post" class="d-inline">
                                                                 <input type="hidden" name="id" value="<?= $paseoId ?>">
                                                                 <input type="hidden" name="accion" value="confirmar">
-                                                                <button type="submit" class="btn btn-sm btn-outline-success" title="Confirmar">
+                                                                <button type="submit" class="btn btn-sm btn-outline-success" title="Confirmar solicitud">
                                                                     <i class="fas fa-check"></i>
                                                                 </button>
                                                             </form>
+
                                                             <form action="AccionPaseo.php" method="post" class="d-inline">
                                                                 <input type="hidden" name="id" value="<?= $paseoId ?>">
                                                                 <input type="hidden" name="accion" value="cancelar">
-                                                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Cancelar">
+                                                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Cancelar solicitud">
                                                                     <i class="fas fa-times"></i>
                                                                 </button>
                                                             </form>
+
+                                                        <?php elseif ($estado === 'confirmado'): ?>
+                                                            <!-- 🔵 confirmado → iniciar / cancelar -->
+                                                            <a href="AccionPaseo.php?id=<?= $paseoId ?>&accion=iniciar"
+                                                                class="btn btn-sm btn-outline-success"
+                                                                title="Iniciar paseo"
+                                                                onclick="return confirm('¿Iniciar este paseo?');">
+                                                                <i class="fas fa-play"></i>
+                                                            </a>
+
+                                                            <a href="AccionPaseo.php?id=<?= $paseoId ?>&accion=cancelar"
+                                                                class="btn btn-sm btn-outline-danger"
+                                                                title="Cancelar paseo"
+                                                                onclick="return confirm('¿Cancelar este paseo?');">
+                                                                <i class="fas fa-times"></i>
+                                                            </a>
+
+                                                        <?php elseif ($estado === 'en_curso'): ?>
+                                                            <!-- 🔵 en_curso → completar / cancelar -->
+                                                            <a href="AccionPaseo.php?id=<?= $paseoId ?>&accion=completar"
+                                                                class="btn btn-sm btn-outline-success"
+                                                                title="Completar paseo"
+                                                                onclick="return confirm('¿Marcar este paseo como completado?');">
+                                                                <i class="fas fa-check"></i>
+                                                            </a>
+
+                                                            <a href="AccionPaseo.php?id=<?= $paseoId ?>&accion=cancelar"
+                                                                class="btn btn-sm btn-outline-danger"
+                                                                title="Cancelar paseo en curso"
+                                                                onclick="return confirm('¿Cancelar este paseo en curso?');">
+                                                                <i class="fas fa-times"></i>
+                                                            </a>
+
+                                                        <?php else: ?>
+                                                            <!-- completo / cancelado → solo ver -->
                                                         <?php endif; ?>
                                                     </div>
                                                 </td>
                                             </tr>
                                         <?php endforeach; ?>
                                     </tbody>
+
+
+
                                 </table>
                             </div>
                         </div>

@@ -52,36 +52,51 @@ class PaseoController
         }
 
         $sql = "
-            SELECT 
-                p.paseo_id,
-                p.mascota_id,
-                p.paseador_id,
-                p.inicio,
-                p.duracion,
-                p.ubicacion,
-                p.estado,
-                p.precio_total,
-                p.estado_pago,
-                p.puntos_ganados,
-                p.created_at,
-                p.updated_at,
-                m.nombre      AS mascota_nombre,
-                m.foto_url    AS mascota_foto,
-                d.nombre      AS dueno_nombre,
-                d.telefono    AS dueno_telefono,
-                d.ciudad      AS dueno_ciudad,
-                d.barrio      AS dueno_barrio
-            FROM paseos p
-            INNER JOIN mascotas m ON m.mascota_id = p.mascota_id
-            INNER JOIN usuarios d ON d.usu_id     = m.dueno_id
-            WHERE p.paseador_id = :paseador_id
-            ORDER BY p.inicio DESC
-        ";
+        SELECT 
+            p.paseo_id,
+            p.mascota_id,
+            p.paseador_id,
+            p.inicio,
+            p.duracion,
+            p.ubicacion,
+            p.estado,
+            p.precio_total,
+            p.estado_pago,
+            p.puntos_ganados,
+            p.created_at,
+            p.updated_at,
+
+            -- 🔹 Datos de la mascota y dueño
+            m.nombre      AS mascota_nombre,
+            m.foto_url    AS mascota_foto,
+            d.nombre      AS dueno_nombre,
+            d.telefono    AS dueno_telefono,
+            d.ciudad      AS dueno_ciudad,
+            d.barrio      AS dueno_barrio,
+
+            -- 🔹 Datos del pago (si existe)
+            pg.id         AS pago_id,
+            pg.comprobante AS comprobante_archivo,
+            pg.estado     AS pago_estado
+
+        FROM paseos p
+        INNER JOIN mascotas m ON m.mascota_id = p.mascota_id
+        INNER JOIN usuarios d ON d.usu_id     = m.dueno_id
+        LEFT JOIN pagos pg 
+            ON pg.paseo_id = p.paseo_id
+            -- opcional: solo pagos confirmados / procesados
+            AND pg.estado IN ('confirmado_por_dueno','confirmado_por_admin','pagado','procesado')
+
+        WHERE p.paseador_id = :paseador_id
+        ORDER BY p.inicio DESC
+    ";
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute([':paseador_id' => $paseadorId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
+
+
 
     /**
      * 🔹 Listar paseos de un dueño
@@ -191,23 +206,25 @@ class PaseoController
         }
 
         $sql = "
-            SELECT 
-                p.*,
-                m.nombre       AS mascota_nombre,
-                m.foto_url     AS mascota_foto,
-                d.nombre       AS dueno_nombre,
-                d.telefono     AS dueno_telefono,
-                d.ciudad       AS dueno_ciudad,
-                d.barrio       AS dueno_barrio,
-                pa.nombre      AS paseador_nombre,
-                pa.telefono    AS paseador_telefono
-            FROM paseos p
-            INNER JOIN mascotas m ON m.mascota_id = p.mascota_id
-            INNER JOIN usuarios d ON d.usu_id     = m.dueno_id
-            INNER JOIN usuarios pa ON pa.usu_id   = p.paseador_id
-            WHERE p.paseo_id = :id
-            LIMIT 1
-        ";
+        SELECT 
+            p.*,
+            m.nombre       AS nombre_mascota,
+            m.foto_url     AS mascota_foto,
+            d.nombre       AS nombre_dueno,
+            d.telefono     AS dueno_telefono,
+            d.ciudad       AS dueno_ciudad,
+            d.barrio       AS dueno_barrio,
+            pa.nombre      AS paseador_nombre,
+            pa.telefono    AS paseador_telefono,
+            -- alias para que 'direccion' exista en la vista
+            p.ubicacion    AS direccion
+        FROM paseos p
+        INNER JOIN mascotas m ON m.mascota_id = p.mascota_id
+        INNER JOIN usuarios d ON d.usu_id     = m.dueno_id
+        INNER JOIN usuarios pa ON pa.usu_id   = p.paseador_id
+        WHERE p.paseo_id = :id
+        LIMIT 1
+    ";
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute([':id' => $id]);
@@ -215,6 +232,7 @@ class PaseoController
 
         return $row !== false ? $row : null;
     }
+
 
     /**
      * 🔹 Detalle para pantalla de pago (dueño)
@@ -290,6 +308,43 @@ class PaseoController
             ];
         }
     }
+    /**
+     * 🔹 Cancelar un paseo (paseador)
+     * Usado en: features/Paseador/cancelarPaseoPaseador.php
+     */
+    public function cancelarPaseoPaseador(int $paseoId, int $paseadorId): array
+    {
+        if ($paseoId <= 0 || $paseadorId <= 0) {
+            return ['success' => false, 'error' => 'Datos inválidos.'];
+        }
+
+        $paseo = $this->getById($paseoId);
+        if (!$paseo) {
+            return ['success' => false, 'error' => 'Paseo no encontrado.'];
+        }
+
+        if ((int)($paseo['paseador_id'] ?? 0) !== $paseadorId) {
+            return ['success' => false, 'error' => 'No tienes permiso sobre este paseo.'];
+        }
+
+        $estadoActual = strtolower($paseo['estado'] ?? '');
+
+        // Permitimos cancelar desde estos estados
+        if (!in_array($estadoActual, ['solicitado', 'pendiente', 'confirmado', 'en_curso'], true)) {
+            return ['success' => false, 'error' => 'El paseo no se puede cancelar desde su estado actual.'];
+        }
+
+        $ok = $this->paseoModel->actualizarEstado($paseoId, 'cancelado');
+
+        return [
+            'success' => $ok,
+            'mensaje' => $ok
+                ? 'Paseo cancelado correctamente.'
+                : 'No se pudo cancelar el paseo.'
+        ];
+    }
+
+
 
     /**
      * 🔹 Datos para exportar paseos (Excel)

@@ -48,9 +48,7 @@ $badge  = match ($estado) {
     default      => 'secondary',
 };
 
-// Para links base
-$rolMenu      = Session::getUsuarioRol() ?: 'paseador';
-$baseFeatures = BASE_URL . "/features/{$rolMenu}";
+$baseFeatures = BASE_URL . "/features/paseador";
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -58,40 +56,27 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Detalle del Paseo - Paseador | Jaguata</title>
-
-    <!-- 🌿 Tema general Jaguata -->
-    <link href="<?= ASSETS_URL; ?>/css/jaguata-theme.css" rel="stylesheet">
-
-    <!-- Bootstrap y FontAwesome -->
+    <title>Detalle del Paseo - Jaguata</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <!-- 🎨 Tu CSS global -->
+    <link rel="stylesheet" href="<?= BASE_URL; ?>/assets/css/jaguata-theme.css">
 </head>
 
-<body class="bg-light">
-    <!-- Botón hamburguesa mobile -->
-    <button class="btn btn-outline-secondary d-md-none ms-2 mt-2" id="toggleSidebar">
-        <i class="fas fa-bars"></i>
-    </button>
-
-    <div class="layout">
-        <!-- Sidebar paseador unificado -->
-        <?php include __DIR__ . '/../../src/Templates/SidebarPaseador.php'; ?>
+<body class="bg-jaguata">
+    <div class="d-flex min-vh-100">
+        <!-- Sidebar paseador (reutilizado) -->
+        <?php include __DIR__ . '/sidebarpaseador.php'; ?>
 
         <!-- Contenido principal -->
-        <main class="content bg-light">
-            <div class="container-fluid py-4">
+        <main class="flex-grow-1 p-4">
+            <div class="container-fluid">
 
-                <!-- Header con estilo global -->
-                <div class="header-box header-dashboard mb-4 d-flex justify-content-between align-items-center">
-                    <div>
-                        <h1 class="h4 mb-1">
-                            <i class="fas fa-walking me-2"></i> Detalle del paseo
-                        </h1>
-                        <p class="mb-0 text-white-50">
-                            Revisá la información completa de este paseo.
-                        </p>
-                    </div>
+                <!-- Header / migas -->
+                <div class="page-header-jaguata d-flex justify-content-between align-items-center mb-4">
+                    <h2 class="mb-0">
+                        <i class="fas fa-walking me-2"></i> Detalle del Paseo
+                    </h2>
                     <a href="<?= $baseFeatures; ?>/MisPaseos.php" class="btn btn-outline-light btn-sm">
                         <i class="fas fa-arrow-left me-1"></i> Volver
                     </a>
@@ -114,18 +99,18 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
                     </div>
                 <?php endif; ?>
 
-                <!-- Card de detalle -->
-                <div class="card jag-card shadow-sm">
+                <!-- Card principal -->
+                <div class="card card-jaguata shadow-sm">
                     <div class="card-body">
                         <div class="row mb-3">
                             <div class="col-md-6">
                                 <p class="mb-2">
                                     <strong><i class="fas fa-paw text-success me-2"></i>Mascota:</strong>
-                                    <?= h($paseo['nombre_mascota'] ?? $paseo['mascota_nombre'] ?? '—') ?>
+                                    <?= h($paseo['nombre_mascota'] ?? '—') ?>
                                 </p>
                                 <p class="mb-2">
                                     <strong><i class="fas fa-user text-secondary me-2"></i>Dueño:</strong>
-                                    <?= h($paseo['nombre_dueno'] ?? $paseo['dueno_nombre'] ?? '—') ?>
+                                    <?= h($paseo['nombre_dueno'] ?? '—') ?>
                                 </p>
                                 <p class="mb-2">
                                     <strong><i class="fas fa-calendar me-2"></i>Fecha:</strong>
@@ -139,7 +124,7 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
                             <div class="col-md-6">
                                 <p class="mb-2">
                                     <strong><i class="fas fa-map-marker-alt me-2"></i>Dirección:</strong>
-                                    <?= h($paseo['direccion'] ?? $paseo['ubicacion'] ?? '—') ?>
+                                    <?= h($paseo['direccion'] ?? '—') ?>
                                 </p>
                                 <p class="mb-2">
                                     <strong><i class="fas fa-dollar-sign me-2"></i>Precio Total:</strong>
@@ -147,7 +132,7 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
                                 </p>
                                 <p class="mb-2">
                                     <strong><i class="fas fa-info-circle me-2"></i>Estado:</strong>
-                                    <span class="badge bg-<?= $badge ?>"><?= ucfirst(str_replace('_', ' ', $estado ?: '—')) ?></span>
+                                    <span class="badge bg-<?= $badge ?>"><?= ucfirst($estado ?: '—') ?></span>
                                 </p>
                             </div>
                         </div>
@@ -156,43 +141,38 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
 
                         <!-- Botones de acción -->
                         <div class="mt-3 d-flex flex-wrap gap-2">
-                            <?php if (in_array($estado, ['solicitado', 'pendiente'], true)): ?>
-                                <a href="AccionPaseo.php?id=<?= (int)$paseo['paseo_id'] ?>&accion=confirmar"
-                                    class="btn btn-success"
-                                    onclick="return confirm('¿Confirmar este paseo?');">
-                                    <i class="fas fa-check me-1"></i> Confirmar Paseo
+                            <?php if ($estado === 'confirmado'): ?>
+                                <a href="AccionPaseo.php?id=<?= (int)$paseo['paseo_id'] ?>&accion=iniciar"
+                                    class="btn btn-jaguata-primary"
+                                    onclick="return confirm('¿Iniciar este paseo?');">
+                                    <i class="fas fa-play me-1"></i> Iniciar Paseo
                                 </a>
                                 <a href="AccionPaseo.php?id=<?= (int)$paseo['paseo_id'] ?>&accion=cancelar"
                                     class="btn btn-outline-danger"
                                     onclick="return confirm('¿Cancelar este paseo?');">
                                     <i class="fas fa-times me-1"></i> Cancelar
                                 </a>
-
-                            <?php elseif ($estado === 'confirmado'): ?>
-                                ... (lo que ya tenés de iniciar / cancelar) ...
-
                             <?php elseif ($estado === 'en_curso'): ?>
-                                ... (lo que ya tenés de completar / cancelar) ...
+                                <a href="AccionPaseo.php?id=<?= (int)$paseo['paseo_id'] ?>&accion=completar"
+                                    class="btn btn-jaguata-primary"
+                                    onclick="return confirm('¿Marcar este paseo como completado?');">
+                                    <i class="fas fa-check me-1"></i> Completar Paseo
+                                </a>
+                                <a href="AccionPaseo.php?id=<?= (int)$paseo['paseo_id'] ?>&accion=cancelar"
+                                    class="btn btn-outline-danger"
+                                    onclick="return confirm('¿Cancelar este paseo en curso?');">
+                                    <i class="fas fa-times me-1"></i> Cancelar
+                                </a>
                             <?php endif; ?>
                         </div>
-
                     </div>
                 </div>
 
-                <footer class="text-center text-muted small mt-4">
-                    &copy; <?= date('Y') ?> Jaguata — Todos los derechos reservados.
-                </footer>
             </div>
         </main>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        // Toggle sidebar en mobile
-        document.getElementById('toggleSidebar')?.addEventListener('click', function() {
-            document.getElementById('sidebar')?.classList.toggle('sidebar-open');
-        });
-    </script>
 </body>
 
 </html>

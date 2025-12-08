@@ -46,4 +46,21 @@ class AppConfig
     {
         return DatabaseService::getInstance()->getConnection();
     }
+    public static function getBaseUrl(): string
+    {
+        // Nos aseguramos de que la config esté cargada
+        self::init();
+        return defined('BASE_URL') ? BASE_URL : '';
+    }
+
+    public static function getAssetsUrl(): string
+    {
+        self::init();
+        if (defined('ASSETS_URL')) {
+            return ASSETS_URL;
+        }
+
+        // Fallback por si acaso
+        return (defined('BASE_URL') ? BASE_URL : '') . '/assets';
+    }
 }

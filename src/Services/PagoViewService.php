@@ -6,13 +6,20 @@ use PDO;
 
 class PagoViewService
 {
-    public function __construct(private PDO $db = null)
+    private PDO $db;
+
+    public function __construct(?PDO $db = null)
     {
-        $this->db = $this->db ?? $GLOBALS['db'];
+        // Usamos el $GLOBALS['db'] si no se inyecta nada
+        $this->db = $db ?? ($GLOBALS['db'] ?? null);
+
+        if (!$this->db instanceof PDO) {
+            throw new \RuntimeException('No hay conexión PDO disponible para PagoViewService');
+        }
     }
 
     /**
-     * Retorna pago + paseo + dueno + paseador
+     * Retorna pago + paseo + datos de dueño y paseador
      */
     public function getPagoFull(int $pagoId): ?array
     {
@@ -23,7 +30,7 @@ class PagoViewService
             pg.usuario_id       AS paseador_id_en_pagos,  -- receptor
             pg.metodo,
             pg.alias            AS alias_transferencia,
-            pg.referencia       AS referencia,            -- nro tx o archivo
+            pg.referencia       AS referencia,
             pg.monto,
             pg.estado           AS estado_pago,
             pg.created_at       AS pagado_en,
@@ -39,22 +46,31 @@ class PagoViewService
             u1.usu_id           AS dueno_id,
             u1.nombre           AS dueno_nombre,
             u1.email            AS dueno_email,
+            u1.telefono         AS dueno_telefono,
 
             u2.usu_id           AS paseador_id,
             u2.nombre           AS paseador_nombre,
             u2.email            AS paseador_email,
-            u2.banco_nombre,
-            u2.alias_cuenta,
-            u2.cuenta_numero
+            u2.telefono         AS paseador_telefono,
+
+            cb.banco_nombre,
+            cb.alias            AS alias_cuenta,
+            cb.numero_cuenta    AS cuenta_numero
+
         FROM pagos pg
-        JOIN paseos p   ON p.paseo_id = pg.paseo_id
-        JOIN usuarios u1 ON u1.usu_id = p.dueno_id
-        JOIN usuarios u2 ON u2.usu_id = p.paseador_id
-        WHERE pg.id = :pid
-        LIMIT 1";
+        INNER JOIN paseos p      ON p.paseo_id = pg.paseo_id
+        INNER JOIN usuarios u1   ON u1.usu_id  = p.dueno_id
+        INNER JOIN usuarios u2   ON u2.usu_id  = p.paseador_id
+        LEFT JOIN cuentas_bancarias cb ON cb.usuario_id = pg.usuario_id
+        WHERE pg.id = :pago_id
+        LIMIT 1
+        ";
+
         $st = $this->db->prepare($sql);
-        $st->execute([':pid' => $pagoId]);
-        $row = $st->fetch(PDO::FETCH_ASSOC) ?: null;
-        return $row;
+        $st->bindValue(':pago_id', $pagoId, PDO::PARAM_INT);
+        $st->execute();
+        $row = $st->fetch(PDO::FETCH_ASSOC);
+
+        return $row ?: null;
     }
 }

@@ -94,4 +94,77 @@ class Paseador extends BaseModel
             return null;
         }
     }
+    /**
+     * Cambiar disponibilidad visible del paseador
+     * (lo usa PaseadorController::apiSetDisponible)
+     */
+    public function setDisponible(int $id, bool $estado): bool
+    {
+        // OJO: usá el nombre real de la columna: 'disponible' o 'disponibilidad'
+        $sql = "UPDATE {$this->table}
+                SET disponible = :estado
+                WHERE {$this->primaryKey} = :id";
+
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute([
+            ':estado' => (int)$estado,
+            ':id'     => $id,
+        ]);
+    }
+
+    /**
+     * Actualizar calificación del paseador
+     * (lo usa PaseadorController::apiUpdateCalificacion)
+     */
+    public function updateCalificacion(int $id, float $valor): bool
+    {
+        $sql = "UPDATE {$this->table}
+                SET calificacion = :cal
+                WHERE {$this->primaryKey} = :id";
+
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute([
+            ':cal' => $valor,
+            ':id'  => $id,
+        ]);
+    }
+
+    /**
+     * Incrementar contador de paseos realizados
+     * (lo usa PaseadorController::apiIncrementarPaseos)
+     */
+    public function incrementarPaseos(int $id): bool
+    {
+        $sql = "UPDATE {$this->table}
+                SET total_paseos = total_paseos + 1
+                WHERE {$this->primaryKey} = :id";
+
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute([
+            ':id' => $id,
+        ]);
+    }
+
+    /**
+     * Buscar paseadores por nombre, email o teléfono
+     * (lo usa PaseadorController::buscar)
+     */
+    public function search(string $query): array
+    {
+        try {
+            $sql = "SELECT *
+                    FROM {$this->table}
+                    WHERE nombre   LIKE :query
+                       OR email    LIKE :query
+                       OR telefono LIKE :query
+                    ORDER BY calificacion DESC, total_paseos DESC";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([':query' => '%' . $query . '%']);
+            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (\Throwable $e) {
+            error_log('Error en Paseador::search() => ' . $e->getMessage());
+            return [];
+        }
+    }
 }

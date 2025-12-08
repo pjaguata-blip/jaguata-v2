@@ -14,21 +14,28 @@ use Jaguata\Helpers\Session;
 
 AppConfig::init();
 
-/* 🔒 Solo rol dueño */
+/* 🔒 Auth (rol dueño) */
 $auth = new AuthController();
 $auth->checkRole('dueno');
 
-/* ===== Datos del usuario ===== */
-$usuarioId = (int)(Session::get('usuario_id') ?? 0);
+/* Datos usuario (igual que resto de features) */
+$usuarioId = (int)(Session::getUsuarioId() ?? 0);
+$rol       = Session::getUsuarioRol() ?: 'dueno';
+
 $usuarioModel = new Usuario();
-$usuario = $usuarioModel->getById($usuarioId);
+/* Usamos find() basado en BaseModel (primaryKey usu_id) */
+$usuario = $usuarioModel->find($usuarioId);
 
 if (!$usuario) {
     http_response_code(404);
-    exit('Error: No se encontró el usuario.');
+    exit('❌ Usuario no encontrado');
 }
 
-/* ===== Helpers ===== */
+/* Puntos del dueño (campo puntos en la tabla usuarios) */
+$puntos       = (int)($usuario['puntos'] ?? 0);
+$baseFeatures = BASE_URL . "/features/{$rol}";
+
+/* Helpers */
 function h(?string $v, string $fallback = '—'): string
 {
     $v = trim((string)($v ?? ''));
@@ -56,7 +63,7 @@ function esUrlAbsoluta(string $p): bool
     return (bool)preg_match('#^https?://#i', $p);
 }
 
-/* ===== Derivados UI ===== */
+/* Derivados UI */
 $foto = $usuario['foto_perfil'] ?? ($usuario['perfil_foto'] ?? '');
 if ($foto && !esUrlAbsoluta($foto)) {
     $foto = rtrim(BASE_URL, '/') . $foto;
@@ -65,15 +72,13 @@ if (!$foto) {
     $foto = ASSETS_URL . '/images/user-placeholder.png';
 }
 
-$edad          = calcularEdad($usuario['fecha_nacimiento'] ?? null);
-$departamento  = $usuario['departamento'] ?? null;
-$ciudad        = $usuario['ciudad'] ?? null;
-$barrio        = $usuario['barrio'] ?? null;
-$calle         = $usuario['calle'] ?? null;
-$direccionRef  = $usuario['direccion'] ?? null;
+$edad         = calcularEdad($usuario['fecha_nacimiento'] ?? null);
+$departamento = $usuario['departamento'] ?? null;
+$ciudad       = $usuario['ciudad'] ?? null;
+$barrio       = $usuario['barrio'] ?? null;
+$calle        = $usuario['calle'] ?? null;
+$direccionRef = $usuario['direccion'] ?? null;
 
-$rolMenu      = Session::getUsuarioRol() ?: 'dueno';
-$baseFeatures = BASE_URL . "/features/{$rolMenu}";
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -83,188 +88,214 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Mi Perfil - Jaguata</title>
 
+    <!-- Bootstrap + Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
-    <link href="<?= ASSETS_URL; ?>/css/jaguata-theme.css" rel="stylesheet" />
 
-    <style>
-        :root {
-            --verde: #3c6255;
-            --verde-claro: #20c997;
-            --fondo: #f5f7fa;
-        }
-
-        body {
-            background: var(--fondo);
-            font-family: "Poppins", sans-serif
-        }
-
-        /* Sidebar fija */
-        .sidebar {
-            background: linear-gradient(180deg, #1e1e2f 0%, #292a3a 100%);
-            color: #f8f9fa;
-            min-height: 100vh;
-            padding-top: 1rem;
-            box-shadow: 4px 0 12px rgba(0, 0, 0, .15)
-        }
-
-        .sidebar .nav-link {
-            color: #ddd;
-            border-radius: 8px;
-            padding: 10px 16px;
-            margin: 4px 8px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-weight: 500;
-            transition: .2s
-        }
-
-        .sidebar .nav-link:hover,
-        .sidebar .nav-link.active {
-            background-color: #343454;
-            color: #fff;
-            transform: translateX(4px)
-        }
-
-        .page-header {
-            background: linear-gradient(90deg, var(--verde-claro), var(--verde));
-            color: #fff;
-            padding: 1rem 1.5rem;
-            border-radius: 12px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin: 1rem 0 1.5rem
-        }
-
-        .card {
-            border: none;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, .08)
-        }
-
-        .card-header {
-            background: linear-gradient(90deg, var(--verde), var(--verde-claro));
-            color: #fff;
-            font-weight: 600;
-            border-top-left-radius: 12px;
-            border-top-right-radius: 12px
-        }
-    </style>
+    <!-- 🎨 Estilos globales Jaguata (mismo archivo que usa Admin y Dashboard dueño) -->
+    <link href="<?= BASE_URL; ?>/public/assets/css/jaguata-theme.css" rel="stylesheet" />
 </head>
 
 <body>
 
-    <?php include __DIR__ . '/../../src/Templates/Header.php'; ?>
-    <?php include __DIR__ . '/../../src/Templates/Navbar.php'; ?>
+    <!-- Sidebar dueño unificado -->
+    <?php include __DIR__ . '/../../src/Templates/SidebarDueno.php'; ?>
 
-    <div class="container-fluid">
-        <div class="row">
-            <!-- Sidebar -->
-            <aside class="col-auto col-md-3 col-xl-2 px-sm-2 px-0 sidebar" id="sidebar">
-                <?php include __DIR__ . '/../../src/Templates/SidebarDueno.php'; ?>
-            </aside>
+    <!-- Botón hamburguesa para móvil (usa .sidebar-open del CSS) -->
+    <button class="btn btn-outline-secondary d-md-none ms-2 mt-3" id="toggleSidebar">
+        <i class="fas fa-bars"></i>
+    </button>
 
-            <!-- Main -->
-            <main class="col py-3">
-                <div class="page-header">
-                    <h2 class="m-0"><i class="fas fa-user me-2"></i> Mi Perfil — Dueño</h2>
-                    <div class="d-flex flex-wrap gap-2">
-                        <a href="<?= $baseFeatures; ?>/Dashboard.php" class="btn btn-outline-light btn-sm">
-                            <i class="fas fa-arrow-left me-1"></i> Volver
-                        </a>
-                        <a href="<?= $baseFeatures; ?>/MisPuntos.php" class="btn btn-light btn-sm text-success fw-semibold">
-                            <i class="fas fa-star me-1 text-warning"></i> Mis Puntos
-                        </a>
-                        <a href="<?= $baseFeatures; ?>/EditarPerfil.php" class="btn btn-success btn-sm">
-                            <i class="fas fa-edit me-1"></i> Editar
-                        </a>
-                    </div>
+    <!-- Contenido -->
+    <main>
+        <div class="py-4">
+            <!-- HEADER unificado Perfil + Puntos (usa header-box + header-dashboard del CSS) -->
+            <div class="header-box header-dashboard mb-4">
+                <div>
+                    <h1 class="fw-bold mb-1">
+                        <i class="fas fa-user me-2"></i>Mi Perfil — Dueño
+                    </h1>
+                    <p class="mb-0">
+                        Datos de tu cuenta y tus puntos acumulados en Jaguata 🐾
+                    </p>
                 </div>
-
-                <div class="row g-3">
-                    <!-- Izquierda -->
-                    <div class="col-lg-4">
-                        <div class="card h-100">
-                            <div class="card-body text-center">
-                                <img src="<?= h($foto) ?>" alt="Foto de perfil" class="rounded-circle mb-3" style="width:160px;height:160px;object-fit:cover;">
-                                <h4 class="mb-1"><?= h($usuario['nombre'] ?? null, 'Sin nombre') ?></h4>
-                                <span class="badge text-bg-success">Dueño</span>
-
-                                <div class="mt-3 text-start small">
-                                    <div class="mb-2"><i class="fa-solid fa-envelope me-2"></i><strong>Email:</strong> <?= h($usuario['email']) ?></div>
-                                    <div class="mb-2"><i class="fa-solid fa-phone me-2"></i><strong>Teléfono:</strong> <?= h($usuario['telefono']) ?></div>
-                                    <div class="mb-2">
-                                        <i class="fa-solid fa-cake-candles me-2"></i><strong>Cumpleaños:</strong>
-                                        <?php if (!empty($usuario['fecha_nacimiento'])): ?>
-                                            <?= fechaLatina($usuario['fecha_nacimiento']) ?>
-                                            <?= ($edad !== null) ? ' <span class="text-muted">(' . $edad . ' años)</span>' : '' ?>
-                                        <?php else: ?>
-                                            <span class="text-muted">No especificado</span>
-                                        <?php endif; ?>
-                                    </div>
-                                    <div class="mb-2"><i class="fa-solid fa-star me-2"></i><strong>Puntos:</strong> <?= (int)($usuario['puntos'] ?? 0) ?></div>
-                                </div>
-                            </div>
-                        </div>
+                <div class="text-end">
+                    <div class="small text-white-50">Puntos acumulados</div>
+                    <div class="fs-2 fw-bold">
+                        <i class="fas fa-star text-warning me-1"></i>
+                        <?= number_format($puntos, 0, ',', '.'); ?>
                     </div>
+                    <a href="<?= $baseFeatures; ?>/Dashboard.php" class="btn btn-outline-light btn-sm">
+                        <i class="fas fa-arrow-left me-1"></i> Volver
+                    </a>
 
-                    <!-- Derecha -->
-                    <div class="col-lg-8">
-                        <div class="card mb-3">
-                            <div class="card-header"><i class="fa-solid fa-location-dot me-2"></i> Dirección</div>
-                            <div class="card-body">
-                                <div class="row g-3">
-                                    <div class="col-md-6"><small class="text-muted">Departamento</small>
-                                        <div class="fw-semibold"><?= h($departamento) ?></div>
-                                    </div>
-                                    <div class="col-md-6"><small class="text-muted">Ciudad</small>
-                                        <div class="fw-semibold"><?= h($ciudad) ?></div>
-                                    </div>
-                                    <div class="col-md-6"><small class="text-muted">Barrio</small>
-                                        <div class="fw-semibold"><?= h($barrio) ?></div>
-                                    </div>
-                                    <div class="col-md-6"><small class="text-muted">Calle</small>
-                                        <div class="fw-semibold"><?= h($calle) ?></div>
-                                    </div>
-                                    <div class="col-12"><small class="text-muted">Referencia / Complemento</small>
-                                        <div class="fw-semibold"><?= h($direccionRef) ?></div>
-                                    </div>
-                                </div>
+                </div>
+            </div>
+
+            <div class="row g-3">
+                <!-- Col izquierda: perfil básico -->
+                <div class="col-lg-4">
+                    <div class="section-card text-center">
+                        <div class="mb-3">
+                            <img
+                                src="<?= h($foto) ?>"
+                                alt="Foto de perfil"
+                                class="perfil-avatar mb-2">
+                            <h4 class="mb-1"><?= h($usuario['nombre'] ?? null, 'Sin nombre'); ?></h4>
+                            <span class="badge-rol">Dueño</span>
+                        </div>
+
+                        <div class="perfil-datos text-start small">
+                            <div class="mb-2">
+                                <i class="fa-solid fa-envelope me-2"></i>
+                                <strong>Email:</strong> <?= h($usuario['email']); ?>
+                            </div>
+                            <div class="mb-2">
+                                <i class="fa-solid fa-phone me-2"></i>
+                                <strong>Teléfono:</strong> <?= h($usuario['telefono']); ?>
+                            </div>
+                            <div class="mb-2">
+                                <i class="fa-solid fa-cake-candles me-2"></i>
+                                <strong>Cumpleaños:</strong>
+                                <?php if (!empty($usuario['fecha_nacimiento'])): ?>
+                                    <?= fechaLatina($usuario['fecha_nacimiento']); ?>
+                                    <?php if ($edad !== null): ?>
+                                        <span class="text-muted">(<?= $edad; ?> años)</span>
+                                    <?php endif; ?>
+                                <?php else: ?>
+                                    <span class="text-muted">No especificado</span>
+                                <?php endif; ?>
+                            </div>
+                            <div class="mb-2">
+                                <i class="fa-solid fa-star me-2"></i>
+                                <strong>Puntos:</strong> <?= number_format($puntos, 0, ',', '.'); ?>
                             </div>
                         </div>
 
-                        <div class="card mb-3">
-                            <div class="card-header"><i class="fa-solid fa-dog me-2"></i> Preferencias</div>
-                            <div class="card-body">
-                                <?php if (!empty($usuario['preferencias'])): ?>
-                                    <div class="text-muted" style="white-space: pre-wrap;"><?= htmlspecialchars($usuario['preferencias'], ENT_QUOTES, 'UTF-8') ?></div>
-                                <?php else: ?>
-                                    <span class="text-muted">No especificadas.</span>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-
-                        <div class="card">
-                            <div class="card-header"><i class="fa-solid fa-notes-medical me-2"></i> Notas o Comentarios</div>
-                            <div class="card-body">
-                                <?php if (!empty($usuario['observaciones'])): ?>
-                                    <div class="text-muted" style="white-space: pre-wrap;"><?= htmlspecialchars($usuario['observaciones'], ENT_QUOTES, 'UTF-8') ?></div>
-                                <?php else: ?>
-                                    <span class="text-muted">Sin observaciones.</span>
-                                <?php endif; ?>
-                            </div>
+                        <div class="mt-3">
+                            <a href="<?= $baseFeatures; ?>/EditarPerfil.php" class="btn-accion btn-activar">
+                                <i class="fas fa-edit me-1"></i> Editar perfil
+                            </a>
                         </div>
                     </div>
                 </div>
 
-            </main>
+                <!-- Col derecha: puntos + dirección + notas -->
+                <div class="col-lg-8">
+                    <div class="row g-3">
+                        <!-- Caja grande de puntos -->
+                        <div class="col-12">
+                            <div class="section-card">
+                                <div class="section-header">
+                                    <i class="fas fa-medal me-2"></i> Tus recompensas
+                                </div>
+                                <div class="section-body">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-8">
+                                            <p class="mb-1">
+                                                Cada paseo completado suma puntos en tu cuenta.
+                                            </p>
+                                            <p class="mb-0 text-muted">
+                                                Más adelante podrás canjearlos por beneficios dentro de Jaguata.
+                                            </p>
+                                        </div>
+                                        <div class="col-md-4 text-center mt-3 mt-md-0">
+                                            <div class="mini-stat-value">
+                                                <?= number_format($puntos, 0, ',', '.'); ?>
+                                            </div>
+                                            <div class="text-muted small">puntos acumulados</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Dirección -->
+                        <div class="col-12">
+                            <div class="section-card">
+                                <div class="section-header">
+                                    <i class="fa-solid fa-location-dot me-2"></i> Dirección
+                                </div>
+                                <div class="section-body">
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <small class="text-muted">Departamento</small>
+                                            <div class="fw-semibold"><?= h($departamento); ?></div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <small class="text-muted">Ciudad</small>
+                                            <div class="fw-semibold"><?= h($ciudad); ?></div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <small class="text-muted">Barrio</small>
+                                            <div class="fw-semibold"><?= h($barrio); ?></div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <small class="text-muted">Calle</small>
+                                            <div class="fw-semibold"><?= h($calle); ?></div>
+                                        </div>
+                                        <div class="col-12">
+                                            <small class="text-muted">Referencia / Complemento</small>
+                                            <div class="fw-semibold"><?= h($direccionRef); ?></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Preferencias -->
+                        <div class="col-md-6">
+                            <div class="section-card h-100">
+                                <div class="section-header">
+                                    <i class="fa-solid fa-dog me-2"></i> Preferencias
+                                </div>
+                                <div class="section-body">
+                                    <?php if (!empty($usuario['preferencias'])): ?>
+                                        <div class="text-muted" style="white-space: pre-wrap;">
+                                            <?= htmlspecialchars($usuario['preferencias'], ENT_QUOTES, 'UTF-8'); ?>
+                                        </div>
+                                    <?php else: ?>
+                                        <span class="text-muted">No especificadas.</span>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Notas / observaciones -->
+                        <div class="col-md-6">
+                            <div class="section-card h-100">
+                                <div class="section-header">
+                                    <i class="fa-solid fa-notes-medical me-2"></i> Notas o comentarios
+                                </div>
+                                <div class="section-body">
+                                    <?php if (!empty($usuario['observaciones'])): ?>
+                                        <div class="text-muted" style="white-space: pre-wrap;">
+                                            <?= htmlspecialchars($usuario['observaciones'], ENT_QUOTES, 'UTF-8'); ?>
+                                        </div>
+                                    <?php else: ?>
+                                        <span class="text-muted">Sin observaciones.</span>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            <footer class="mt-4 text-center text-muted small">
+                © <?= date('Y') ?> Jaguata — Panel del Dueño
+            </footer>
         </div>
-    </div>
+    </main>
 
-    <?php include __DIR__ . '/../../src/Templates/Footer.php'; ?>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Toggle sidebar en mobile (usa la clase .sidebar-open de tu CSS)
+        document.getElementById('toggleSidebar')?.addEventListener('click', function() {
+            document.getElementById('sidebar')?.classList.toggle('sidebar-open');
+        });
+    </script>
 </body>
 
 </html>

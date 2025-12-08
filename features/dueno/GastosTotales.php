@@ -35,7 +35,7 @@ function moneyPy(float $v): string
 }
 
 /* Contexto usuario */
-$duenoId = (int)(Session::get('usuario_id') ?? Session::get('id') ?? 0);
+$duenoId = (int)(Session::getUsuarioId() ?? 0);
 if ($duenoId <= 0) {
     http_response_code(401);
     exit('No autenticado');
@@ -55,8 +55,8 @@ $exportCsv  = (($_GET['export'] ?? '') === 'csv');
 
 /* Datos para filtros */
 $paseoController = new PaseoController();
-$mascotas   = $paseoController->listarMascotasDeDueno($duenoId);
-$paseadores = $paseoController->listarPaseadores();
+$mascotas        = $paseoController->listarMascotasDeDueno($duenoId) ?? [];
+$paseadores      = $paseoController->listarPaseadores() ?? [];
 
 /* Filtros para consulta */
 $filters = [
@@ -71,14 +71,14 @@ $filters = [
 
 /* Consulta de pagos */
 $pagoController = new PagoController();
-$rows = $pagoController->listarGastosDueno($filters);
+$rows           = $pagoController->listarGastosDueno($filters) ?? [];
 
 /* Total: si se filtra por estado usamos ese, de lo contrario solo CONFIRMADO */
 $total = 0.0;
 foreach ($rows as $r) {
-    if ($estado) {
+    if ($estado !== '') {
         $total += (float)$r['monto'];
-    } else if (strcasecmp((string)$r['estado'], 'CONFIRMADO') === 0) {
+    } elseif (strcasecmp((string)$r['estado'], 'CONFIRMADO') === 0) {
         $total += (float)$r['monto'];
     }
 }
@@ -88,7 +88,8 @@ if ($exportCsv) {
     header('Content-Type: text/csv; charset=UTF-8');
     header('Content-Disposition: attachment; filename="gastos_jaguata_' . date('Ymd_His') . '.csv"');
     $out = fopen('php://output', 'w');
-    fprintf($out, chr(0xEF) . chr(0xBB) . chr(0xBF)); // BOM UTF-8
+    // BOM UTF-8
+    fprintf($out, chr(0xEF) . chr(0xBB) . chr(0xBF));
     fputcsv($out, ['ID Pago', 'Fecha pago', 'Monto (PYG)', 'Método', 'Estado', 'Mascota', 'Paseador', 'ID Paseo', 'Fecha paseo', 'Referencia', 'Observación']);
     foreach ($rows as $r) {
         fputcsv($out, [
@@ -118,151 +119,45 @@ if ($exportCsv) {
     <meta charset="UTF-8">
     <title>Gastos Totales - Jaguata</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- CSS global Jaguata -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
-    <style>
-        :root {
-            --verde-jaguata: #3c6255;
-            --verde-claro: #20c997;
-            --gris-fondo: #f4f6f9;
-            --gris-texto: #555;
-            --blanco: #fff;
-        }
-
-        body {
-            background-color: var(--gris-fondo);
-            font-family: "Poppins", sans-serif;
-            color: var(--gris-texto);
-            margin: 0
-        }
-
-        /* Sidebar (unificada) */
-        .sidebar {
-            background: linear-gradient(180deg, #1e1e2f 0%, #292a3a 100%);
-            color: var(--blanco);
-            width: 250px;
-            height: 100vh;
-            position: fixed;
-            top: 0;
-            left: 0;
-            padding-top: 1.5rem;
-            box-shadow: 3px 0 10px rgba(0, 0, 0, .2)
-        }
-
-        .sidebar .nav-link {
-            color: #ccc;
-            display: flex;
-            align-items: center;
-            gap: .8rem;
-            padding: 12px 18px;
-            border-radius: 8px;
-            margin: 6px 10px;
-            transition: .2s;
-            font-size: .95rem
-        }
-
-        .sidebar .nav-link:hover,
-        .sidebar .nav-link.active {
-            background: var(--verde-claro);
-            color: var(--blanco);
-            transform: translateX(4px)
-        }
-
-        /* Main */
-        main {
-            margin-left: 250px;
-            padding: 2rem
-        }
-
-        .welcome-box {
-            background: linear-gradient(90deg, var(--verde-claro), var(--verde-jaguata));
-            color: var(--blanco);
-            padding: 1.6rem 2rem;
-            border-radius: 16px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 2rem;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, .1)
-        }
-
-        .card {
-            border: none;
-            border-radius: 10px;
-            box-shadow: 0 3px 10px rgba(0, 0, 0, .07)
-        }
-
-        .card-header {
-            border-top-left-radius: 10px;
-            border-top-right-radius: 10px;
-            background: var(--verde-jaguata);
-            color: #fff;
-            font-weight: 600
-        }
-
-        .table thead {
-            background: var(--verde-jaguata);
-            color: #fff
-        }
-
-        .table-hover tbody tr:hover {
-            background: #eef8f2
-        }
-
-        .btn-gradient {
-            background: linear-gradient(90deg, var(--verde-jaguata), var(--verde-claro));
-            border: none;
-            color: #fff;
-            font-weight: 500
-        }
-
-        .btn-gradient:hover {
-            opacity: .92
-        }
-
-        .border-left-primary {
-            border-left: 5px solid var(--verde-jaguata)
-        }
-
-        .border-left-success {
-            border-left: 5px solid var(--verde-claro)
-        }
-
-        .border-left-info {
-            border-left: 5px solid #6cb2eb
-        }
-
-        footer {
-            text-align: center;
-            padding: 1rem;
-            color: #777;
-            font-size: .9rem;
-            margin-top: 2rem
-        }
-    </style>
+    <link href="<?= ASSETS_URL; ?>/css/jaguata-theme.css" rel="stylesheet">
 </head>
 
 <body>
 
+    <!-- Sidebar dueño unificada -->
     <?php include __DIR__ . '/../../src/Templates/SidebarDueno.php'; ?>
 
-    <main>
-        <!-- Header -->
-        <div class="welcome-box">
-            <div>
-                <h1 class="fw-bold"><i class="fas fa-coins me-2"></i>Gastos Totales</h1>
-                <p>Visualizá y exportá tus pagos realizados en Jaguata.</p>
-            </div>
-            <a href="?<?= h(http_build_query(array_merge($_GET, ['export' => 'csv']))) ?>" class="btn btn-outline-light fw-semibold">
-                <i class="fas fa-file-csv me-1"></i> Exportar CSV
-            </a>
-        </div>
+    <!-- Botón hamburguesa para mobile -->
+    <button class="btn btn-outline-secondary d-md-none ms-2 mt-3" id="toggleSidebar">
+        <i class="fas fa-bars"></i>
+    </button>
 
-        <!-- Filtros -->
-        <div class="card mb-4">
-            <div class="card-header"><i class="fas fa-filter me-2"></i>Filtros</div>
-            <div class="card-body">
-                <form class="row g-3" method="get">
+    <main>
+        <div class="container-fluid py-4">
+
+            <!-- Header (usa estilos globales) -->
+            <div class="header-box header-pagos mb-4">
+                <div>
+                    <h1 class="fw-bold mb-1">
+                        <i class="fas fa-coins me-2"></i>Gastos Totales
+                    </h1>
+                    <p class="mb-0">Visualizá y exportá tus pagos realizados en Jaguata.</p>
+                </div>
+                <div class="text-end">
+                    <a href="?<?= h(http_build_query(array_merge($_GET, ['export' => 'csv']))) ?>"
+                        class="btn btn-outline-light fw-semibold">
+                        <i class="fas fa-file-csv me-1"></i> Exportar CSV
+                    </a>
+                </div>
+            </div>
+
+            <!-- Filtros (usa .filtros del CSS global) -->
+            <div class="filtros">
+                <form class="row g-3 align-items-end" method="get">
                     <div class="col-md-3">
                         <label class="form-label">Desde</label>
                         <input type="date" class="form-control" name="from" value="<?= h($from) ?>">
@@ -306,115 +201,144 @@ if ($exportCsv) {
                         <label class="form-label">Estado</label>
                         <select class="form-select" name="estado">
                             <option value="">Todos</option>
-                            <option value="PENDIENTE" <?= $estado === 'PENDIENTE'   ? 'selected' : '' ?>>PENDIENTE</option>
-                            <option value="CONFIRMADO" <?= $estado === 'CONFIRMADO'  ? 'selected' : '' ?>>CONFIRMADO</option>
-                            <option value="RECHAZADO" <?= $estado === 'RECHAZADO'   ? 'selected' : '' ?>>RECHAZADO</option>
+                            <option value="PENDIENTE" <?= $estado === 'PENDIENTE'  ? 'selected' : '' ?>>PENDIENTE</option>
+                            <option value="CONFIRMADO" <?= $estado === 'CONFIRMADO' ? 'selected' : '' ?>>CONFIRMADO</option>
+                            <option value="RECHAZADO" <?= $estado === 'RECHAZADO'  ? 'selected' : '' ?>>RECHAZADO</option>
                         </select>
                     </div>
                     <div class="col-12 d-flex gap-2">
-                        <button class="btn btn-gradient"><i class="fas fa-search me-1"></i> Aplicar</button>
-                        <a href="<?= $baseFeatures ?>/GastosTotales.php" class="btn btn-outline-secondary">
+                        <button class="btn btn-accion btn-activar">
+                            <i class="fas fa-search me-1"></i> Aplicar
+                        </button>
+                        <a href="<?= $baseFeatures; ?>/GastosTotales.php" class="btn btn-accion btn-desactivar">
                             <i class="fas fa-undo me-1"></i> Limpiar
                         </a>
                     </div>
                 </form>
             </div>
-        </div>
 
-        <!-- Métricas -->
-        <div class="row mb-4 text-center">
-            <div class="col-md-4">
-                <div class="card border-left-primary py-3">
-                    <div class="card-body">
-                        <div class="fw-bold text-primary small text-uppercase">Total Gastado (PYG)</div>
-                        <div class="fs-4 fw-bold text-success mt-1">₲<?= moneyPy($total) ?></div>
-                        <small class="text-muted"><?= $estado ? 'Según filtro' : 'Solo CONFIRMADOS' ?></small>
+            <!-- Métricas (usa .stat-card) -->
+            <div class="row mb-4 text-center">
+                <div class="col-md-4">
+                    <div class="stat-card">
+                        <i class="fas fa-wallet mb-2"></i>
+                        <h4>₲<?= moneyPy($total) ?></h4>
+                        <p class="mb-0">Total gastado (PYG)</p>
+                        <small class="text-muted d-block">
+                            <?= $estado ? 'Según filtro de estado' : 'Solo pagos CONFIRMADOS' ?>
+                        </small>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-card">
+                        <i class="fas fa-file-invoice-dollar mb-2"></i>
+                        <h4><?= count($rows) ?></h4>
+                        <p class="mb-0">Registros encontrados</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-card">
+                        <i class="fas fa-calendar-alt mb-2"></i>
+                        <h4 class="fs-6">
+                            <?= h(($from ?? '—') . ' a ' . ($to ?? '—')) ?>
+                        </h4>
+                        <p class="mb-0">Rango seleccionado</p>
                     </div>
                 </div>
             </div>
-            <div class="col-md-4">
-                <div class="card border-left-success py-3">
-                    <div class="card-body">
-                        <div class="fw-bold text-success small text-uppercase">Registros</div>
-                        <div class="fs-4 fw-bold"><?= count($rows) ?></div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card border-left-info py-3">
-                    <div class="card-body">
-                        <div class="fw-bold text-info small text-uppercase">Rango</div>
-                        <div class="fs-6"><?= h(($from ?? '—') . ' a ' . ($to ?? '—')) ?></div>
-                    </div>
-                </div>
-            </div>
-        </div>
 
-        <!-- Tabla -->
-        <div class="card">
-            <div class="card-header"><i class="fas fa-list me-2"></i>Detalle de Pagos</div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle text-center">
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>Fecha pago</th>
-                                <th>Monto</th>
-                                <th>Método</th>
-                                <th>Estado</th>
-                                <th>Mascota</th>
-                                <th>Paseador</th>
-                                <th>ID Paseo</th>
-                                <th>Fecha paseo</th>
-                                <th>Referencia</th>
-                                <th>Observación</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php if (empty($rows)): ?>
+            <!-- Tabla dentro de section-card -->
+            <div class="section-card">
+                <div class="section-header">
+                    <i class="fas fa-list me-2"></i>Detalle de Pagos
+                </div>
+                <div class="section-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle text-center mb-0">
+                            <thead>
                                 <tr>
-                                    <td colspan="11" class="text-muted py-4">No hay registros disponibles</td>
+                                    <th>#</th>
+                                    <th>Fecha pago</th>
+                                    <th>Monto</th>
+                                    <th>Método</th>
+                                    <th>Estado</th>
+                                    <th>Mascota</th>
+                                    <th>Paseador</th>
+                                    <th>ID Paseo</th>
+                                    <th>Fecha paseo</th>
+                                    <th>Referencia</th>
+                                    <th>Observación</th>
                                 </tr>
-                            <?php else: ?>
-                                <?php foreach ($rows as $r):
-                                    $st = strtoupper((string)($r['estado'] ?? ''));
-                                    $badge = ['CONFIRMADO' => 'success', 'PENDIENTE' => 'warning', 'RECHAZADO' => 'danger'][$st] ?? 'secondary';
-                                ?>
+                            </thead>
+                            <tbody>
+                                <?php if (empty($rows)): ?>
                                     <tr>
-                                        <td><?= h((string)$r['id']) ?></td>
-                                        <td><?= h($r['fecha_pago']) ?></td>
-                                        <td class="fw-bold text-success">₲<?= moneyPy((float)$r['monto']) ?></td>
-                                        <td><?= h($r['metodo']) ?></td>
-                                        <td><span class="badge bg-<?= $badge ?>"><?= h($st) ?></span></td>
-                                        <td><?= h($r['mascota']) ?></td>
-                                        <td><?= h($r['paseador']) ?></td>
-                                        <td><?= h((string)$r['paseo_id']) ?></td>
-                                        <td><?= h($r['fecha_paseo']) ?></td>
-                                        <td><?= h($r['referencia']) ?></td>
-                                        <td><?= h($r['observacion']) ?></td>
+                                        <td colspan="11" class="text-muted py-4">
+                                            No hay registros disponibles
+                                        </td>
                                     </tr>
-                                <?php endforeach; ?>
+                                <?php else: ?>
+                                    <?php foreach ($rows as $r):
+                                        $st    = strtoupper((string)($r['estado'] ?? ''));
+                                        $badge = [
+                                            'CONFIRMADO' => 'success',
+                                            'PENDIENTE'  => 'warning',
+                                            'RECHAZADO'  => 'danger',
+                                        ][$st] ?? 'secondary';
+                                    ?>
+                                        <tr>
+                                            <td><?= h((string)$r['id']) ?></td>
+                                            <td><?= h($r['fecha_pago']) ?></td>
+                                            <td class="fw-bold text-success">
+                                                ₲<?= moneyPy((float)$r['monto']) ?>
+                                            </td>
+                                            <td><?= h($r['metodo']) ?></td>
+                                            <td>
+                                                <span class="badge bg-<?= $badge ?>">
+                                                    <?= h($st) ?>
+                                                </span>
+                                            </td>
+                                            <td><?= h($r['mascota']) ?></td>
+                                            <td><?= h($r['paseador']) ?></td>
+                                            <td><?= h((string)$r['paseo_id']) ?></td>
+                                            <td><?= h($r['fecha_paseo']) ?></td>
+                                            <td><?= h($r['referencia']) ?></td>
+                                            <td><?= h($r['observacion']) ?></td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </tbody>
+                            <?php if (!empty($rows)): ?>
+                                <tfoot>
+                                    <tr class="table-light fw-bold">
+                                        <td colspan="2">
+                                            TOTAL (<?= h($estado ?: 'CONFIRMADO') ?>)
+                                        </td>
+                                        <td>
+                                            ₲<?= moneyPy($total) ?>
+                                        </td>
+                                        <td colspan="8"></td>
+                                    </tr>
+                                </tfoot>
                             <?php endif; ?>
-                        </tbody>
-                        <?php if (!empty($rows)): ?>
-                            <tfoot>
-                                <tr class="table-light fw-bold">
-                                    <td colspan="2">TOTAL (<?= h($estado ?: 'CONFIRMADO') ?>)</td>
-                                    <td>₲<?= moneyPy($total) ?></td>
-                                    <td colspan="8"></td>
-                                </tr>
-                            </tfoot>
-                        <?php endif; ?>
-                    </table>
+                        </table>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <footer><small>© <?= date('Y') ?> Jaguata — Panel del Dueño</small></footer>
+            <footer class="mt-4 text-center text-muted small">
+                © <?= date('Y') ?> Jaguata — Panel del Dueño
+            </footer>
+        </div>
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Toggle sidebar en mobile (usa .sidebar-open de jaguata-theme.css)
+        document.getElementById('toggleSidebar')?.addEventListener('click', function() {
+            document.getElementById('sidebar')?.classList.toggle('sidebar-open');
+        });
+    </script>
 </body>
 
 </html>

@@ -629,4 +629,40 @@ class PaseoController
     {
         return $this->paseoModel->getExportByPaseador($paseadorId);
     }
+    public function store(): void
+    {
+        $duenoId    = (int)(Session::getUsuarioId() ?? 0);
+
+        $mascotaId  = (int)($_POST['mascota_id'] ?? 0);
+        $paseadorId = (int)($_POST['paseador_id'] ?? 0);
+        $inicio     = trim((string)($_POST['inicio'] ?? ''));
+        $duracion   = (int)($_POST['duracion'] ?? 0);
+        $ubicacion  = trim((string)($_POST['ubicacion'] ?? ''));
+
+        if ($duenoId <= 0 || $mascotaId <= 0 || $paseadorId <= 0 || $inicio === '' || $duracion <= 0) {
+            $_SESSION['error'] = 'Datos incompletos para crear el paseo.';
+            return;
+        }
+
+        $db = DatabaseService::getInstance()->getConnection();
+
+        $sql = "INSERT INTO paseos (dueno_id, mascota_id, paseador_id, inicio, duracion, ubicacion, estado, created_at)
+            VALUES (:dueno_id, :mascota_id, :paseador_id, :inicio, :duracion, :ubicacion, 'pendiente', NOW())";
+
+        $st = $db->prepare($sql);
+        $ok = $st->execute([
+            ':dueno_id'    => $duenoId,
+            ':mascota_id'  => $mascotaId,
+            ':paseador_id' => $paseadorId,
+            ':inicio'      => $inicio,
+            ':duracion'    => $duracion,
+            ':ubicacion'   => $ubicacion,
+        ]);
+
+        if ($ok) {
+            $_SESSION['success'] = 'Paseo solicitado correctamente.';
+        } else {
+            $_SESSION['error'] = 'Ocurrió un error al solicitar el paseo.';
+        }
+    }
 }

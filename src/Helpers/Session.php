@@ -125,4 +125,30 @@ class Session
     {
         return self::getFlash('success');
     }
+
+    public static function set(string $key, $value): void
+    {
+        self::start();
+        if ($value === null) {
+            unset($_SESSION[$key]);
+        } else {
+            $_SESSION[$key] = $value;
+        }
+    }
+
+    /**
+     * Versión “segura” del rol para armar URLs:
+     * solo letras, números, guión y guión bajo.
+     */
+    public static function getUsuarioRolSeguro(): ?string
+    {
+        $rol = self::getUsuarioRol();
+        if (!$rol) {
+            return null;
+        }
+
+        // Permitimos solo caracteres seguros para la carpeta del rol
+        $rolLimpio = preg_replace('/[^A-Za-z0-9_-]/', '', $rol);
+        return $rolLimpio !== '' ? $rolLimpio : null;
+    }
 }

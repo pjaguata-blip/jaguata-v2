@@ -115,4 +115,61 @@ class Usuario extends BaseModel
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
         return $stmt->execute();
     }
+    public function createUsuario(array $data): int
+    {
+        // Aseguramos hash de contraseña
+        $passwordHash = password_hash($data['password'], PASSWORD_DEFAULT);
+
+        $sql = "
+        INSERT INTO usuarios (
+            nombre,
+            email,
+            pass,
+            rol,
+            telefono,
+            estado,
+            foto_cedula_frente,
+            foto_cedula_dorso,
+            foto_selfie,
+            certificado_antecedentes,
+            acepto_terminos,
+            fecha_aceptacion,
+            ip_registro
+        ) VALUES (
+            :nombre,
+            :email,
+            :pass,
+            :rol,
+            :telefono,
+            :estado,
+            :foto_cedula_frente,
+            :foto_cedula_dorso,
+            :foto_selfie,
+            :certificado_antecedentes,
+            :acepto_terminos,
+            :fecha_aceptacion,
+            :ip_registro
+        )
+    ";
+
+        $stmt = $this->db->prepare($sql);
+
+        $stmt->execute([
+            ':nombre'                 => $data['nombre'],
+            ':email'                  => $data['email'],
+            ':pass'                   => $passwordHash,
+            ':rol'                    => $data['rol'],
+            ':telefono'               => $data['telefono'],
+            ':estado'                 => $data['estado'] ?? 'pendiente',
+            ':foto_cedula_frente'     => $data['foto_cedula_frente'] ?? null,
+            ':foto_cedula_dorso'      => $data['foto_cedula_dorso'] ?? null,
+            ':foto_selfie'            => $data['foto_selfie'] ?? null,
+            ':certificado_antecedentes' => $data['certificado_antecedentes'] ?? null,
+            ':acepto_terminos'        => $data['acepto_terminos'] ?? 0,
+            ':fecha_aceptacion'       => $data['fecha_aceptacion'] ?? date('Y-m-d H:i:s'),
+            ':ip_registro'            => $data['ip_registro'] ?? null,
+        ]);
+
+        return (int)$this->db->lastInsertId();
+    }
 }

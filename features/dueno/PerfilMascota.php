@@ -16,6 +16,8 @@ use Jaguata\Controllers\PaseoController;
 use Jaguata\Helpers\Session;
 
 AppConfig::init();
+
+/* 🔒 Auth dueño */
 $auth = new AuthController();
 $auth->checkRole('dueno');
 
@@ -24,39 +26,47 @@ function h(?string $v): string
 {
     return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
 }
-function edadHumana(?int $meses): string
+
+function edadHumana($meses): string
 {
-    if (!$meses || $meses <= 0) return '—';
-    if ($meses < 12) return "$meses meses";
-    $a = intdiv($meses, 12);
-    $m = $meses % 12;
-    return $m ? "{$a} años, {$m} meses" : "{$a} años";
+    if ($meses === null || $meses <= 0) return '—';
+    $m = (int)$meses;
+    if ($m < 12) return "$m meses";
+    $a = intdiv($m, 12);
+    $r = $m % 12;
+    return $r ? "{$a} años, {$r} meses" : "{$a} años";
 }
+
 function tamanoEtiqueta(?string $t): string
 {
     return match ($t) {
         'pequeno' => 'Pequeño',
         'mediano' => 'Mediano',
-        'grande' => 'Grande',
-        default => '—'
-    };
-}
-function badgeEstado(string $estado): string
-{
-    return match (strtolower($estado)) {
-        'completo' => '<span class="badge bg-success">Completo</span>',
-        'cancelado' => '<span class="badge bg-danger">Cancelado</span>',
-        'confirmado' => '<span class="badge bg-primary">Confirmado</span>',
-        'pendiente' => '<span class="badge bg-warning text-dark">Pendiente</span>',
-        default => '<span class="badge bg-secondary">' . h($estado) . '</span>'
+        'grande'  => 'Grande',
+        'gigante' => 'Gigante',
+        default   => '—',
     };
 }
 
-// ====== Controladores ======
-$rol = Session::getUsuarioRol() ?: 'dueno';
+function badgeEstadoHtml(string $estado): string
+{
+    $e = strtolower(trim($estado));
+    return match ($e) {
+        'completo'   => '<span class="badge bg-success">Completo</span>',
+        'cancelado'  => '<span class="badge bg-danger">Cancelado</span>',
+        'confirmado' => '<span class="badge bg-primary">Confirmado</span>',
+        'pendiente'  => '<span class="badge bg-warning text-dark">Pendiente</span>',
+        default      => '<span class="badge bg-secondary">' . h($estado) . '</span>',
+    };
+}
+
+// ====== Controladores / datos base ======
+$rolMenu = Session::getUsuarioRol() ?: 'dueno';
+$baseFeatures = BASE_URL . "/features/{$rolMenu}";
+
 $id = (int)($_GET['id'] ?? 0);
 if ($id <= 0) {
-    header("Location: MisMascotas.php");
+    header("Location: {$baseFeatures}/MisMascotas.php");
     exit;
 }
 
@@ -70,281 +80,215 @@ if (isset($mascota['error'])) {
     exit;
 }
 
-$nombre = h($mascota['nombre'] ?? 'Mascota');
-$raza = $mascota['raza'] ?? null;
-$peso = $mascota['peso_kg'] ?? null;
-$tamano = $mascota['tamano'] ?? null;
-$edad = $mascota['edad_meses'] ?? null;
+
+/* Datos mascota */
+$nombre        = h($mascota['nombre'] ?? 'Mascota');
+$raza          = $mascota['raza'] ?? null;
+$peso          = $mascota['peso_kg'] ?? null;
+$tamano        = $mascota['tamano'] ?? null;
+$edadMeses     = $mascota['edad_meses'] ?? ($mascota['edad'] ?? null);
 $observaciones = h($mascota['observaciones'] ?? '');
-$foto = $mascota['foto_url'] ?? '';
-$creado = $mascota['created_at'] ?? null;
-$actualizado = $mascota['updated_at'] ?? null;
+$foto          = $mascota['foto_url'] ?? '';
+$creado        = $mascota['created_at'] ?? null;
+$actualizado   = $mascota['updated_at'] ?? null;
 
-// Paseos
-$paseos = $paseoCtrl->index();
+/* Paseos de esta mascota */
+$paseos        = $paseoCtrl->index();
 $paseosMascota = array_filter($paseos, fn($p) => (int)($p['mascota_id'] ?? 0) === $id);
-usort($paseosMascota, fn($a, $b) => strtotime($b['inicio'] ?? '') <=> strtotime($a['inicio'] ?? ''));
-$recientes = array_slice($paseosMascota, 0, 5);
-$completados = array_filter($paseosMascota, fn($p) => strtolower($p['estado'] ?? '') === 'completo');
-$pendientes = array_filter($paseosMascota, fn($p) => in_array(strtolower($p['estado'] ?? ''), ['pendiente', 'confirmado']));
-$totalPaseos = count($paseosMascota);
-$totalCompleto = count($completados);
-$totalPendientes = count($pendientes);
-$gastoTotal = array_sum(array_map(fn($p) => (float)($p['precio_total'] ?? 0), $completados));
 
-$baseFeatures = BASE_URL . "/features/{$rol}";
+usort(
+    $paseosMascota,
+    fn($a, $b) => strtotime((string)($b['inicio'] ?? '')) <=> strtotime((string)($a['inicio'] ?? ''))
+);
+
+$recientes      = array_slice($paseosMascota, 0, 5);
+$completados    = array_filter($paseosMascota, fn($p) => strtolower($p['estado'] ?? '') === 'completo');
+$pendientes     = array_filter($paseosMascota, fn($p) => in_array(strtolower($p['estado'] ?? ''), ['pendiente', 'confirmado'], true));
+$totalPaseos    = count($paseosMascota);
+$totalCompleto  = count($completados);
+$totalPendiente = count($pendientes);
+$gastoTotal     = array_sum(array_map(fn($p) => (float)($p['precio_total'] ?? 0), $completados));
+
+$usuarioNombre = htmlspecialchars(Session::getUsuarioNombre() ?? 'Dueño/a', ENT_QUOTES, 'UTF-8');
 ?>
-
 <!DOCTYPE html>
 <html lang="es">
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1.0">
     <title>Perfil de Mascota - Jaguata</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- CSS global Jaguata -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <link href="<?= BASE_URL; ?>/public/assets/css/jaguata-theme.css" rel="stylesheet">
+
     <style>
-        body {
-            background: #f5f7fa;
-            font-family: "Poppins", sans-serif;
-            margin: 0;
-        }
-
-        .layout {
-            display: flex;
-            width: 100%;
-            min-height: 100vh;
-        }
-
-        .sidebar {
-            background: linear-gradient(180deg, #1e1e2f 0%, #292a3a 100%);
-            color: #f8f9fa;
-            width: 240px;
-            height: 100vh;
-            position: fixed;
-            top: 0;
-            left: 0;
-            padding-top: 1.5rem;
-            box-shadow: 4px 0 12px rgba(0, 0, 0, .15);
-            z-index: 1000;
-            transition: transform .3s ease-in-out;
-        }
-
-        .sidebar .nav-link {
-            color: #ddd;
-            display: flex;
-            align-items: center;
-            padding: 10px 16px;
-            border-radius: 8px;
-            margin: 4px 8px;
-            font-weight: 500;
-        }
-
-        .sidebar .nav-link i {
-            width: 22px;
-            margin-right: 10px;
-        }
-
-        .sidebar .nav-link:hover {
-            background-color: #343454;
-            color: #fff;
-            transform: translateX(4px);
-        }
-
-        .sidebar .nav-link.active {
-            background: #3c6255;
-            color: #fff;
-        }
-
-        .menu-toggle {
-            display: none;
-            position: fixed;
-            top: 16px;
-            left: 16px;
-            background: #1e1e2f;
-            color: white;
-            border: none;
-            padding: 8px 10px;
-            border-radius: 6px;
-            z-index: 1100;
-        }
-
-        @media(max-width:768px) {
-            .menu-toggle {
-                display: block;
-            }
-
-            .sidebar {
-                transform: translateX(-100%);
-            }
-
-            .sidebar.show {
-                transform: translateX(0);
-            }
-        }
-
-        main.content {
-            flex-grow: 1;
-            margin-left: 240px;
-            padding: 2.5rem;
-            width: calc(100% - 240px);
-        }
-
-        @media(max-width:768px) {
-            main.content {
-                margin-left: 0;
-                width: 100%;
-                padding: 1.5rem;
-            }
-        }
-
-        .welcome-box {
-            background: linear-gradient(90deg, #20c997, #3c6255);
-            color: #fff;
-            padding: 1.5rem 2rem;
-            border-radius: 14px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, .08);
-        }
-
-        .card-premium {
-            border: none;
-            border-radius: 14px;
-            box-shadow: 0 5px 20px rgba(0, 0, 0, .05);
-            background: #fff;
-        }
-
-        .form-label {
-            font-weight: 600;
-            color: #3c6255;
-        }
-
-        .btn-gradient {
-            background: linear-gradient(90deg, #3c6255, #20c997);
-            border: none;
-            color: #fff;
-            font-weight: 500;
-        }
-
-        .btn-gradient:hover {
-            opacity: .9;
-        }
-
-        .img-avatar {
+        .perfil-mascota-foto {
             width: 150px;
             height: 150px;
             object-fit: cover;
             border-radius: 14px;
-            border: 3px solid #20c99733;
+            border: 3px solid rgba(32, 201, 151, 0.25);
         }
     </style>
 </head>
 
 <body>
-    <button class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
 
-    <div class="layout">
-        <!-- Sidebar -->
-        <aside class="sidebar" id="sidebar">
-            <div class="text-center mb-4">
-                <img src="<?= ASSETS_URL; ?>/uploads/perfiles/logojag.png" alt="Jaguata" width="50">
-                <hr class="text-light">
-            </div>
-            <ul class="nav flex-column gap-1 px-2">
-                <li><a class="nav-link" href="<?= $baseFeatures; ?>/Dashboard.php"><i class="fas fa-home"></i> Inicio</a></li>
-                <li><a class="nav-link" href="<?= $baseFeatures; ?>/MisMascotas.php"><i class="fas fa-paw"></i> Mis mascotas</a></li>
-                <li><a class="nav-link active" href="#"><i class="fas fa-id-card"></i> Perfil mascota</a></li>
-                <li><a class="nav-link text-danger" href="<?= BASE_URL; ?>/logout.php"><i class="fas fa-sign-out-alt"></i> Cerrar sesión</a></li>
-            </ul>
-        </aside>
+    <!-- Sidebar unificada del dueño -->
+    <?php include __DIR__ . '/../../src/Templates/SidebarDueno.php'; ?>
 
-        <!-- Contenido -->
-        <main class="content">
-            <div class="welcome-box mb-4">
+    <!-- Contenido -->
+    <main class="bg-light">
+        <div class="container-fluid py-4">
+
+            <!-- Header -->
+            <div class="header-box header-mascotas mb-4">
                 <div>
-                    <h4>Perfil de <?= $nombre ?></h4>
-                    <p>Información general y paseos recientes 🐾</p>
+                    <h1 class="fw-bold mb-1">
+                        <i class="fas fa-id-card me-2"></i>Perfil de <?= $nombre; ?>
+                    </h1>
+                    <p class="mb-0">
+                        Información general y paseos recientes de tu mascota, <?= $usuarioNombre; ?> 🐾
+                    </p>
                 </div>
-                <i class="fas fa-paw fa-3x opacity-75"></i>
+                <div class="d-flex gap-2">
+                    <a href="<?= $baseFeatures; ?>/MisMascotas.php" class="btn btn-outline-light fw-semibold">
+                        <i class="fas fa-arrow-left me-1"></i> Volver
+                    </a>
+                    <a href="<?= $baseFeatures; ?>/EditarMascota.php?id=<?= $id; ?>" class="btn btn-light fw-semibold text-success">
+                        <i class="fas fa-pen me-1"></i> Editar
+                    </a>
+                </div>
             </div>
+
+            <!-- Mensajes flash (si los usás desde el controller) -->
+            <?php if (!empty($_SESSION['success'])): ?>
+                <div class="alert alert-success alert-dismissible fade show shadow-sm">
+                    <i class="fas fa-check-circle me-2"></i><?= h($_SESSION['success']); ?>
+                    <?php unset($_SESSION['success']); ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            <?php endif; ?>
+
+            <?php if (!empty($_SESSION['error'])): ?>
+                <div class="alert alert-danger alert-dismissible fade show shadow-sm">
+                    <i class="fas fa-exclamation-triangle me-2"></i><?= h($_SESSION['error']); ?>
+                    <?php unset($_SESSION['error']); ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            <?php endif; ?>
 
             <div class="row g-4">
-                <!-- Info principal -->
+                <!-- Columna izquierda: ficha de la mascota -->
                 <div class="col-lg-4">
-                    <div class="card-premium p-3 h-100">
+                    <div class="section-card h-100">
                         <div class="text-center mb-3">
-                            <img src="<?= $foto ? h($foto) : 'https://via.placeholder.com/150x150.png?text=Mascota'; ?>" class="img-avatar mb-2">
-                            <h5><?= $nombre ?></h5>
-                            <small class="text-muted">ID #<?= $id ?></small>
+                            <img
+                                src="<?= $foto ? h($foto) : 'https://via.placeholder.com/150x150.png?text=Mascota'; ?>"
+                                alt="Foto mascota"
+                                class="perfil-mascota-foto mb-2">
+                            <h4 class="mb-0"><?= $nombre; ?></h4>
+                            <small class="text-muted">ID #<?= $id; ?></small>
                         </div>
-                        <div><strong>Raza:</strong> <?= $raza ? h($raza) : '—' ?></div>
-                        <div><strong>Peso:</strong> <?= $peso ? number_format((float)$peso, 1, ',', '.') . ' kg' : '—' ?></div>
-                        <div><strong>Tamaño:</strong> <?= tamanoEtiqueta($tamano) ?></div>
-                        <div><strong>Edad:</strong> <?= edadHumana((int)$edad) ?></div>
-                        <div><strong>Creado:</strong> <?= $creado ? date('d/m/Y H:i', strtotime($creado)) : '—' ?></div>
-                        <div><strong>Actualizado:</strong> <?= $actualizado ? date('d/m/Y H:i', strtotime($actualizado)) : '—' ?></div>
-                        <?php if ($observaciones): ?>
-                            <hr>
-                            <div><strong>Observaciones:</strong><br><?= nl2br($observaciones) ?></div>
-                        <?php endif; ?>
-                        <div class="text-end mt-3">
-                            <a href="EditarMascota.php?id=<?= $id ?>" class="btn btn-gradient btn-sm"><i class="fas fa-pen me-1"></i>Editar</a>
+
+                        <div class="row g-2 small">
+                            <div class="col-12">
+                                <strong>Raza:</strong>
+                                <span><?= $raza ? h($raza) : '—'; ?></span>
+                            </div>
+                            <div class="col-12">
+                                <strong>Peso:</strong>
+                                <span><?= $peso ? number_format((float)$peso, 1, ',', '.') . ' kg' : '—'; ?></span>
+                            </div>
+                            <div class="col-12">
+                                <strong>Tamaño:</strong>
+                                <span><?= tamanoEtiqueta($tamano); ?></span>
+                            </div>
+                            <div class="col-12">
+                                <strong>Edad:</strong>
+                                <span><?= edadHumana((int)$edadMeses); ?></span>
+                            </div>
+                            <div class="col-12">
+                                <strong>Creado:</strong>
+                                <span><?= $creado ? date('d/m/Y H:i', strtotime((string)$creado)) : '—'; ?></span>
+                            </div>
+                            <div class="col-12">
+                                <strong>Última actualización:</strong>
+                                <span><?= $actualizado ? date('d/m/Y H:i', strtotime((string)$actualizado)) : '—'; ?></span>
+                            </div>
+
+                            <?php if ($observaciones): ?>
+                                <div class="col-12 mt-3">
+                                    <strong>Observaciones:</strong>
+                                    <p class="mb-0"><?= nl2br($observaciones); ?></p>
+                                </div>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
 
-                <!-- Info paseos -->
+                <!-- Columna derecha: estadísticas y paseos -->
                 <div class="col-lg-8">
-                    <div class="row g-3">
+                    <!-- Métricas -->
+                    <div class="row g-3 mb-3">
                         <div class="col-md-3">
-                            <div class="card-premium text-center p-3">
-                                <div class="small text-muted">Paseos</div>
-                                <div class="display-6"><?= $totalPaseos ?></div>
+                            <div class="section-card text-center py-3">
+                                <div class="text-muted small">Paseos</div>
+                                <div class="fs-3 fw-bold"><?= $totalPaseos; ?></div>
                             </div>
                         </div>
                         <div class="col-md-3">
-                            <div class="card-premium text-center p-3">
-                                <div class="small text-muted">Completados</div>
-                                <div class="display-6"><?= $totalCompleto ?></div>
+                            <div class="section-card text-center py-3">
+                                <div class="text-muted small">Completados</div>
+                                <div class="fs-3 fw-bold"><?= $totalCompleto; ?></div>
                             </div>
                         </div>
                         <div class="col-md-3">
-                            <div class="card-premium text-center p-3">
-                                <div class="small text-muted">Pendientes</div>
-                                <div class="display-6"><?= $totalPendientes ?></div>
+                            <div class="section-card text-center py-3">
+                                <div class="text-muted small">Pendientes</div>
+                                <div class="fs-3 fw-bold"><?= $totalPendiente; ?></div>
                             </div>
                         </div>
                         <div class="col-md-3">
-                            <div class="card-premium text-center p-3">
-                                <div class="small text-muted">Gasto Total</div>
-                                <div class="h4 mb-0">₲<?= number_format($gastoTotal, 0, ',', '.') ?></div>
+                            <div class="section-card text-center py-3">
+                                <div class="text-muted small">Gasto total</div>
+                                <div class="fs-5 fw-bold text-success">
+                                    ₲<?= number_format($gastoTotal, 0, ',', '.'); ?>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="card-premium mt-4">
-                        <div class="card-header d-flex justify-content-between align-items-center">
-                            <h5 class="mb-0"><i class="fas fa-walking me-2"></i>Paseos recientes</h5>
-                            <div class="btn-group btn-group-sm">
-                                <a href="PaseosPendientes.php?mascota_id=<?= $id ?>" class="btn btn-outline-light">Pendientes</a>
-                                <a href="PaseosCompletados.php?mascota_id=<?= $id ?>" class="btn btn-outline-light">Completados</a>
-                                <a href="PaseosCancelados.php?mascota_id=<?= $id ?>" class="btn btn-outline-light">Cancelados</a>
+                    <!-- Paseos recientes -->
+                    <div class="section-card">
+                        <div class="section-header d-flex justify-content-between align-items-center">
+                            <span><i class="fas fa-walking me-2"></i>Paseos recientes</span>
+                            <div class="d-flex gap-2">
+                                <a href="<?= $baseFeatures; ?>/MisPaseos.php?mascota_id=<?= $id; ?>" class="btn btn-sm btn-outline-light">
+                                    Ver todos
+                                </a>
+                                <a href="<?= $baseFeatures; ?>/SolicitarPaseo.php?mascota_id=<?= $id; ?>" class="btn btn-sm btn-enviar">
+                                    <i class="fas fa-plus me-1"></i> Solicitar nuevo
+                                </a>
                             </div>
                         </div>
-                        <div class="card-body">
+
+                        <div class="section-body">
                             <?php if (empty($recientes)): ?>
-                                <div class="text-center py-4 text-muted">
+                                <div class="text-center text-muted py-4">
                                     <i class="fas fa-calendar-xmark fa-2x mb-2"></i>
-                                    <p>No hay paseos registrados para esta mascota.</p>
-                                    <a href="SolicitarPaseo.php" class="btn btn-gradient btn-sm"><i class="fas fa-plus me-1"></i>Solicitar paseo</a>
+                                    <p class="mb-2">No hay paseos registrados para esta mascota.</p>
+                                    <a href="<?= $baseFeatures; ?>/SolicitarPaseo.php?mascota_id=<?= $id; ?>" class="btn btn-enviar btn-sm">
+                                        <i class="fas fa-plus me-1"></i>Solicitar paseo
+                                    </a>
                                 </div>
                             <?php else: ?>
                                 <div class="table-responsive">
-                                    <table class="table align-middle mb-0">
-                                        <thead class="table-light">
+                                    <table class="table table-hover align-middle mb-0">
+                                        <thead>
                                             <tr>
                                                 <th>Fecha</th>
                                                 <th>Paseador</th>
@@ -356,11 +300,11 @@ $baseFeatures = BASE_URL . "/features/{$rol}";
                                         <tbody>
                                             <?php foreach ($recientes as $p): ?>
                                                 <tr>
-                                                    <td><?= date('d/m/Y H:i', strtotime($p['inicio'] ?? '')) ?></td>
-                                                    <td><?= h($p['nombre_paseador'] ?? '—') ?></td>
-                                                    <td><?= badgeEstado($p['estado'] ?? '') ?></td>
-                                                    <td>₲<?= number_format((float)($p['precio_total'] ?? 0), 0, ',', '.') ?></td>
-                                                    <td><?= (int)($p['duracion_min'] ?? 0) ?> min</td>
+                                                    <td><?= !empty($p['inicio']) ? date('d/m/Y H:i', strtotime((string)$p['inicio'])) : '—'; ?></td>
+                                                    <td><?= h($p['nombre_paseador'] ?? '—'); ?></td>
+                                                    <td><?= badgeEstadoHtml($p['estado'] ?? ''); ?></td>
+                                                    <td>₲<?= number_format((float)($p['precio_total'] ?? 0), 0, ',', '.'); ?></td>
+                                                    <td><?= (int)($p['duracion_min'] ?? 0); ?> min</td>
                                                 </tr>
                                             <?php endforeach; ?>
                                         </tbody>
@@ -371,15 +315,14 @@ $baseFeatures = BASE_URL . "/features/{$rol}";
                     </div>
                 </div>
             </div>
-        </main>
-    </div>
+
+            <footer class="mt-4 text-center text-muted small">
+                © <?= date('Y'); ?> Jaguata — Panel del Dueño
+            </footer>
+        </div>
+    </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        const toggle = document.getElementById('menuToggle');
-        const sidebar = document.getElementById('sidebar');
-        toggle.addEventListener('click', () => sidebar.classList.toggle('show'));
-    </script>
 </body>
 
 </html>

@@ -18,10 +18,14 @@ AppConfig::init();
 $auth = new AuthController();
 $auth->checkRole('dueno');
 
+/* Rutas base */
+$rolUsuario   = Session::getUsuarioRol() ?? 'dueno';
+$baseFeatures = BASE_URL . "/features/{$rolUsuario}";
+
 /* Controlador y datos */
 $paseoCtrl = new PaseoController();
-$duenoId   = (int) (Session::get('usuario_id') ?? 0);
-$paseos    = $paseoCtrl->indexByDueno($duenoId) ?? [];
+$duenoId   = (int)(Session::getUsuarioId() ?? 0);
+$paseos    = $duenoId ? ($paseoCtrl->indexByDueno($duenoId) ?? []) : [];
 
 /* Normalización de estados */
 $norm = static function (?string $s): string {
@@ -31,11 +35,14 @@ $norm = static function (?string $s): string {
 /* Filtro por estado (GET) */
 $estadoFiltro = $norm($_GET['estado'] ?? '');
 if ($estadoFiltro !== '') {
-    $paseos = array_values(array_filter($paseos, fn($p) => $norm($p['estado'] ?? '') === $estadoFiltro));
+    $paseos = array_values(array_filter(
+        $paseos,
+        fn($p) => $norm($p['estado'] ?? '') === $estadoFiltro
+    ));
 }
 
 /* Métricas (sobre todos los paseos del dueño, sin filtrar por GET) */
-$all        = $paseoCtrl->indexByDueno($duenoId) ?? [];
+$all        = $duenoId ? ($paseoCtrl->indexByDueno($duenoId) ?? []) : [];
 $total      = count($all);
 $pendientes = array_filter($all, fn($p) => in_array($norm($p['estado'] ?? ''), ['pendiente', 'confirmado'], true));
 $completos  = array_filter($all, fn($p) => $norm($p['estado'] ?? '') === 'completo');
@@ -43,7 +50,7 @@ $cancelados = array_filter($all, fn($p) => $norm($p['estado'] ?? '') === 'cancel
 $gastoTotal = array_sum(array_map(fn($p) => (float)($p['precio_total'] ?? 0), $completos));
 
 /* Util */
-$h = static function ($v) {
+$h = static function ($v): string {
     return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
 };
 
@@ -55,264 +62,209 @@ $h = static function ($v) {
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Mis Paseos - Jaguata</title>
+
+    <!-- CSS global -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
-    <style>
-        :root {
-            --verde-jaguata: #3c6255;
-            --verde-claro: #20c997;
-            --gris-fondo: #f4f6f9;
-            --gris-texto: #555;
-            --blanco: #fff;
-        }
-
-        body {
-            background: var(--gris-fondo);
-            font-family: "Poppins", sans-serif;
-            color: var(--gris-texto);
-            margin: 0
-        }
-
-        /* Sidebar (como admin) */
-        .sidebar {
-            background: linear-gradient(180deg, #1e1e2f 0%, #292a3a 100%);
-            color: var(--blanco);
-            width: 250px;
-            height: 100vh;
-            position: fixed;
-            top: 0;
-            left: 0;
-            padding-top: 1.5rem;
-            box-shadow: 3px 0 10px rgba(0, 0, 0, .2)
-        }
-
-        .sidebar .nav-link {
-            color: #ccc;
-            display: flex;
-            align-items: center;
-            gap: .8rem;
-            padding: 12px 18px;
-            border-radius: 8px;
-            margin: 6px 10px;
-            transition: .2s;
-            font-size: .95rem
-        }
-
-        .sidebar .nav-link:hover,
-        .sidebar .nav-link.active {
-            background: var(--verde-claro);
-            color: var(--blanco);
-            transform: translateX(4px)
-        }
-
-        /* Main */
-        main {
-            margin-left: 250px;
-            padding: 2rem
-        }
-
-        .welcome-box {
-            background: linear-gradient(90deg, var(--verde-claro), var(--verde-jaguata));
-            color: var(--blanco);
-            padding: 1.8rem 2rem;
-            border-radius: 16px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 2rem;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, .1)
-        }
-
-        .stat-card {
-            background: var(--blanco);
-            border-radius: 14px;
-            text-align: center;
-            padding: 1.5rem 1rem;
-            box-shadow: 0 3px 15px rgba(0, 0, 0, .08)
-        }
-
-        .card {
-            border: none;
-            border-radius: 10px;
-            box-shadow: 0 3px 10px rgba(0, 0, 0, .07)
-        }
-
-        .card-header {
-            border-top-left-radius: 10px;
-            border-top-right-radius: 10px;
-            background: var(--verde-jaguata);
-            color: #fff;
-            font-weight: 600
-        }
-
-        .btn-gradient {
-            background: linear-gradient(90deg, var(--verde-jaguata), var(--verde-claro));
-            border: none;
-            color: #fff;
-            font-weight: 500
-        }
-
-        .btn-gradient:hover {
-            opacity: .92
-        }
-
-        .table thead {
-            background: var(--verde-jaguata);
-            color: #fff
-        }
-
-        footer {
-            text-align: center;
-            padding: 1rem;
-            color: #777;
-            font-size: .9rem;
-            margin-top: 2rem
-        }
-    </style>
+    <link href="<?= ASSETS_URL; ?>/css/jaguata-theme.css" rel="stylesheet">
 </head>
 
 <body>
 
+    <!-- Sidebar dueño -->
     <?php include __DIR__ . '/../../src/Templates/SidebarDueno.php'; ?>
 
+    <!-- Botón hamburguesa para mobile -->
+    <button class="btn btn-outline-secondary d-md-none ms-2 mt-3" id="toggleSidebar">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <!-- Contenido principal -->
     <main>
-        <!-- Header -->
-        <div class="welcome-box mb-4">
-            <div>
-                <h1 class="fw-bold"><i class="fas fa-walking me-2"></i>Mis Paseos</h1>
-                <p>Listado de paseos realizados, pendientes y cancelados 🐾</p>
-            </div>
-            <a href="SolicitarPaseo.php" class="btn btn-light fw-semibold">
-                <i class="fas fa-plus me-1"></i> Solicitar nuevo paseo
-            </a>
-        </div>
+        <div class="py-4">
 
-        <!-- Métricas -->
-        <div class="row g-3 mb-4">
-            <div class="col-md-3">
-                <div class="stat-card"><i class="fas fa-list text-primary mb-2"></i>
-                    <h4><?= $total ?></h4>
-                    <p>Total</p>
+            <!-- Header -->
+            <div class="header-box header-paseos mb-4">
+                <div>
+                    <h1 class="fw-bold mb-1">
+                        <i class="fas fa-walking me-2"></i>Mis Paseos
+                    </h1>
+                    <p class="mb-0">Listado de paseos realizados, pendientes y cancelados 🐾</p>
+                </div>
+                <div class="text-end">
+                    <a href="<?= $baseFeatures; ?>/SolicitarPaseo.php" class="btn-volver mt-2">
+                        <i class="fas fa-plus me-1"></i> Solicitar nuevo paseo
+                    </a>
                 </div>
             </div>
-            <div class="col-md-3">
-                <div class="stat-card"><i class="fas fa-hourglass-half text-warning mb-2"></i>
-                    <h4><?= count($pendientes) ?></h4>
-                    <p>Pendientes</p>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="stat-card"><i class="fas fa-check-circle text-success mb-2"></i>
-                    <h4><?= count($completos) ?></h4>
-                    <p>Completados</p>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="stat-card"><i class="fas fa-wallet text-info mb-2"></i>
-                    <h4>₲<?= number_format($gastoTotal, 0, ',', '.') ?></h4>
-                    <p>Gasto total</p>
-                </div>
-            </div>
-        </div>
 
-        <!-- Lista / estado -->
-        <?php if (empty($paseos)): ?>
-            <div class="card p-5 text-center">
-                <div class="mb-3"><i class="fas fa-dog fa-3x text-muted"></i></div>
-                <h5 class="text-muted mb-3">No tenés paseos <?= $estadoFiltro ? 'en “' . $h($estadoFiltro) . '”' : 'registrados' ?>.</h5>
-                <a href="SolicitarPaseo.php" class="btn btn-gradient"><i class="fas fa-plus me-1"></i> Solicitar tu primer paseo</a>
-            </div>
-        <?php else: ?>
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <span><i class="fas fa-list me-2"></i>Lista de Paseos</span>
-                    <div class="d-flex align-items-center gap-2">
-                        <label for="filtroEstado" class="text-white-50 small mb-0">Filtrar:</label>
-                        <select class="form-select form-select-sm" id="filtroEstado" style="width:auto" onchange="aplicarFiltro()">
-                            <?php
-                            $opts = [
-                                '' => 'Todos',
-                                'pendiente' => 'Pendientes',
-                                'confirmado' => 'Confirmados',
-                                'en_curso' => 'En curso',
-                                'completo' => 'Completos',
-                                'cancelado' => 'Cancelados'
-                            ];
-                            ?>
-                            <?php foreach ($opts as $val => $label): ?>
-                                <option value="<?= $h($val) ?>" <?= $estadoFiltro === $val ? 'selected' : '' ?>><?= $label ?></option>
-                            <?php endforeach; ?>
-                        </select>
+            <!-- Métricas -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-3">
+                    <div class="stat-card">
+                        <i class="fas fa-list mb-2"></i>
+                        <h4><?= $total; ?></h4>
+                        <p>Total de paseos</p>
                     </div>
                 </div>
+                <div class="col-md-3">
+                    <div class="stat-card">
+                        <i class="fas fa-hourglass-half mb-2"></i>
+                        <h4><?= count($pendientes); ?></h4>
+                        <p>Pendientes / Confirmados</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card">
+                        <i class="fas fa-check-circle mb-2"></i>
+                        <h4><?= count($completos); ?></h4>
+                        <p>Completados</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card">
+                        <i class="fas fa-wallet mb-2"></i>
+                        <h4>₲<?= number_format($gastoTotal, 0, ',', '.'); ?></h4>
+                        <p>Gasto total</p>
+                    </div>
+                </div>
+            </div>
 
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead>
-                                <tr>
-                                    <th>Mascota</th>
-                                    <th>Paseador</th>
-                                    <th>Fecha</th>
-                                    <th>Duración</th>
-                                    <th>Estado</th>
-                                    <th>Precio</th>
-                                    <th class="text-center">Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($paseos as $p): ?>
-                                    <?php
-                                    $estado  = $norm($p['estado'] ?? '');
-                                    $badge   = match ($estado) {
-                                        'completo'   => 'success',
-                                        'cancelado'  => 'danger',
-                                        'en_curso'   => 'info',
-                                        'confirmado' => 'primary',
-                                        default      => 'warning', // pendiente u otros
-                                    };
-                                    ?>
+            <!-- Filtros (usa .filtros del CSS global) -->
+            <div class="filtros d-flex flex-wrap align-items-center justify-content-between">
+                <div class="mb-2 mb-md-0">
+                    <strong>Filtrar por estado:</strong>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <label for="filtroEstado" class="mb-0 small text-muted">Estado</label>
+                    <select class="form-select form-select-sm" id="filtroEstado" style="min-width: 180px;" onchange="aplicarFiltro()">
+                        <?php
+                        $opts = [
+                            ''           => 'Todos',
+                            'pendiente'  => 'Pendientes',
+                            'confirmado' => 'Confirmados',
+                            'en_curso'   => 'En curso',
+                            'completo'   => 'Completos',
+                            'cancelado'  => 'Cancelados',
+                        ];
+                        ?>
+                        <?php foreach ($opts as $val => $label): ?>
+                            <option value="<?= $h($val); ?>" <?= $estadoFiltro === $val ? 'selected' : ''; ?>>
+                                <?= $label; ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Lista / estado -->
+            <?php if (empty($paseos)): ?>
+                <div class="section-card text-center">
+                    <div class="mb-3">
+                        <i class="fas fa-dog fa-3x text-muted"></i>
+                    </div>
+                    <h5 class="text-muted mb-3">
+                        No tenés paseos
+                        <?= $estadoFiltro ? 'en “' . $h($estadoFiltro) . '”' : 'registrados'; ?>.
+                    </h5>
+                    <a href="<?= $baseFeatures; ?>/SolicitarPaseo.php" class="btn-enviar">
+                        <i class="fas fa-plus me-1"></i> Solicitar tu primer paseo
+                    </a>
+                </div>
+            <?php else: ?>
+                <div class="section-card">
+                    <div class="section-header">
+                        <i class="fas fa-list me-2"></i> Lista de Paseos
+                    </div>
+                    <div class="section-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead>
                                     <tr>
-                                        <td><i class="fas fa-paw text-success me-2"></i><?= $h($p['nombre_mascota'] ?? '-') ?></td>
-                                        <td><i class="fas fa-user text-secondary me-2"></i><?= $h($p['nombre_paseador'] ?? '-') ?></td>
-                                        <td><?= !empty($p['inicio']) ? date('d/m/Y H:i', strtotime((string)$p['inicio'])) : '-' ?></td>
-                                        <td><?= (int)($p['duracion'] ?? 0) ?> min</td>
-                                        <td><span class="badge bg-<?= $badge ?>"><?= ucfirst($estado ?: '-') ?></span></td>
-                                        <td>₲<?= number_format((float)($p['precio_total'] ?? 0), 0, ',', '.') ?></td>
-                                        <td class="text-center">
-                                            <div class="btn-group">
-                                                <a href="DetallePaseo.php?paseo_id=<?= (int)($p['paseo_id'] ?? 0) ?>" class="btn btn-sm btn-outline-primary" title="Ver detalles">
-                                                    <i class="fas fa-eye"></i>
-                                                </a>
-                                                <?php if (in_array($estado, ['pendiente', 'confirmado'], true)): ?>
-                                                    <a href="CancelarPaseo.php?id=<?= (int)($p['paseo_id'] ?? 0) ?>"
-                                                        class="btn btn-sm btn-outline-danger"
-                                                        onclick="return confirm('¿Cancelar este paseo?')"
-                                                        title="Cancelar">
-                                                        <i class="fas fa-times"></i>
-                                                    </a>
-                                                    <a href="pago_paseo_dueno.php?paseo_id=<?= (int)($p['paseo_id'] ?? 0) ?>"
-                                                        class="btn btn-sm btn-outline-success"
-                                                        title="Pagar">
-                                                        <i class="fas fa-wallet"></i>
-                                                    </a>
-                                                <?php endif; ?>
-                                            </div>
-                                        </td>
+                                        <th>Mascota</th>
+                                        <th>Paseador</th>
+                                        <th>Fecha</th>
+                                        <th>Duración</th>
+                                        <th>Estado</th>
+                                        <th>Precio</th>
+                                        <th class="text-center">Acciones</th>
                                     </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($paseos as $p): ?>
+                                        <?php
+                                        $estado = $norm($p['estado'] ?? '');
+                                        $badge  = match ($estado) {
+                                            'completo'   => 'success',
+                                            'cancelado'  => 'danger',
+                                            'en_curso'   => 'info',
+                                            'confirmado' => 'primary',
+                                            default      => 'warning', // pendiente u otros
+                                        };
+                                        ?>
+                                        <tr>
+                                            <td>
+                                                <i class="fas fa-paw text-success me-2"></i>
+                                                <?= $h($p['nombre_mascota'] ?? '-'); ?>
+                                            </td>
+                                            <td>
+                                                <i class="fas fa-user text-secondary me-2"></i>
+                                                <?= $h($p['nombre_paseador'] ?? '-'); ?>
+                                            </td>
+                                            <td>
+                                                <?= !empty($p['inicio'])
+                                                    ? date('d/m/Y H:i', strtotime((string)$p['inicio']))
+                                                    : '-'; ?>
+                                            </td>
+                                            <td><?= (int)($p['duracion'] ?? 0); ?> min</td>
+                                            <td>
+                                                <span class="badge bg-<?= $badge; ?>">
+                                                    <?= ucfirst($estado ?: '-'); ?>
+                                                </span>
+                                            </td>
+                                            <td>
+                                                ₲<?= number_format((float)($p['precio_total'] ?? 0), 0, ',', '.'); ?>
+                                            </td>
+                                            <td class="text-center">
+                                                <div class="btn-group">
+                                                    <a href="<?= $baseFeatures; ?>/DetallePaseo.php?paseo_id=<?= (int)($p['paseo_id'] ?? 0); ?>"
+                                                        class="btn btn-sm btn-ver"
+                                                        title="Ver detalles">
+                                                        <i class="fas fa-eye"></i>Ver Detalle
+                                                    </a>
+                                                    <?php if (in_array($estado, ['pendiente', 'confirmado'], true)): ?>
+                                                        <a href="<?= $baseFeatures; ?>/CancelarPaseo.php?id=<?= (int)($p['paseo_id'] ?? 0); ?>"
+                                                            class="btn btn-sm btn-accion btn-rechazar"
+                                                            onclick="return confirm('¿Cancelar este paseo?')"
+                                                            title="Cancelar">
+                                                            <i class="fas fa-times"></i>
+                                                        </a>
+                                                        <a href="<?= $baseFeatures; ?>/pago_paseo_dueno.php?paseo_id=<?= (int)($p['paseo_id'] ?? 0); ?>"
+                                                            class="btn btn-sm btn-accion btn-activar"
+                                                            title="Pagar">
+                                                            <i class="fas fa-wallet"></i>
+                                                        </a>
+                                                    <?php endif; ?>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
-            </div>
-        <?php endif; ?>
+            <?php endif; ?>
 
-        <footer><small>© <?= date('Y') ?> Jaguata — Panel del Dueño</small></footer>
+            <footer class="mt-4 text-center text-muted small">
+                © <?= date('Y'); ?> Jaguata — Panel del Dueño
+            </footer>
+        </div>
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Filtro por estado (mantiene backend tal cual, solo manipula querystring)
         function aplicarFiltro() {
             const estado = document.getElementById('filtroEstado').value;
             const url = new URL(window.location.href);
@@ -323,6 +275,11 @@ $h = static function ($v) {
             }
             window.location.replace(url.toString());
         }
+
+        // Toggle sidebar en mobile (usa .sidebar-open del CSS global)
+        document.getElementById('toggleSidebar')?.addEventListener('click', function() {
+            document.getElementById('sidebar')?.classList.toggle('sidebar-open');
+        });
     </script>
 </body>
 

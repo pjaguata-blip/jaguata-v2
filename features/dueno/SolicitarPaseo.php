@@ -3,16 +3,19 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../../src/Config/AppConfig.php';
+require_once __DIR__ . '/../../src/Helpers/Session.php';
 require_once __DIR__ . '/../../src/Controllers/AuthController.php';
 require_once __DIR__ . '/../../src/Controllers/PaseoController.php';
 require_once __DIR__ . '/../../src/Controllers/MascotaController.php';
 require_once __DIR__ . '/../../src/Models/Usuario.php';
+require_once __DIR__ . '/../../src/Models/Paseador.php';
 
 use Jaguata\Config\AppConfig;
 use Jaguata\Controllers\AuthController;
 use Jaguata\Controllers\PaseoController;
 use Jaguata\Controllers\MascotaController;
 use Jaguata\Helpers\Session;
+use Jaguata\Models\Paseador;
 
 AppConfig::init();
 
@@ -24,8 +27,8 @@ $authController->checkRole('dueno');
 $paseoController   = new PaseoController();
 $mascotaController = new MascotaController();
 
-/* Datos base */
-$mascotas = $mascotaController->index();
+/* 🐶 Mascotas DEL DUEÑO logueado */
+$mascotas = $mascotaController->indexByDuenoActual();
 
 /* Redirección si no hay mascotas */
 if (empty($mascotas)) {
@@ -42,11 +45,12 @@ $ciudadSeleccionada      = strtolower(trim((string)($_POST['ciudad_ubicacion'] ?
 
 /* Crear reserva */
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // El controlador ya se encarga de leer $_POST internamente
     $paseoController->store();
 }
 
 /* Paseadores disponibles (con/sin filtro por fecha) */
-$paseadorModel = new \Jaguata\Models\Paseador();
+$paseadorModel = new Paseador();
 $allPaseadores = $fechaFiltro
     ? $paseadorModel->getDisponibles($fechaFiltro)
     : $paseadorModel->getDisponibles();
@@ -66,8 +70,9 @@ function h(?string $v): string
 }
 
 /* Rutas/UI */
-$baseFeatures  = BASE_URL . "/features/dueno";
-$usuarioNombre = htmlspecialchars($_SESSION['usuario_nombre'] ?? 'Dueño', ENT_QUOTES, 'UTF-8');
+$rolMenu       = Session::getUsuarioRol() ?: 'dueno';
+$baseFeatures  = BASE_URL . "/features/{$rolMenu}";
+$usuarioNombre = h(Session::getUsuarioNombre() ?? 'Dueño');
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -76,126 +81,12 @@ $usuarioNombre = htmlspecialchars($_SESSION['usuario_nombre'] ?? 'Dueño', ENT_Q
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Solicitar Paseo - Jaguata</title>
+
+    <!-- CSS base -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
     <link href="https://unpkg.com/leaflet/dist/leaflet.css" rel="stylesheet" />
-    <style>
-        :root {
-            --verde-jaguata: #3c6255;
-            --verde-claro: #20c997;
-            --gris-fondo: #f4f6f9;
-            --gris-texto: #555;
-            --blanco: #fff;
-        }
-
-        body {
-            font-family: "Poppins", sans-serif;
-            background: var(--gris-fondo);
-            color: var(--gris-texto)
-        }
-
-        /* Sidebar (igual que admin) */
-        .sidebar {
-            background: linear-gradient(180deg, #1e1e2f 0%, #292a3a 100%);
-            color: var(--blanco);
-            width: 250px;
-            height: 100vh;
-            position: fixed;
-            top: 0;
-            left: 0;
-            padding-top: 1.5rem;
-            box-shadow: 3px 0 10px rgba(0, 0, 0, .2)
-        }
-
-        .sidebar .nav-link {
-            color: #ccc;
-            display: flex;
-            align-items: center;
-            gap: .8rem;
-            padding: 12px 18px;
-            border-radius: 8px;
-            margin: 6px 10px;
-            transition: .2s;
-            font-size: .95rem
-        }
-
-        .sidebar .nav-link:hover,
-        .sidebar .nav-link.active {
-            background: var(--verde-claro);
-            color: var(--blanco);
-            transform: translateX(4px)
-        }
-
-        /* Main */
-        main {
-            margin-left: 250px;
-            padding: 2rem
-        }
-
-        .welcome-box {
-            background: linear-gradient(90deg, var(--verde-claro), var(--verde-jaguata));
-            color: var(--blanco);
-            padding: 1.8rem 2rem;
-            border-radius: 16px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 2rem;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, .1)
-        }
-
-        .card {
-            border: none;
-            border-radius: 10px;
-            box-shadow: 0 3px 10px rgba(0, 0, 0, .07)
-        }
-
-        .card-header {
-            border-top-left-radius: 10px;
-            border-top-right-radius: 10px;
-            background: var(--verde-jaguata);
-            color: #fff;
-            font-weight: 600
-        }
-
-        .form-select,
-        .form-control {
-            border-radius: 10px
-        }
-
-        .btn-gradient {
-            background: linear-gradient(90deg, var(--verde-jaguata), var(--verde-claro));
-            border: none;
-            color: #fff;
-            font-weight: 500;
-            border-radius: 8px;
-            padding: 10px 18px
-        }
-
-        .btn-gradient:hover {
-            opacity: .92;
-            transform: translateY(-1px)
-        }
-
-        #mapa {
-            height: 320px;
-            border-radius: 12px;
-            overflow: hidden;
-            border: 2px solid #dfe3e8
-        }
-
-        footer {
-            text-align: center;
-            padding: 1rem;
-            color: #777;
-            font-size: .9rem;
-            margin-top: 2rem
-        }
-
-        .alert {
-            border-radius: 10px
-        }
-    </style>
+    <link href="<?= BASE_URL; ?>/public/assets/css/jaguata-theme.css" rel="stylesheet">
 </head>
 
 <body>
@@ -204,38 +95,43 @@ $usuarioNombre = htmlspecialchars($_SESSION['usuario_nombre'] ?? 'Dueño', ENT_Q
 
     <!-- Contenido -->
     <main>
-        <!-- Header -->
-        <div class="welcome-box">
+        <!-- Header unificado -->
+        <div class="header-box header-paseos">
             <div>
-                <h1 class="fw-bold"><i class="fas fa-calendar-check me-2"></i>Solicitar Paseo</h1>
-                <p>Hola, <?= $usuarioNombre; ?>. Completá los datos para agendar el paseo de tu mascota.</p>
+                <h1 class="mb-1"><i class="fas fa-calendar-check me-2"></i>Solicitar Paseo</h1>
+                <p class="mb-0">Hola, <?= $usuarioNombre; ?>. Completá los datos para agendar el paseo de tu mascota.</p>
             </div>
-            <a href="Dashboard.php" class="btn btn-outline-light">
-                <i class="fas fa-arrow-left me-1"></i> Volver
-            </a>
+            <div class="d-none d-md-block">
+                <a href="<?= $baseFeatures; ?>/Dashboard.php" class="btn btn-outline-light btn-sm">
+                    <i class="fas fa-arrow-left me-1"></i> Volver
+                </a>
+            </div>
         </div>
 
         <!-- Flash messages -->
         <?php if (isset($_SESSION['success'])): ?>
             <div class="alert alert-success shadow-sm">
-                <i class="fas fa-check-circle me-2"></i><?= $_SESSION['success'];
-                                                        unset($_SESSION['success']); ?>
+                <i class="fas fa-check-circle me-2"></i><?= h($_SESSION['success']); ?>
             </div>
+            <?php unset($_SESSION['success']); ?>
         <?php endif; ?>
 
         <?php if (isset($_SESSION['error'])): ?>
             <div class="alert alert-danger shadow-sm">
-                <i class="fas fa-exclamation-triangle me-2"></i><?= $_SESSION['error'];
-                                                                unset($_SESSION['error']); ?>
+                <i class="fas fa-exclamation-triangle me-2"></i><?= h($_SESSION['error']); ?>
             </div>
+            <?php unset($_SESSION['error']); ?>
         <?php endif; ?>
 
         <!-- Formulario -->
-        <div class="card mb-4">
-            <div class="card-header"><i class="fas fa-dog me-2"></i>Información del paseo</div>
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header bg-success text-white fw-semibold">
+                <i class="fas fa-dog me-2"></i>Información del paseo
+            </div>
             <div class="card-body p-4">
                 <form method="POST" novalidate>
                     <div class="row g-4">
+                        <!-- Mascota -->
                         <div class="col-md-6">
                             <label for="mascota_id" class="form-label">Mascota <span class="text-danger">*</span></label>
                             <select class="form-select" id="mascota_id" name="mascota_id" required>
@@ -243,12 +139,16 @@ $usuarioNombre = htmlspecialchars($_SESSION['usuario_nombre'] ?? 'Dueño', ENT_Q
                                 <?php foreach ($mascotas as $m): ?>
                                     <?php $idM = (int)($m['mascota_id'] ?? $m['id'] ?? 0); ?>
                                     <option value="<?= $idM ?>" <?= $idM === $mascotaPreseleccionada ? 'selected' : '' ?>>
-                                        <?= h($m['nombre'] ?? '') ?><?= isset($m['tamano']) ? ' (' . ucfirst(h((string)$m['tamano'])) . ')' : '' ?>
+                                        <?= h($m['nombre'] ?? '') ?>
+                                        <?php if (!empty($m['tamano'])): ?>
+                                            (<?= ucfirst(h((string)$m['tamano'])) ?>)
+                                        <?php endif; ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
 
+                        <!-- Paseador -->
                         <div class="col-md-6">
                             <label for="paseador_id" class="form-label">Paseador <span class="text-danger">*</span></label>
                             <select class="form-select" id="paseador_id" name="paseador_id" required>
@@ -257,54 +157,72 @@ $usuarioNombre = htmlspecialchars($_SESSION['usuario_nombre'] ?? 'Dueño', ENT_Q
                                 </option>
                                 <?php foreach ($paseadores as $p): ?>
                                     <?php
-                                    $pid   = (int)($p['paseador_id'] ?? 0);
+                                    $pid    = (int)($p['paseador_id'] ?? 0);
                                     $precio = is_numeric($p['precio_hora'] ?? null) ? (float)$p['precio_hora'] : 0.0;
-                                    $sel   = $pid === $paseadorPreseleccionado ? 'selected' : '';
+                                    $sel    = $pid === $paseadorPreseleccionado ? 'selected' : '';
+                                    $nombre = $p['nombre'] ?? $p['usuario_nombre'] ?? '';
                                     ?>
                                     <option value="<?= $pid ?>" data-precio="<?= $precio ?>" <?= $sel ?>>
-                                        <?= h($p['nombre'] ?? '') ?> - <?= ucfirst(h((string)($p['ciudad'] ?? ''))) ?>
+                                        <?= h($nombre) ?> - <?= ucfirst(h((string)($p['ciudad'] ?? ''))) ?>
                                         — ₲<?= number_format($precio, 0, ',', '.') ?>/hora
-                                        <?php if (isset($p['calificacion'])): ?>(⭐ <?= (float)$p['calificacion'] ?>)<?php endif; ?>
+                                        <?php if (isset($p['calificacion'])): ?>
+                                            (⭐ <?= (float)$p['calificacion'] ?>)
+                                        <?php endif; ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
 
+                        <!-- Fecha / hora -->
                         <div class="col-md-6">
                             <label for="inicio" class="form-label">Fecha y hora <span class="text-danger">*</span></label>
                             <input type="datetime-local" class="form-control" id="inicio" name="inicio" required>
                         </div>
 
+                        <!-- Duración -->
                         <div class="col-md-6">
                             <label for="duracion" class="form-label">Duración <span class="text-danger">*</span></label>
                             <select class="form-select" id="duracion" name="duracion" required>
                                 <option value="">Seleccionar duración</option>
-                                <?php foreach ([15 => '15 min', 30 => '30 min', 45 => '45 min', 60 => '1 hora', 90 => '1.5 horas', 120 => '2 horas'] as $min => $label): ?>
+                                <?php
+                                $duraciones = [
+                                    15  => '15 min',
+                                    30  => '30 min',
+                                    45  => '45 min',
+                                    60  => '1 hora',
+                                    90  => '1.5 horas',
+                                    120 => '2 horas',
+                                ];
+                                foreach ($duraciones as $min => $label): ?>
                                     <option value="<?= (int)$min ?>"><?= $label ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
 
+                        <!-- Ubicación -->
                         <div class="col-12">
                             <label for="ubicacion" class="form-label">Ubicación de recogida <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="ubicacion" name="ubicacion" placeholder="Ej.: Asunción, Calle A Nº1234" required>
+                            <input type="text" class="form-control" id="ubicacion" name="ubicacion"
+                                placeholder="Ej.: Asunción, Calle A Nº1234" required>
                             <input type="hidden" id="ciudad_ubicacion" name="ciudad_ubicacion">
+
                             <div class="mt-3 d-flex flex-wrap gap-2">
                                 <button type="button" class="btn btn-outline-success btn-sm" id="btnUbicacion">
                                     <i class="fas fa-location-crosshairs me-1"></i> Detectar mi ubicación
                                 </button>
                                 <span id="ciudadDetectada" class="text-muted small align-self-center"></span>
                             </div>
-                            <div id="mapa" class="mt-3"></div>
+
+                            <div id="mapa" class="mt-3" style="height: 320px; border-radius: 12px; overflow: hidden; border: 2px solid #dfe3e8;"></div>
                         </div>
                     </div>
 
                     <hr class="my-4">
                     <div class="d-flex justify-content-between">
-                        <a href="Dashboard.php" class="btn btn-outline-secondary">
+                        <a href="<?= $baseFeatures; ?>/Dashboard.php" class="btn btn-outline-secondary">
                             <i class="fas fa-times me-1"></i> Cancelar
                         </a>
-                        <button type="submit" class="btn btn-gradient">
+                        <button type="submit" class="btn btn-success">
                             <i class="fas fa-paper-plane me-1"></i> Solicitar Paseo
                         </button>
                     </div>
@@ -312,9 +230,12 @@ $usuarioNombre = htmlspecialchars($_SESSION['usuario_nombre'] ?? 'Dueño', ENT_Q
             </div>
         </div>
 
-        <footer><small>© <?= date('Y') ?> Jaguata — Panel del Dueño</small></footer>
+        <footer class="mt-4 text-center text-muted small">
+            © <?= date('Y') ?> Jaguata — Panel del Dueño
+        </footer>
     </main>
 
+    <!-- JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script>

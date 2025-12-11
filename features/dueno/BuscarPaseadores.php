@@ -58,7 +58,7 @@ $where = [];
 $args  = [];
 
 if ($q !== '') {
-    $where[]   = '(p.nombre LIKE :q OR p.descripcion LIKE :q OR p.zona LIKE :q)';
+    $where[]    = '(p.nombre LIKE :q OR p.descripcion LIKE :q OR p.zona LIKE :q)';
     $args[':q'] = "%$q%";
 }
 if ($zona !== '') {
@@ -74,15 +74,15 @@ if ($maxRateF !== null) {
     $args[':maxRate'] = $maxRateF;
 }
 if ($minPriceF !== null) {
-    $where[]            = 'p.precio_hora >= :minPrice';
-    $args[':minPrice']  = $minPriceF;
+    $where[]           = 'p.precio_hora >= :minPrice';
+    $args[':minPrice'] = $minPriceF;
 }
 if ($maxPriceF !== null) {
-    $where[]            = 'p.precio_hora <= :maxPrice';
-    $args[':maxPrice']  = $maxPriceF;
+    $where[]           = 'p.precio_hora <= :maxPrice';
+    $args[':maxPrice'] = $maxPriceF;
 }
 if ($dispF !== null) {
-    $where[]       = 'p.disponible = :disp';
+    $where[]      = 'p.disponible = :disp';
     $args[':disp'] = $dispF;
 }
 
@@ -142,8 +142,8 @@ function qs(array $overrides = []): string
 }
 
 /* Rutas base */
-$rolMenu      = Session::getUsuarioRol() ?: 'dueno';
-$baseFeatures = BASE_URL . "/features/{$rolMenu}";
+$rolMenu       = Session::getUsuarioRol() ?: 'dueno';
+$baseFeatures  = BASE_URL . "/features/{$rolMenu}";
 $usuarioNombre = h(Session::getUsuarioNombre() ?? 'Dueño/a');
 ?>
 <!DOCTYPE html>
@@ -165,11 +165,11 @@ $usuarioNombre = h(Session::getUsuarioNombre() ?? 'Dueño/a');
     <?php include __DIR__ . '/../../src/Templates/SidebarDueno.php'; ?>
 
     <!-- Contenido -->
-    <main class="bg-light">
-        <div class="container-fluid py-4">
+    <main>
+        <div class="py-4"><!-- mismo padding que MiPerfil / Configuración -->
 
             <!-- Header -->
-            <div class="header-box header-paseos mb-4">
+            <div class="header-box header-paseos mb-4 d-flex justify-content-between align-items-center">
                 <div>
                     <h1 class="fw-bold mb-1">
                         <i class="fas fa-dog me-2"></i>Buscar Paseadores
@@ -184,12 +184,12 @@ $usuarioNombre = h(Session::getUsuarioNombre() ?? 'Dueño/a');
                 </div>
             </div>
 
-            <!-- Filtros -->
-            <div class="card shadow-sm mb-4">
-                <div class="card-header bg-success text-white fw-semibold">
+            <!-- Filtros (section-card) -->
+            <div class="section-card mb-4">
+                <div class="section-header">
                     <i class="fas fa-filter me-2"></i>Filtros de búsqueda
                 </div>
-                <div class="card-body">
+                <div class="section-body">
                     <form class="row gy-3" method="get">
                         <div class="col-md-4">
                             <label class="form-label">Nombre / palabra clave</label>
@@ -244,22 +244,25 @@ $usuarioNombre = h(Session::getUsuarioNombre() ?? 'Dueño/a');
 
             <!-- Resultados -->
             <?php if (empty($paseadores)): ?>
-                <div class="card shadow-sm p-4 text-center">
-                    <div class="mb-3">
-                        <i class="fas fa-dog fa-3x text-muted"></i>
+                <div class="section-card text-center">
+                    <div class="section-body">
+                        <div class="mb-3">
+                            <i class="fas fa-dog fa-3x text-muted"></i>
+                        </div>
+                        <h5 class="text-muted mb-2">
+                            No se encontraron paseadores con esos filtros.
+                        </h5>
+                        <p class="text-muted small mb-3">
+                            Probá ampliando la zona, bajando el mínimo de calificación o aumentando el precio máximo.
+                        </p>
+                        <a href="<?= $baseFeatures; ?>/BuscarPaseadores.php"
+                            class="btn btn-success">
+                            <i class="fas fa-undo me-1"></i> Restablecer filtros
+                        </a>
                     </div>
-                    <h5 class="text-muted mb-2">
-                        No se encontraron paseadores con esos filtros.
-                    </h5>
-                    <p class="text-muted small mb-3">
-                        Probá ampliando la zona, bajando el mínimo de calificación o aumentando el precio máximo.
-                    </p>
-                    <a href="<?= $baseFeatures; ?>/BuscarPaseadores.php"
-                        class="btn btn-success">
-                        <i class="fas fa-undo me-1"></i> Restablecer filtros
-                    </a>
                 </div>
             <?php else: ?>
+
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <span class="text-muted small">
                         Mostrando <?= count($paseadores) ?> de <?= $total ?> resultados
@@ -273,7 +276,8 @@ $usuarioNombre = h(Session::getUsuarioNombre() ?? 'Dueño/a');
                                 <?php if (!empty($p['foto_url'])): ?>
                                     <img src="<?= h($p['foto_url']) ?>"
                                         alt="Foto de <?= h($p['nombre']) ?>"
-                                        style="height:180px;object-fit:cover;width:100%;border-top-left-radius:.375rem;border-top-right-radius:.375rem;">
+                                        style="height:180px;object-fit:cover;width:100%;
+                                                border-top-left-radius:.375rem;border-top-right-radius:.375rem;">
                                 <?php else: ?>
                                     <div class="bg-light d-flex align-items-center justify-content-center"
                                         style="height:180px;">
@@ -308,7 +312,7 @@ $usuarioNombre = h(Session::getUsuarioNombre() ?? 'Dueño/a');
                                     </p>
 
                                     <a href="<?= $baseFeatures; ?>/SolicitarPaseo.php?paseador_id=<?= (int)$p['id'] ?>"
-                                        class="btn btn-success mt-auto w-100">
+                                        class="btn btn-gradient mt-auto w-100">
                                         <i class="fas fa-paw me-1"></i> Solicitar Paseo
                                     </a>
                                 </div>
@@ -344,7 +348,6 @@ $usuarioNombre = h(Session::getUsuarioNombre() ?? 'Dueño/a');
             <footer class="mt-4 text-center text-muted small">
                 © <?= date('Y') ?> Jaguata — Panel del Dueño
             </footer>
-
         </div>
     </main>
 

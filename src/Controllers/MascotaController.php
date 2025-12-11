@@ -33,6 +33,34 @@ class MascotaController
      */
     public function index(): array
     {
+        $rol = Session::getUsuarioRol() ?? '';
+
+        // 👉 Si es ADMIN, listamos TODAS las mascotas
+        if ($rol === 'admin') {
+            $sql = "
+                SELECT 
+                    mascota_id,
+                    dueno_id,
+                    nombre,
+                    raza,
+                    peso_kg,
+                    tamano,
+                    edad_meses,
+                    observaciones,
+                    foto_url,
+                    created_at,
+                    updated_at
+                FROM mascotas
+                ORDER BY created_at DESC
+            ";
+
+            $st = $this->db->prepare($sql);
+            $st->execute();
+
+            return $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        }
+
+        // 👉 Si es dueño (u otro rol), solo las del dueño actual
         $duenoId = (int)(Session::getUsuarioId() ?? 0);
         if ($duenoId <= 0) {
             return [];

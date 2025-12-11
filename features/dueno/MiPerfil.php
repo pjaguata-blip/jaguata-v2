@@ -5,11 +5,13 @@ declare(strict_types=1);
 require_once __DIR__ . '/../../src/Config/AppConfig.php';
 require_once __DIR__ . '/../../src/Controllers/AuthController.php';
 require_once __DIR__ . '/../../src/Models/Usuario.php';
+require_once __DIR__ . '/../../src/Models/Calificacion.php'; // ⭐ Reputación
 require_once __DIR__ . '/../../src/Helpers/Session.php';
 
 use Jaguata\Config\AppConfig;
 use Jaguata\Controllers\AuthController;
 use Jaguata\Models\Usuario;
+use Jaguata\Models\Calificacion;
 use Jaguata\Helpers\Session;
 
 AppConfig::init();
@@ -18,7 +20,7 @@ AppConfig::init();
 $auth = new AuthController();
 $auth->checkRole('dueno');
 
-/* Datos usuario (igual que resto de features) */
+/* Datos usuario */
 $usuarioId = (int)(Session::getUsuarioId() ?? 0);
 $rol       = Session::getUsuarioRol() ?: 'dueno';
 
@@ -34,6 +36,12 @@ if (!$usuario) {
 /* Puntos del dueño (campo puntos en la tabla usuarios) */
 $puntos       = (int)($usuario['puntos'] ?? 0);
 $baseFeatures = BASE_URL . "/features/{$rol}";
+
+/* ⭐ Reputación del dueño (promedio de calificaciones de sus mascotas) */
+$calificacionModel = new Calificacion();
+$resumenCali       = $calificacionModel->resumenPorDueno($usuarioId);
+$repPromedio       = $resumenCali['promedio'] ?? null;
+$repTotal          = (int)($resumenCali['total'] ?? 0);
 
 /* Helpers */
 function h(?string $v, string $fallback = '—'): string
@@ -92,8 +100,39 @@ $direccionRef = $usuario['direccion'] ?? null;
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
 
-    <!-- 🎨 Estilos globales Jaguata (mismo archivo que usa Admin y Dashboard dueño) -->
-    <link href="<?= BASE_URL; ?>/public/assets/css/jaguata-theme.css" rel="stylesheet" />
+    <!-- 🎨 Estilos globales Jaguata -->
+    <link href="<?= ASSETS_URL; ?>/css/jaguata-theme.css" rel="stylesheet" />
+
+    <style>
+        /* 🐾 Mismo estilo de foto que el perfil del paseador */
+        .perfil-avatar {
+            width: 160px;
+            height: 160px;
+            object-fit: cover;
+            border-radius: 50%;
+            border: 4px solid var(--verde-jaguata);
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.12);
+        }
+
+        .badge-rol {
+            background-color: #e6f4ea;
+            color: var(--verde-jaguata);
+            border-radius: 8px;
+            font-size: 0.85rem;
+            padding: 0.4em 0.6em;
+        }
+
+        /* Bloque de reputación dentro de la card izquierda */
+        .rating-block-dueno {
+            border-top: 1px solid #e6e6e6;
+            margin-top: 1rem;
+            padding-top: 0.75rem;
+        }
+
+        .rating-block-dueno .rating-stars i {
+            margin-right: 2px;
+        }
+    </style>
 </head>
 
 <body>
@@ -101,7 +140,7 @@ $direccionRef = $usuario['direccion'] ?? null;
     <!-- Sidebar dueño unificado -->
     <?php include __DIR__ . '/../../src/Templates/SidebarDueno.php'; ?>
 
-    <!-- Botón hamburguesa para móvil (usa .sidebar-open del CSS) -->
+    <!-- Botón hamburguesa para móvil -->
     <button class="btn btn-outline-secondary d-md-none ms-2 mt-3" id="toggleSidebar">
         <i class="fas fa-bars"></i>
     </button>
@@ -109,31 +148,38 @@ $direccionRef = $usuario['direccion'] ?? null;
     <!-- Contenido -->
     <main>
         <div class="py-4">
-            <!-- HEADER unificado Perfil + Puntos (usa header-box + header-dashboard del CSS) -->
+
+            <!-- HEADER unificado Perfil + Puntos -->
             <div class="header-box header-dashboard mb-4">
                 <div>
                     <h1 class="fw-bold mb-1">
                         <i class="fas fa-user me-2"></i>Mi Perfil — Dueño
                     </h1>
                     <p class="mb-0">
-                        Datos de tu cuenta y tus puntos acumulados en Jaguata 🐾
+                        Datos de tu cuenta, tus puntos y tu reputación dentro de Jaguata 🐾
                     </p>
                 </div>
                 <div class="text-end">
-                    <div class="small text-white-50">Puntos acumulados</div>
-                    <div class="fs-2 fw-bold">
+                    <div class="fs-2 fw-bold mb-1">
                         <i class="fas fa-star text-warning me-1"></i>
                         <?= number_format($puntos, 0, ',', '.'); ?>
                     </div>
-                    <a href="<?= $baseFeatures; ?>/Dashboard.php" class="btn btn-outline-light btn-sm">
-                        <i class="fas fa-arrow-left me-1"></i> Volver
-                    </a>
-
+                    <div class="small text-white-50 mb-2">
+                        Puntos acumulados
+                    </div>
+                    <div class="d-flex justify-content-end flex-wrap gap-2">
+                        <a href="<?= $baseFeatures; ?>/Dashboard.php" class="btn btn-outline-light btn-sm">
+                            <i class="fas fa-arrow-left me-1"></i> Volver
+                        </a>
+                        <a href="<?= $baseFeatures; ?>/EditarPerfil.php" class="btn btn-light btn-sm text-success">
+                            <i class="fas fa-edit me-1"></i> Editar
+                        </a>
+                    </div>
                 </div>
             </div>
 
             <div class="row g-3">
-                <!-- Col izquierda: perfil básico -->
+                <!-- Col izquierda: perfil básico + reputación -->
                 <div class="col-lg-4">
                     <div class="section-card text-center">
                         <div class="mb-3">
@@ -172,43 +218,44 @@ $direccionRef = $usuario['direccion'] ?? null;
                             </div>
                         </div>
 
-                        <div class="mt-3">
-                            <a href="<?= $baseFeatures; ?>/EditarPerfil.php" class="btn-accion btn-activar">
-                                <i class="fas fa-edit me-1"></i> Editar perfil
-                            </a>
+                        <!-- ⭐ Bloque de reputación del dueño -->
+                        <div class="rating-block-dueno text-start mt-3">
+                            <h6 class="text-muted mb-2">
+                                <i class="fas fa-star me-2 text-warning"></i>Reputación como dueño
+                            </h6>
+
+                            <?php if ($repPromedio !== null && $repTotal > 0): ?>
+                                <div class="d-flex flex-column align-items-start">
+                                    <div class="fs-5 fw-semibold">
+                                        <?= number_format($repPromedio, 1, ',', '.'); ?>/5
+                                    </div>
+                                    <div class="rating-stars mb-1">
+                                        <?php
+                                        $rounded = (int) round($repPromedio);
+                                        for ($i = 1; $i <= 5; $i++):
+                                            $cls = $i <= $rounded ? 'fas text-warning' : 'far text-muted';
+                                        ?>
+                                            <i class="<?= $cls ?> fa-star"></i>
+                                        <?php endfor; ?>
+                                    </div>
+                                    <small class="text-muted">
+                                        <?= $repTotal ?> opinión<?= $repTotal === 1 ? '' : 'es' ?> sobre tus mascotas
+                                    </small>
+                                </div>
+                            <?php else: ?>
+                                <div class="text-muted small">
+                                    <i class="far fa-star me-1"></i>
+                                    Aún no tenés calificaciones sobre tus mascotas.
+                                </div>
+                            <?php endif; ?>
                         </div>
+
                     </div>
                 </div>
 
-                <!-- Col derecha: puntos + dirección + notas -->
+                <!-- Col derecha: dirección + preferencias + notas -->
                 <div class="col-lg-8">
                     <div class="row g-3">
-                        <!-- Caja grande de puntos -->
-                        <div class="col-12">
-                            <div class="section-card">
-                                <div class="section-header">
-                                    <i class="fas fa-medal me-2"></i> Tus recompensas
-                                </div>
-                                <div class="section-body">
-                                    <div class="row align-items-center">
-                                        <div class="col-md-8">
-                                            <p class="mb-1">
-                                                Cada paseo completado suma puntos en tu cuenta.
-                                            </p>
-                                            <p class="mb-0 text-muted">
-                                                Más adelante podrás canjearlos por beneficios dentro de Jaguata.
-                                            </p>
-                                        </div>
-                                        <div class="col-md-4 text-center mt-3 mt-md-0">
-                                            <div class="mini-stat-value">
-                                                <?= number_format($puntos, 0, ',', '.'); ?>
-                                            </div>
-                                            <div class="text-muted small">puntos acumulados</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
 
                         <!-- Dirección -->
                         <div class="col-12">

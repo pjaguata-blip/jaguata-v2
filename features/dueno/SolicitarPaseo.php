@@ -45,7 +45,6 @@ $ciudadSeleccionada      = strtolower(trim((string)($_POST['ciudad_ubicacion'] ?
 
 /* Crear reserva */
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // El controlador ya se encarga de leer $_POST internamente
     $paseoController->store();
 }
 
@@ -95,144 +94,154 @@ $usuarioNombre = h(Session::getUsuarioNombre() ?? 'Dueño');
 
     <!-- Contenido -->
     <main>
-        <!-- Header unificado -->
-        <div class="header-box header-paseos">
-            <div>
-                <h1 class="mb-1"><i class="fas fa-calendar-check me-2"></i>Solicitar Paseo</h1>
-                <p class="mb-0">Hola, <?= $usuarioNombre; ?>. Completá los datos para agendar el paseo de tu mascota.</p>
+        <div class="py-4"><!-- mismo padding que MiPerfil / Configuración -->
+
+            <!-- Header unificado -->
+            <div class="header-box header-paseos mb-4 d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="mb-1">
+                        <i class="fas fa-calendar-check me-2"></i>Solicitar Paseo
+                    </h1>
+                    <p class="mb-0">
+                        Hola, <?= $usuarioNombre; ?>. Completá los datos para agendar el paseo de tu mascota 🐾
+                    </p>
+                </div>
+                <div class="d-none d-md-block">
+                    <a href="<?= $baseFeatures; ?>/Dashboard.php" class="btn btn-outline-light btn-sm">
+                        <i class="fas fa-arrow-left me-1"></i> Volver al panel
+                    </a>
+                </div>
             </div>
-            <div class="d-none d-md-block">
-                <a href="<?= $baseFeatures; ?>/Dashboard.php" class="btn btn-outline-light btn-sm">
-                    <i class="fas fa-arrow-left me-1"></i> Volver
-                </a>
-            </div>
-        </div>
 
-        <!-- Flash messages -->
-        <?php if (isset($_SESSION['success'])): ?>
-            <div class="alert alert-success shadow-sm">
-                <i class="fas fa-check-circle me-2"></i><?= h($_SESSION['success']); ?>
-            </div>
-            <?php unset($_SESSION['success']); ?>
-        <?php endif; ?>
+            <!-- Flash messages -->
+            <?php if (isset($_SESSION['success'])): ?>
+                <div class="alert alert-success shadow-sm">
+                    <i class="fas fa-check-circle me-2"></i><?= h($_SESSION['success']); ?>
+                </div>
+                <?php unset($_SESSION['success']); ?>
+            <?php endif; ?>
 
-        <?php if (isset($_SESSION['error'])): ?>
-            <div class="alert alert-danger shadow-sm">
-                <i class="fas fa-exclamation-triangle me-2"></i><?= h($_SESSION['error']); ?>
-            </div>
-            <?php unset($_SESSION['error']); ?>
-        <?php endif; ?>
+            <?php if (isset($_SESSION['error'])): ?>
+                <div class="alert alert-danger shadow-sm">
+                    <i class="fas fa-exclamation-triangle me-2"></i><?= h($_SESSION['error']); ?>
+                </div>
+                <?php unset($_SESSION['error']); ?>
+            <?php endif; ?>
 
-        <!-- Formulario -->
-        <div class="card mb-4 shadow-sm">
-            <div class="card-header bg-success text-white fw-semibold">
-                <i class="fas fa-dog me-2"></i>Información del paseo
-            </div>
-            <div class="card-body p-4">
-                <form method="POST" novalidate>
-                    <div class="row g-4">
-                        <!-- Mascota -->
-                        <div class="col-md-6">
-                            <label for="mascota_id" class="form-label">Mascota <span class="text-danger">*</span></label>
-                            <select class="form-select" id="mascota_id" name="mascota_id" required>
-                                <option value="">Seleccionar mascota</option>
-                                <?php foreach ($mascotas as $m): ?>
-                                    <?php $idM = (int)($m['mascota_id'] ?? $m['id'] ?? 0); ?>
-                                    <option value="<?= $idM ?>" <?= $idM === $mascotaPreseleccionada ? 'selected' : '' ?>>
-                                        <?= h($m['nombre'] ?? '') ?>
-                                        <?php if (!empty($m['tamano'])): ?>
-                                            (<?= ucfirst(h((string)$m['tamano'])) ?>)
-                                        <?php endif; ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
+            <!-- Bloque principal usando section-card -->
+            <div class="section-card">
+                <div class="section-header">
+                    <i class="fas fa-dog me-2"></i>Información del paseo
+                </div>
 
-                        <!-- Paseador -->
-                        <div class="col-md-6">
-                            <label for="paseador_id" class="form-label">Paseador <span class="text-danger">*</span></label>
-                            <select class="form-select" id="paseador_id" name="paseador_id" required>
-                                <option value="">
-                                    Seleccionar paseador<?= $ciudadSeleccionada ? ' (' . ucfirst(h($ciudadSeleccionada)) . ')' : '' ?>
-                                </option>
-                                <?php foreach ($paseadores as $p): ?>
-                                    <?php
-                                    $pid    = (int)($p['paseador_id'] ?? 0);
-                                    $precio = is_numeric($p['precio_hora'] ?? null) ? (float)$p['precio_hora'] : 0.0;
-                                    $sel    = $pid === $paseadorPreseleccionado ? 'selected' : '';
-                                    $nombre = $p['nombre'] ?? $p['usuario_nombre'] ?? '';
-                                    ?>
-                                    <option value="<?= $pid ?>" data-precio="<?= $precio ?>" <?= $sel ?>>
-                                        <?= h($nombre) ?> - <?= ucfirst(h((string)($p['ciudad'] ?? ''))) ?>
-                                        — ₲<?= number_format($precio, 0, ',', '.') ?>/hora
-                                        <?php if (isset($p['calificacion'])): ?>
-                                            (⭐ <?= (float)$p['calificacion'] ?>)
-                                        <?php endif; ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-
-                        <!-- Fecha / hora -->
-                        <div class="col-md-6">
-                            <label for="inicio" class="form-label">Fecha y hora <span class="text-danger">*</span></label>
-                            <input type="datetime-local" class="form-control" id="inicio" name="inicio" required>
-                        </div>
-
-                        <!-- Duración -->
-                        <div class="col-md-6">
-                            <label for="duracion" class="form-label">Duración <span class="text-danger">*</span></label>
-                            <select class="form-select" id="duracion" name="duracion" required>
-                                <option value="">Seleccionar duración</option>
-                                <?php
-                                $duraciones = [
-                                    15  => '15 min',
-                                    30  => '30 min',
-                                    45  => '45 min',
-                                    60  => '1 hora',
-                                    90  => '1.5 horas',
-                                    120 => '2 horas',
-                                ];
-                                foreach ($duraciones as $min => $label): ?>
-                                    <option value="<?= (int)$min ?>"><?= $label ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-
-                        <!-- Ubicación -->
-                        <div class="col-12">
-                            <label for="ubicacion" class="form-label">Ubicación de recogida <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="ubicacion" name="ubicacion"
-                                placeholder="Ej.: Asunción, Calle A Nº1234" required>
-                            <input type="hidden" id="ciudad_ubicacion" name="ciudad_ubicacion">
-
-                            <div class="mt-3 d-flex flex-wrap gap-2">
-                                <button type="button" class="btn btn-outline-success btn-sm" id="btnUbicacion">
-                                    <i class="fas fa-location-crosshairs me-1"></i> Detectar mi ubicación
-                                </button>
-                                <span id="ciudadDetectada" class="text-muted small align-self-center"></span>
+                <div class="section-body">
+                    <form method="POST" novalidate>
+                        <div class="row g-4">
+                            <!-- Mascota -->
+                            <div class="col-md-6">
+                                <label for="mascota_id" class="form-label">Mascota <span class="text-danger">*</span></label>
+                                <select class="form-select" id="mascota_id" name="mascota_id" required>
+                                    <option value="">Seleccionar mascota</option>
+                                    <?php foreach ($mascotas as $m): ?>
+                                        <?php $idM = (int)($m['mascota_id'] ?? $m['id'] ?? 0); ?>
+                                        <option value="<?= $idM ?>" <?= $idM === $mascotaPreseleccionada ? 'selected' : '' ?>>
+                                            <?= h($m['nombre'] ?? '') ?>
+                                            <?php if (!empty($m['tamano'])): ?>
+                                                (<?= ucfirst(h((string)$m['tamano'])) ?>)
+                                            <?php endif; ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
                             </div>
 
-                            <div id="mapa" class="mt-3" style="height: 320px; border-radius: 12px; overflow: hidden; border: 2px solid #dfe3e8;"></div>
+                            <!-- Paseador -->
+                            <div class="col-md-6">
+                                <label for="paseador_id" class="form-label">Paseador <span class="text-danger">*</span></label>
+                                <select class="form-select" id="paseador_id" name="paseador_id" required>
+                                    <option value="">
+                                        Seleccionar paseador<?= $ciudadSeleccionada ? ' (' . ucfirst(h($ciudadSeleccionada)) . ')' : '' ?>
+                                    </option>
+                                    <?php foreach ($paseadores as $p): ?>
+                                        <?php
+                                        $pid    = (int)($p['paseador_id'] ?? 0);
+                                        $precio = is_numeric($p['precio_hora'] ?? null) ? (float)$p['precio_hora'] : 0.0;
+                                        $sel    = $pid === $paseadorPreseleccionado ? 'selected' : '';
+                                        $nombre = $p['nombre'] ?? $p['usuario_nombre'] ?? '';
+                                        ?>
+                                        <option value="<?= $pid ?>" data-precio="<?= $precio ?>" <?= $sel ?>>
+                                            <?= h($nombre) ?> - <?= ucfirst(h((string)($p['ciudad'] ?? ''))) ?>
+                                            — ₲<?= number_format($precio, 0, ',', '.') ?>/hora
+                                            <?php if (isset($p['calificacion'])): ?>
+                                                (⭐ <?= (float)$p['calificacion'] ?>)
+                                            <?php endif; ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+
+                            <!-- Fecha / hora -->
+                            <div class="col-md-6">
+                                <label for="inicio" class="form-label">Fecha y hora <span class="text-danger">*</span></label>
+                                <input type="datetime-local" class="form-control" id="inicio" name="inicio" required>
+                            </div>
+
+                            <!-- Duración -->
+                            <div class="col-md-6">
+                                <label for="duracion" class="form-label">Duración <span class="text-danger">*</span></label>
+                                <select class="form-select" id="duracion" name="duracion" required>
+                                    <option value="">Seleccionar duración</option>
+                                    <?php
+                                    $duraciones = [
+                                        15  => '15 min',
+                                        30  => '30 min',
+                                        45  => '45 min',
+                                        60  => '1 hora',
+                                        90  => '1.5 horas',
+                                        120 => '2 horas',
+                                    ];
+                                    foreach ($duraciones as $min => $label): ?>
+                                        <option value="<?= (int)$min ?>"><?= $label ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+
+                            <!-- Ubicación -->
+                            <div class="col-12">
+                                <label for="ubicacion" class="form-label">Ubicación de recogida <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="ubicacion" name="ubicacion"
+                                    placeholder="Ej.: Asunción, Calle A Nº1234" required>
+                                <input type="hidden" id="ciudad_ubicacion" name="ciudad_ubicacion">
+
+                                <div class="mt-3 d-flex flex-wrap gap-2">
+                                    <button type="button" class="btn btn-outline-success btn-sm" id="btnUbicacion">
+                                        <i class="fas fa-location-crosshairs me-1"></i> Detectar mi ubicación
+                                    </button>
+                                    <span id="ciudadDetectada" class="text-muted small align-self-center"></span>
+                                </div>
+
+                                <div id="mapa" class="mt-3"
+                                    style="height: 320px; border-radius: 12px; overflow: hidden; border: 2px solid #dfe3e8;"></div>
+                            </div>
                         </div>
-                    </div>
 
-                    <hr class="my-4">
-                    <div class="d-flex justify-content-between">
-                        <a href="<?= $baseFeatures; ?>/Dashboard.php" class="btn btn-outline-secondary">
-                            <i class="fas fa-times me-1"></i> Cancelar
-                        </a>
-                        <button type="submit" class="btn btn-success">
-                            <i class="fas fa-paper-plane me-1"></i> Solicitar Paseo
-                        </button>
-                    </div>
-                </form>
+                        <hr class="my-4">
+
+                        <div class="d-flex justify-content-between">
+                            <a href="<?= $baseFeatures; ?>/Dashboard.php" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-1"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-gradient">
+                                <i class="fas fa-paper-plane me-1"></i> Solicitar Paseo
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
-        </div>
 
-        <footer class="mt-4 text-center text-muted small">
-            © <?= date('Y') ?> Jaguata — Panel del Dueño
-        </footer>
+            <footer class="mt-4 text-center text-muted small">
+                © <?= date('Y') ?> Jaguata — Panel del Dueño
+            </footer>
+        </div>
     </main>
 
     <!-- JS -->

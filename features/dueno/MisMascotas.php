@@ -80,14 +80,14 @@ $edadMin = ($_GET['edad_min'] ?? '') !== '' ? (int)$_GET['edad_min'] : null;
 $edadMax = ($_GET['edad_max'] ?? '') !== '' ? (int)$_GET['edad_max'] : null;
 
 /* Opciones únicas */
-$razasUnicas = [];
+$razasUnicas   = [];
 $tamanosUnicos = [];
 
 foreach ($mascotas as $m) {
-    if (!empty($m['raza']))  $razasUnicas[$m['raza']] = true;
+    if (!empty($m['raza']))   $razasUnicas[$m['raza']] = true;
     if (!empty($m['tamano'])) $tamanosUnicos[$m['tamano']] = true;
 }
-$razasUnicas = array_keys($razasUnicas);
+$razasUnicas   = array_keys($razasUnicas);
 sort($razasUnicas);
 $tamanosUnicos = array_keys($tamanosUnicos);
 sort($tamanosUnicos);
@@ -102,7 +102,7 @@ $mascotasFiltradas = array_values(array_filter(
             $txt = strtolower(($m['nombre'] ?? '') . ' ' . ($m['raza'] ?? '') . ' ' . ($m['tamano'] ?? ''));
             $ok = $ok && str_contains($txt, strtolower($q));
         }
-        if ($raza !== '')   $ok = $ok && (($m['raza'] ?? '') === $raza);
+        if ($raza !== '')    $ok = $ok && (($m['raza'] ?? '') === $raza);
         if ($tamanoF !== '') $ok = $ok && (($m['tamano'] ?? '') === $tamanoF);
 
         $edadMeses = (int)($m['edad_meses'] ?? ($m['edad'] ?? 0));
@@ -134,7 +134,28 @@ $urlNueva    = $baseFeatures . '/MisMascotas.php?vista=nueva';
     <link href="<?= BASE_URL; ?>/public/assets/css/jaguata-theme.css" rel="stylesheet">
 
     <style>
-        /* Ajustes visuales mínimos */
+        html,
+        body {
+            height: 100%;
+        }
+
+        body {
+            background: var(--gris-fondo, #f4f6f9);
+        }
+
+        main.main-content {
+            margin-left: 260px;
+            min-height: 100vh;
+            padding: 24px;
+        }
+
+        @media (max-width: 768px) {
+            main.main-content {
+                margin-left: 0;
+                padding: 16px;
+            }
+        }
+
         .mascota-card-img {
             width: 100%;
             height: 180px;
@@ -169,19 +190,34 @@ $urlNueva    = $baseFeatures . '/MisMascotas.php?vista=nueva';
     <!-- Sidebar -->
     <?php include __DIR__ . '/../../src/Templates/SidebarDueno.php'; ?>
 
-    <main class="bg-light">
-        <div class="container-fluid py-4">
+    <!-- Botón hamburguesa mobile -->
+    <button class="btn btn-outline-secondary d-md-none ms-2 mt-3" id="toggleSidebar">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <main class="main-content">
+        <div class="container-fluid py-2">
 
             <!-- Header -->
-            <div class="header-box header-mascotas mb-3">
+            <div class="header-box header-mascotas mb-3 d-flex justify-content-between align-items-center">
                 <div>
-                    <h1 class="fw-bold mb-1"><i class="fas fa-paw me-2"></i>Mis Mascotas</h1>
-                    <p class="mb-0">Gestioná, agregá y seleccioná tus mascotas desde una sola vista, <?= $usuarioNombre ?>.</p>
+                    <h1 class="fw-bold mb-1">
+                        <i class="fas fa-paw me-2"></i>Mis Mascotas
+                    </h1>
+                    <p class="mb-0">
+                        Gestioná, agregá y seleccioná tus mascotas desde una sola vista, <?= $usuarioNombre ?>.
+                    </p>
                 </div>
                 <div class="d-flex gap-2">
-                    <a href="<?= $urlLista ?>" class="btn btn-outline-light fw-semibold <?= $vista === 'lista' ? 'active' : '' ?>"><i class="fas fa-table me-1"></i> Lista</a>
-                    <a href="<?= $urlTarjetas ?>" class="btn btn-outline-light fw-semibold <?= $vista === 'tarjetas' ? 'active' : '' ?>"><i class="fas fa-th-large me-1"></i> Tarjetas</a>
-                    <a href="<?= $urlNueva ?>" class="btn btn-light text-success fw-semibold <?= $vista === 'nueva' ? 'active' : '' ?>"><i class="fas fa-plus me-1"></i> Nueva</a>
+                    <a href="<?= $urlLista ?>" class="btn btn-outline-light fw-semibold <?= $vista === 'lista' ? 'active' : '' ?>">
+                        <i class="fas fa-table me-1"></i> Lista
+                    </a>
+                    <a href="<?= $urlTarjetas ?>" class="btn btn-outline-light fw-semibold <?= $vista === 'tarjetas' ? 'active' : '' ?>">
+                        <i class="fas fa-th-large me-1"></i> Tarjetas
+                    </a>
+                    <a href="<?= $urlNueva ?>" class="btn btn-light text-success fw-semibold <?= $vista === 'nueva' ? 'active' : '' ?>">
+                        <i class="fas fa-plus me-1"></i> Nueva
+                    </a>
                 </div>
             </div>
 
@@ -207,11 +243,11 @@ $urlNueva    = $baseFeatures . '/MisMascotas.php?vista=nueva';
             ============================== -->
             <?php if ($vista === 'nueva'): ?>
 
-                <div class="card shadow-sm">
-                    <div class="card-header bg-success text-white fw-semibold">
+                <div class="section-card">
+                    <div class="section-header">
                         <i class="fas fa-info-circle me-2"></i>Agregar Mascota
                     </div>
-                    <div class="card-body">
+                    <div class="section-body">
 
                         <form method="POST" novalidate>
                             <div class="row g-3">
@@ -226,7 +262,9 @@ $urlNueva    = $baseFeatures . '/MisMascotas.php?vista=nueva';
                                     <select class="form-select" id="raza" name="raza">
                                         <option value="">Seleccione una raza</option>
                                         <?php foreach ($razasDisponibles as $r): ?>
-                                            <option value="<?= h($r) ?>" <?= (($_POST['raza'] ?? '') === $r ? 'selected' : '') ?>><?= h($r) ?></option>
+                                            <option value="<?= h($r) ?>" <?= (($_POST['raza'] ?? '') === $r ? 'selected' : '') ?>>
+                                                <?= h($r) ?>
+                                            </option>
                                         <?php endforeach; ?>
                                         <option value="Otra" <?= (($_POST['raza'] ?? '') === 'Otra' ? 'selected' : '') ?>>Otra</option>
                                     </select>
@@ -297,66 +335,76 @@ $urlNueva    = $baseFeatures . '/MisMascotas.php?vista=nueva';
                 <!-- =============================
                         VISTA TARJETAS
                 ============================== -->
-
-                <?php if ($resultCount === 0): ?>
-                    <div class="text-center py-5 text-muted">
-                        <i class="fas fa-dog fa-3x mb-2"></i>
-                        <p class="mb-3">No tenés mascotas registradas.</p>
-                        <a href="<?= $urlNueva ?>" class="btn btn-success"><i class="fas fa-plus me-1"></i> Agregar</a>
+                <div class="section-card">
+                    <div class="section-header">
+                        <i class="fas fa-th-large me-2"></i>Mis Mascotas (vista tarjetas)
                     </div>
-                <?php else: ?>
+                    <div class="section-body">
 
-                    <div class="row g-4">
-                        <?php foreach ($mascotasFiltradas as $m):
-                            $id = (int)$m['mascota_id'];
-                            $nom = h($m['nombre']);
-                            $raz = $m['raza'] ?? null;
-                            $tam = $m['tamano'] ?? null;
-                            $foto = $m['foto_url'] ?? null;
-                            $edadMeses = (int)($m['edad_meses'] ?? 0);
-                        ?>
-                            <div class="col-sm-6 col-lg-4 col-xl-3">
-                                <div class="card shadow-sm h-100">
+                        <?php if ($resultCount === 0): ?>
+                            <div class="text-center py-5 text-muted">
+                                <i class="fas fa-dog fa-3x mb-2"></i>
+                                <p class="mb-3">No tenés mascotas registradas.</p>
+                                <a href="<?= $urlNueva ?>" class="btn btn-success">
+                                    <i class="fas fa-plus me-1"></i> Agregar
+                                </a>
+                            </div>
+                        <?php else: ?>
 
-                                    <?php if ($foto): ?>
-                                        <img src="<?= h($foto) ?>" class="mascota-card-img">
-                                    <?php else: ?>
-                                        <div class="mascota-card-img bg-light d-flex justify-content-center align-items-center">
-                                            <i class="fas fa-dog fa-2x text-secondary"></i>
-                                        </div>
-                                    <?php endif; ?>
+                            <div class="row g-4">
+                                <?php foreach ($mascotasFiltradas as $m):
+                                    $id        = (int)$m['mascota_id'];
+                                    $nom       = h($m['nombre']);
+                                    $raz       = $m['raza'] ?? null;
+                                    $tam       = $m['tamano'] ?? null;
+                                    $foto      = $m['foto_url'] ?? null;
+                                    $edadMeses = (int)($m['edad_meses'] ?? 0);
+                                ?>
+                                    <div class="col-sm-6 col-lg-4 col-xl-3">
+                                        <div class="card shadow-sm h-100">
 
-                                    <div class="card-body">
-                                        <h5 class="card-title mb-1"><?= $nom ?></h5>
-
-                                        <div class="mb-2">
-                                            <?php if ($raz): ?>
-                                                <span class="badge badge-raz me-1"><?= h($raz) ?></span>
+                                            <?php if ($foto): ?>
+                                                <img src="<?= h($foto) ?>" class="mascota-card-img">
+                                            <?php else: ?>
+                                                <div class="mascota-card-img bg-light d-flex justify-content-center align-items-center">
+                                                    <i class="fas fa-dog fa-2x text-secondary"></i>
+                                                </div>
                                             <?php endif; ?>
-                                            <?php if ($tam): ?>
-                                                <span class="badge bg-light text-dark"><?= etiquetaTamano($tam) ?></span>
-                                            <?php endif; ?>
-                                        </div>
 
-                                        <p class="card-text text-muted small mb-3">
-                                            Edad: <?= edadAmigable($edadMeses) ?>
-                                        </p>
+                                            <div class="card-body">
+                                                <h5 class="card-title mb-1"><?= $nom ?></h5>
 
-                                        <div class="d-grid gap-2">
-                                            <a href="<?= $baseFeatures ?>/PerfilMascota.php?id=<?= $id ?>" class="btn btn-success btn-sm">
-                                                <i class="fas fa-id-card me-1"></i> Perfil
-                                            </a>
-                                            <a href="<?= $baseFeatures ?>/EditarMascota.php?id=<?= $id ?>" class="btn btn-outline-secondary btn-sm">
-                                                <i class="fas fa-pen-to-square me-1"></i> Editar
-                                            </a>
+                                                <div class="mb-2">
+                                                    <?php if ($raz): ?>
+                                                        <span class="badge badge-raz me-1"><?= h($raz) ?></span>
+                                                    <?php endif; ?>
+                                                    <?php if ($tam): ?>
+                                                        <span class="badge bg-light text-dark"><?= etiquetaTamano($tam) ?></span>
+                                                    <?php endif; ?>
+                                                </div>
+
+                                                <p class="card-text text-muted small mb-3">
+                                                    Edad: <?= edadAmigable($edadMeses) ?>
+                                                </p>
+
+                                                <div class="d-grid gap-2">
+                                                    <a href="<?= $baseFeatures ?>/PerfilMascota.php?id=<?= $id ?>" class="btn btn-success btn-sm">
+                                                        <i class="fas fa-id-card me-1"></i> Perfil
+                                                    </a>
+                                                    <a href="<?= $baseFeatures ?>/EditarMascota.php?id=<?= $id ?>" class="btn btn-outline-secondary btn-sm">
+                                                        <i class="fas fa-pen-to-square me-1"></i> Editar
+                                                    </a>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
+                                <?php endforeach; ?>
                             </div>
-                        <?php endforeach; ?>
-                    </div>
 
-                <?php endif; ?>
+                        <?php endif; ?>
+
+                    </div>
+                </div>
 
             <?php else: ?>
 
@@ -364,11 +412,11 @@ $urlNueva    = $baseFeatures . '/MisMascotas.php?vista=nueva';
                         VISTA LISTA (TABLA)
                 ============================== -->
 
-                <div class="card shadow-sm mb-3">
-                    <div class="card-header bg-success text-white fw-semibold">
+                <div class="section-card mb-3">
+                    <div class="section-header">
                         <i class="fas fa-filter me-2"></i>Filtros
                     </div>
-                    <div class="card-body">
+                    <div class="section-body">
 
                         <form class="row g-3 align-items-end" method="get">
                             <input type="hidden" name="vista" value="lista">
@@ -409,7 +457,9 @@ $urlNueva    = $baseFeatures . '/MisMascotas.php?vista=nueva';
                             </div>
 
                             <div class="col-12 d-flex gap-2">
-                                <button class="btn btn-success"><i class="fas fa-filter me-1"></i> Filtrar</button>
+                                <button class="btn btn-success">
+                                    <i class="fas fa-filter me-1"></i> Filtrar
+                                </button>
                                 <a href="<?= $urlLista ?>" class="btn btn-outline-secondary">Limpiar</a>
                                 <span class="ms-auto badge bg-success"><?= $resultCount ?> resultado(s)</span>
                             </div>
@@ -418,14 +468,19 @@ $urlNueva    = $baseFeatures . '/MisMascotas.php?vista=nueva';
                     </div>
                 </div>
 
-                <div class="card shadow-sm">
-                    <div class="card-body">
+                <div class="section-card">
+                    <div class="section-header">
+                        <i class="fas fa-list me-2"></i>Listado de Mascotas
+                    </div>
+                    <div class="section-body">
 
                         <?php if ($resultCount === 0): ?>
                             <div class="text-center text-muted py-5">
                                 <i class="fas fa-dog fa-2x mb-2"></i>
                                 <p>No se encontraron mascotas.</p>
-                                <a href="<?= $urlNueva ?>" class="btn btn-success"><i class="fas fa-plus me-1"></i> Agregar Mascota</a>
+                                <a href="<?= $urlNueva ?>" class="btn btn-success">
+                                    <i class="fas fa-plus me-1"></i> Agregar Mascota
+                                </a>
                             </div>
                         <?php else: ?>
 
@@ -442,9 +497,8 @@ $urlNueva    = $baseFeatures . '/MisMascotas.php?vista=nueva';
                                         </tr>
                                     </thead>
                                     <tbody>
-
                                         <?php foreach ($mascotasFiltradas as $m):
-                                            $id = (int)$m['mascota_id'];
+                                            $id   = (int)$m['mascota_id'];
                                             $foto = $m['foto_url'];
                                         ?>
                                             <tr>
@@ -461,17 +515,21 @@ $urlNueva    = $baseFeatures . '/MisMascotas.php?vista=nueva';
                                                 <td><strong><?= h($m['nombre']) ?></strong></td>
                                                 <td><?= h($m['raza'] ?? '-') ?></td>
                                                 <td><?= etiquetaTamano($m['tamano'] ?? null) ?></td>
-
                                                 <td><?= edadAmigable($m['edad_meses'] ?? null) ?></td>
 
                                                 <td class="text-end">
-                                                    <a href="<?= $baseFeatures ?>/PerfilMascota.php?id=<?= $id ?>" class="btn btn-sm btn-outline-success"><i class="fas fa-eye"></i></a>
-                                                    <a href="<?= $baseFeatures ?>/EditarMascota.php?id=<?= $id ?>" class="btn btn-sm btn-outline-primary"><i class="fas fa-edit"></i></a>
-                                                    <a href="<?= $baseFeatures ?>/EliminarMascota.php?id=<?= $id ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Eliminar mascota?')"><i class="fas fa-trash"></i></a>
+                                                    <a href="<?= $baseFeatures ?>/PerfilMascota.php?id=<?= $id ?>" class="btn btn-sm btn-outline-success">
+                                                        <i class="fas fa-eye"></i>
+                                                    </a>
+                                                    <a href="<?= $baseFeatures ?>/EditarMascota.php?id=<?= $id ?>" class="btn btn-sm btn-outline-primary">
+                                                        <i class="fas fa-edit"></i>
+                                                    </a>
+                                                    <a href="<?= $baseFeatures ?>/EliminarMascota.php?id=<?= $id ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Eliminar mascota?')">
+                                                        <i class="fas fa-trash"></i>
+                                                    </a>
                                                 </td>
                                             </tr>
                                         <?php endforeach; ?>
-
                                     </tbody>
                                 </table>
                             </div>
@@ -492,7 +550,14 @@ $urlNueva    = $baseFeatures . '/MisMascotas.php?vista=nueva';
     <!-- Botón volver arriba -->
     <button id="btnTop"><i class="fas fa-arrow-up"></i></button>
 
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Sidebar responsive
+        document.getElementById('toggleSidebar')?.addEventListener('click', () => {
+            document.getElementById('sidebar')?.classList.toggle('sidebar-open');
+        });
+
+        // Raza "Otra"
         const selRaza = document.getElementById('raza');
         const razaOtra = document.getElementById('raza_otra');
         if (selRaza && razaOtra) {
@@ -503,6 +568,7 @@ $urlNueva    = $baseFeatures . '/MisMascotas.php?vista=nueva';
             toggleRazaOtra();
         }
 
+        // Autoset tamaño según peso
         const peso = document.getElementById('peso_kg');
         if (peso) {
             const radios = {
@@ -520,6 +586,7 @@ $urlNueva    = $baseFeatures . '/MisMascotas.php?vista=nueva';
             });
         }
 
+        // Botón volver arriba
         const btnTop = document.getElementById('btnTop');
         window.addEventListener('scroll', () => {
             btnTop.style.display = window.scrollY > 200 ? 'block' : 'none';

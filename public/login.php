@@ -470,7 +470,7 @@ $email = $_POST['email'] ?? ($_COOKIE['remember_email'] ?? '');
                                     autocomplete="current-password"
                                     aria-describedby="togglePassword">
                                 <button
-                                    class="btn btn-outline-light"
+                                    class="btn btn-outline-Black"
                                     type="button"
                                     id="togglePassword"
                                     aria-label="Mostrar/ocultar contraseña">

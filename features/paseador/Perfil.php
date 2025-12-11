@@ -7,6 +7,7 @@ require_once __DIR__ . '/../../src/Controllers/AuthController.php';
 require_once __DIR__ . '/../../src/Controllers/DisponibilidadController.php';
 require_once __DIR__ . '/../../src/Models/Usuario.php';
 require_once __DIR__ . '/../../src/Helpers/Session.php';
+require_once __DIR__ . '/../../src/Services/CalificacionService.php'; // ⭐ reputación
 require_once __DIR__ . '/../../vendor/autoload.php';
 
 use Jaguata\Config\AppConfig;
@@ -14,6 +15,7 @@ use Jaguata\Controllers\AuthController;
 use Jaguata\Controllers\DisponibilidadController;
 use Jaguata\Models\Usuario;
 use Jaguata\Helpers\Session;
+use Jaguata\Services\CalificacionService;
 
 AppConfig::init();
 
@@ -40,7 +42,7 @@ function fechaLatina(?string $ymd): string
 {
     if (!$ymd) return '—';
     $ts = strtotime($ymd);
-    return $ts ? date('d/m/Y', $ts) : htmlspecialchars($ymd);
+    return $ts ? date('d/m/Y', $ts) : htmlspecialchars($ymd, ENT_QUOTES, 'UTF-8');
 }
 function calcularEdad(?string $ymd): ?int
 {
@@ -49,7 +51,7 @@ function calcularEdad(?string $ymd): ?int
         $nac = new DateTime($ymd);
         $hoy = new DateTime('today');
         return $nac->diff($hoy)->y;
-    } catch (\Throwable $e) {
+    } catch (\Throwable) {
         return null;
     }
 }
@@ -80,11 +82,17 @@ if (!empty($usuario['zona'])) {
     }
 }
 
-/* ===== Datos disponibilidad ===== */
+/* ===== Disponibilidad ===== */
 $diasSemana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
 $dispCtrl             = new DisponibilidadController();
 $disponibilidadActual = $dispCtrl->getFormDataByPaseador($usuarioId); // ['Lunes' => ['inicio'=>..]]
+
+/* ⭐ Reputación del paseador (promedio + total) */
+$califService = new CalificacionService();
+$stats        = $califService->getPromedioByUsuario($usuarioId);
+$repPromedio  = isset($stats['promedio']) ? (float)$stats['promedio'] : 0.0;
+$repTotal     = isset($stats['total']) ? (int)$stats['total'] : 0;
 
 ?>
 <!DOCTYPE html>
@@ -95,44 +103,30 @@ $disponibilidadActual = $dispCtrl->getFormDataByPaseador($usuarioId); // ['Lunes
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mi Perfil - Paseador | Jaguata</title>
 
-    <!-- CSS global Jaguata (sidebar + layout) -->
-    <link href="<?= ASSETS_URL; ?>/css/jaguata-theme.css" rel="stylesheet">
-    <!-- Bootstrap y FontAwesome -->
+    <!-- CSS global Jaguata (igual que MiPerfil dueño) -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="<?= BASE_URL; ?>/public/assets/css/jaguata-theme.css" rel="stylesheet">
 
     <style>
-        /* Solo estilos específicos de esta página (no tocamos .sidebar ni main) */
-
-        .page-header-perfil {
-            background: linear_gradient(90deg, var(--verde-claro), var(--verde-jaguata));
-            background: linear-gradient(90deg, var(--verde-claro), var(--verde-jaguata));
-            color: #fff;
-            padding: 1.5rem 2rem;
-            border-radius: 16px;
+        /* 🐾 Foto de perfil igual que en MiPerfil dueño */
+        .perfil-avatar-wrapper {
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            margin-bottom: 2rem;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            justify-content: center;
+            margin-bottom: 0.75rem;
         }
 
-        .page-header-perfil h2 {
-            margin: 0;
-            font-size: 1.6rem;
-            font-weight: 600;
-        }
-
-        .card-perfil {
-            border: none;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-        }
-
-        img.rounded-circle {
+        .perfil-avatar {
+            width: 160px !important;
+            height: 160px !important;
+            max-width: 160px !important;
+            max-height: 160px !important;
+            object-fit: cover;
+            border-radius: 50% !important;
             border: 4px solid var(--verde-jaguata);
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.12);
+            display: block;
         }
 
         .badge-rol {
@@ -143,28 +137,29 @@ $disponibilidadActual = $dispCtrl->getFormDataByPaseador($usuarioId); // ['Lunes
             padding: 0.4em 0.6em;
         }
 
-        /* ===== Disponibilidad ===== */
-        .card-disponibilidad {
-            border: none;
-            border-radius: 18px;
-            background: var(--blanco);
-            box-shadow: 0 8px 25px rgba(0, 0, 0, .05);
-            padding: 1.8rem 1.8rem 2.2rem;
-            margin-top: 1.5rem;
+        .rating-block-paseador {
+            border-top: 1px solid #e6e6e6;
+            margin-top: 1rem;
+            padding-top: 0.75rem;
         }
 
+        .rating-block-paseador .rating-stars i {
+            margin-right: 2px;
+        }
+
+        /* Disponibilidad dentro de section-card */
         .day-row {
             display: grid;
-            grid-template-columns: 130px 100px 1fr;
+            grid-template-columns: 130px 110px 1fr;
             align-items: center;
             border-bottom: 1px solid #eaeaea;
-            padding: 0.8rem 0;
-            gap: 1rem;
+            padding: 0.7rem 0;
+            gap: 0.75rem;
         }
 
         .day-name {
             font-weight: 600;
-            font-size: 1rem;
+            font-size: 0.95rem;
             color: var(--verde-jaguata);
         }
 
@@ -181,8 +176,8 @@ $disponibilidadActual = $dispCtrl->getFormDataByPaseador($usuarioId); // ['Lunes
         .time-group input[type="time"] {
             border-radius: 8px;
             border: 1px solid #d0d0d0;
-            padding: 0.4rem 0.6rem;
-            font-size: 0.9rem;
+            padding: 0.35rem 0.5rem;
+            font-size: 0.85rem;
             width: 115px;
         }
 
@@ -207,20 +202,6 @@ $disponibilidadActual = $dispCtrl->getFormDataByPaseador($usuarioId); // ['Lunes
             color: var(--verde-jaguata);
         }
 
-        .btn-gradient {
-            background: linear-gradient(90deg, var(--verde-jaguata), var(--verde-claro));
-            border: none;
-            color: #fff;
-            font-weight: 500;
-            border-radius: 10px;
-            transition: 0.3s;
-        }
-
-        .btn-gradient:hover {
-            transform: translateY(-1px);
-            opacity: 0.95;
-        }
-
         #alerta {
             position: fixed;
             bottom: 25px;
@@ -235,154 +216,230 @@ $disponibilidadActual = $dispCtrl->getFormDataByPaseador($usuarioId); // ['Lunes
 </head>
 
 <body>
-    <?php include __DIR__ . '/../../src/Templates/Navbar.php'; ?>
+    <!-- Sidebar paseador unificado -->
+    <?php include __DIR__ . '/../../src/Templates/SidebarPaseador.php'; ?>
 
-    <button class="menu-toggle" id="menuToggle">
+    <!-- Botón hamburguesa mobile -->
+    <button class="btn btn-outline-secondary d-md-none ms-2 mt-3" id="toggleSidebar">
         <i class="fas fa-bars"></i>
     </button>
 
-    <div class="layout">
-        <?php include __DIR__ . '/../../src/Templates/SidebarPaseador.php'; ?>
+    <!-- Contenido principal (mismo layout que MiPerfil dueño) -->
+    <main>
+        <div class="py-4">
 
-        <!-- Contenido principal -->
-        <main class="content">
-            <div class="page-header-perfil">
-                <h2><i class="fas fa-user me-2"></i> Mi Perfil - Paseador</h2>
-                <div class="d-flex flex-wrap gap-2">
-                    <a href="Dashboard.php" class="btn btn-outline-light btn-sm">
-                        <i class="fas fa-arrow-left me-1"></i> Volver
-                    </a>
-                    <a href="EditarPerfil.php" class="btn btn-light btn-sm text-success">
-                        <i class="fas fa-edit me-1"></i> Editar
-                    </a>
+            <!-- HEADER estilo dueño -->
+            <div class="header-box header-dashboard mb-4 d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="fw-bold mb-1">
+                        <i class="fas fa-user me-2"></i>Mi Perfil — Paseador
+                    </h1>
+                    <p class="mb-0">
+                        Zonas de trabajo, tu experiencia, disponibilidad y reputación dentro de Jaguata 🐾
+                    </p>
+                </div>
+
+                <div class="text-end">
+                    <?php if ($repPromedio > 0 && $repTotal > 0): ?>
+                        <div class="fs-4 fw-semibold mb-1">
+                            <i class="fas fa-star text-warning me-1"></i>
+                            <?= number_format($repPromedio, 1, ',', '.'); ?>/5
+                        </div>
+                        <small class="text-white-50 d-block mb-2">
+                            <?= $repTotal ?> opinión<?= $repTotal === 1 ? '' : 'es' ?>
+                        </small>
+                    <?php else: ?>
+                        <small class="text-white-50 d-block mb-2">
+                            Aún sin calificaciones.
+                        </small>
+                    <?php endif; ?>
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="Dashboard.php" class="btn btn-outline-light btn-sm">
+                            <i class="fas fa-arrow-left me-1"></i> Volver
+                        </a>
+                        <a href="EditarPerfil.php" class="btn btn-light btn-sm text-success">
+                            <i class="fas fa-edit me-1"></i> Editar
+                        </a>
+                    </div>
                 </div>
             </div>
 
             <div class="row g-3">
-                <!-- Columna izquierda: Info básica -->
+                <!-- Columna izquierda: Info básica + reputación -->
                 <div class="col-lg-4">
-                    <div class="card-perfil card h-100">
-                        <div class="card-body text-center">
-                            <img src="<?= htmlspecialchars($foto) ?>" alt="Foto de perfil"
-                                class="rounded-circle mb-3"
-                                style="width:160px;height:160px;object-fit:cover;">
-                            <h4 class="mb-1"><?= h($usuario['nombre'] ?? null, 'Sin nombre') ?></h4>
-                            <span class="badge badge-rol">Paseador</span>
-
-                            <div class="mt-3 text-start small">
-                                <div class="mb-2">
-                                    <i class="fa-solid fa-envelope me-2"></i>
-                                    <strong>Email:</strong> <?= h($usuario['email']) ?>
-                                </div>
-                                <div class="mb-2">
-                                    <i class="fa-solid fa-phone me-2"></i>
-                                    <strong>Teléfono:</strong> <?= h($usuario['telefono']) ?>
-                                </div>
-                                <div class="mb-2">
-                                    <i class="fa-solid fa-cake-candles me-2"></i>
-                                    <strong>Cumpleaños:</strong>
-                                    <?php if (!empty($usuario['fecha_nacimiento'])): ?>
-                                        <?= fechaLatina($usuario['fecha_nacimiento']) ?>
-                                        <?php if ($edad !== null): ?>
-                                            <span class="text-muted">(<?= $edad ?> años)</span>
-                                        <?php endif; ?>
-                                    <?php else: ?>
-                                        <span class="text-muted">No especificado</span>
-                                    <?php endif; ?>
-                                </div>
+                    <div class="section-card text-center">
+                        <div class="mb-3">
+                            <div class="perfil-avatar-wrapper">
+                                <img
+                                    src="<?= h($foto) ?>"
+                                    alt="Foto de perfil"
+                                    class="perfil-avatar mb-2"
+                                    width="160"
+                                    height="160">
                             </div>
+                            <h4 class="mb-1"><?= h($usuario['nombre'] ?? null, 'Sin nombre') ?></h4>
+                            <span class="badge-rol">Paseador</span>
+                        </div>
+
+                        <div class="perfil-datos text-start small">
+                            <div class="mb-2">
+                                <i class="fa-solid fa-envelope me-2"></i>
+                                <strong>Email:</strong> <?= h($usuario['email']) ?>
+                            </div>
+                            <div class="mb-2">
+                                <i class="fa-solid fa-phone me-2"></i>
+                                <strong>Teléfono:</strong> <?= h($usuario['telefono']) ?>
+                            </div>
+                            <div class="mb-2">
+                                <i class="fa-solid fa-cake-candles me-2"></i>
+                                <strong>Cumpleaños:</strong>
+                                <?php if (!empty($usuario['fecha_nacimiento'])): ?>
+                                    <?= fechaLatina($usuario['fecha_nacimiento']) ?>
+                                    <?php if ($edad !== null): ?>
+                                        <span class="text-muted">(<?= $edad ?> años)</span>
+                                    <?php endif; ?>
+                                <?php else: ?>
+                                    <span class="text-muted">No especificado</span>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+
+                        <!-- ⭐ Reputación como paseador -->
+                        <div class="rating-block-paseador text-start mt-3">
+                            <h6 class="text-muted mb-2">
+                                <i class="fas fa-star me-2 text-warning"></i>Reputación como paseador
+                            </h6>
+
+                            <?php if ($repPromedio > 0 && $repTotal > 0): ?>
+                                <div class="d-flex flex-column align-items-start">
+                                    <div class="fs-5 fw-semibold">
+                                        <?= number_format($repPromedio, 1, ',', '.'); ?>/5
+                                    </div>
+                                    <div class="rating-stars mb-1">
+                                        <?php
+                                        $rounded = (int) round($repPromedio);
+                                        for ($i = 1; $i <= 5; $i++):
+                                            $cls = $i <= $rounded ? 'fas text-warning' : 'far text-muted';
+                                        ?>
+                                            <i class="<?= $cls ?> fa-star"></i>
+                                        <?php endfor; ?>
+                                    </div>
+                                    <small class="text-muted">
+                                        <?= $repTotal ?> opinión<?= $repTotal === 1 ? '' : 'es' ?> de dueños
+                                    </small>
+                                </div>
+                            <?php else: ?>
+                                <div class="text-muted small">
+                                    <i class="far fa-star me-1"></i>
+                                    Aún no tenés calificaciones como paseador.
+                                </div>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
 
                 <!-- Columna derecha: zonas + experiencia + disponibilidad -->
                 <div class="col-lg-8">
-                    <div class="card-perfil card mb-3">
-                        <div class="card-header bg-success text-white">
-                            <i class="fa-solid fa-map-location-dot me-2"></i> Zonas de trabajo
-                        </div>
-                        <div class="card-body">
-                            <?php if (empty($zonas)): ?>
-                                <span class="text-muted">Sin zonas registradas.</span>
-                            <?php else: ?>
-                                <div class="d-flex flex-wrap gap-2">
-                                    <?php foreach ($zonas as $z): ?>
-                                        <span class="badge bg-success-subtle text-success-emphasis">
-                                            <?= htmlspecialchars($z) ?>
-                                        </span>
-                                    <?php endforeach; ?>
+                    <div class="row g-3">
+                        <!-- Zonas de trabajo -->
+                        <div class="col-12">
+                            <div class="section-card">
+                                <div class="section-header">
+                                    <i class="fa-solid fa-map-location-dot me-2"></i> Zonas de trabajo
                                 </div>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-
-                    <div class="card-perfil card mb-3">
-                        <div class="card-header bg-primary text-white">
-                            <i class="fa-solid fa-briefcase me-2"></i> Experiencia
-                        </div>
-                        <div class="card-body">
-                            <?php if (!empty($usuario['experiencia'])): ?>
-                                <div class="text-muted" style="white-space: pre-wrap;">
-                                    <?= htmlspecialchars($usuario['experiencia']) ?>
+                                <div class="section-body">
+                                    <?php if (empty($zonas)): ?>
+                                        <span class="text-muted">Sin zonas registradas.</span>
+                                    <?php else: ?>
+                                        <div class="d-flex flex-wrap gap-2">
+                                            <?php foreach ($zonas as $z): ?>
+                                                <span class="badge bg-success-subtle text-success-emphasis">
+                                                    <?= htmlspecialchars($z, ENT_QUOTES, 'UTF-8') ?>
+                                                </span>
+                                            <?php endforeach; ?>
+                                        </div>
+                                    <?php endif; ?>
                                 </div>
-                            <?php else: ?>
-                                <span class="text-muted">No especificada.</span>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-
-                    <!-- ===== Disponibilidad semanal dentro del mismo Perfil ===== -->
-                    <div class="card-disponibilidad">
-                        <h5 class="mb-3">
-                            <i class="fas fa-calendar-check me-2"></i> Disponibilidad semanal
-                        </h5>
-                        <p class="text-muted mb-3">
-                            Activá los días que estás disponible y definí tus horarios.
-                            <br><small class="text-secondary">Podés copiar tus horarios de un día a otro fácilmente.</small>
-                        </p>
-
-                        <form id="formDisponibilidad">
-                            <?php foreach ($diasSemana as $dia):
-                                $dispo   = $disponibilidadActual[$dia] ?? null;
-                                $activo  = $dispo['activo'] ?? false;
-                                $checked = $activo ? 'checked' : '';
-                                $inicio  = $dispo['inicio'] ?? '';
-                                $fin     = $dispo['fin'] ?? '';
-                            ?>
-                                <div class="day-row">
-                                    <div class="day-name"><?= $dia ?></div>
-                                    <div class="form-switch">
-                                        <input type="checkbox"
-                                            class="form-check-input toggle-dia"
-                                            data-dia="<?= $dia ?>"
-                                            <?= $checked ?>>
-                                    </div>
-                                    <div class="time-group <?= $checked ? '' : 'disabled' ?>">
-                                        <input type="time" class="hora-inicio" value="<?= $inicio ?>">
-                                        <span>–</span>
-                                        <input type="time" class="hora-fin" value="<?= $fin ?>">
-                                        <button type="button" class="copy-btn" title="Copiar horario a todos">
-                                            <i class="fas fa-copy"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                            <?php endforeach; ?>
-
-                            <div class="text-end mt-4">
-                                <button type="submit" class="btn btn-gradient px-4 py-2">
-                                    <i class="fas fa-save me-2"></i> Guardar cambios
-                                </button>
                             </div>
-                        </form>
+                        </div>
+
+                        <!-- Experiencia -->
+                        <div class="col-12">
+                            <div class="section-card">
+                                <div class="section-header">
+                                    <i class="fa-solid fa-briefcase me-2"></i> Experiencia
+                                </div>
+                                <div class="section-body">
+                                    <?php if (!empty($usuario['experiencia'])): ?>
+                                        <div class="text-muted" style="white-space: pre-wrap;">
+                                            <?= htmlspecialchars($usuario['experiencia'], ENT_QUOTES, 'UTF-8') ?>
+                                        </div>
+                                    <?php else: ?>
+                                        <span class="text-muted">No especificada.</span>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Disponibilidad semanal -->
+                        <div class="col-12">
+                            <div class="section-card">
+                                <div class="section-header">
+                                    <i class="fas fa-calendar-check me-2"></i> Disponibilidad semanal
+                                </div>
+                                <div class="section-body">
+                                    <p class="text-muted mb-3">
+                                        Activá los días que estás disponible y definí tus horarios.
+                                        <br><small class="text-secondary">Podés copiar tus horarios de un día a otro fácilmente.</small>
+                                    </p>
+
+                                    <form id="formDisponibilidad">
+                                        <?php foreach ($diasSemana as $dia):
+                                            $dispo   = $disponibilidadActual[$dia] ?? null;
+                                            $activo  = $dispo['activo'] ?? false;
+                                            $checked = $activo ? 'checked' : '';
+                                            $inicio  = $dispo['inicio'] ?? '';
+                                            $fin     = $dispo['fin'] ?? '';
+                                        ?>
+                                            <div class="day-row">
+                                                <div class="day-name"><?= $dia ?></div>
+                                                <div class="form-switch">
+                                                    <input type="checkbox"
+                                                        class="form-check-input toggle-dia"
+                                                        data-dia="<?= $dia ?>"
+                                                        <?= $checked ?>>
+                                                </div>
+                                                <div class="time-group <?= $checked ? '' : 'disabled' ?>">
+                                                    <input type="time" class="hora-inicio" value="<?= $inicio ?>">
+                                                    <span>–</span>
+                                                    <input type="time" class="hora-fin" value="<?= $fin ?>">
+                                                    <button type="button" class="copy-btn" title="Copiar horario a todos">
+                                                        <i class="fas fa-copy"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        <?php endforeach; ?>
+
+                                        <div class="text-end mt-3">
+                                            <button type="submit" class="btn btn-gradient px-4 py-2">
+                                                <i class="fas fa-save me-2"></i> Guardar cambios
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
             </div>
 
-            <footer class="mt-4">
-                © <?= date('Y') ?> Jaguata — Todos los derechos reservados.
+            <footer class="mt-4 text-center text-muted small">
+                © <?= date('Y') ?> Jaguata — Panel del Paseador
             </footer>
-        </main>
-    </div>
+        </div>
+    </main>
 
     <!-- Alertita flotante -->
     <div id="alerta" class="alert" role="alert"></div>
@@ -390,22 +447,15 @@ $disponibilidadActual = $dispCtrl->getFormDataByPaseador($usuarioId); // ['Lunes
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         // Toggle sidebar en mobile
-        const toggle = document.getElementById('menuToggle');
-        const sidebar = document.getElementById('sidebar'); // id en SidebarPaseador.php
+        document.getElementById('toggleSidebar')?.addEventListener('click', function() {
+            document.getElementById('sidebar')?.classList.toggle('sidebar-open');
+        });
 
-        if (toggle && sidebar) {
-            toggle.addEventListener('click', () => {
-                sidebar.classList.toggle('show');
-            });
-        }
-
-        /* ===== Lógica de Disponibilidad ===== */
         const alerta = document.getElementById('alerta');
         const form = document.getElementById('formDisponibilidad');
-
-        // 👇 ID del paseador inyectado desde PHP
         const PASEADOR_ID = <?= (int)$usuarioId ?>;
 
+        // Habilitar / deshabilitar filas según checkbox
         document.querySelectorAll('.toggle-dia').forEach(toggle => {
             toggle.addEventListener('change', e => {
                 const grupo = e.target.closest('.day-row').querySelector('.time-group');
@@ -413,6 +463,7 @@ $disponibilidadActual = $dispCtrl->getFormDataByPaseador($usuarioId); // ['Lunes
             });
         });
 
+        // Copiar horario de una fila a todos los días activos
         document.querySelectorAll('.copy-btn').forEach(btn => {
             btn.addEventListener('click', e => {
                 const row = e.target.closest('.day-row');
@@ -434,6 +485,7 @@ $disponibilidadActual = $dispCtrl->getFormDataByPaseador($usuarioId); // ['Lunes
             });
         });
 
+        // Guardar disponibilidad vía API
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
 
@@ -455,8 +507,6 @@ $disponibilidadActual = $dispCtrl->getFormDataByPaseador($usuarioId); // ['Lunes
                 }
             });
 
-            console.log('Enviando disponibilidad:', disponibilidad);
-
             try {
                 const resp = await fetch('<?= BASE_URL ?>/public/api/paseador/guardarDisponibilidad.php', {
                     method: 'POST',
@@ -470,9 +520,6 @@ $disponibilidadActual = $dispCtrl->getFormDataByPaseador($usuarioId); // ['Lunes
                 });
 
                 const raw = await resp.text();
-                console.log('Status:', resp.status);
-                console.log('Respuesta cruda:', raw);
-
                 let data;
                 try {
                     data = JSON.parse(raw);
@@ -497,7 +544,6 @@ $disponibilidadActual = $dispCtrl->getFormDataByPaseador($usuarioId); // ['Lunes
             }
         });
     </script>
-
 </body>
 
 </html>

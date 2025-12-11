@@ -20,15 +20,13 @@ $authController->checkRole('paseador');
 
 /* 📌 Datos del usuario logueado */
 $usuarioModel = new Usuario();
-// 👇 usar helper correcto de Session
-$usuarioId = Session::getUsuarioId();
+$usuarioId    = Session::getUsuarioId();
 
 if (!$usuarioId) {
     echo "Error: Sesión inválida.";
     exit;
 }
 
-// 👇 el modelo Usuario NO tiene getById, pero sí find() (de BaseModel)
 $usuario = $usuarioModel->find((int)$usuarioId);
 
 if (!$usuario) {
@@ -142,16 +140,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $data['foto_perfil'] = $rutaFotoNueva;
             }
 
-            // 👇 BaseModel sí tiene update($id, $data)
             if ($usuarioModel->update((int)$usuarioId, $data)) {
                 $mensaje = "Perfil actualizado correctamente.";
+
                 // refrescar datos
-                $usuario = $usuarioModel->find((int)$usuarioId);
-                $depActual      = $usuario['departamento']      ?? '';
-                $fotoActual     = $usuario['foto_perfil']       ?? ($usuario['perfil_foto'] ?? '');
-                $fechaNacActual = $usuario['fecha_nacimiento']  ?? '';
-                $z = $usuario['zona'] ?? '[]';
-                $decoded = json_decode($z, true);
+                $usuario       = $usuarioModel->find((int)$usuarioId);
+                $depActual     = $usuario['departamento']     ?? '';
+                $fotoActual    = $usuario['foto_perfil']      ?? ($usuario['perfil_foto'] ?? '');
+                $fechaNacActual = $usuario['fecha_nacimiento'] ?? '';
+                $z             = $usuario['zona'] ?? '[]';
+                $decoded       = json_decode($z, true);
                 $zonasActuales = json_last_error() === JSON_ERROR_NONE ? $decoded : explode(',', $z);
                 $zonasActuales = array_values(array_filter(array_map('trim', $zonasActuales)));
             } else {
@@ -160,6 +158,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
+
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -169,131 +168,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Editar Perfil - Paseador | Jaguata</title>
 
-    <!-- 🎨 CSS global (incluye estilos de sidebar y layout) -->
+    <!-- 🎨 CSS global Jaguata -->
     <link href="<?= ASSETS_URL; ?>/css/jaguata-theme.css" rel="stylesheet">
     <!-- Bootstrap + Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <style>
-        :root {
-            --verde-jaguata: #3c6255;
-            --verde-claro: #20c997;
-            --gris-fondo: #f4f6f9;
-            --gris-texto: #555;
-            --blanco: #fff;
-        }
+        /* Solo pequeños ajustes encima del tema global */
 
-        html,
-        body {
-            margin: 0;
-            background-color: var(--gris-fondo);
-            font-family: "Poppins", sans-serif;
-            color: var(--gris-texto);
-        }
-
-        .layout {
-            display: flex;
-            min-height: 100vh;
-            width: 100%;
-        }
-
-        /* ⚠️ NO tocamos .sidebar aquí, lo maneja jaguata-theme + SidebarPaseador */
-
-        main.content {
-            flex-grow: 1;
-            padding: 2.5rem;
-            background-color: var(--gris-fondo);
-            margin-left: 250px;
-            /* coincide con ancho del sidebar */
-        }
-
-        @media (max-width: 768px) {
-            main.content {
-                margin-left: 0;
-                padding: 1.5rem;
-            }
-
-            .menu-toggle {
-                display: block;
-            }
-        }
-
-        .menu-toggle {
-            display: none;
-            position: fixed;
-            top: 16px;
-            left: 16px;
-            background-color: #1e1e2f;
-            color: #fff;
-            border: none;
-            padding: 8px 10px;
-            border-radius: 6px;
-            z-index: 1100;
-        }
-
-        .page-header {
-            background: linear-gradient(90deg, var(--verde-claro), var(--verde-jaguata));
-            color: #fff;
-            padding: 1.5rem 2rem;
-            border-radius: 16px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 2rem;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-        }
-
-        .page-header h2 {
-            margin: 0;
-            font-size: 1.6rem;
-            font-weight: 600;
-        }
-
-        .card {
-            border: none;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, .08);
-        }
-
-        footer {
-            background-color: var(--verde-jaguata);
-            color: #fff;
-            text-align: center;
-            padding: 1.2rem 0;
-            width: 100%;
-            margin-top: 3rem;
-        }
-
-        img.rounded-circle {
-            border: 4px solid #3c6255;
-        }
-
-        .btn-success {
-            background: linear-gradient(90deg, #3c6255, #20c997);
-            border: none;
+        .perfil-avatar {
+            width: 140px;
+            height: 140px;
+            object-fit: cover;
+            border-radius: 50%;
+            border: 4px solid var(--verde-jaguata);
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.12);
         }
     </style>
 </head>
 
 <body>
-    <?php include __DIR__ . '/../../src/Templates/Navbar.php'; ?>
 
-    <button class="menu-toggle" id="menuToggle">
+    <!-- Sidebar paseador -->
+    <?php include __DIR__ . '/../../src/Templates/SidebarPaseador.php'; ?>
+
+    <!-- Botón hamburguesa mobile -->
+    <button class="btn btn-outline-secondary d-md-none ms-2 mt-3" id="toggleSidebar">
         <i class="fas fa-bars"></i>
     </button>
 
-    <div class="layout">
-        <?php include __DIR__ . '/../../src/Templates/SidebarPaseador.php'; ?>
+    <!-- CONTENIDO PRINCIPAL (mismo estilo que MiPerfil dueño/paseador) -->
+    <main>
+        <div class="py-4">
 
-        <!-- CONTENIDO -->
-        <main class="content">
-            <div class="page-header">
-                <h2><i class="fas fa-edit me-2"></i> Editar Perfil - Paseador</h2>
-                <div class="d-flex gap-2">
+            <!-- HEADER -->
+            <div class="header-box header-dashboard mb-4 d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="fw-bold mb-1">
+                        <i class="fas fa-edit me-2"></i>Editar Perfil — Paseador
+                    </h1>
+                    <p class="mb-0">
+                        Actualizá tus datos, foto, zonas de trabajo y experiencia en Jaguata 🐾
+                    </p>
+                </div>
+                <div class="d-flex flex-wrap gap-2">
                     <a href="Perfil.php" class="btn btn-outline-light btn-sm">
-                        <i class="fas fa-arrow-left me-1"></i> Volver
+                        <i class="fas fa-user me-1"></i> Mi perfil
                     </a>
                     <a href="Dashboard.php" class="btn btn-light btn-sm text-success">
                         <i class="fas fa-home me-1"></i> Panel
@@ -301,6 +222,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
             </div>
 
+            <!-- ALERTAS -->
             <?php if ($mensaje): ?>
                 <div class="alert alert-success"><?= htmlspecialchars($mensaje) ?></div>
             <?php endif; ?>
@@ -308,12 +230,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="alert alert-danger"><?= htmlspecialchars($error) ?></div>
             <?php endif; ?>
 
+            <!-- FORMULARIO -->
             <form method="POST" enctype="multipart/form-data">
-                <div class="row">
-                    <!-- Columna izquierda -->
-                    <div class="col-lg-4 mb-3">
-                        <div class="card h-100">
-                            <div class="card-body text-center">
+                <div class="row g-3">
+                    <!-- Columna izquierda: foto + básicos -->
+                    <div class="col-lg-4">
+                        <div class="section-card text-center h-100">
+                            <div class="section-body">
                                 <?php
                                 $src = $fotoActual
                                     ? (preg_match('#^https?://#i', (string)$fotoActual)
@@ -322,24 +245,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     : (ASSETS_URL . '/images/user-placeholder.png');
                                 ?>
                                 <img id="previewFoto" src="<?= htmlspecialchars($src) ?>"
-                                    class="rounded-circle mb-3"
-                                    style="width:140px;height:140px;object-fit:cover;">
+                                    class="perfil-avatar mb-3" alt="Foto de perfil">
+
                                 <div class="mb-3 text-start">
                                     <label for="foto_perfil" class="form-label">Foto de perfil</label>
                                     <input class="form-control" type="file" id="foto_perfil" name="foto_perfil"
                                         accept="image/jpeg,image/png,image/webp">
                                 </div>
+
                                 <div class="mb-3 text-start">
                                     <label for="nombre" class="form-label">Nombre completo</label>
                                     <input type="text" class="form-control" name="nombre"
                                         value="<?= htmlspecialchars($usuario['nombre']) ?>" required>
                                 </div>
+
                                 <div class="mb-3 text-start">
                                     <label for="email" class="form-label">Correo electrónico</label>
                                     <input type="email" class="form-control" name="email"
                                         value="<?= htmlspecialchars($usuario['email']) ?>" required>
                                 </div>
-                                <div class="mb-3 text-start">
+
+                                <div class="mb-0 text-start">
                                     <label for="fecha_nacimiento" class="form-label">Fecha de nacimiento</label>
                                     <input type="date" class="form-control" name="fecha_nacimiento"
                                         value="<?= htmlspecialchars($fechaNacActual) ?>"
@@ -349,79 +275,103 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
                     </div>
 
-                    <!-- Columna derecha -->
+                    <!-- Columna derecha: contacto + dirección + zonas + experiencia -->
                     <div class="col-lg-8">
-                        <div class="card mb-3">
-                            <div class="card-header">
-                                <i class="fa-solid fa-map-location-dot me-2"></i> Dirección y zonas
-                            </div>
-                            <div class="card-body">
-                                <div class="row">
-                                    <div class="col-md-6 mb-3">
-                                        <label for="telefono" class="form-label">Teléfono</label>
-                                        <input type="text" class="form-control" name="telefono"
-                                            value="<?= htmlspecialchars($usuario['telefono'] ?? '') ?>">
+                        <div class="row g-3">
+                            <!-- Datos de contacto / dirección -->
+                            <div class="col-12">
+                                <div class="section-card">
+                                    <div class="section-header">
+                                        <i class="fa-solid fa-map-location-dot me-2"></i> Dirección y contacto
                                     </div>
-                                    <div class="col-md-6 mb-3">
-                                        <label for="departamento" class="form-label">Departamento</label>
-                                        <select class="form-select" name="departamento" required>
-                                            <option value="">Seleccione…</option>
-                                            <?php foreach ($DEPARTAMENTOS as $dep): ?>
-                                                <option value="<?= htmlspecialchars($dep) ?>"
-                                                    <?= $depActual === $dep ? 'selected' : '' ?>>
-                                                    <?= htmlspecialchars($dep) ?>
-                                                </option>
-                                            <?php endforeach; ?>
-                                        </select>
-                                    </div>
-                                    <div class="col-12 mb-3">
-                                        <label for="direccion" class="form-label">Referencia / Complemento</label>
-                                        <input type="text" class="form-control" name="direccion"
-                                            value="<?= htmlspecialchars($usuario['direccion'] ?? '') ?>">
-                                    </div>
-                                    <div class="col-12 mb-3">
-                                        <label for="experiencia" class="form-label">Experiencia</label>
-                                        <textarea class="form-control" name="experiencia" rows="3"><?= htmlspecialchars($usuario['experiencia'] ?? '') ?></textarea>
+                                    <div class="section-body">
+                                        <div class="row g-3">
+                                            <div class="col-md-6">
+                                                <label for="telefono" class="form-label">Teléfono</label>
+                                                <input type="text" class="form-control" name="telefono"
+                                                    value="<?= htmlspecialchars($usuario['telefono'] ?? '') ?>">
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label for="departamento" class="form-label">Departamento</label>
+                                                <select class="form-select" name="departamento" required>
+                                                    <option value="">Seleccione…</option>
+                                                    <?php foreach ($DEPARTAMENTOS as $dep): ?>
+                                                        <option value="<?= htmlspecialchars($dep) ?>"
+                                                            <?= $depActual === $dep ? 'selected' : '' ?>>
+                                                            <?= htmlspecialchars($dep) ?>
+                                                        </option>
+                                                    <?php endforeach; ?>
+                                                </select>
+                                            </div>
+                                            <div class="col-12">
+                                                <label for="direccion" class="form-label">Referencia / Complemento</label>
+                                                <input type="text" class="form-control" name="direccion"
+                                                    value="<?= htmlspecialchars($usuario['direccion'] ?? '') ?>">
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
+                            </div>
 
-                                <div class="mt-3">
-                                    <label class="form-label">
-                                        <i class="fa-solid fa-map me-2"></i>Zonas de trabajo
-                                    </label>
-                                    <input type="text" class="form-control mb-2" id="nuevaZona"
-                                        placeholder="Ejemplo: Central - San Lorenzo">
-                                    <button type="button" class="btn btn-outline-primary btn-sm" id="btnAgregarZona">
-                                        <i class="fa-solid fa-plus me-1"></i> Agregar Zona
-                                    </button>
-                                    <div id="zonasSeleccionadas" class="mt-3"></div>
-                                    <input type="hidden" name="zona_json" id="zona_json"
-                                        value="<?= htmlspecialchars(json_encode($zonasActuales, JSON_UNESCAPED_UNICODE)) ?>">
+                            <!-- Experiencia -->
+                            <div class="col-12">
+                                <div class="section-card">
+                                    <div class="section-header">
+                                        <i class="fa-solid fa-briefcase me-2"></i> Experiencia
+                                    </div>
+                                    <div class="section-body">
+                                        <textarea class="form-control" name="experiencia" rows="3"
+                                            placeholder="Contanos tu experiencia paseando perros..."><?= htmlspecialchars($usuario['experiencia'] ?? '') ?></textarea>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Zonas de trabajo -->
+                            <div class="col-12">
+                                <div class="section-card">
+                                    <div class="section-header">
+                                        <i class="fa-solid fa-map me-2"></i> Zonas de trabajo
+                                    </div>
+                                    <div class="section-body">
+                                        <div class="mb-2">
+                                            <input type="text" class="form-control mb-2" id="nuevaZona"
+                                                placeholder="Ejemplo: Central - San Lorenzo">
+                                            <button type="button" class="btn btn-outline-success btn-sm" id="btnAgregarZona">
+                                                <i class="fa-solid fa-plus me-1"></i> Agregar zona
+                                            </button>
+                                        </div>
+
+                                        <div id="zonasSeleccionadas" class="mt-2"></div>
+
+                                        <input type="hidden" name="zona_json" id="zona_json"
+                                            value="<?= htmlspecialchars(json_encode($zonasActuales, JSON_UNESCAPED_UNICODE)) ?>">
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <button type="submit" class="btn btn-success">
-                    <i class="fas fa-save me-2"></i> Guardar Cambios
-                </button>
+                <!-- BOTÓN GUARDAR -->
+                <div class="mt-3">
+                    <button type="submit" class="btn btn-gradient px-4">
+                        <i class="fas fa-save me-2"></i> Guardar cambios
+                    </button>
+                </div>
             </form>
-        </main>
-    </div>
 
-    <footer>© <?= date('Y') ?> Jaguata — Todos los derechos reservados.</footer>
+            <footer class="mt-4 text-center text-muted small">
+                © <?= date('Y') ?> Jaguata — Panel del Paseador
+            </footer>
+        </div>
+    </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         // Toggle sidebar en mobile
-        const toggle = document.getElementById('menuToggle');
-        const sidebar = document.getElementById('sidebar'); // id en SidebarPaseador.php
-        if (toggle && sidebar) {
-            toggle.addEventListener('click', () => {
-                sidebar.classList.toggle('show');
-            });
-        }
+        document.getElementById('toggleSidebar')?.addEventListener('click', function() {
+            document.getElementById('sidebar')?.classList.toggle('sidebar-open');
+        });
 
         // Previsualización de imagen
         const inputFoto = document.getElementById('foto_perfil');
@@ -456,6 +406,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 const span = document.createElement('span');
                 span.className = 'badge bg-success-subtle text-success-emphasis me-2 mb-2';
                 span.textContent = z;
+
                 const btn = document.createElement('button');
                 btn.type = 'button';
                 btn.className = 'btn btn-sm btn-light ms-1';
@@ -465,6 +416,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     inputZonas.value = JSON.stringify(zonas);
                     renderZonas();
                 };
+
                 const wrapper = document.createElement('span');
                 wrapper.className = 'd-inline-flex align-items-center';
                 wrapper.appendChild(span);
@@ -481,7 +433,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 } catch {
                     zonas = [];
                 }
-                const z = nuevaZona.value.trim();
+                const z = (nuevaZona.value || '').trim();
                 if (!z) {
                     alert('Ingrese una zona.');
                     return;

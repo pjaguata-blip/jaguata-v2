@@ -61,7 +61,7 @@ function badgeEstadoHtml(string $estado): string
 }
 
 // ====== Controladores / datos base ======
-$rolMenu = Session::getUsuarioRol() ?: 'dueno';
+$rolMenu      = Session::getUsuarioRol() ?: 'dueno';
 $baseFeatures = BASE_URL . "/features/{$rolMenu}";
 
 $id = (int)($_GET['id'] ?? 0);
@@ -79,7 +79,6 @@ if (isset($mascota['error'])) {
     header("Location: MisMascotas.php");
     exit;
 }
-
 
 /* Datos mascota */
 $nombre        = h($mascota['nombre'] ?? 'Mascota');
@@ -125,12 +124,79 @@ $usuarioNombre = htmlspecialchars(Session::getUsuarioNombre() ?? 'Dueño/a', ENT
     <link href="<?= BASE_URL; ?>/public/assets/css/jaguata-theme.css" rel="stylesheet">
 
     <style>
+        html,
+        body {
+            height: 100%;
+        }
+
+        body {
+            background: var(--gris-fondo, #f4f6f9);
+        }
+
+        main.main-content {
+            margin-left: 260px;
+            min-height: 100vh;
+            padding: 24px;
+        }
+
+        @media (max-width: 768px) {
+            main.main-content {
+                margin-left: 0;
+                padding: 16px;
+            }
+        }
+
         .perfil-mascota-foto {
             width: 150px;
             height: 150px;
             object-fit: cover;
             border-radius: 14px;
             border: 3px solid rgba(32, 201, 151, 0.25);
+        }
+
+        /* Tarjetas tipo dashboard para métricas */
+        .dash-card {
+            background: #ffffff;
+            border-radius: 18px;
+            padding: 16px 18px;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.06);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            height: 100%;
+        }
+
+        .dash-card-icon {
+            font-size: 1.6rem;
+            margin-bottom: 4px;
+        }
+
+        .dash-card-value {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #222;
+        }
+
+        .dash-card-label {
+            font-size: 0.85rem;
+            color: #555;
+        }
+
+        .icon-green {
+            color: var(--verde-jaguata, #3c6255);
+        }
+
+        .icon-blue {
+            color: #0d6efd;
+        }
+
+        .icon-yellow {
+            color: #ffc107;
+        }
+
+        .icon-red {
+            color: #dc3545;
         }
     </style>
 </head>
@@ -140,12 +206,17 @@ $usuarioNombre = htmlspecialchars(Session::getUsuarioNombre() ?? 'Dueño/a', ENT
     <!-- Sidebar unificada del dueño -->
     <?php include __DIR__ . '/../../src/Templates/SidebarDueno.php'; ?>
 
+    <!-- Botón hamburguesa para mobile -->
+    <button class="btn btn-outline-secondary d-md-none ms-2 mt-3" id="toggleSidebar">
+        <i class="fas fa-bars"></i>
+    </button>
+
     <!-- Contenido -->
-    <main class="bg-light">
-        <div class="container-fluid py-4">
+    <main class="main-content">
+        <div class="container-fluid py-2">
 
             <!-- Header -->
-            <div class="header-box header-mascotas mb-4">
+            <div class="header-box header-mascotas mb-4 d-flex justify-content-between align-items-center">
                 <div>
                     <h1 class="fw-bold mb-1">
                         <i class="fas fa-id-card me-2"></i>Perfil de <?= $nombre; ?>
@@ -164,7 +235,7 @@ $usuarioNombre = htmlspecialchars(Session::getUsuarioNombre() ?? 'Dueño/a', ENT
                 </div>
             </div>
 
-            <!-- Mensajes flash (si los usás desde el controller) -->
+            <!-- Mensajes flash -->
             <?php if (!empty($_SESSION['success'])): ?>
                 <div class="alert alert-success alert-dismissible fade show shadow-sm">
                     <i class="fas fa-check-circle me-2"></i><?= h($_SESSION['success']); ?>
@@ -232,32 +303,36 @@ $usuarioNombre = htmlspecialchars(Session::getUsuarioNombre() ?? 'Dueño/a', ENT
 
                 <!-- Columna derecha: estadísticas y paseos -->
                 <div class="col-lg-8">
-                    <!-- Métricas -->
+                    <!-- Métricas tipo dashboard -->
                     <div class="row g-3 mb-3">
                         <div class="col-md-3">
-                            <div class="section-card text-center py-3">
-                                <div class="text-muted small">Paseos</div>
-                                <div class="fs-3 fw-bold"><?= $totalPaseos; ?></div>
+                            <div class="dash-card">
+                                <i class="fas fa-walking dash-card-icon icon-green"></i>
+                                <div class="dash-card-value"><?= $totalPaseos; ?></div>
+                                <div class="dash-card-label">Paseos totales</div>
                             </div>
                         </div>
                         <div class="col-md-3">
-                            <div class="section-card text-center py-3">
-                                <div class="text-muted small">Completados</div>
-                                <div class="fs-3 fw-bold"><?= $totalCompleto; ?></div>
+                            <div class="dash-card">
+                                <i class="fas fa-check-circle dash-card-icon icon-blue"></i>
+                                <div class="dash-card-value"><?= $totalCompleto; ?></div>
+                                <div class="dash-card-label">Completados</div>
                             </div>
                         </div>
                         <div class="col-md-3">
-                            <div class="section-card text-center py-3">
-                                <div class="text-muted small">Pendientes</div>
-                                <div class="fs-3 fw-bold"><?= $totalPendiente; ?></div>
+                            <div class="dash-card">
+                                <i class="fas fa-hourglass-half dash-card-icon icon-yellow"></i>
+                                <div class="dash-card-value"><?= $totalPendiente; ?></div>
+                                <div class="dash-card-label">Pendientes / confirmados</div>
                             </div>
                         </div>
                         <div class="col-md-3">
-                            <div class="section-card text-center py-3">
-                                <div class="text-muted small">Gasto total</div>
-                                <div class="fs-5 fw-bold text-success">
+                            <div class="dash-card">
+                                <i class="fas fa-wallet dash-card-icon icon-red"></i>
+                                <div class="dash-card-value">
                                     ₲<?= number_format($gastoTotal, 0, ',', '.'); ?>
                                 </div>
+                                <div class="dash-card-label">Gasto total</div>
                             </div>
                         </div>
                     </div>
@@ -323,6 +398,12 @@ $usuarioNombre = htmlspecialchars(Session::getUsuarioNombre() ?? 'Dueño/a', ENT
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Toggle sidebar en mobile (usa .sidebar-open del CSS)
+        document.getElementById('toggleSidebar')?.addEventListener('click', function() {
+            document.getElementById('sidebar')?.classList.toggle('sidebar-open');
+        });
+    </script>
 </body>
 
 </html>

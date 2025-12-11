@@ -1061,3 +1061,99 @@ main {
     }
 }
 
+/* === TARJETAS ESTILO DASHBOARD === */
+
+.stat-box {
+    background: #fff;
+    border-radius: 14px;
+    padding: 25px;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    transition: .2s ease-in-out;
+    height: 100%;
+}
+
+.stat-box:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+}
+
+.stat-box i {
+    font-size: 36px;
+    margin-bottom: 8px;
+}
+
+.stat-value {
+    font-size: 28px;
+    font-weight: bold;
+    margin: 6px 0;
+    color: #333;
+}
+
+.stat-label {
+    font-size: 15px;
+    color: #555;
+}
+
+/* COLORES DE ICONOS (exactos al dashboard) */
+.stat-blue { color: #0066ff; }
+.stat-green { color: #0da176; }
+.stat-yellow { color: #f0b400; }
+.stat-red { color: #d72638; }
+.reward-card {
+    background: linear-gradient(135deg, rgba(32, 201, 151, 0.06), rgba(60, 98, 85, 0.06));
+    border-radius: 16px;
+    border: 1px solid rgba(60, 98, 85, 0.08);
+}
+
+.reward-circle {
+    width: 130px;
+    height: 130px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 20%, #ffffff, #e8f5f1);
+    border: 3px solid var(--verde-claro);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+}
+
+.reward-points {
+    font-size: 1.9rem;
+    font-weight: 700;
+    color: var(--verde-jaguata);
+    line-height: 1;
+}
+
+.reward-label {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #6c757d;
+}
+
+.reward-progress {
+    height: 10px;
+    border-radius: 999px;
+    overflow: hidden;
+    background-color: #e9f3ef;
+}
+
+.reward-progress .progress-bar {
+    background: linear-gradient(90deg, var(--verde-claro), var(--verde-jaguata));
+}
+
+.reward-highlight {
+    border-radius: 999px;
+    background-color: #e8f7ee;
+    border: 1px solid rgba(25, 135, 84, 0.35);
+}
+.col-id {
+    font-weight: 700 !important;
+    text-align: center !important;
+    white-space: nowrap;
+}
+.col-id strong {
+    font-weight: 700;
+}

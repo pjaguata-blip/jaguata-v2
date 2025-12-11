@@ -84,10 +84,80 @@ function h(?string $v): string
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Dashboard Dueño - Jaguata</title>
 
-    <!-- CSS global (igual que Admin) -->
+    <!-- CSS global -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
     <link href="<?= BASE_URL; ?>/public/assets/css/jaguata-theme.css" rel="stylesheet">
+
+    <style>
+        /* Que estire como el dashboard del admin */
+        html,
+        body {
+            height: 100%;
+        }
+
+        body {
+            background: var(--gris-fondo, #f4f6f9);
+        }
+
+        main.main-content {
+            margin-left: 260px;
+            min-height: 100vh;
+            padding: 24px;
+        }
+
+        @media (max-width: 768px) {
+            main.main-content {
+                margin-left: 0;
+                padding: 16px;
+            }
+        }
+
+        /* Tarjetas tipo dashboard (igual estilo que la captura) */
+        .dash-card {
+            background: #ffffff;
+            border-radius: 18px;
+            padding: 18px 20px;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.06);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .dash-card-icon {
+            font-size: 2rem;
+            margin-bottom: 6px;
+        }
+
+        .dash-card-value {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #222;
+        }
+
+        .dash-card-label {
+            font-size: 0.9rem;
+            color: #555;
+        }
+
+        .icon-blue {
+            color: #0d6efd;
+        }
+
+        .icon-green {
+            color: var(--verde-jaguata, #3c6255);
+        }
+
+        .icon-yellow {
+            color: #ffc107;
+        }
+
+        .icon-red {
+            color: #dc3545;
+        }
+    </style>
 </head>
 
 <body>
@@ -100,48 +170,49 @@ function h(?string $v): string
     </button>
 
     <!-- Contenido principal -->
-    <main>
-        <div class="py-4">
+    <main class="main-content">
+        <div class="py-2">
+
+
 
             <!-- Header -->
             <div class="header-box header-dashboard mb-4">
                 <div>
-                    <h1 class="mb-1 fw-bold">Panel del Dueño</h1>
-                    <p class="mb-0">Bienvenido, <?= h($usuarioNombre); ?> 🐾</p>
+                    <h1>¡Hola, <?= h($usuarioNombre); ?>! 🐾</h1>
+                    <p>Gestioná tus paseos, disponibilidad, ganancias y estadísticas desde un solo lugar.</p>
                 </div>
-                <div class="d-none d-md-block">
-                    <i class="fas fa-dog fa-3x opacity-75"></i>
-                </div>
+                <i class="fas fa-dog fa-3x opacity-75"></i>
             </div>
 
-            <!-- Métricas -->
+
+            <!-- Métricas (tarjetas como dashboard) -->
             <div class="row g-3 mb-4">
                 <div class="col-md-3">
-                    <div class="stat-card">
-                        <i class="fas fa-paw"></i>
-                        <h4><?= $totalMascotas; ?></h4>
-                        <p>Mascotas registradas</p>
+                    <div class="dash-card">
+                        <i class="fas fa-dog dash-card-icon icon-green"></i>
+                        <div class="dash-card-value"><?= $totalMascotas ?></div>
+                        <div class="dash-card-label">Mascotas registradas</div>
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <div class="stat-card">
-                        <i class="fas fa-check-circle"></i>
-                        <h4><?= count($paseosCompletadosArr); ?></h4>
-                        <p>Paseos completados</p>
+                    <div class="dash-card">
+                        <i class="fas fa-check-circle dash-card-icon icon-blue"></i>
+                        <div class="dash-card-value"><?= count($paseosCompletadosArr); ?></div>
+                        <div class="dash-card-label">Paseos completados</div>
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <div class="stat-card">
-                        <i class="fas fa-hourglass-half"></i>
-                        <h4><?= count($paseosPendientesArr); ?></h4>
-                        <p>Paseos pendientes / en curso</p>
+                    <div class="dash-card">
+                        <i class="fas fa-hourglass-half dash-card-icon icon-yellow"></i>
+                        <div class="dash-card-value"><?= count($paseosPendientesArr); ?></div>
+                        <div class="dash-card-label">Paseos pendientes / en curso</div>
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <div class="stat-card">
-                        <i class="fas fa-wallet"></i>
-                        <h4>₲<?= number_format($gastosTotales, 0, ',', '.'); ?></h4>
-                        <p>Gasto total en paseos</p>
+                    <div class="dash-card">
+                        <i class="fas fa-wallet dash-card-icon icon-red"></i>
+                        <div class="dash-card-value">₲<?= number_format($gastosTotales, 0, ',', '.'); ?></div>
+                        <div class="dash-card-label">Gasto total en paseos</div>
                     </div>
                 </div>
             </div>
@@ -212,7 +283,7 @@ function h(?string $v): string
                 <!-- Panel lateral: Mascotas + Notificaciones -->
                 <div class="col-lg-4">
                     <!-- Mis Mascotas -->
-                    <div class="section-card">
+                    <div class="section-card mb-3">
                         <div class="section-header">
                             <i class="fas fa-paw me-2"></i>Mis Mascotas
                         </div>
@@ -271,7 +342,7 @@ function h(?string $v): string
     <!-- JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Toggle sidebar en mobile (usa la clase .sidebar-open del CSS)
+        // Toggle sidebar en mobile
         document.getElementById('toggleSidebar')?.addEventListener('click', function() {
             document.getElementById('sidebar')?.classList.toggle('sidebar-open');
         });

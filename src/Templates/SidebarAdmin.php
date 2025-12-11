@@ -45,11 +45,19 @@ $currentFile   = basename($_SERVER['PHP_SELF']);
                 </li>
 
                 <li class="nav-item">
+                    <a href="<?= $baseFeatures; ?>/Mascotas.php"
+                        class="nav-link <?= $currentFile === 'Mascotas.php' ? 'active' : '' ?>">
+                        <i class="fas fa-dog me-2"></i>Mascotas
+                    </a>
+                </li>
+
+                <li class="nav-item">
                     <a href="<?= $baseFeatures; ?>/Paseos.php"
                         class="nav-link <?= $currentFile === 'Paseos.php' ? 'active' : '' ?>">
                         <i class="fas fa-dog me-2"></i>Paseos
                     </a>
                 </li>
+
 
                 <li class="nav-item">
                     <a href="<?= $baseFeatures; ?>/Pagos.php"
@@ -64,7 +72,13 @@ $currentFile   = basename($_SERVER['PHP_SELF']);
                         <i class="fas fa-bell me-2"></i>Notificaciones
                     </a>
                 </li>
-
+                <li class="nav-item">
+                    <a href="<?= BASE_URL ?>/features/admin/ReporteGanancias.php"
+                        class="nav-link <?= $currentFile === 'ReporteGanancias.php' ? 'active' : '' ?>">
+                        <i class="fas fa-chart-pie me-2"></i>
+                        <span>Reporte de Ganancias</span>
+                    </a>
+                </li>
                 <li class="nav-item">
                     <a href="<?= $baseFeatures; ?>/Auditoria.php"
                         class="nav-link <?= $currentFile === 'Auditoria.php' ? 'active' : '' ?>">

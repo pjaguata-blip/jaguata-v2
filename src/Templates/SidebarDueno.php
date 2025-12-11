@@ -48,18 +48,7 @@ if (!isset($baseFeatures)) {
             <ul class="collapse ps-3" id="menuPaseos">
                 <li><a class="nav-link" href="<?= $baseFeatures; ?>/SolicitarPaseo.php">Solicitar Paseo</a></li>
                 <li><a class="nav-link" href="<?= $baseFeatures; ?>/MisPaseos.php">Mis Paseos</a></li>
-                <li>
-                    <a class="nav-link collapsed d-flex justify-content-between align-items-center"
-                        data-bs-toggle="collapse" href="#submenuSeguimiento" role="button" aria-expanded="false">
-                        <span>Seguimiento de Paseos</span>
-                        <i class="fas fa-chevron-down small"></i>
-                    </a>
-                    <ul class="collapse ps-3" id="submenuSeguimiento">
-                        <li><a class="nav-link" href="<?= $baseFeatures; ?>/PaseosCompletos.php">Paseos Completos</a></li>
-                        <li><a class="nav-link" href="<?= $baseFeatures; ?>/PaseosPendientes.php">Paseos Pendientes</a></li>
-                        <li><a class="nav-link" href="<?= $baseFeatures; ?>/PaseosCancelados.php">Paseos Cancelados</a></li>
-                    </ul>
-                </li>
+
                 <li><a class="nav-link" href="<?= $baseFeatures; ?>/BuscarPaseadores.php">Buscar Paseadores</a></li>
             </ul>
         </li>
@@ -87,12 +76,7 @@ if (!isset($baseFeatures)) {
             </ul>
         </li>
 
-        <!-- NOTIFICACIONES -->
-        <li>
-            <a class="nav-link" href="<?= $baseFeatures; ?>/Notificaciones.php">
-                <i class="fas fa-bell me-2"></i> Notificaciones
-            </a>
-        </li>
+
 
         <!-- MASCOTAS -->
         <li>
@@ -107,6 +91,12 @@ if (!isset($baseFeatures)) {
                 <li><a class="nav-link" href="<?= $baseFeatures; ?>/AgregarMascota.php">Agregar Mascota</a></li>
             </ul>
         </li>
+        <!-- NOTIFICACIONES -->
+        <li>
+            <a class="nav-link" href="<?= $baseFeatures; ?>/Notificaciones.php">
+                <i class="fas fa-bell me-2"></i> Notificaciones
+            </a>
+        </li>
 
         <!-- PERFIL -->
         <li>
@@ -118,14 +108,14 @@ if (!isset($baseFeatures)) {
             <ul class="collapse ps-3" id="menuPerfil">
                 <li><a class="nav-link" href="<?= $baseFeatures; ?>/MiPerfil.php">Mi Perfil</a></li>
                 <li><a class="nav-link" href="<?= $baseFeatures; ?>/EditarPerfil.php">Editar Perfil</a></li>
-                <li><a class="nav-link" href="<?= $baseFeatures; ?>/MisPuntos.php">Mis Puntos</a></li>
+
             </ul>
         </li>
 
-        <!-- Soporte -->
-        <li>
-            <a class="nav-link" href="<?= $baseFeatures; ?>/Soporte_dueno.php">
-                <i class="fas fa-circle-question me-2"></i> Soporte
+        <li class="nav-item">
+            <a href="<?= $baseFeatures; ?>/Configuracion.php"
+                class="nav-link text-white <?= $currentFile === 'Configuracion.php' ? 'active' : '' ?>">
+                <i class="fas fa-cogs me-2"></i>Configuraciones
             </a>
         </li>
 

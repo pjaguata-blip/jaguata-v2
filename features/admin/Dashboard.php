@@ -1,6 +1,9 @@
 <?php
+
+declare(strict_types=1);
+
 error_reporting(E_ALL);
-ini_set('display_errors', 1);
+ini_set('display_errors', '1');
 
 require_once dirname(__DIR__, 2) . '/src/Config/AppConfig.php';
 require_once dirname(__DIR__, 2) . '/src/Helpers/Session.php';
@@ -8,6 +11,7 @@ require_once dirname(__DIR__, 2) . '/src/Controllers/UsuarioController.php';
 require_once dirname(__DIR__, 2) . '/src/Controllers/PaseoController.php';
 require_once dirname(__DIR__, 2) . '/src/Controllers/MascotaController.php';
 require_once dirname(__DIR__, 2) . '/src/Controllers/ReporteController.php';
+require_once dirname(__DIR__, 2) . '/src/Models/Calificacion.php'; // 👈 NUEVO
 
 use Jaguata\Config\AppConfig;
 use Jaguata\Helpers\Session;
@@ -15,6 +19,7 @@ use Jaguata\Controllers\UsuarioController;
 use Jaguata\Controllers\PaseoController;
 use Jaguata\Controllers\MascotaController;
 use Jaguata\Controllers\ReporteController;
+use Jaguata\Models\Calificacion; // 👈 NUEVO
 
 AppConfig::init();
 
@@ -47,17 +52,18 @@ $paseosCompletos = array_filter($paseos, fn($p) => in_array(strtolower($p['estad
 $totalPagosPend  = count(array_filter($paseos, fn($p) => strtolower($p['estado_pago'] ?? '') === 'pendiente'));
 $totalPagosReal  = count(array_filter($paseos, fn($p) => strtolower($p['estado_pago'] ?? '') === 'pagado'));
 
-// Dummy extras (si querés, los cambiamos después)
-$totalNotificaciones = 5;
-$totalRoles          = 3;
-$totalMensajes       = 12;
-$totalTickets        = 2;
-
 // =============================
 //   REPORTES (ReporteController)
 // =============================
 $reporteController = new ReporteController();
 $estadisticas = $reporteController->getEstadisticas();
+
+// =============================
+//   CALIFICACIONES POR ROL ⭐
+// =============================
+$calModel = new Calificacion();
+$promedioPaseadores = $calModel->promedioGlobalPorTipo('paseador'); // ⭐ pasadores
+$promedioDuenos     = $calModel->promedioGlobalPorTipo('mascota');  // 🐶 dueños (a través de mascotas)
 
 // Merge con valores por defecto
 $estadisticas = array_merge([
@@ -71,6 +77,10 @@ $estadisticas = array_merge([
     'ingresos_por_mes'      => [],
     'ingresos_por_paseador' => [],
 ], $estadisticas);
+
+// Guardamos también en el array para usar en la vista
+$estadisticas['promedio_paseadores'] = $promedioPaseadores;
+$estadisticas['promedio_duenos']     = $promedioDuenos;
 
 ?>
 <!DOCTYPE html>
@@ -95,6 +105,7 @@ $estadisticas = array_merge([
     <button class="btn btn-outline-secondary d-md-none ms-2 mt-3" id="toggleSidebar">
         <i class="fas fa-bars"></i>
     </button>
+
     <main>
         <!-- HEADER PRINCIPAL -->
         <div class="header-box header-dashboard">
@@ -169,7 +180,37 @@ $estadisticas = array_merge([
             </div>
         </div>
 
-        <!-- ========== BLOQUE 3: FILTROS DE REPORTES ========== -->
+        <!-- ========== BLOQUE 3: REPUTACIÓN POR ROL (NUEVO) ========== -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-6">
+                <div class="stat-card">
+                    <i class="fas fa-star text-warning"></i>
+                    <h4>
+                        <?php if ($estadisticas['promedio_paseadores'] !== null): ?>
+                            <?= number_format((float)$estadisticas['promedio_paseadores'], 1, ',', '.'); ?> ★
+                        <?php else: ?>
+                            —
+                        <?php endif; ?>
+                    </h4>
+                    <p>Promedio de calificaciones de paseadores</p>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="stat-card">
+                    <i class="fas fa-paw text-success"></i>
+                    <h4>
+                        <?php if ($estadisticas['promedio_duenos'] !== null): ?>
+                            <?= number_format((float)$estadisticas['promedio_duenos'], 1, ',', '.'); ?> ★
+                        <?php else: ?>
+                            —
+                        <?php endif; ?>
+                    </h4>
+                    <p>Promedio de calificaciones de dueños/mascotas</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== BLOQUE 4: FILTROS DE REPORTES ========== -->
         <div class="filtros mb-4">
             <form class="row g-3 align-items-end">
                 <div class="col-md-5">
@@ -195,8 +236,6 @@ $estadisticas = array_merge([
                 </div>
             </form>
         </div>
-
-
 
         <!-- ========== BLOQUE 5: GRÁFICOS ========== -->
         <div class="row" id="chartGroup">
@@ -422,8 +461,8 @@ $estadisticas = array_merge([
                 });
             });
         }
-    </script>
-    <script>
+
+        // Toggle sidebar
         document.getElementById('toggleSidebar')?.addEventListener('click', function() {
             document.getElementById('sidebar')?.classList.toggle('sidebar-open');
         });

@@ -185,6 +185,7 @@ if (!empty($fotoActual)) {
                     <a href="<?= $baseFeatures; ?>/MiPerfil.php" class="btn btn-outline-light btn-sm">
                         <i class="fas fa-arrow-left me-1"></i> Volver
                     </a>
+
                 </div>
             </div>
 

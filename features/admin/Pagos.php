@@ -24,7 +24,7 @@ $auth->checkRole('admin');
 
 // Cargamos TODOS los pagos
 $pagoController = new PagoController();
-$pagos = $pagoController->index() ?: [];
+$pagos          = $pagoController->index() ?: [];
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -103,7 +103,7 @@ $pagos = $pagoController->index() ?: [];
             </div>
 
             <!-- Botón export -->
-            <div class="export-buttons">
+            <div class="export-buttons mb-3">
                 <a class="btn btn-excel"
                     href="<?= BASE_URL; ?>/public/api/pagos/exportPagos.php">
                     <i class="fas fa-file-excel"></i> Excel
@@ -122,7 +122,7 @@ $pagos = $pagoController->index() ?: [];
                         <table class="table table-hover align-middle" id="tablaPagos">
                             <thead>
                                 <tr>
-                                    <th>#</th>
+                                    <th>ID</th>
                                     <th>Usuario</th>
                                     <th>Monto</th>
                                     <th>Método</th>
@@ -133,48 +133,61 @@ $pagos = $pagoController->index() ?: [];
                                 </tr>
                             </thead>
                             <tbody>
-                                <?php foreach ($pagos as $pago): ?>
-                                    <?php
-                                    $id          = (int)($pago['id'] ?? 0);
-                                    $usuario     = $pago['usuario'] ?? '-';
-                                    $monto       = (float)($pago['monto'] ?? 0);
-                                    $metodo      = $pago['metodo'] ?? '-';
-                                    $banco       = $pago['banco'] ?? '';
-                                    $cuenta      = $pago['cuenta'] ?? '';
-                                    $fecha       = $pago['fecha'] ?? '';
-                                    $fechaCorta  = substr($fecha, 0, 10); // YYYY-MM-DD
-                                    $estadoRaw   = strtolower((string)($pago['estado'] ?? ''));
-                                    $estadoPago  = $estadoRaw ?: 'nd';
-                                    $estadoLabel = ucfirst($estadoPago);
-
-                                    $badgeClass = match ($estadoPago) {
-                                        'pendiente' => 'bg-warning text-dark',
-                                        'pagado'    => 'bg-success',
-                                        'cancelado' => 'bg-danger',
-                                        default     => 'bg-secondary'
-                                    };
-                                    ?>
-                                    <tr data-estado="<?= htmlspecialchars($estadoPago); ?>"
-                                        data-metodo="<?= htmlspecialchars(strtolower($metodo)); ?>"
-                                        data-fecha="<?= htmlspecialchars($fechaCorta); ?>">
-                                        <td><?= $id; ?></td>
-                                        <td><?= htmlspecialchars($usuario); ?></td>
-                                        <td><?= number_format($monto, 0, ',', '.'); ?> Gs</td>
-                                        <td><?= htmlspecialchars($metodo); ?></td>
-                                        <td><?= htmlspecialchars(trim("$banco $cuenta") ?: '-'); ?></td>
-                                        <td><?= htmlspecialchars($fecha); ?></td>
-                                        <td>
-                                            <span class="badge <?= $badgeClass ?>"><?= $estadoLabel ?></span>
-                                        </td>
-
-
-                                        <td class="text-center">
-                                            <a href="DetallePago.php?id=<?= $id; ?>" class="btn btn-sm btn-outline-primary">
-                                                <i class="fas fa-eye"></i> Ver
-                                            </a>
+                                <?php if (empty($pagos)): ?>
+                                    <tr>
+                                        <td colspan="8" class="text-muted text-center py-3">
+                                            No se encontraron pagos registrados.
                                         </td>
                                     </tr>
-                                <?php endforeach; ?>
+                                <?php else: ?>
+                                    <?php foreach ($pagos as $pago): ?>
+                                        <?php
+                                        $id          = (int)($pago['id'] ?? 0);
+                                        $usuario     = $pago['usuario'] ?? '-';
+                                        $monto       = (float)($pago['monto'] ?? 0);
+                                        $metodo      = $pago['metodo'] ?? '-';
+                                        $banco       = $pago['banco'] ?? '';
+                                        $cuenta      = $pago['cuenta'] ?? '';
+                                        $fecha       = $pago['fecha'] ?? '';
+                                        $fechaCorta  = substr($fecha, 0, 10); // YYYY-MM-DD
+                                        $estadoRaw   = strtolower((string)($pago['estado'] ?? ''));
+                                        $estadoPago  = $estadoRaw ?: 'nd';
+                                        $estadoLabel = ucfirst($estadoPago);
+
+                                        $badgeClass = match ($estadoPago) {
+                                            'pendiente' => 'bg-warning text-dark',
+                                            'pagado'    => 'bg-success',
+                                            'cancelado' => 'bg-danger',
+                                            default     => 'bg-secondary'
+                                        };
+                                        ?>
+                                        <tr data-estado="<?= htmlspecialchars($estadoPago); ?>"
+                                            data-metodo="<?= htmlspecialchars(strtolower($metodo)); ?>"
+                                            data-fecha="<?= htmlspecialchars($fechaCorta); ?>">
+
+                                            <!-- ID uniforme: # + negrita centrado -->
+                                            <td class="text-center">
+                                                <strong>#<?= $id; ?></strong>
+                                            </td>
+
+                                            <td><?= htmlspecialchars($usuario); ?></td>
+                                            <td><?= number_format($monto, 0, ',', '.'); ?> Gs</td>
+                                            <td><?= htmlspecialchars($metodo); ?></td>
+                                            <td><?= htmlspecialchars(trim("$banco $cuenta") ?: '-'); ?></td>
+                                            <td><?= htmlspecialchars($fecha); ?></td>
+                                            <td>
+                                                <span class="badge <?= $badgeClass ?>"><?= $estadoLabel ?></span>
+                                            </td>
+
+                                            <td class="text-center">
+                                                <a href="DetallePago.php?id=<?= $id; ?>" class="btn-ver">
+                                                    <i class="fas fa-eye"></i> Ver
+                                                </a>
+                                            </td>
+
+                                        </tr>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
 
                             </tbody>
                         </table>
@@ -186,7 +199,7 @@ $pagos = $pagoController->index() ?: [];
                 </div>
             </div>
 
-            <footer>
+            <footer class="mt-3">
                 <small>© <?= date('Y'); ?> Jaguata — Panel de Administración</small>
             </footer>
         </div>
@@ -239,11 +252,14 @@ $pagos = $pagoController->index() ?: [];
                 if (fDesde && fechaRow) coincideFecha = coincideFecha && (fechaRow >= fDesde);
                 if (fHasta && fechaRow) coincideFecha = coincideFecha && (fechaRow <= fHasta);
 
-                row.style.display = (coincideTexto && coincideEstado && coincideMetodo && coincideFecha) ? '' : 'none';
+                row.style.display = (coincideTexto && coincideEstado && coincideMetodo && coincideFecha) ?
+                    '' :
+                    'none';
             });
         }
 
         [searchInput, filterEstado, filterMetodo, filterDesde, filterHasta].forEach(el => {
+            if (!el) return;
             el.addEventListener('input', aplicarFiltros);
             el.addEventListener('change', aplicarFiltros);
         });

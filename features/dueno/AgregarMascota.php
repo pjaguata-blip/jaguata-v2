@@ -85,11 +85,11 @@ $usuarioNombre = htmlspecialchars(Session::getUsuarioNombre() ?? 'Dueño/a', ENT
     <?php include __DIR__ . '/../../src/Templates/SidebarDueno.php'; ?>
 
     <!-- Contenido -->
-    <main class="bg-light">
-        <div class="container-fluid py-4">
+    <main>
+        <div class="py-4"><!-- mismo padding que otras pantallas -->
 
             <!-- Header -->
-            <div class="header-box header-mascotas mb-4">
+            <div class="header-box header-mascotas mb-4 d-flex justify-content-between align-items-center">
                 <div>
                     <h1 class="fw-bold mb-1">
                         <i class="fas fa-dog me-2"></i>Agregar Mascota
@@ -120,12 +120,12 @@ $usuarioNombre = htmlspecialchars(Session::getUsuarioNombre() ?? 'Dueño/a', ENT
                 </div>
             <?php endif; ?>
 
-            <!-- Formulario -->
-            <div class="card shadow-sm">
-                <div class="card-header bg-success text-white fw-semibold">
+            <!-- Formulario: ahora como section-card -->
+            <div class="section-card">
+                <div class="section-header">
                     <i class="fas fa-info-circle me-2"></i>Información de la Mascota
                 </div>
-                <div class="card-body">
+                <div class="section-body">
                     <form method="POST" novalidate>
                         <div class="row g-3">
                             <div class="col-md-6">
@@ -165,7 +165,6 @@ $usuarioNombre = htmlspecialchars(Session::getUsuarioNombre() ?? 'Dueño/a', ENT
                                     placeholder="Especifique la raza"
                                     value="<?= htmlspecialchars($_POST['raza_otra'] ?? '') ?>">
                             </div>
-
 
                             <div class="col-md-6">
                                 <label class="form-label">Peso (kg) *</label>
@@ -257,7 +256,7 @@ $usuarioNombre = htmlspecialchars(Session::getUsuarioNombre() ?? 'Dueño/a', ENT
                         </div>
 
                         <div class="text-end mt-4">
-                            <button type="submit" class="btn btn-success px-4">
+                            <button type="submit" class="btn btn-gradient px-4">
                                 <i class="fas fa-save me-1"></i> Guardar Mascota
                             </button>
                         </div>

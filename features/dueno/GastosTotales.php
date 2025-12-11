@@ -123,7 +123,73 @@ if ($exportCsv) {
     <!-- CSS global Jaguata -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
-    <link href="<?= ASSETS_URL; ?>/css/jaguata-theme.css" rel="stylesheet">
+    <link href="<?= BASE_URL; ?>/public/assets/css/jaguata-theme.css" rel="stylesheet">
+
+    <style>
+        /* Que estire como los dashboards */
+        html,
+        body {
+            height: 100%;
+        }
+
+        body {
+            background: var(--gris-fondo, #f4f6f9);
+        }
+
+        main.main-content {
+            margin-left: 260px;
+            min-height: 100vh;
+            padding: 24px;
+        }
+
+        @media (max-width: 768px) {
+            main.main-content {
+                margin-left: 0;
+                padding: 16px;
+            }
+        }
+
+        /* Tarjetas tipo dashboard */
+        .dash-card {
+            background: #ffffff;
+            border-radius: 18px;
+            padding: 18px 20px;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.06);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .dash-card-icon {
+            font-size: 2rem;
+            margin-bottom: 6px;
+        }
+
+        .dash-card-value {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #222;
+        }
+
+        .dash-card-label {
+            font-size: 0.9rem;
+            color: #555;
+        }
+
+        .icon-green {
+            color: var(--verde-jaguata, #3c6255);
+        }
+
+        .icon-blue {
+            color: #0d6efd;
+        }
+
+        .icon-yellow {
+            color: #ffc107;
+        }
+    </style>
 </head>
 
 <body>
@@ -136,11 +202,11 @@ if ($exportCsv) {
         <i class="fas fa-bars"></i>
     </button>
 
-    <main>
-        <div class="container-fluid py-4">
+    <main class="main-content">
+        <div class="py-2">
 
-            <!-- Header (usa estilos globales) -->
-            <div class="header-box header-pagos mb-4">
+            <!-- Header -->
+            <div class="header-box header-pagos mb-4 d-flex justify-content-between align-items-center">
                 <div>
                     <h1 class="fw-bold mb-1">
                         <i class="fas fa-coins me-2"></i>Gastos Totales
@@ -155,7 +221,37 @@ if ($exportCsv) {
                 </div>
             </div>
 
-            <!-- Filtros (usa .filtros del CSS global) -->
+            <!-- Métricas tipo dashboard -->
+            <div class="row g-3 mb-4 text-center">
+                <div class="col-md-4">
+                    <div class="dash-card">
+                        <i class="fas fa-wallet dash-card-icon icon-green"></i>
+                        <div class="dash-card-value">₲<?= moneyPy($total) ?></div>
+                        <div class="dash-card-label">Total gastado (PYG)</div>
+                        <small class="text-muted d-block">
+                            <?= $estado ? 'Según filtro de estado' : 'Solo pagos CONFIRMADOS' ?>
+                        </small>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="dash-card">
+                        <i class="fas fa-file-invoice-dollar dash-card-icon icon-blue"></i>
+                        <div class="dash-card-value"><?= count($rows) ?></div>
+                        <div class="dash-card-label">Registros encontrados</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="dash-card">
+                        <i class="fas fa-calendar-alt dash-card-icon icon-yellow"></i>
+                        <div class="dash-card-value fs-6">
+                            <?= h(($from ?? '—') . ' a ' . ($to ?? '—')) ?>
+                        </div>
+                        <div class="dash-card-label">Rango seleccionado</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filtros -->
             <div class="filtros">
                 <form class="row g-3 align-items-end" method="get">
                     <div class="col-md-3">
@@ -217,38 +313,8 @@ if ($exportCsv) {
                 </form>
             </div>
 
-            <!-- Métricas (usa .stat-card) -->
-            <div class="row mb-4 text-center">
-                <div class="col-md-4">
-                    <div class="stat-card">
-                        <i class="fas fa-wallet mb-2"></i>
-                        <h4>₲<?= moneyPy($total) ?></h4>
-                        <p class="mb-0">Total gastado (PYG)</p>
-                        <small class="text-muted d-block">
-                            <?= $estado ? 'Según filtro de estado' : 'Solo pagos CONFIRMADOS' ?>
-                        </small>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="stat-card">
-                        <i class="fas fa-file-invoice-dollar mb-2"></i>
-                        <h4><?= count($rows) ?></h4>
-                        <p class="mb-0">Registros encontrados</p>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="stat-card">
-                        <i class="fas fa-calendar-alt mb-2"></i>
-                        <h4 class="fs-6">
-                            <?= h(($from ?? '—') . ' a ' . ($to ?? '—')) ?>
-                        </h4>
-                        <p class="mb-0">Rango seleccionado</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Tabla dentro de section-card -->
-            <div class="section-card">
+            <!-- Tabla -->
+            <div class="section-card mt-4">
                 <div class="section-header">
                     <i class="fas fa-list me-2"></i>Detalle de Pagos
                 </div>
@@ -334,7 +400,7 @@ if ($exportCsv) {
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Toggle sidebar en mobile (usa .sidebar-open de jaguata-theme.css)
+        // Toggle sidebar en mobile
         document.getElementById('toggleSidebar')?.addEventListener('click', function() {
             document.getElementById('sidebar')?.classList.toggle('sidebar-open');
         });

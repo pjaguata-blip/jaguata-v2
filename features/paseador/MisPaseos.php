@@ -253,9 +253,11 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
                                                 </td>
                                                 <td>
                                                     <div class="btn-group">
-                                                        <!-- 👁 Ver detalle -->
-                                                        <a href="VerPaseo.php?id=<?= $paseoId ?>" class="btn btn-sm btn-outline-primary" title="Ver detalle">
-                                                            <i class="fas fa-eye"></i>
+                                                        <!-- 👁 Ver paseo (detalle + mapa en la misma pantalla) -->
+                                                        <a href="VerPaseo.php?id=<?= $paseoId ?>"
+                                                            class="btn btn-sm btn-outline-primary"
+                                                            title="Ver detalle y ruta del paseo">
+                                                            <i class="fas fa-route"></i> <!-- icono combinado -->
                                                         </a>
 
                                                         <?php if ($esSolicitado): ?>
@@ -313,6 +315,8 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
                                                         <?php endif; ?>
                                                     </div>
                                                 </td>
+
+
                                             </tr>
                                         <?php endforeach; ?>
                                     </tbody>

@@ -6,11 +6,13 @@ require_once __DIR__ . '/../../src/Config/AppConfig.php';
 require_once __DIR__ . '/../../src/Controllers/AuthController.php';
 require_once __DIR__ . '/../../src/Controllers/PaseoController.php';
 require_once __DIR__ . '/../../src/Helpers/Session.php';
+require_once __DIR__ . '/../../src/Models/Calificacion.php'; // 👈 NUEVO
 
 use Jaguata\Config\AppConfig;
 use Jaguata\Controllers\AuthController;
 use Jaguata\Controllers\PaseoController;
 use Jaguata\Helpers\Session;
+use Jaguata\Models\Calificacion; // 👈 NUEVO
 
 AppConfig::init();
 
@@ -31,7 +33,7 @@ if ($id <= 0) {
 
 // 🔹 Cargar datos reales del paseo (vista paseador)
 $paseoController = new PaseoController();
-$paseo = $paseoController->show($id);   // 👈 mismo método que ya usabas
+$paseo = $paseoController->show($id);   // joins con mascota/dueño/paseador
 
 if (!$paseo) {
     die('<h3 style="color:red;text-align:center;">No se encontró el paseo solicitado.</h3>');
@@ -65,17 +67,34 @@ $badgeClass = match ($estado) {
     default                   => 'bg-secondary'
 };
 
-$inicio = $paseo['inicio'] ?? '';
+$inicio    = $paseo['inicio']     ?? '';
 $updatedAt = $paseo['updated_at'] ?? '';
 
 $direccion = $paseo['direccion'] ?? $paseo['ubicacion'] ?? '-';
 
-// Coordenadas (si vienen del back; si no, usa centro por defecto)
-$lat = $paseo['paseador_latitud']  ?? $paseo['latitud']  ?? 0;
-$lon = $paseo['paseador_longitud'] ?? $paseo['longitud'] ?? 0;
+// 🔹 Punto de recogida
+$pickupLat = $paseo['pickup_lat'] ?? null;
+$pickupLng = $paseo['pickup_lng'] ?? null;
+
+// 🔹 Ruta del paseo (hasta el momento)
+$rutaPuntos = $paseoController->getRuta($id);
+$rutaCoords = [];
+foreach ($rutaPuntos as $punto) {
+    $rutaCoords[] = [(float)$punto['latitud'], (float)$punto['longitud']];
+}
 
 // Para acciones
 $paseoId = (int)($paseo['paseo_id'] ?? $id);
+
+// 🔹 Mascota a calificar
+$mascotaId = (int)($paseo['mascota_id'] ?? 0);
+
+// =========================
+// Calificación del paseador
+// =========================
+$califModel      = new Calificacion();
+$yaCalifico      = $califModel->existeParaPaseo($paseoId, 'mascota', $paseadorIdSesion); // tipo 'mascota'
+$puedeCalificar  = in_array($estado, ['completo', 'finalizado'], true) && !$yaCalifico;
 
 // =========================
 // Rutas
@@ -98,12 +117,11 @@ $backUrl   = $baseUrl . "/features/paseador/MisPaseos.php";
     <!-- Theme global -->
     <link href="<?= $baseUrl ?>/public/assets/css/jaguata-theme.css" rel="stylesheet">
 
-    <!-- Leaflet para mapa -->
+    <!-- Leaflet -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <style>
-        /* Aseguramos altura del mapa como en admin */
         #map {
             width: 100%;
             height: 320px;
@@ -136,7 +154,6 @@ $backUrl   = $baseUrl . "/features/paseador/MisPaseos.php";
 
         main {
             margin-left: 260px;
-            /* coincide con ancho sidebar */
             padding: 1.5rem 1.5rem 2rem;
         }
 
@@ -156,15 +173,20 @@ $backUrl   = $baseUrl . "/features/paseador/MisPaseos.php";
     <main>
         <div class="container-fluid px-3 px-md-4">
 
-            <!-- HEADER UNIFICADO TIPO ADMIN -->
-            <div class="header-box header-paseos mb-3">
+            <!-- HEADER UNIFICADO + BOTÓN VER MAPA -->
+            <div class="header-box header-paseos mb-3 d-flex justify-content-between align-items-center">
                 <div>
                     <h1 class="fw-bold mb-1">
                         Detalle del Paseo #<?= h((string)$id) ?>
                     </h1>
                     <p class="mb-0">Información completa del recorrido, estado y ubicación 🐾</p>
                 </div>
-                <i class="fas fa-map-location-dot fa-3x opacity-75"></i>
+                <div class="d-flex flex-column align-items-end gap-2">
+                    <i class="fas fa-map-location-dot fa-3x opacity-75"></i>
+                    <a href="#map" class="btn btn-sm btn-outline-light">
+                        <i class="fas fa-map"></i> Ver mapa
+                    </a>
+                </div>
             </div>
 
             <!-- Botón volver -->
@@ -279,6 +301,24 @@ $backUrl   = $baseUrl . "/features/paseador/MisPaseos.php";
                                     <i class="fas fa-times-circle me-1"></i> Cancelar paseo
                                 </a>
 
+                            <?php elseif (in_array($estado, ['completo', 'finalizado'], true)): ?>
+                                <?php if ($puedeCalificar): ?>
+                                    <button type="button"
+                                        class="btn btn-primary"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#modalCalificarMascota">
+                                        <i class="fas fa-star me-1"></i> Calificar dueño / mascota
+                                    </button>
+                                <?php elseif ($yaCalifico): ?>
+                                    <span class="badge bg-success align-self-center">
+                                        Ya enviaste tu calificación ⭐
+                                    </span>
+                                <?php else: ?>
+                                    <span class="text-muted">
+                                        No hay acciones disponibles para este estado.
+                                    </span>
+                                <?php endif; ?>
+
                             <?php else: ?>
                                 <span class="text-muted">
                                     No hay acciones disponibles para este estado.
@@ -288,11 +328,11 @@ $backUrl   = $baseUrl . "/features/paseador/MisPaseos.php";
                     </div>
                 </div>
 
-                <!-- Mapa (igual estilo admin) -->
+                <!-- Mapa (punto de recogida + ruta con huellitas) -->
                 <div class="col-lg-6">
                     <div class="card mb-4">
                         <div class="card-header">
-                            <i class="fas fa-map-marker-alt me-2"></i> Ubicación
+                            <i class="fas fa-map-marker-alt me-2"></i> Ubicación y recorrido
                         </div>
                         <div class="card-body">
                             <div id="map"></div>
@@ -305,7 +345,54 @@ $backUrl   = $baseUrl . "/features/paseador/MisPaseos.php";
         </div>
     </main>
 
-    <!-- Script toggle sidebar mobile (si tu SidebarPaseador usa backdrop/btn) -->
+    <!-- MODAL: CALIFICAR DUEÑO / MASCOTA -->
+    <div class="modal fade" id="modalCalificarMascota" tabindex="-1" aria-labelledby="modalCalificarMascotaLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form id="formCalificarMascota">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title" id="modalCalificarMascotaLabel">
+                            <i class="fas fa-star me-2"></i>Calificar dueño / mascota
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+
+                    <div class="modal-body">
+                        <input type="hidden" name="paseo_id" value="<?= $paseoId; ?>">
+                        <input type="hidden" name="rated_id" value="<?= $mascotaId; ?>">
+
+                        <div class="mb-3">
+                            <label class="form-label">Calificación (1 a 5)</label>
+                            <select name="calificacion" class="form-select" required>
+                                <option value="5">⭐⭐⭐⭐⭐ (Excelente)</option>
+                                <option value="4">⭐⭐⭐⭐ (Muy bueno)</option>
+                                <option value="3">⭐⭐⭐ (Bueno)</option>
+                                <option value="2">⭐⭐ (Regular)</option>
+                                <option value="1">⭐ (Malo)</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Comentario (opcional)</label>
+                            <textarea name="comentario" class="form-control" rows="3"
+                                placeholder="Comentá brevemente cómo fue la experiencia con el dueño y la mascota..."></textarea>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                            <i class="fas fa-times me-1"></i> Cancelar
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-paper-plane me-1"></i> Enviar calificación
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script toggle sidebar mobile -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const sidebar = document.querySelector('.sidebar');
@@ -326,29 +413,122 @@ $backUrl   = $baseUrl . "/features/paseador/MisPaseos.php";
         });
     </script>
 
-    <!-- Mapa Leaflet -->
+    <!-- Mapa Leaflet + tracking -->
     <script>
-        const lat = <?= $lat ?: 0 ?>;
-        const lon = <?= $lon ?: 0 ?>;
-        const map = L.map('map').setView(
-            [lat || -25.3, lon || -57.6],
-            13
-        );
+        const pickupLat = <?= $pickupLat !== null ? (float)$pickupLat : 'null' ?>;
+        const pickupLng = <?= $pickupLng !== null ? (float)$pickupLng : 'null' ?>;
+        const rutaCoords = <?= json_encode($rutaCoords, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+
+        let initialLat = -25.3;
+        let initialLon = -57.6;
+
+        if (pickupLat && pickupLng) {
+            initialLat = pickupLat;
+            initialLon = pickupLng;
+        } else if (rutaCoords.length > 0) {
+            initialLat = rutaCoords[0][0];
+            initialLon = rutaCoords[0][1];
+        }
+
+        const map = L.map('map').setView([initialLat, initialLon], 15);
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap contributors'
         }).addTo(map);
 
-        if (lat && lon) {
-            L.marker([lat, lon]).addTo(map)
-                .bindPopup('Ubicación del paseo')
+        const pawIcon = L.icon({
+            iconUrl: "<?= $baseUrl ?>/public/assets/images/paw.png",
+            iconSize: [32, 32],
+            iconAnchor: [16, 32],
+            popupAnchor: [0, -32]
+        });
+
+        // 🔹 Punto de recogida
+        if (pickupLat && pickupLng) {
+            L.marker([pickupLat, pickupLng], {
+                    icon: pawIcon
+                })
+                .addTo(map)
+                .bindPopup('Punto de recogida')
                 .openPopup();
-        } else {
-            L.marker([-25.3, -57.6]).addTo(map)
-                .bindPopup('Ubicación no disponible')
-                .openPopup();
+        }
+
+        // 🔹 Ruta actual del paseo
+        if (rutaCoords.length > 0) {
+            const polyline = L.polyline(rutaCoords, {
+                weight: 5,
+                opacity: 0.8
+            }).addTo(map);
+            map.fitBounds(polyline.getBounds());
+
+            const paso = 5;
+            for (let i = 0; i < rutaCoords.length; i += paso) {
+                const [lat, lng] = rutaCoords[i];
+                L.marker([lat, lng], {
+                    icon: pawIcon
+                }).addTo(map);
+            }
+        }
+
+        // 🔹 Tracking en tiempo real si está EN CURSO
+        const estadoActual = "<?= $estado ?>";
+        const paseoIdJs = <?= (int)$paseoId ?>;
+
+        if (estadoActual === 'en_curso' && "geolocation" in navigator) {
+            navigator.geolocation.watchPosition(
+                (pos) => {
+                    const lat = pos.coords.latitude;
+                    const lng = pos.coords.longitude;
+
+                    fetch("<?= $baseUrl ?>/public/api/paseos/registrarPosicion.php", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/x-www-form-urlencoded"
+                        },
+                        body: `paseo_id=${encodeURIComponent(paseoIdJs)}&lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}`
+                    }).catch(console.error);
+                },
+                (err) => {
+                    console.error("Error geolocalización:", err);
+                }, {
+                    enableHighAccuracy: true,
+                    maximumAge: 5000,
+                    timeout: 10000
+                }
+            );
+        }
+
+        // 🔹 Envío AJAX de la calificación (paseador → mascota/dueño)
+        const formCalificarMascota = document.getElementById('formCalificarMascota');
+        if (formCalificarMascota) {
+            formCalificarMascota.addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                const formData = new FormData(formCalificarMascota);
+
+                try {
+                    const resp = await fetch('<?= $baseUrl; ?>/public/api/calificar_mascota.php', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const data = await resp.json();
+
+                    if (data.success) {
+                        alert('✅ Calificación enviada correctamente');
+                        window.location.reload();
+                    } else {
+                        alert('⚠️ ' + (data.error || 'No se pudo guardar la calificación.'));
+                    }
+                } catch (err) {
+                    console.error(err);
+                    alert('Ocurrió un error al enviar la calificación.');
+                }
+            });
         }
     </script>
 </body>
+<!-- JS Bootstrap (necesario para que los modales y el data-bs-toggle funcionen) -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 </html>

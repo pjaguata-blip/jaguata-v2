@@ -9,11 +9,10 @@ require_once __DIR__ . '/../../../src/Helpers/Session.php';
 use Jaguata\Config\AppConfig;
 use Jaguata\Services\DatabaseService;
 use Jaguata\Helpers\Session;
-use PDO;
 
 AppConfig::init();
 
-// 🔒 Solo usuarios logueados (podés ajustar a dueno/paseador/admin si querés)
+// 🔒 Solo usuarios logueados
 if (!Session::isLoggedIn()) {
     http_response_code(401);
     echo 'No autorizado';
@@ -30,7 +29,7 @@ if ($pagoId <= 0) {
 try {
     $db = DatabaseService::getInstance()->getConnection();
 
-    // 🔹 Traer el pago + paseo + dueño/paseador para validar permisos si querés
+    // 🔹 Traer el pago + paseo
     $sql = "
         SELECT 
             pg.*,
@@ -43,7 +42,7 @@ try {
     ";
     $stmt = $db->prepare($sql);
     $stmt->execute([':id' => $pagoId]);
-    $pago = $stmt->fetch(PDO::FETCH_ASSOC);
+    $pago = $stmt->fetch(\PDO::FETCH_ASSOC);
 
     if (!$pago) {
         http_response_code(404);
@@ -51,7 +50,7 @@ try {
         exit;
     }
 
-    // ⚠️ Opcional: validar que el paseador logueado tenga acceso a ese paseo
+    // ⚠️ Opcional: validar permisos
     $usuarioId = (int)(Session::getUsuarioId() ?? 0);
     $rol       = Session::getUsuarioRol();
 
@@ -61,17 +60,21 @@ try {
         exit;
     }
 
-    // 📁 Ruta del archivo de comprobante
-    $archivo = $pago['comprobante'] ?? '';
-    if ($archivo === '') {
+    // 📁 Ruta del archivo de comprobante tal como se guardó en la BD
+    $archivoDb = trim((string)($pago['comprobante'] ?? ''));
+
+    if ($archivoDb === '') {
         http_response_code(404);
         echo 'Este pago no tiene comprobante adjunto.';
         exit;
     }
 
-    // Ajustá esta ruta según dónde guardás los archivos
-    $baseDir   = __DIR__ . '/../../../assets/uploads/comprobantes/';
-    $filePath  = $baseDir . $archivo;
+    // Nos quedamos solo con el nombre del archivo, aunque venga con ruta
+    $nombreArchivo = basename($archivoDb);
+
+    // Ruta física donde realmente guardaste los archivos
+    $baseDir  = __DIR__ . '/../../../assets/uploads/comprobantes/';
+    $filePath = $baseDir . $nombreArchivo;
 
     if (!is_file($filePath)) {
         http_response_code(404);
@@ -85,12 +88,12 @@ try {
         : 'application/octet-stream';
 
     header('Content-Type: ' . $mime);
-    header('Content-Disposition: inline; filename="' . basename($filePath) . '"');
+    header('Content-Disposition: inline; filename="' . $nombreArchivo . '"');
     header('Content-Length: ' . filesize($filePath));
 
     readfile($filePath);
     exit;
-} catch (Throwable $e) {
+} catch (\Throwable $e) {
     error_log('Error en comprobantePago.php: ' . $e->getMessage());
     http_response_code(500);
     echo 'Error interno al mostrar el comprobante.';

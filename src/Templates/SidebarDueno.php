@@ -16,6 +16,14 @@ if (!isset($baseFeatures)) {
     $rol = Session::getUsuarioRol() ?? 'dueno';
     $baseFeatures = BASE_URL . "/features/{$rol}";
 }
+
+/**
+ * Archivo actual para marcar el menú activo.
+ * Si alguna vista ya define $currentFile, NO lo pisamos.
+ */
+if (!isset($currentFile)) {
+    $currentFile = basename($_SERVER['PHP_SELF']);
+}
 ?>
 
 <aside class="sidebar" id="sidebar">
@@ -32,7 +40,7 @@ if (!isset($baseFeatures)) {
 
         <!-- INICIO -->
         <li>
-            <a class="nav-link <?= (basename($_SERVER['PHP_SELF']) === 'Dashboard.php') ? 'active' : '' ?>"
+            <a class="nav-link <?= ($currentFile === 'Dashboard.php') ? 'active' : '' ?>"
                 href="<?= $baseFeatures; ?>/Dashboard.php">
                 <i class="fas fa-home me-2"></i> Inicio
             </a>
@@ -46,10 +54,24 @@ if (!isset($baseFeatures)) {
                 <i class="fas fa-chevron-down small"></i>
             </a>
             <ul class="collapse ps-3" id="menuPaseos">
-                <li><a class="nav-link" href="<?= $baseFeatures; ?>/SolicitarPaseo.php">Solicitar Paseo</a></li>
-                <li><a class="nav-link" href="<?= $baseFeatures; ?>/MisPaseos.php">Mis Paseos</a></li>
-
-                <li><a class="nav-link" href="<?= $baseFeatures; ?>/BuscarPaseadores.php">Buscar Paseadores</a></li>
+                <li>
+                    <a class="nav-link <?= ($currentFile === 'SolicitarPaseo.php') ? 'active' : '' ?>"
+                        href="<?= $baseFeatures; ?>/SolicitarPaseo.php">
+                        Solicitar Paseo
+                    </a>
+                </li>
+                <li>
+                    <a class="nav-link <?= ($currentFile === 'MisPaseos.php') ? 'active' : '' ?>"
+                        href="<?= $baseFeatures; ?>/MisPaseos.php">
+                        Mis Paseos
+                    </a>
+                </li>
+                <li>
+                    <a class="nav-link <?= ($currentFile === 'BuscarPaseadores.php') ? 'active' : '' ?>"
+                        href="<?= $baseFeatures; ?>/BuscarPaseadores.php">
+                        Buscar Paseadores
+                    </a>
+                </li>
             </ul>
         </li>
 
@@ -61,8 +83,18 @@ if (!isset($baseFeatures)) {
                 <i class="fas fa-chevron-down small"></i>
             </a>
             <ul class="collapse ps-3" id="menuPagos">
-                <li><a class="nav-link" href="<?= $baseFeatures; ?>/GastosTotales.php">Gastos Totales</a></li>
-                <li><a class="nav-link" href="<?= $baseFeatures; ?>/Pagos.php">Pagos</a></li>
+                <li>
+                    <a class="nav-link <?= ($currentFile === 'GastosTotales.php') ? 'active' : '' ?>"
+                        href="<?= $baseFeatures; ?>/GastosTotales.php">
+                        Gastos Totales
+                    </a>
+                </li>
+                <li>
+                    <a class="nav-link <?= ($currentFile === 'Pagos.php') ? 'active' : '' ?>"
+                        href="<?= $baseFeatures; ?>/Pagos.php">
+                        Pagos
+                    </a>
+                </li>
                 <li>
                     <a class="nav-link collapsed d-flex justify-content-between align-items-center"
                         data-bs-toggle="collapse" href="#submenuComprobantes" role="button" aria-expanded="false">
@@ -70,13 +102,16 @@ if (!isset($baseFeatures)) {
                         <i class="fas fa-chevron-down small"></i>
                     </a>
                     <ul class="collapse ps-3" id="submenuComprobantes">
-                        <li><a class="nav-link" href="<?= $baseFeatures; ?>/Comprobante_pago.php">Comprobante de Pago</a></li>
+                        <li>
+                            <a class="nav-link <?= ($currentFile === 'Comprobante_pago.php') ? 'active' : '' ?>"
+                                href="<?= $baseFeatures; ?>/Comprobante_pago.php">
+                                Comprobante de Pago
+                            </a>
+                        </li>
                     </ul>
                 </li>
             </ul>
         </li>
-
-
 
         <!-- MASCOTAS -->
         <li>
@@ -86,14 +121,31 @@ if (!isset($baseFeatures)) {
                 <i class="fas fa-chevron-down small"></i>
             </a>
             <ul class="collapse ps-3" id="menuMascotas">
-                <li><a class="nav-link" href="<?= $baseFeatures; ?>/MisMascotas.php">Mis Mascotas</a></li>
-                <li><a class="nav-link" href="<?= $baseFeatures; ?>/EditarMascota.php">Editar Mascota</a></li>
-                <li><a class="nav-link" href="<?= $baseFeatures; ?>/AgregarMascota.php">Agregar Mascota</a></li>
+                <li>
+                    <a class="nav-link <?= ($currentFile === 'MisMascotas.php') ? 'active' : '' ?>"
+                        href="<?= $baseFeatures; ?>/MisMascotas.php">
+                        Mis Mascotas
+                    </a>
+                </li>
+                <li>
+                    <a class="nav-link <?= ($currentFile === 'EditarMascota.php') ? 'active' : '' ?>"
+                        href="<?= $baseFeatures; ?>/EditarMascota.php">
+                        Editar Mascota
+                    </a>
+                </li>
+                <li>
+                    <a class="nav-link <?= ($currentFile === 'AgregarMascota.php') ? 'active' : '' ?>"
+                        href="<?= $baseFeatures; ?>/AgregarMascota.php">
+                        Agregar Mascota
+                    </a>
+                </li>
             </ul>
         </li>
+
         <!-- NOTIFICACIONES -->
         <li>
-            <a class="nav-link" href="<?= $baseFeatures; ?>/Notificaciones.php">
+            <a class="nav-link <?= ($currentFile === 'Notificaciones.php') ? 'active' : '' ?>"
+                href="<?= $baseFeatures; ?>/Notificaciones.php">
                 <i class="fas fa-bell me-2"></i> Notificaciones
             </a>
         </li>
@@ -106,12 +158,22 @@ if (!isset($baseFeatures)) {
                 <i class="fas fa-chevron-down small"></i>
             </a>
             <ul class="collapse ps-3" id="menuPerfil">
-                <li><a class="nav-link" href="<?= $baseFeatures; ?>/MiPerfil.php">Mi Perfil</a></li>
-                <li><a class="nav-link" href="<?= $baseFeatures; ?>/EditarPerfil.php">Editar Perfil</a></li>
-
+                <li>
+                    <a class="nav-link <?= ($currentFile === 'MiPerfil.php') ? 'active' : '' ?>"
+                        href="<?= $baseFeatures; ?>/MiPerfil.php">
+                        Mi Perfil
+                    </a>
+                </li>
+                <li>
+                    <a class="nav-link <?= ($currentFile === 'EditarPerfil.php') ? 'active' : '' ?>"
+                        href="<?= $baseFeatures; ?>/EditarPerfil.php">
+                        Editar Perfil
+                    </a>
+                </li>
             </ul>
         </li>
 
+        <!-- CONFIGURACIÓN -->
         <li class="nav-item">
             <a href="<?= $baseFeatures; ?>/Configuracion.php"
                 class="nav-link text-white <?= $currentFile === 'Configuracion.php' ? 'active' : '' ?>">

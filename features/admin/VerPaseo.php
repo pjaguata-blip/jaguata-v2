@@ -31,6 +31,17 @@ $paseo = $paseoController->getDetalleAdmin($id);
 if (!$paseo) {
     die('<h3 style="color:red;text-align:center;">No se encontró el paseo solicitado.</h3>');
 }
+
+// 🔹 Punto de recogida (si tu consulta lo trae)
+$pickupLat = $paseo['pickup_lat'] ?? null;
+$pickupLng = $paseo['pickup_lng'] ?? null;
+
+// 🔹 Ruta del paseo (puntos de paseo_rutas)
+$rutaPuntos = $paseoController->getRuta($id);
+$rutaCoords = [];
+foreach ($rutaPuntos as $punto) {
+    $rutaCoords[] = [(float)$punto['latitud'], (float)$punto['longitud']];
+}
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -49,6 +60,40 @@ if (!$paseo) {
     <!-- Leaflet -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <style>
+        #map {
+            width: 100%;
+            height: 320px;
+            border-radius: 0.75rem;
+            border: 1px solid #dfe3e8;
+            overflow: hidden;
+        }
+
+        .btn-volver {
+            display: inline-flex;
+            align-items: center;
+            gap: .5rem;
+            padding: .4rem .9rem;
+            border-radius: 999px;
+            border: 1px solid #ddd;
+            font-size: .9rem;
+            text-decoration: none;
+            color: #333;
+            background-color: #fff;
+        }
+
+        .btn-volver:hover {
+            background-color: #f1f1f1;
+        }
+
+        .info-label {
+            font-size: .85rem;
+            text-transform: uppercase;
+            color: #888;
+            margin-bottom: .2rem;
+        }
+    </style>
 </head>
 
 <body>
@@ -58,13 +103,18 @@ if (!$paseo) {
     <main>
         <div class="container-fluid px-3 px-md-4">
 
-            <!-- HEADER UNIFICADO -->
-            <div class="header-box header-paseos">
+            <!-- HEADER UNIFICADO + BOTÓN VER MAPA -->
+            <div class="header-box header-paseos d-flex justify-content-between align-items-center">
                 <div>
                     <h1 class="fw-bold mb-1">Detalle del Paseo #<?= htmlspecialchars((string)$id) ?></h1>
                     <p class="mb-0">Información completa del recorrido, estado y ubicación 🐾</p>
                 </div>
-                <i class="fas fa-map-location-dot fa-3x opacity-75"></i>
+                <div class="d-flex flex-column align-items-end gap-2">
+                    <i class="fas fa-map-location-dot fa-3x opacity-75"></i>
+                    <a href="#map" class="btn btn-sm btn-outline-light">
+                        <i class="fas fa-map"></i> Ver mapa
+                    </a>
+                </div>
             </div>
 
             <!-- Botón volver -->
@@ -165,9 +215,12 @@ if (!$paseo) {
                 <div class="col-lg-6">
                     <div class="card mb-4">
                         <div class="card-header">
-                            <i class="fas fa-map-marker-alt me-2"></i> Ubicación
+                            <i class="fas fa-map-marker-alt me-2"></i> Ubicación y recorrido
                         </div>
                         <div class="card-body">
+                            <p class="text-muted mb-2">
+                                Vista del punto de recogida y del recorrido realizado por el paseador 🐾
+                            </p>
                             <div id="map"></div>
                         </div>
                     </div>
@@ -178,7 +231,7 @@ if (!$paseo) {
         </div>
     </main>
 
-    <!-- Script toggle sidebar mobile (si aún no lo tenés global) -->
+    <!-- Script toggle sidebar mobile -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const sidebar = document.querySelector('.sidebar');
@@ -201,20 +254,64 @@ if (!$paseo) {
 
     <!-- Mapa + acciones admin -->
     <script>
-        // === Mapa con Leaflet ===
-        const lat = <?= $paseo['paseador_latitud'] ?? 0 ?>;
-        const lon = <?= $paseo['paseador_longitud'] ?? 0 ?>;
-        const map = L.map('map').setView([lat || -25.3, lon || -57.6], 13);
+        // === Datos para el mapa ===
+        const pickupLat = <?= $pickupLat !== null ? (float)$pickupLat : 'null' ?>;
+        const pickupLng = <?= $pickupLng !== null ? (float)$pickupLng : 'null' ?>;
+        const rutaCoords = <?= json_encode($rutaCoords, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+
+        let initialLat = -25.3;
+        let initialLon = -57.6;
+
+        if (pickupLat && pickupLng) {
+            initialLat = pickupLat;
+            initialLon = pickupLng;
+        } else if (rutaCoords.length > 0) {
+            initialLat = rutaCoords[0][0];
+            initialLon = rutaCoords[0][1];
+        }
+
+        const map = L.map('map').setView([initialLat, initialLon], 15);
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap contributors'
         }).addTo(map);
 
-        if (lat && lon) {
-            L.marker([lat, lon]).addTo(map)
-                .bindPopup('Ubicación del paseador')
+        // Icono de patita 🐾
+        const pawIcon = L.icon({
+            iconUrl: "<?= BASE_URL ?>/public/assets/images/paw.png",
+            iconSize: [32, 32],
+            iconAnchor: [16, 32],
+            popupAnchor: [0, -32]
+        });
+
+        // 🔹 Punto de recogida
+        if (pickupLat && pickupLng) {
+            L.marker([pickupLat, pickupLng], {
+                    icon: pawIcon
+                })
+                .addTo(map)
+                .bindPopup('Punto de recogida')
                 .openPopup();
-        } else {
+        }
+
+        // 🔹 Ruta del paseo
+        if (rutaCoords.length > 0) {
+            const polyline = L.polyline(rutaCoords, {
+                weight: 5,
+                opacity: 0.8
+            }).addTo(map);
+            map.fitBounds(polyline.getBounds());
+
+            // Huellitas cada N puntos
+            const paso = 5;
+            for (let i = 0; i < rutaCoords.length; i += paso) {
+                const [lat, lng] = rutaCoords[i];
+                L.marker([lat, lng], {
+                    icon: pawIcon
+                }).addTo(map);
+            }
+        } else if (!pickupLat || !pickupLng) {
+            // Si no hay nada, marcador genérico
             L.marker([-25.3, -57.6]).addTo(map)
                 .bindPopup('Ubicación no disponible')
                 .openPopup();

@@ -45,7 +45,7 @@ $ciudadSeleccionada      = strtolower(trim((string)($_POST['ciudad_ubicacion'] ?
 
 /* Crear reserva */
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $paseoController->store();
+    $paseoController->store(); // 👈 aquí ya llegarán pickup_lat & pickup_lng
 }
 
 /* Paseadores disponibles (con/sin filtro por fecha) */
@@ -84,7 +84,8 @@ $usuarioNombre = h(Session::getUsuarioNombre() ?? 'Dueño');
     <!-- CSS base -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
-    <link href="https://unpkg.com/leaflet/dist/leaflet.css" rel="stylesheet" />
+    <!-- Leaflet CSS -->
+    <link href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet" />
     <link href="<?= BASE_URL; ?>/public/assets/css/jaguata-theme.css" rel="stylesheet">
 </head>
 
@@ -205,12 +206,20 @@ $usuarioNombre = h(Session::getUsuarioNombre() ?? 'Dueño');
                                 </select>
                             </div>
 
-                            <!-- Ubicación -->
+                            <!-- Ubicación / punto de recogida -->
                             <div class="col-12">
                                 <label for="ubicacion" class="form-label">Ubicación de recogida <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="ubicacion" name="ubicacion"
-                                    placeholder="Ej.: Asunción, Calle A Nº1234" required>
+                                <input type="text"
+                                    class="form-control"
+                                    id="ubicacion"
+                                    name="ubicacion"
+                                    placeholder="Ej.: Asunción, Calle A Nº1234"
+                                    required>
+
+                                <!-- Campos ocultos para ciudad y coordenadas -->
                                 <input type="hidden" id="ciudad_ubicacion" name="ciudad_ubicacion">
+                                <input type="hidden" id="pickup_lat" name="pickup_lat">
+                                <input type="hidden" id="pickup_lng" name="pickup_lng">
 
                                 <div class="mt-3 d-flex flex-wrap gap-2">
                                     <button type="button" class="btn btn-outline-success btn-sm" id="btnUbicacion">
@@ -222,6 +231,7 @@ $usuarioNombre = h(Session::getUsuarioNombre() ?? 'Dueño');
                                 <div id="mapa" class="mt-3"
                                     style="height: 320px; border-radius: 12px; overflow: hidden; border: 2px solid #dfe3e8;"></div>
                             </div>
+
                         </div>
 
                         <hr class="my-4">
@@ -246,16 +256,48 @@ $usuarioNombre = h(Session::getUsuarioNombre() ?? 'Dueño');
 
     <!-- JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
     <script>
-        // Leaflet
+        // Leaflet: mapa para elegir punto de recogida
         let mapa = L.map('mapa').setView([-25.3, -57.6], 12);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; OpenStreetMap contributors'
         }).addTo(mapa);
         let marcador;
 
-        mapa.on('click', async function(e) {
+        // ✅ Ahora usamos nuestro propio endpoint PHP para evitar CORS
+        async function actualizarDireccionYCiudad(lat, lng) {
+            // Guardar lat/lng para el punto de recogida
+            document.getElementById('pickup_lat').value = lat;
+            document.getElementById('pickup_lng').value = lng;
+
+            // Mostrar lat,lng en el campo de texto (lo podés cambiar luego por la dirección)
+            document.getElementById('ubicacion').value = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+
+            try {
+                const url = '<?= BASE_URL; ?>/api/reverse_geocode.php?lat=' + lat + '&lng=' + lng;
+                const res = await fetch(url);
+                const data = await res.json();
+
+                if (data.error) {
+                    console.error('Error reverse_geocode:', data.error);
+                    return;
+                }
+
+                const address = data.address || {};
+                const ciudad = address.city || address.town || address.village || '';
+
+                document.getElementById('ciudad_ubicacion').value = ciudad;
+                document.getElementById('ciudadDetectada').textContent =
+                    ciudad ? `📍 Ciudad detectada: ${ciudad}` : '';
+            } catch (err) {
+                console.error("Error al obtener ciudad:", err);
+            }
+        }
+
+        mapa.on('click', function(e) {
             const {
                 lat,
                 lng
@@ -263,16 +305,7 @@ $usuarioNombre = h(Session::getUsuarioNombre() ?? 'Dueño');
             if (marcador) mapa.removeLayer(marcador);
             marcador = L.marker([lat, lng]).addTo(mapa).bindPopup("Ubicación seleccionada").openPopup();
 
-            document.getElementById('ubicacion').value = `${lat},${lng}`;
-            try {
-                const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`);
-                const data = await res.json();
-                const ciudad = data.address.city || data.address.town || data.address.village || '';
-                document.getElementById('ciudad_ubicacion').value = ciudad;
-                document.getElementById('ciudadDetectada').textContent = ciudad ? `📍 Ciudad detectada: ${ciudad}` : '';
-            } catch (err) {
-                console.error("Error al obtener ciudad:", err);
-            }
+            actualizarDireccionYCiudad(lat, lng);
         });
 
         document.getElementById('btnUbicacion')?.addEventListener('click', () => {
@@ -285,19 +318,10 @@ $usuarioNombre = h(Session::getUsuarioNombre() ?? 'Dueño');
                     latitude,
                     longitude
                 } = pos.coords;
-                document.getElementById('ubicacion').value = `${latitude},${longitude}`;
                 mapa.setView([latitude, longitude], 16);
                 if (marcador) mapa.removeLayer(marcador);
                 marcador = L.marker([latitude, longitude]).addTo(mapa).bindPopup("Ubicación detectada").openPopup();
-                try {
-                    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`);
-                    const data = await res.json();
-                    const ciudad = data.address.city || data.address.town || data.address.village || '';
-                    document.getElementById('ciudad_ubicacion').value = ciudad;
-                    document.getElementById('ciudadDetectada').textContent = ciudad ? `📍 Ciudad detectada: ${ciudad}` : '';
-                } catch (err) {
-                    console.error("Error al obtener ciudad:", err);
-                }
+                actualizarDireccionYCiudad(latitude, longitude);
             }, err => alert("No se pudo obtener la ubicación: " + err.message));
         });
 

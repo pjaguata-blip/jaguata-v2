@@ -30,10 +30,10 @@ $mascotaController      = new MascotaController();
 $paseoController        = new PaseoController();
 $notificacionController = new NotificacionController();
 
-/* 🐶 Mascotas del dueño (método específico) */
+/* 🐶 Mascotas del dueño */
 $mascotas = $mascotaController->indexByDuenoActual() ?: [];
 
-/* 🚶 Paseos del dueño (consulta ya filtrada en el controlador) */
+/* 🚶 Paseos del dueño (SOLO de este usuario) */
 $paseos = $duenoId > 0 ? ($paseoController->indexByDueno($duenoId) ?: []) : [];
 
 /* 🔔 Notificaciones recientes del dueño */
@@ -42,13 +42,17 @@ $notificaciones = $duenoId > 0 ? ($notificacionController->getRecientes($duenoId
 /* 🧮 Estadísticas */
 $totalMascotas = count($mascotas);
 
-$paseosPendientesArr = array_filter($paseos, function (array $p): bool {
-    $estado = strtolower(trim($p['estado'] ?? ''));
-    return in_array($estado, ['pendiente', 'confirmado', 'en curso'], true);
+$normEstado = static function (?string $s): string {
+    return strtolower(trim((string)$s));
+};
+
+$paseosPendientesArr = array_filter($paseos, function (array $p) use ($normEstado): bool {
+    $estado = $normEstado($p['estado'] ?? '');
+    return in_array($estado, ['pendiente', 'confirmado', 'en_curso'], true);
 });
 
-$paseosCompletadosArr = array_filter($paseos, function (array $p): bool {
-    $estado = strtolower(trim($p['estado'] ?? ''));
+$paseosCompletadosArr = array_filter($paseos, function (array $p) use ($normEstado): bool {
+    $estado = $normEstado($p['estado'] ?? '');
     return $estado === 'completo';
 });
 
@@ -63,7 +67,7 @@ usort($paseos, function (array $a, array $b): int {
 });
 $paseosRecientes = array_slice($paseos, 0, 5);
 
-/* 🐾 Mascotas recientes (para panel lateral) */
+/* 🐾 Mascotas recientes */
 $mascotasRecientes = array_slice($mascotas, 0, 3);
 
 /* Rutas base y nombre usuario para SidebarDueno */
@@ -90,7 +94,6 @@ function h(?string $v): string
     <link href="<?= BASE_URL; ?>/public/assets/css/jaguata-theme.css" rel="stylesheet">
 
     <style>
-        /* Que estire como el dashboard del admin */
         html,
         body {
             height: 100%;
@@ -113,7 +116,6 @@ function h(?string $v): string
             }
         }
 
-        /* Tarjetas tipo dashboard (igual estilo que la captura) */
         .dash-card {
             background: #ffffff;
             border-radius: 18px;
@@ -173,8 +175,6 @@ function h(?string $v): string
     <main class="main-content">
         <div class="py-2">
 
-
-
             <!-- Header -->
             <div class="header-box header-dashboard mb-4">
                 <div>
@@ -184,8 +184,7 @@ function h(?string $v): string
                 <i class="fas fa-dog fa-3x opacity-75"></i>
             </div>
 
-
-            <!-- Métricas (tarjetas como dashboard) -->
+            <!-- Métricas -->
             <div class="row g-3 mb-4">
                 <div class="col-md-3">
                     <div class="dash-card">
@@ -242,9 +241,24 @@ function h(?string $v): string
                                         </thead>
                                         <tbody>
                                             <?php foreach ($paseosRecientes as $p): ?>
+                                                <?php
+                                                // 👇 Tolerante a ambos alias: mascota_nombre / nombre_mascota
+                                                $mascotaNombre   = $p['mascota_nombre']   ?? $p['nombre_mascota']   ?? '-';
+                                                $paseadorNombre  = $p['paseador_nombre']  ?? $p['nombre_paseador']  ?? '-';
+
+                                                $estado = $normEstado($p['estado'] ?? '-');
+                                                $badgeClass = match ($estado) {
+                                                    'pendiente'   => 'bg-warning text-dark',
+                                                    'confirmado',
+                                                    'en_curso'    => 'bg-info text-dark',
+                                                    'completo'    => 'bg-success',
+                                                    'cancelado'   => 'bg-danger',
+                                                    default       => 'bg-secondary',
+                                                };
+                                                ?>
                                                 <tr>
-                                                    <td><?= h($p['mascota_nombre'] ?? '-'); ?></td>
-                                                    <td><?= h($p['paseador_nombre'] ?? '-'); ?></td>
+                                                    <td><?= h($mascotaNombre); ?></td>
+                                                    <td><?= h($paseadorNombre); ?></td>
                                                     <td>
                                                         <?php if (!empty($p['inicio'])): ?>
                                                             <?= date('d/m/Y H:i', strtotime($p['inicio'])); ?>
@@ -252,20 +266,16 @@ function h(?string $v): string
                                                             -
                                                         <?php endif; ?>
                                                     </td>
-                                                    <td><?= isset($p['duracion']) ? (int)$p['duracion'] . ' min' : '-'; ?></td>
-                                                    <td>₲<?= number_format((float)($p['precio_total'] ?? 0), 0, ',', '.'); ?></td>
                                                     <td>
                                                         <?php
-                                                        $estado = strtolower(trim($p['estado'] ?? '-'));
-                                                        $badgeClass = match ($estado) {
-                                                            'pendiente'   => 'bg-warning text-dark',
-                                                            'confirmado',
-                                                            'en curso'    => 'bg-info text-dark',
-                                                            'completo'    => 'bg-success',
-                                                            'cancelado'   => 'bg-danger',
-                                                            default       => 'bg-secondary',
-                                                        };
+                                                        $dur = isset($p['duracion'])
+                                                            ? (int)$p['duracion']
+                                                            : (isset($p['duracion_min']) ? (int)$p['duracion_min'] : 0);
+                                                        echo $dur > 0 ? $dur . ' min' : '-';
                                                         ?>
+                                                    </td>
+                                                    <td>₲<?= number_format((float)($p['precio_total'] ?? 0), 0, ',', '.'); ?></td>
+                                                    <td>
                                                         <span class="badge <?= $badgeClass; ?>">
                                                             <?= ucfirst($estado ?: '-'); ?>
                                                         </span>

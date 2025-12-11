@@ -263,7 +263,9 @@ $h = static function ($v): string {
                                 <tbody>
                                     <?php foreach ($paseos as $p): ?>
                                         <?php
-                                        $estado = $norm($p['estado'] ?? '');
+                                        $estado    = $norm($p['estado'] ?? '');
+                                        $estadoPago = strtolower((string)($p['estado_pago'] ?? ''));
+
                                         $badge  = match ($estado) {
                                             'completo'   => 'success',
                                             'cancelado'  => 'danger',
@@ -271,6 +273,7 @@ $h = static function ($v): string {
                                             'confirmado' => 'primary',
                                             default      => 'warning', // pendiente u otros
                                         };
+
                                         ?>
                                         <tr>
                                             <td>
@@ -297,28 +300,35 @@ $h = static function ($v): string {
                                             </td>
                                             <td class="text-center">
                                                 <div class="btn-group">
-                                                    <!-- 🔍 Botón Ver con el mismo estilo que admin (btn-ver) -->
-                                                    <a href="<?= $baseFeatures; ?>/DetallePaseo.php?paseo_id=<?= (int)($p['paseo_id'] ?? 0); ?>"
+                                                    <!-- 🔍 Ver detalle -->
+                                                    <a href="<?= $baseFeatures; ?>/VerPaseo.php?paseo_id=<?= (int)($p['paseo_id'] ?? 0); ?>"
                                                         class="btn-ver"
-                                                        title="Ver detalles">
+                                                        title="Ver detalles del paseo">
                                                         <i class="fas fa-eye"></i> Ver
                                                     </a>
 
+
                                                     <?php if (in_array($estado, ['pendiente', 'confirmado'], true)): ?>
+                                                        <!-- ❌ Cancelar paseo mientras aún no empezó -->
                                                         <a href="<?= $baseFeatures; ?>/CancelarPaseo.php?id=<?= (int)($p['paseo_id'] ?? 0); ?>"
                                                             class="btn btn-sm btn-accion btn-rechazar"
                                                             onclick="return confirm('¿Cancelar este paseo?')"
                                                             title="Cancelar">
                                                             <i class="fas fa-times"></i>
                                                         </a>
+                                                    <?php endif; ?>
+
+                                                    <?php if ($estado === 'en_curso' && $estadoPago !== 'procesado'): ?>
+                                                        <!-- 💳 Pagar paseo SOLO cuando está EN CURSO y aún no está procesado -->
                                                         <a href="<?= $baseFeatures; ?>/pago_paseo_dueno.php?paseo_id=<?= (int)($p['paseo_id'] ?? 0); ?>"
                                                             class="btn btn-sm btn-accion btn-activar"
-                                                            title="Pagar">
+                                                            title="Pagar paseo">
                                                             <i class="fas fa-wallet"></i>
                                                         </a>
                                                     <?php endif; ?>
                                                 </div>
                                             </td>
+
                                         </tr>
                                     <?php endforeach; ?>
                                 </tbody>

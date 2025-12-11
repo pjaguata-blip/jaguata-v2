@@ -82,6 +82,13 @@ if (!empty($usuario['zona'])) {
     }
 }
 
+/* 💳 Datos de cuenta para recibir transferencias
+   Ajustá los índices según cómo se llamen en tu tabla `usuarios`.
+   Ejemplo: banco_pago / alias_pago / cuenta_pago  */
+$ctaBanco  = $usuario['banco_pago']  ?? ($usuario['banco']  ?? '');
+$ctaAlias  = $usuario['alias_pago']  ?? ($usuario['alias']  ?? '');
+$ctaCuenta = $usuario['cuenta_pago'] ?? ($usuario['cuenta'] ?? '');
+
 /* ===== Disponibilidad ===== */
 $diasSemana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
@@ -339,7 +346,7 @@ $repTotal     = isset($stats['total']) ? (int)$stats['total'] : 0;
                     </div>
                 </div>
 
-                <!-- Columna derecha: zonas + experiencia + disponibilidad -->
+                <!-- Columna derecha: zonas + experiencia + cuenta + disponibilidad -->
                 <div class="col-lg-8">
                     <div class="row g-3">
                         <!-- Zonas de trabajo -->
@@ -378,6 +385,59 @@ $repTotal     = isset($stats['total']) ? (int)$stats['total'] : 0;
                                     <?php else: ?>
                                         <span class="text-muted">No especificada.</span>
                                     <?php endif; ?>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 💳 Datos de cuenta para recibir transferencias -->
+                        <div class="col-12">
+                            <div class="section-card">
+                                <div class="section-header">
+                                    <i class="fas fa-piggy-bank me-2"></i> Datos para recibir transferencias
+                                </div>
+                                <div class="section-body">
+                                    <p class="text-muted small mb-3">
+                                        Estos datos se mostrarán al dueño al momento de pagar tu paseo
+                                        (en la pantalla de pago), para que pueda transferirte correctamente. 💸
+                                    </p>
+
+                                    <form id="formCuenta">
+                                        <div class="row g-3">
+                                            <div class="col-md-4">
+                                                <label class="form-label">Banco</label>
+                                                <input type="text"
+                                                    name="banco"
+                                                    class="form-control"
+                                                    maxlength="100"
+                                                    value="<?= htmlspecialchars($ctaBanco, ENT_QUOTES, 'UTF-8') ?>"
+                                                    placeholder="Ej: Banco Familiar">
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label">Alias / Cuenta</label>
+                                                <input type="text"
+                                                    name="alias"
+                                                    class="form-control"
+                                                    maxlength="120"
+                                                    value="<?= htmlspecialchars($ctaAlias, ENT_QUOTES, 'UTF-8') ?>"
+                                                    placeholder="Alias o número de cuenta">
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label">Número de cuenta (opcional)</label>
+                                                <input type="text"
+                                                    name="cuenta"
+                                                    class="form-control"
+                                                    maxlength="120"
+                                                    value="<?= htmlspecialchars($ctaCuenta, ENT_QUOTES, 'UTF-8') ?>"
+                                                    placeholder="Si es distinto del alias">
+                                            </div>
+                                        </div>
+
+                                        <div class="text-end mt-3">
+                                            <button type="submit" class="btn btn-gradient px-4 py-2">
+                                                <i class="fas fa-save me-2"></i> Guardar datos de cuenta
+                                            </button>
+                                        </div>
+                                    </form>
                                 </div>
                             </div>
                         </div>
@@ -452,9 +512,18 @@ $repTotal     = isset($stats['total']) ? (int)$stats['total'] : 0;
         });
 
         const alerta = document.getElementById('alerta');
-        const form = document.getElementById('formDisponibilidad');
+        const formDisp = document.getElementById('formDisponibilidad');
+        const formCuenta = document.getElementById('formCuenta');
         const PASEADOR_ID = <?= (int)$usuarioId ?>;
 
+        function mostrarAlerta(ok, mensaje) {
+            alerta.className = 'alert ' + (ok ? 'alert-success' : 'alert-danger');
+            alerta.innerHTML = `<i class="fas fa-${ok ? 'check-circle' : 'exclamation-triangle'} me-2"></i>${mensaje}`;
+            alerta.style.display = 'block';
+            setTimeout(() => alerta.style.display = 'none', 2500);
+        }
+
+        // ====== DISPONIBILIDAD ======
         // Habilitar / deshabilitar filas según checkbox
         document.querySelectorAll('.toggle-dia').forEach(toggle => {
             toggle.addEventListener('change', e => {
@@ -486,7 +555,7 @@ $repTotal     = isset($stats['total']) ? (int)$stats['total'] : 0;
         });
 
         // Guardar disponibilidad vía API
-        form.addEventListener('submit', async (e) => {
+        formDisp.addEventListener('submit', async (e) => {
             e.preventDefault();
 
             const disponibilidad = [];
@@ -530,17 +599,44 @@ $repTotal     = isset($stats['total']) ? (int)$stats['total'] : 0;
                     };
                 }
 
-                alerta.className = 'alert ' + (data.ok ? 'alert-success' : 'alert-danger');
-                alerta.innerHTML = `<i class="fas fa-${data.ok ? 'check-circle' : 'exclamation-triangle'} me-2"></i>${data.mensaje || ''}`;
-                alerta.style.display = 'block';
-                setTimeout(() => alerta.style.display = 'none', 2500);
+                mostrarAlerta(!!data.ok, data.mensaje || 'Error al guardar la disponibilidad.');
 
             } catch (err) {
                 console.error(err);
-                alerta.className = 'alert alert-danger';
-                alerta.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i>Error al guardar la disponibilidad.';
-                alerta.style.display = 'block';
-                setTimeout(() => alerta.style.display = 'none', 2500);
+                mostrarAlerta(false, 'Error al guardar la disponibilidad.');
+            }
+        });
+
+        // ====== CUENTA PARA TRANSFERENCIAS ======
+        formCuenta.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const formData = new FormData(formCuenta);
+            const payload = {
+                banco: formData.get('banco') || '',
+                alias: formData.get('alias') || '',
+                cuenta: formData.get('cuenta') || ''
+            };
+
+            try {
+                const resp = await fetch('<?= BASE_URL ?>/public/api/paseador/guardarCuentaPago.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await resp.json().catch(() => ({
+                    ok: false,
+                    mensaje: 'Respuesta inválida del servidor'
+                }));
+
+                mostrarAlerta(!!data.ok, data.mensaje || 'Error al guardar los datos de cuenta.');
+
+            } catch (err) {
+                console.error(err);
+                mostrarAlerta(false, 'Error al guardar los datos de cuenta.');
             }
         });
     </script>

@@ -303,4 +303,57 @@ class PagoController
             return null;
         }
     }
+    /**
+     * ✅ Lista pagos del dueño (usuario_id en pagos = dueño)
+     * Trae también info del paseo + mascotas (incluye 2 mascotas)
+     */
+    public function listarPagosDueno(int $duenoId): array
+    {
+        if ($duenoId <= 0) return [];
+
+        try {
+            $sql = "
+                SELECT
+                    pg.id,
+                    pg.paseo_id,
+                    pg.usuario_id,
+                    pg.metodo,
+                    pg.banco,
+                    pg.cuenta,
+                    pg.alias,
+                    pg.referencia,
+                    pg.monto,
+                    pg.estado,
+                    pg.observacion,
+                    pg.comprobante,
+                    pg.created_at,
+                    pg.updated_at,
+
+                    p.inicio,
+                    p.duracion,
+                    p.cantidad_mascotas,
+                    p.mascota_id,
+                    p.mascota_id_2,
+
+                    m1.nombre AS mascota_nombre_1,
+                    m2.nombre AS mascota_nombre_2
+
+                FROM pagos pg
+                INNER JOIN paseos p ON p.paseo_id = pg.paseo_id
+                LEFT JOIN mascotas m1 ON m1.mascota_id = p.mascota_id
+                LEFT JOIN mascotas m2 ON m2.mascota_id = p.mascota_id_2
+
+                WHERE pg.usuario_id = :dueno_id
+                ORDER BY pg.created_at DESC
+            ";
+
+            $st = $this->db->prepare($sql);
+            $st->execute([':dueno_id' => $duenoId]);
+
+            return $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        } catch (PDOException $e) {
+            error_log('PagoController::listarPagosDueno error: ' . $e->getMessage());
+            return [];
+        }
+    }
 }

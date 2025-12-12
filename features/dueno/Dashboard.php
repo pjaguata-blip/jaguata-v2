@@ -72,7 +72,7 @@ $mascotasRecientes = array_slice($mascotas, 0, 3);
 
 /* Rutas base y nombre usuario para SidebarDueno */
 $baseFeatures   = BASE_URL . "/features/dueno";
-$usuarioNombre  = htmlspecialchars(Session::getUsuarioNombre() ?? 'Dueño/a', ENT_QUOTES, 'UTF-8');
+$usuarioNombre  = Session::getUsuarioNombre() ?? 'Dueño/a';
 
 /* Helper de escape rápido */
 function h(?string $v): string
@@ -159,6 +159,11 @@ function h(?string $v): string
         .icon-red {
             color: #dc3545;
         }
+
+        /* (Opcional) que el badge se vea más “Jaguata” */
+        .badge-2masc {
+            background: var(--verde-jaguata, #3c6255);
+        }
     </style>
 </head>
 
@@ -231,7 +236,7 @@ function h(?string $v): string
                                     <table class="table table-hover align-middle text-center mb-0">
                                         <thead>
                                             <tr>
-                                                <th>Mascota</th>
+                                                <th>Mascota(s)</th>
                                                 <th>Paseador</th>
                                                 <th>Inicio</th>
                                                 <th>Duración</th>
@@ -242,10 +247,21 @@ function h(?string $v): string
                                         <tbody>
                                             <?php foreach ($paseosRecientes as $p): ?>
                                                 <?php
-                                                // 👇 Tolerante a ambos alias: mascota_nombre / nombre_mascota
-                                                $mascotaNombre   = $p['mascota_nombre']   ?? $p['nombre_mascota']   ?? '-';
+                                                // Mascotas (soporta 1 o 2)
+                                                $mascota1 = $p['mascota_nombre'] ?? $p['nombre_mascota'] ?? '-';
+                                                $mascota2 = $p['mascota_nombre_2'] ?? $p['nombre_mascota_2'] ?? null;
+
+                                                $cantMasc = (int)($p['cantidad_mascotas'] ?? 1);
+                                                $hay2     = $cantMasc === 2 || !empty($p['mascota_id_2']) || !empty($mascota2);
+
+                                                $textoMascotas = ($hay2 && $mascota2)
+                                                    ? ($mascota1 . ' + ' . $mascota2)
+                                                    : $mascota1;
+
+                                                // Paseador
                                                 $paseadorNombre  = $p['paseador_nombre']  ?? $p['nombre_paseador']  ?? '-';
 
+                                                // Estado
                                                 $estado = $normEstado($p['estado'] ?? '-');
                                                 $badgeClass = match ($estado) {
                                                     'pendiente'   => 'bg-warning text-dark',
@@ -255,10 +271,22 @@ function h(?string $v): string
                                                     'cancelado'   => 'bg-danger',
                                                     default       => 'bg-secondary',
                                                 };
+
+                                                // Duración
+                                                $dur = isset($p['duracion'])
+                                                    ? (int)$p['duracion']
+                                                    : (isset($p['duracion_min']) ? (int)$p['duracion_min'] : 0);
                                                 ?>
                                                 <tr>
-                                                    <td><?= h($mascotaNombre); ?></td>
+                                                    <td>
+                                                        <?= h($textoMascotas); ?>
+                                                        <?php if ($hay2): ?>
+                                                            <span class="badge badge-2masc ms-2">2 🐾</span>
+                                                        <?php endif; ?>
+                                                    </td>
+
                                                     <td><?= h($paseadorNombre); ?></td>
+
                                                     <td>
                                                         <?php if (!empty($p['inicio'])): ?>
                                                             <?= date('d/m/Y H:i', strtotime($p['inicio'])); ?>
@@ -266,15 +294,11 @@ function h(?string $v): string
                                                             -
                                                         <?php endif; ?>
                                                     </td>
-                                                    <td>
-                                                        <?php
-                                                        $dur = isset($p['duracion'])
-                                                            ? (int)$p['duracion']
-                                                            : (isset($p['duracion_min']) ? (int)$p['duracion_min'] : 0);
-                                                        echo $dur > 0 ? $dur . ' min' : '-';
-                                                        ?>
-                                                    </td>
+
+                                                    <td><?= $dur > 0 ? h((string)$dur) . ' min' : '-'; ?></td>
+
                                                     <td>₲<?= number_format((float)($p['precio_total'] ?? 0), 0, ',', '.'); ?></td>
+
                                                     <td>
                                                         <span class="badge <?= $badgeClass; ?>">
                                                             <?= ucfirst($estado ?: '-'); ?>

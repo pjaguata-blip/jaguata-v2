@@ -79,7 +79,7 @@ $currentFile   = basename($_SERVER['PHP_SELF']);
                 </li>
 
                 <!-- PAGOS -->
-                <?php $filesPagos = ['GastosTotales.php', 'Pagos.php', 'Comprobante_pago.php']; ?>
+                <?php $filesPagos = ['GastosTotales.php', 'Pagos.php']; ?>
                 <li class="nav-item">
                     <button class="nav-link w-100 text-start d-flex justify-content-between align-items-center <?= in_array($currentFile, $filesPagos) ? 'active' : '' ?>"
                         data-bs-toggle="collapse" data-bs-target="#menuPagos"
@@ -97,10 +97,7 @@ $currentFile   = basename($_SERVER['PHP_SELF']);
                             href="<?= $baseFeatures; ?>/Pagos.php">
                             Pagos
                         </a>
-                        <a class="nav-link ps-5 <?= ($currentFile === 'Comprobante_pago.php') ? 'active' : '' ?>"
-                            href="<?= $baseFeatures; ?>/Comprobante_pago.php">
-                            Comprobante de Pago
-                        </a>
+
                     </div>
                 </li>
 

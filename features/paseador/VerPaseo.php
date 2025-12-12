@@ -40,7 +40,7 @@ if ($id <= 0) {
 
 // 🔹 Cargar datos reales del paseo (vista paseador)
 $paseoController = new PaseoController();
-$paseo = $paseoController->show($id);   // joins con mascota/dueño/paseador
+$paseo = $paseoController->show($id);
 
 if (!$paseo) {
     die('<h3 style="color:red;text-align:center;">No se encontró el paseo solicitado.</h3>');
@@ -53,9 +53,21 @@ if ((int)($paseo['paseador_id'] ?? 0) !== $paseadorIdSesion) {
 }
 
 // =========================
+// Datos mascotas (1 y 2)
+// =========================
+$cantidadMascotas = (int)($paseo['cantidad_mascotas'] ?? 1);
+
+$mascota1Nombre = $paseo['mascota_nombre'] ?? $paseo['nombre_mascota'] ?? '-';
+$mascota1Foto   = $paseo['mascota_foto'] ?? null;
+
+$mascota2Nombre = $paseo['mascota2_nombre'] ?? $paseo['nombre_mascota_2'] ?? null;
+$mascota2Foto   = $paseo['mascota2_foto'] ?? $paseo['mascota_foto_2'] ?? null;
+
+$hayMascota2 = ($cantidadMascotas === 2) || (!empty($paseo['mascota_id_2'])) || (!empty($mascota2Nombre));
+
+// =========================
 // Normalización / datos base
 // =========================
-$mascotaNombre  = $paseo['mascota_nombre']  ?? $paseo['nombre_mascota'] ?? '-';
 $paseadorNombre = $paseo['paseador_nombre'] ?? $paseo['nombre_paseador'] ?? '-';
 $duenoNombre    = $paseo['dueno_nombre']    ?? $paseo['nombre_dueno'] ?? '-';
 
@@ -95,10 +107,8 @@ $paseoId = (int)($paseo['paseo_id'] ?? $id);
 // =========================
 // DUEÑO ID (CRÍTICO PARA FK)
 // =========================
-// 1) Intento directo desde show()
 $duenoId = (int)($paseo['dueno_id'] ?? 0);
 
-// 2) Fallback SQL si no viene en show()
 if ($duenoId <= 0) {
     $db = DatabaseService::getInstance()->getConnection();
     $st = $db->prepare("
@@ -115,11 +125,9 @@ if ($duenoId <= 0) {
 // =========================
 // Calificación del paseador
 // =========================
-// Nota: tu BD exige rated_id -> usuarios.usu_id
 $califModel = new Calificacion();
 $yaCalifico = $califModel->existeParaPaseo($paseoId, 'mascota', $paseadorIdSesion);
 
-// Solo permitir si paseo finalizado y duenoId válido
 $puedeCalificar = $duenoId > 0 && in_array($estado, ['completo', 'finalizado'], true) && !$yaCalifico;
 
 // =========================
@@ -127,6 +135,11 @@ $puedeCalificar = $duenoId > 0 && in_array($estado, ['completo', 'finalizado'], 
 // =========================
 $baseUrl = AppConfig::getBaseUrl();
 $backUrl = $baseUrl . "/features/paseador/MisPaseos.php";
+
+// Fotos (si no hay, placeholder)
+$placeholderDog = $baseUrl . "/public/assets/images/dog-placeholder.png";
+$foto1 = $mascota1Foto ? $baseUrl . "/" . ltrim((string)$mascota1Foto, '/') : $placeholderDog;
+$foto2 = ($hayMascota2 && $mascota2Foto) ? $baseUrl . "/" . ltrim((string)$mascota2Foto, '/') : $placeholderDog;
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -178,6 +191,24 @@ $backUrl = $baseUrl . "/features/paseador/MisPaseos.php";
             margin-bottom: .2rem;
         }
 
+        .pet-chip {
+            display: flex;
+            align-items: center;
+            gap: .75rem;
+            padding: .6rem .75rem;
+            border: 1px solid rgba(0, 0, 0, .08);
+            border-radius: .85rem;
+            background: #fff;
+        }
+
+        .pet-chip img {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid rgba(0, 0, 0, .08);
+        }
+
         main {
             margin-left: 260px;
             padding: 1.5rem 1.5rem 2rem;
@@ -204,6 +235,7 @@ $backUrl = $baseUrl . "/features/paseador/MisPaseos.php";
                     paseo_id=<?= (int)$paseoId ?> |
                     paseador_sesion=<?= (int)$paseadorIdSesion ?> |
                     dueno_id=<?= (int)$duenoId ?> |
+                    cantidad_mascotas=<?= (int)$cantidadMascotas ?> |
                     estado="<?= h($estado) ?>"
                 </div>
             <?php endif; ?>
@@ -215,16 +247,19 @@ $backUrl = $baseUrl . "/features/paseador/MisPaseos.php";
                 </div>
                 <div class="d-flex flex-column align-items-end gap-2">
                     <i class="fas fa-map-location-dot fa-3x opacity-75"></i>
-                    <a href="#map" class="btn btn-sm btn-outline-light">
-                        <i class="fas fa-map"></i> Ver mapa
-                    </a>
                 </div>
             </div>
 
-            <div class="mb-3">
+            <div class="mb-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
                 <a href="<?= h($backUrl) ?>" class="btn-volver">
                     <i class="fas fa-arrow-left"></i> Volver a mis paseos
                 </a>
+
+                <?php if ($hayMascota2): ?>
+                    <span class="badge bg-success px-3 py-2">
+                        <i class="fas fa-dog me-1"></i> 2 mascotas
+                    </span>
+                <?php endif; ?>
             </div>
 
             <div class="row g-3">
@@ -235,40 +270,69 @@ $backUrl = $baseUrl . "/features/paseador/MisPaseos.php";
                         </div>
                         <div class="card-body">
                             <div class="row g-3">
-                                <div class="col-md-6">
-                                    <p class="info-label">Mascota:</p>
-                                    <p><?= h($mascotaNombre) ?></p>
+
+                                <!-- ✅ Mascotas (1 y 2) -->
+                                <div class="col-12">
+                                    <p class="info-label">Mascotas:</p>
+
+                                    <div class="d-flex flex-column gap-2">
+                                        <div class="pet-chip">
+                                            <img src="<?= h($foto1) ?>" alt="Mascota 1">
+                                            <div class="flex-grow-1">
+                                                <div class="fw-semibold"><?= h((string)$mascota1Nombre) ?></div>
+                                                <div class="text-muted small">Mascota 1</div>
+                                            </div>
+                                        </div>
+
+                                        <?php if ($hayMascota2): ?>
+                                            <div class="pet-chip">
+                                                <img src="<?= h($foto2) ?>" alt="Mascota 2">
+                                                <div class="flex-grow-1">
+                                                    <div class="fw-semibold"><?= h((string)($mascota2Nombre ?: 'Mascota 2')) ?></div>
+                                                    <div class="text-muted small">Mascota 2</div>
+                                                </div>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
                                 </div>
+
                                 <div class="col-md-6">
                                     <p class="info-label">Dueño:</p>
                                     <p><?= h($duenoNombre) ?></p>
                                 </div>
+
                                 <div class="col-md-6">
                                     <p class="info-label">Paseador:</p>
                                     <p><?= h($paseadorNombre) ?></p>
                                 </div>
+
                                 <div class="col-md-6">
                                     <p class="info-label">Duración:</p>
                                     <p><?= (int)$duracionMin ?> minutos</p>
                                 </div>
+
                                 <div class="col-md-6">
                                     <p class="info-label">Monto:</p>
                                     <p>₲<?= number_format((float)$monto, 0, ',', '.') ?></p>
                                 </div>
+
                                 <div class="col-md-6">
                                     <p class="info-label">Estado:</p>
                                     <span class="badge <?= $badgeClass ?>">
                                         <?= h(ucfirst(str_replace('_', ' ', $estado))) ?>
                                     </span>
                                 </div>
+
                                 <div class="col-md-6">
                                     <p class="info-label">Fecha de inicio:</p>
                                     <p><?= $inicio ? h(date('d/m/Y H:i', strtotime($inicio))) : '-' ?></p>
                                 </div>
+
                                 <div class="col-md-6">
                                     <p class="info-label">Última actualización:</p>
                                     <p><?= $updatedAt ? h(date('d/m/Y H:i', strtotime($updatedAt))) : 'Sin cambios' ?></p>
                                 </div>
+
                                 <div class="col-12">
                                     <p class="info-label">Dirección:</p>
                                     <p><?= h($direccion) ?></p>
@@ -336,7 +400,6 @@ $backUrl = $baseUrl . "/features/paseador/MisPaseos.php";
                                         No se puede calificar (dueño inválido o estado no permitido).
                                     </span>
                                 <?php endif; ?>
-
                             <?php else: ?>
                                 <span class="text-muted">No hay acciones disponibles para este estado.</span>
                             <?php endif; ?>
@@ -375,7 +438,6 @@ $backUrl = $baseUrl . "/features/paseador/MisPaseos.php";
 
                     <div class="modal-body">
                         <input type="hidden" name="paseo_id" value="<?= (int)$paseoId; ?>">
-                        <!-- CLAVE: rated_id debe ser USUARIO (dueño) -->
                         <input type="hidden" name="rated_id" value="<?= (int)$duenoId; ?>">
 
                         <div class="mb-2 small text-muted">
@@ -413,10 +475,10 @@ $backUrl = $baseUrl . "/features/paseador/MisPaseos.php";
         </div>
     </div>
 
-    <!-- Bootstrap bundle (una sola vez) -->
+    <!-- Bootstrap bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
-    <!-- Sidebar toggle (si tu template tiene btnSidebarToggle/backdrop) -->
+    <!-- Sidebar toggle -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const sidebar = document.querySelector('.sidebar');
@@ -439,7 +501,6 @@ $backUrl = $baseUrl . "/features/paseador/MisPaseos.php";
 
     <!-- Mapa + tracking + envío calificación -->
     <script>
-        // === Datos para el mapa ===
         const pickupLat = <?= $pickupLat !== null ? (float)$pickupLat : 'null' ?>;
         const pickupLng = <?= $pickupLng !== null ? (float)$pickupLng : 'null' ?>;
         const rutaCoords = <?= json_encode($rutaCoords, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
@@ -493,7 +554,6 @@ $backUrl = $baseUrl . "/features/paseador/MisPaseos.php";
             }
         }
 
-        // Tracking si está EN CURSO
         const estadoActual = "<?= h($estado) ?>";
         const paseoIdJs = <?= (int)$paseoId ?>;
 
@@ -519,18 +579,11 @@ $backUrl = $baseUrl . "/features/paseador/MisPaseos.php";
             );
         }
 
-        // Envío AJAX de la calificación (paseador → dueño, tipo 'mascota')
         const formCalificarMascota = document.getElementById('formCalificarMascota');
         if (formCalificarMascota) {
             formCalificarMascota.addEventListener('submit', async (e) => {
                 e.preventDefault();
-
                 const formData = new FormData(formCalificarMascota);
-
-                // Debug en consola
-                <?php if ($debug): ?>
-                    console.log("POST calificación:", Object.fromEntries(formData.entries()));
-                <?php endif; ?>
 
                 try {
                     const resp = await fetch('<?= $baseUrl; ?>/public/api/calificar_mascota.php', {

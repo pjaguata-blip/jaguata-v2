@@ -31,18 +31,20 @@ try {
 
     // 🔹 Pago + paseo + dueño + paseador (para validar permisos)
     $sql = "
-        SELECT 
-            pg.id,
-            pg.paseo_id,
-            pg.comprobante,
-            pg.usuario_id AS usuario_id_en_pago,   -- quien figura en pagos (según tu diseño)
-            p.paseador_id,
-            p.dueno_id
-        FROM pagos pg
-        INNER JOIN paseos p ON p.paseo_id = pg.paseo_id
-        WHERE pg.id = :id
-        LIMIT 1
-    ";
+    SELECT 
+        pg.id,
+        pg.paseo_id,
+        pg.comprobante,
+        pg.usuario_id AS usuario_id_en_pago,
+        p.paseador_id,
+        m.dueno_id
+    FROM pagos pg
+    INNER JOIN paseos p   ON p.paseo_id = pg.paseo_id
+    INNER JOIN mascotas m ON m.mascota_id = p.mascota_id
+    WHERE pg.id = :id
+    LIMIT 1
+";
+
 
     $stmt = $db->prepare($sql);
     $stmt->execute([':id' => $pagoId]);

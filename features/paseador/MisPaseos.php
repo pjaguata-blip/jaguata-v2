@@ -27,15 +27,13 @@ $estadosValidos = ['solicitado', 'confirmado', 'en_curso', 'completo', 'cancelad
 $estadoFiltro   = strtolower(trim((string)($_GET['estado'] ?? '')));
 
 if ($estadoFiltro !== '' && in_array($estadoFiltro, $estadosValidos, true)) {
-    $paseos = array_values(
-        array_filter(
-            $paseos,
-            fn($p) => strtolower($p['estado']) === $estadoFiltro
-        )
-    );
+    $paseos = array_values(array_filter(
+        $paseos,
+        fn($p) => strtolower((string)($p['estado'] ?? '')) === $estadoFiltro
+    ));
 }
 
-$by = fn($s) => array_filter($paseos, fn($p) => strtolower(trim((string)$p['estado'])) === $s);
+$by = fn($s) => array_filter($paseos, fn($p) => strtolower(trim((string)($p['estado'] ?? ''))) === $s);
 
 $totalPaseos       = count($paseos);
 $paseosPendientes  = count($by('solicitado')) + count($by('confirmado'));
@@ -46,8 +44,6 @@ $ingresosTotales   = array_reduce(
     fn($a, $p) => $a + (float)($p['precio_total'] ?? 0),
     0
 );
-
-
 
 // Para links base
 $rolMenu      = Session::getUsuarioRol() ?: 'paseador';
@@ -76,14 +72,11 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
     </button>
 
     <div class="layout">
-        <!-- Sidebar unificado del paseador -->
         <?php include __DIR__ . '/../../src/Templates/SidebarPaseador.php'; ?>
 
-        <!-- Contenido principal -->
         <main class="content bg-light">
             <div class="container-fluid py-1">
 
-                <!-- Header con estilo global -->
                 <div class="header-box header-dashboard mb-4">
                     <div>
                         <h1 class="h4 mb-1">
@@ -98,39 +91,37 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
                     </a>
                 </div>
 
-                <!-- Cards de estadísticas -->
                 <div class="row g-3 mb-4">
                     <div class="col-xl-3 col-md-6">
                         <div class="stat-card text-center">
                             <i class="fas fa-list text-success mb-2"></i>
-                            <h4><?= $totalPaseos ?></h4>
+                            <h4><?= (int)$totalPaseos ?></h4>
                             <p class="mb-0">Total de paseos</p>
                         </div>
                     </div>
                     <div class="col-xl-3 col-md-6">
                         <div class="stat-card text-center">
                             <i class="fas fa-hourglass-half text-warning mb-2"></i>
-                            <h4><?= $paseosPendientes ?></h4>
+                            <h4><?= (int)$paseosPendientes ?></h4>
                             <p class="mb-0">Pendientes / confirmados</p>
                         </div>
                     </div>
                     <div class="col-xl-3 col-md-6">
                         <div class="stat-card text-center">
                             <i class="fas fa-check-circle text-primary mb-2"></i>
-                            <h4><?= $paseosCompletados ?></h4>
+                            <h4><?= (int)$paseosCompletados ?></h4>
                             <p class="mb-0">Completados</p>
                         </div>
                     </div>
                     <div class="col-xl-3 col-md-6">
                         <div class="stat-card text-center">
                             <i class="fas fa-wallet text-info mb-2"></i>
-                            <h4>₲<?= number_format($ingresosTotales, 0, ',', '.') ?></h4>
+                            <h4>₲<?= number_format((float)$ingresosTotales, 0, ',', '.') ?></h4>
                             <p class="mb-0">Ingresos totales</p>
                         </div>
                     </div>
                 </div>
 
-                <!-- Botón exportar -->
                 <div class="d-flex justify-content-end mb-3">
                     <button class="btn btn-success d-flex align-items-center gap-2"
                         onclick="window.location.href='<?= BASE_URL; ?>/public/api/paseos/exportarPaseosPaseador.php'">
@@ -138,7 +129,6 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
                     </button>
                 </div>
 
-                <!-- Filtros -->
                 <div class="card jag-card shadow-sm mb-4">
                     <div class="card-header bg-success text-white">
                         <i class="fas fa-filter me-2"></i>Filtros
@@ -172,13 +162,7 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
                     </div>
                 </div>
 
-                <!-- Tabla de paseos -->
-                <?php
-                // DEBUG: ver qué trae el back
-                // (luego BORRÁS esto)
-                echo '<!-- CANTIDAD PASEOS: ' . count($paseos) . " -->\n";
-                // echo '<pre>'; print_r($paseos); echo '</pre>';
-                ?>
+                <?php echo '<!-- CANTIDAD PASEOS: ' . count($paseos) . " -->\n"; ?>
 
                 <?php if (empty($paseos)): ?>
                     <div class="text-center py-5">
@@ -206,15 +190,10 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
                                     </thead>
                                     <tbody>
                                         <?php foreach ($paseos as $p):
-
-                                            // 🔹 Normalizamos el estado:
-                                            //  - si viene NULL o vacío => lo tratamos como 'solicitado'
                                             $estadoRaw = trim((string)($p['estado'] ?? ''));
                                             $estado    = strtolower($estadoRaw !== '' ? $estadoRaw : 'solicitado');
+                                            $paseoId   = (int)($p['paseo_id'] ?? 0);
 
-                                            $paseoId   = (int)$p['paseo_id'];
-
-                                            // 🔹 Badge segun estado (usando tus enums reales)
                                             $badge = match ($estado) {
                                                 'completo'   => 'success',
                                                 'cancelado'  => 'danger',
@@ -224,24 +203,35 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
                                                 default      => 'secondary'
                                             };
 
-                                            // 🔹 Estados en los que el paseador puede "aceptar / rechazar"
                                             $esSolicitado = ($estado === 'solicitado');
+
+                                            $nombre1 = (string)($p['mascota_nombre'] ?? $p['nombre_mascota'] ?? '');
+                                            $nombre2 = (string)($p['mascota2_nombre'] ?? $p['nombre_mascota_2'] ?? '');
                                         ?>
                                             <tr data-estado="<?= h($estado) ?>">
-                                                <td><?= h($p['mascota_nombre'] ?? $p['nombre_mascota'] ?? '') ?></td>
+                                                <td>
+                                                    <div class="fw-semibold"><?= h($nombre1) ?></div>
+                                                    <?php if ($nombre2 !== ''): ?>
+                                                        <div class="text-muted small">+ <?= h($nombre2) ?></div>
+                                                        <span class="badge bg-success mt-1">2 mascotas</span>
+                                                    <?php endif; ?>
+                                                </td>
+
                                                 <td><?= h($p['dueno_nombre'] ?? $p['nombre_dueno'] ?? '') ?></td>
+
                                                 <td>
                                                     <strong><?= isset($p['inicio']) ? date('d/m/Y', strtotime($p['inicio'])) : '—' ?></strong><br>
                                                     <small><?= isset($p['inicio']) ? date('H:i', strtotime($p['inicio'])) : '—' ?></small>
                                                 </td>
+
                                                 <td><?= h($p['duracion'] ?? $p['duracion_min'] ?? '') ?> min</td>
+
                                                 <td>
                                                     <span class="badge bg-<?= $badge ?>">
                                                         <?= ucfirst(str_replace('_', ' ', $estado ?: '—')) ?>
                                                     </span>
-                                                    <!-- DEBUG opcional: ver lo que viene crudo de la BD -->
-                                                    <!-- <br><small class="text-muted">[<?= h($estadoRaw) ?>]</small> -->
                                                 </td>
+
                                                 <td>
                                                     <?php if (($p['estado_pago'] ?? '') === 'procesado'): ?>
                                                         <span class="text-success">Pagado</span>
@@ -251,17 +241,16 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
                                                         <span class="text-muted">—</span>
                                                     <?php endif; ?>
                                                 </td>
+
                                                 <td>
                                                     <div class="btn-group">
-                                                        <!-- 👁 Ver paseo (detalle + mapa en la misma pantalla) -->
                                                         <a href="VerPaseo.php?id=<?= $paseoId ?>"
                                                             class="btn btn-sm btn-outline-primary"
                                                             title="Ver detalle y ruta del paseo">
-                                                            <i class="fas fa-route"></i> <!-- icono combinado -->
+                                                            <i class="fas fa-route"></i>
                                                         </a>
 
                                                         <?php if ($esSolicitado): ?>
-                                                            <!-- 🟡 solicitado → confirmar / cancelar -->
                                                             <form action="AccionPaseo.php" method="post" class="d-inline">
                                                                 <input type="hidden" name="id" value="<?= $paseoId ?>">
                                                                 <input type="hidden" name="accion" value="confirmar">
@@ -279,7 +268,6 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
                                                             </form>
 
                                                         <?php elseif ($estado === 'confirmado'): ?>
-                                                            <!-- 🔵 confirmado → iniciar / cancelar -->
                                                             <a href="AccionPaseo.php?id=<?= $paseoId ?>&accion=iniciar"
                                                                 class="btn btn-sm btn-outline-success"
                                                                 title="Iniciar paseo"
@@ -295,7 +283,6 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
                                                             </a>
 
                                                         <?php elseif ($estado === 'en_curso'): ?>
-                                                            <!-- 🔵 en_curso → completar / cancelar -->
                                                             <a href="AccionPaseo.php?id=<?= $paseoId ?>&accion=completar"
                                                                 class="btn btn-sm btn-outline-success"
                                                                 title="Completar paseo"
@@ -309,19 +296,12 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
                                                                 onclick="return confirm('¿Cancelar este paseo en curso?');">
                                                                 <i class="fas fa-times"></i>
                                                             </a>
-
-                                                        <?php else: ?>
-                                                            <!-- completo / cancelado → solo ver -->
                                                         <?php endif; ?>
                                                     </div>
                                                 </td>
-
-
                                             </tr>
                                         <?php endforeach; ?>
                                     </tbody>
-
-
 
                                 </table>
                             </div>
@@ -338,20 +318,15 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Toggle sidebar en mobile
         document.getElementById('toggleSidebar')?.addEventListener('click', function() {
             document.getElementById('sidebar')?.classList.toggle('sidebar-open');
         });
 
-        // Pequeño helper para recargar con filtro de estado
         function aplicarFiltroEstado() {
             const estado = document.getElementById('filterEstado')?.value || '';
             const url = new URL(window.location.href);
-            if (estado) {
-                url.searchParams.set('estado', estado);
-            } else {
-                url.searchParams.delete('estado');
-            }
+            if (estado) url.searchParams.set('estado', estado);
+            else url.searchParams.delete('estado');
             window.location.href = url.toString();
         }
     </script>

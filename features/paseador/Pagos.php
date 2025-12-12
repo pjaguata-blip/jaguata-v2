@@ -287,11 +287,12 @@ $totalPaseos    = count($pagos);
                                                 </td>
                                                 <td>
                                                     <?php if ($tieneComprobante): ?>
-                                                        <a href="<?= BASE_URL ?>/public/api/pagos/comprobantePago.php?pago_id=<?= (int)$row['pago_id'] ?>"
+                                                        <a href="<?= BASE_URL; ?>/public/api/pagos/comprobantePago.php?pago_id=<?= (int)($row['id'] ?? 0) ?>"
                                                             class="btn btn-sm btn-outline-primary"
                                                             target="_blank" rel="noopener">
                                                             <i class="fas fa-file-pdf me-1"></i> Ver
                                                         </a>
+
                                                     <?php else: ?>
                                                         <span class="text-muted small">—</span>
 

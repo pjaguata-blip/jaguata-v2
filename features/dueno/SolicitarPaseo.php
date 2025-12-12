@@ -45,7 +45,7 @@ $ciudadSeleccionada      = strtolower(trim((string)($_POST['ciudad_ubicacion'] ?
 
 /* Crear reserva */
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $paseoController->store(); // 👈 aquí ya llegarán pickup_lat & pickup_lng
+    $paseoController->store();
 }
 
 /* Paseadores disponibles (con/sin filtro por fecha) */
@@ -72,6 +72,7 @@ function h(?string $v): string
 $rolMenu       = Session::getUsuarioRol() ?: 'dueno';
 $baseFeatures  = BASE_URL . "/features/{$rolMenu}";
 $usuarioNombre = h(Session::getUsuarioNombre() ?? 'Dueño');
+
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -95,7 +96,7 @@ $usuarioNombre = h(Session::getUsuarioNombre() ?? 'Dueño');
 
     <!-- Contenido -->
     <main>
-        <div class="py-4"><!-- mismo padding que MiPerfil / Configuración -->
+        <div class="py-4">
 
             <!-- Header unificado -->
             <div class="header-box header-paseos mb-4 d-flex justify-content-between align-items-center">
@@ -129,7 +130,7 @@ $usuarioNombre = h(Session::getUsuarioNombre() ?? 'Dueño');
                 <?php unset($_SESSION['error']); ?>
             <?php endif; ?>
 
-            <!-- Bloque principal usando section-card -->
+            <!-- Bloque principal -->
             <div class="section-card">
                 <div class="section-header">
                     <i class="fas fa-dog me-2"></i>Información del paseo
@@ -138,10 +139,13 @@ $usuarioNombre = h(Session::getUsuarioNombre() ?? 'Dueño');
                 <div class="section-body">
                     <form method="POST" novalidate>
                         <div class="row g-4">
-                            <!-- Mascota -->
+
+                            <!-- Mascota 1 -->
                             <div class="col-md-6">
-                                <label for="mascota_id" class="form-label">Mascota <span class="text-danger">*</span></label>
-                                <select class="form-select" id="mascota_id" name="mascota_id" required>
+                                <label for="mascota_id_1" class="form-label">
+                                    Mascota 1 <span class="text-danger">*</span>
+                                </label>
+                                <select class="form-select" id="mascota_id_1" name="mascota_id_1" required>
                                     <option value="">Seleccionar mascota</option>
                                     <?php foreach ($mascotas as $m): ?>
                                         <?php $idM = (int)($m['mascota_id'] ?? $m['id'] ?? 0); ?>
@@ -153,6 +157,26 @@ $usuarioNombre = h(Session::getUsuarioNombre() ?? 'Dueño');
                                         </option>
                                     <?php endforeach; ?>
                                 </select>
+                            </div>
+
+                            <!-- Mascota 2 (opcional) -->
+                            <div class="col-md-6">
+                                <label for="mascota_id_2" class="form-label">
+                                    Mascota 2 <small class="text-muted">(opcional — hasta 2 por paseo)</small>
+                                </label>
+                                <select class="form-select" id="mascota_id_2" name="mascota_id_2">
+                                    <option value="">No agregar segunda mascota</option>
+                                    <?php foreach ($mascotas as $m): ?>
+                                        <?php $idM = (int)($m['mascota_id'] ?? $m['id'] ?? 0); ?>
+                                        <option value="<?= $idM ?>">
+                                            <?= h($m['nombre'] ?? '') ?>
+                                            <?php if (!empty($m['tamano'])): ?>
+                                                (<?= ucfirst(h((string)$m['tamano'])) ?>)
+                                            <?php endif; ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <small class="text-muted d-block mt-1" id="msgMascota2"></small>
                             </div>
 
                             <!-- Paseador -->
@@ -206,6 +230,29 @@ $usuarioNombre = h(Session::getUsuarioNombre() ?? 'Dueño');
                                 </select>
                             </div>
 
+                            <!-- Total estimado -->
+                            <div class="col-12">
+                                <div class="p-3 rounded-3" style="background:#f4f6f9;border:1px solid #dee2e6;">
+                                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                                        <div>
+                                            <div class="fw-semibold">
+                                                <i class="fas fa-receipt me-2"></i>Total estimado
+                                            </div>
+                                            <small class="text-muted">
+                                                Si elegís 2 mascotas, se aplica 30% de descuento.
+                                            </small>
+                                        </div>
+
+                                        <div class="text-end">
+                                            <div class="h4 mb-0" id="totalEstimado">₲0</div>
+                                            <small class="text-muted" id="detalleTotal"></small>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <input type="hidden" id="total_estimado" name="total_estimado" value="0">
+                            </div>
+
                             <!-- Ubicación / punto de recogida -->
                             <div class="col-12">
                                 <label for="ubicacion" class="form-label">Ubicación de recogida <span class="text-danger">*</span></label>
@@ -216,7 +263,7 @@ $usuarioNombre = h(Session::getUsuarioNombre() ?? 'Dueño');
                                     placeholder="Ej.: Asunción, Calle A Nº1234"
                                     required>
 
-                                <!-- Campos ocultos para ciudad y coordenadas -->
+                                <!-- Campos ocultos -->
                                 <input type="hidden" id="ciudad_ubicacion" name="ciudad_ubicacion">
                                 <input type="hidden" id="pickup_lat" name="pickup_lat">
                                 <input type="hidden" id="pickup_lng" name="pickup_lng">
@@ -256,7 +303,6 @@ $usuarioNombre = h(Session::getUsuarioNombre() ?? 'Dueño');
 
     <!-- JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <script>
@@ -267,13 +313,10 @@ $usuarioNombre = h(Session::getUsuarioNombre() ?? 'Dueño');
         }).addTo(mapa);
         let marcador;
 
-        // ✅ Ahora usamos nuestro propio endpoint PHP para evitar CORS
         async function actualizarDireccionYCiudad(lat, lng) {
-            // Guardar lat/lng para el punto de recogida
             document.getElementById('pickup_lat').value = lat;
             document.getElementById('pickup_lng').value = lng;
 
-            // Mostrar lat,lng en el campo de texto (lo podés cambiar luego por la dirección)
             document.getElementById('ubicacion').value = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
 
             try {
@@ -304,7 +347,6 @@ $usuarioNombre = h(Session::getUsuarioNombre() ?? 'Dueño');
             } = e.latlng;
             if (marcador) mapa.removeLayer(marcador);
             marcador = L.marker([lat, lng]).addTo(mapa).bindPopup("Ubicación seleccionada").openPopup();
-
             actualizarDireccionYCiudad(lat, lng);
         });
 
@@ -333,6 +375,101 @@ $usuarioNombre = h(Session::getUsuarioNombre() ?? 'Dueño');
             const inicio = document.getElementById('inicio');
             inicio.min = formatted;
             inicio.value = formatted;
+        });
+
+        // ==========================
+        // Mascotas: no permitir repetir
+        // ==========================
+        function syncMascotas() {
+            const m1 = document.getElementById('mascota_id_1');
+            const m2 = document.getElementById('mascota_id_2');
+            const msg = document.getElementById('msgMascota2');
+            if (!m1 || !m2) return;
+
+            const val1 = m1.value;
+
+            // reset disabled
+            [...m2.options].forEach(opt => opt.disabled = false);
+
+            // deshabilitar en Mascota 2 la elegida en Mascota 1
+            if (val1) {
+                [...m2.options].forEach(opt => {
+                    if (opt.value === val1) opt.disabled = true;
+                });
+            }
+
+            // si eran iguales -> limpiar m2
+            if (m2.value && val1 && m2.value === val1) {
+                m2.value = '';
+                msg.textContent = '⚠️ No podés seleccionar la misma mascota dos veces.';
+            } else {
+                msg.textContent = '';
+            }
+        }
+
+        // ==========================
+        // Total estimado con descuento
+        // ==========================
+        function formatGs(n) {
+            const v = Math.max(0, Math.round(Number(n) || 0));
+            return '₲' + v.toLocaleString('es-PY');
+        }
+
+        function getPrecioHora() {
+            const sel = document.getElementById('paseador_id');
+            const opt = sel?.selectedOptions?.[0];
+            const precio = opt ? Number(opt.dataset.precio || 0) : 0;
+            return isFinite(precio) ? precio : 0;
+        }
+
+        function getDuracionMin() {
+            return Number(document.getElementById('duracion')?.value || 0) || 0;
+        }
+
+        function getCantidadMascotas() {
+            const m1 = Number(document.getElementById('mascota_id_1')?.value || 0) || 0;
+            const m2 = Number(document.getElementById('mascota_id_2')?.value || 0) || 0;
+            let cant = 0;
+            if (m1 > 0) cant++;
+            if (m2 > 0) cant++;
+            return cant;
+        }
+
+        function recalcularTotal() {
+            const precioHora = getPrecioHora();
+            const durMin = getDuracionMin();
+            const cant = getCantidadMascotas();
+            const horas = durMin > 0 ? (durMin / 60) : 0;
+
+            let total = 0;
+            let detalle = '';
+
+            if (cant === 2) {
+                total = (precioHora * 2) * horas * 0.70;
+                detalle = `${formatGs(precioHora)} x ${horas.toFixed(2)}h x 2 mascotas -30%`;
+            } else if (cant === 1) {
+                total = precioHora * horas;
+                detalle = `${formatGs(precioHora)} x ${horas.toFixed(2)}h`;
+            } else {
+                total = 0;
+                detalle = 'Seleccioná al menos una mascota.';
+            }
+
+            document.getElementById('totalEstimado').textContent = formatGs(total);
+            document.getElementById('detalleTotal').textContent = detalle;
+            document.getElementById('total_estimado').value = String(Math.round(total));
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            ['mascota_id_1', 'mascota_id_2', 'paseador_id', 'duracion'].forEach(id => {
+                document.getElementById(id)?.addEventListener('change', () => {
+                    syncMascotas();
+                    recalcularTotal();
+                });
+            });
+
+            syncMascotas();
+            recalcularTotal();
         });
     </script>
 </body>

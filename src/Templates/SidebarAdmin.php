@@ -10,10 +10,24 @@ $baseFeatures  = BASE_URL . "/features/{$rolUsuario}";
 $currentFile   = basename($_SERVER['PHP_SELF']);
 ?>
 
-<aside class="sidebar">
+<!-- ✅ TOPBAR MOBILE -->
+<div class="topbar-mobile d-lg-none">
+    <div class="d-flex align-items-center gap-2 fw-semibold">
+        <i class="fas fa-paw"></i> Jaguata
+    </div>
+    <button id="toggleSidebar" aria-label="Abrir menú">
+        <i class="fas fa-bars"></i>
+    </button>
+</div>
+
+<!-- ✅ OVERLAY -->
+<div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+<aside id="sidebar" class="sidebar">
     <div class="sidebar-inner">
-        <!-- HEADER DEL SIDEBAR -->
-        <div class="text-center px-3 mb-3">
+
+        <!-- HEADER -->
+        <div class="text-center px-3 mb-3 pt-3">
             <img src="<?= ASSETS_URL; ?>/uploads/perfiles/logojag.png"
                 alt="Jaguata"
                 width="70"
@@ -27,9 +41,10 @@ $currentFile   = basename($_SERVER['PHP_SELF']);
             <hr class="text-secondary opacity-50 w-100">
         </div>
 
-        <!-- MENÚ CON SCROLL -->
+        <!-- MENU SCROLL -->
         <div class="sidebar-menu-scroll">
             <ul class="nav nav-pills flex-column mb-auto px-2" id="sidebarMenu">
+
                 <li class="nav-item">
                     <a href="<?= $baseFeatures; ?>/Dashboard.php"
                         class="nav-link <?= $currentFile === 'Dashboard.php' ? 'active' : '' ?>">
@@ -54,10 +69,9 @@ $currentFile   = basename($_SERVER['PHP_SELF']);
                 <li class="nav-item">
                     <a href="<?= $baseFeatures; ?>/Paseos.php"
                         class="nav-link <?= $currentFile === 'Paseos.php' ? 'active' : '' ?>">
-                        <i class="fas fa-dog me-2"></i>Paseos
+                        <i class="fas fa-walking me-2"></i>Paseos
                     </a>
                 </li>
-
 
                 <li class="nav-item">
                     <a href="<?= $baseFeatures; ?>/Pagos.php"
@@ -72,13 +86,14 @@ $currentFile   = basename($_SERVER['PHP_SELF']);
                         <i class="fas fa-bell me-2"></i>Notificaciones
                     </a>
                 </li>
+
                 <li class="nav-item">
-                    <a href="<?= BASE_URL ?>/features/admin/ReporteGanancias.php"
+                    <a href="<?= $baseFeatures; ?>/ReporteGanancias.php"
                         class="nav-link <?= $currentFile === 'ReporteGanancias.php' ? 'active' : '' ?>">
-                        <i class="fas fa-chart-pie me-2"></i>
-                        <span>Reporte de Ganancias</span>
+                        <i class="fas fa-chart-pie me-2"></i>Reporte de Ganancias
                     </a>
                 </li>
+
                 <li class="nav-item">
                     <a href="<?= $baseFeatures; ?>/Auditoria.php"
                         class="nav-link <?= $currentFile === 'Auditoria.php' ? 'active' : '' ?>">
@@ -100,7 +115,43 @@ $currentFile   = basename($_SERVER['PHP_SELF']);
                         <i class="fas fa-sign-out-alt me-2"></i>Cerrar Sesión
                     </a>
                 </li>
+
             </ul>
         </div>
     </div>
 </aside>
+
+<!-- ✅ JS Sidebar UNIFICADO -->
+<script>
+    (function() {
+        const sidebar = document.getElementById('sidebar');
+        const backdrop = document.getElementById('sidebarBackdrop');
+        const btn = document.getElementById('toggleSidebar');
+
+        if (!sidebar || !backdrop || !btn) return;
+
+        const open = () => {
+            sidebar.classList.add('sidebar-open');
+            backdrop.classList.add('show');
+            document.body.style.overflow = 'hidden';
+        };
+
+        const close = () => {
+            sidebar.classList.remove('sidebar-open');
+            backdrop.classList.remove('show');
+            document.body.style.overflow = '';
+        };
+
+        btn.addEventListener('click', () => {
+            sidebar.classList.contains('sidebar-open') ? close() : open();
+        });
+
+        backdrop.addEventListener('click', close);
+
+        sidebar.addEventListener('click', (e) => {
+            const a = e.target.closest('a.nav-link');
+            if (!a) return;
+            if (window.matchMedia('(max-width: 992px)').matches) close();
+        });
+    })();
+</script>

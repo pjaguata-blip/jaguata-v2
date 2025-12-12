@@ -167,4 +167,13 @@ class Paseador extends BaseModel
             return [];
         }
     }
+    public function updatePrecioHora(int $paseadorId, float $precioHora): bool
+    {
+        $sql = "UPDATE paseadores SET precio_hora = :precio_hora WHERE paseador_id = :id";
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute([
+            ':precio_hora' => $precioHora,
+            ':id'          => $paseadorId
+        ]);
+    }
 }

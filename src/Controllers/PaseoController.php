@@ -51,50 +51,63 @@ class PaseoController
         }
 
         $sql = "
-            SELECT 
-                p.paseo_id,
-                p.mascota_id,
-                p.paseador_id,
-                p.inicio,
-                p.duracion,
-                p.ubicacion,
-                p.pickup_lat,
-                p.pickup_lng,
-                p.estado,
-                p.precio_total,
-                p.estado_pago,
-                p.puntos_ganados,
-                p.created_at,
-                p.updated_at,
+        SELECT 
+            p.paseo_id,
+            p.mascota_id,
+            p.paseador_id,
+            p.inicio,
+            p.duracion,
+            p.ubicacion,
+            p.pickup_lat,
+            p.pickup_lng,
+            p.estado,
+            p.precio_total,
+            p.estado_pago,
+            p.puntos_ganados,
+            p.created_at,
+            p.updated_at,
 
-                -- 🔹 Datos de la mascota y dueño
-                m.nombre      AS mascota_nombre,
-                m.foto_url    AS mascota_foto,
-                d.nombre      AS dueno_nombre,
-                d.telefono    AS dueno_telefono,
-                d.ciudad      AS dueno_ciudad,
-                d.barrio      AS dueno_barrio,
+            -- 🔹 Datos de la mascota y dueño
+            m.nombre      AS mascota_nombre,
+            m.foto_url    AS mascota_foto,
+            d.nombre      AS dueno_nombre,
+            d.telefono    AS dueno_telefono,
+            d.ciudad      AS dueno_ciudad,
+            d.barrio      AS dueno_barrio,
 
-                -- 🔹 Datos del pago (si existe)
-                pg.id         AS pago_id,
-                pg.comprobante AS comprobante_archivo,
-                pg.estado     AS pago_estado
+            -- 🔹 Datos del pago (si existe)
+            pg.id          AS pago_id,
+            pg.comprobante AS comprobante_archivo,
+            pg.estado      AS pago_estado,
 
-            FROM paseos p
-            INNER JOIN mascotas m ON m.mascota_id = p.mascota_id
-            INNER JOIN usuarios d ON d.usu_id     = m.dueno_id
-            LEFT JOIN pagos pg 
-                ON pg.paseo_id = p.paseo_id
-                AND pg.estado IN ('confirmado_por_dueno','confirmado_por_admin','pagado','procesado')
+            -- ⭐ Calificación recibida por el paseador (dueño → paseador)
+            c.calificacion AS calificacion,
+            c.comentario   AS calificacion_comentario,
+            c.created_at   AS calificacion_fecha
 
-            WHERE p.paseador_id = :paseador_id
-            ORDER BY p.inicio DESC
-        ";
+        FROM paseos p
+        INNER JOIN mascotas m ON m.mascota_id = p.mascota_id
+        INNER JOIN usuarios d ON d.usu_id     = m.dueno_id
+
+        LEFT JOIN pagos pg 
+            ON pg.paseo_id = p.paseo_id
+            AND pg.estado IN ('confirmado_por_dueno','confirmado_por_admin','pagado','procesado')
+
+        -- ✅ Traer calificación del dueño al paseador
+        LEFT JOIN calificaciones c
+            ON c.paseo_id = p.paseo_id
+           AND c.tipo     = 'paseador'
+           AND c.rated_id = p.paseador_id
+
+        WHERE p.paseador_id = :paseador_id
+        ORDER BY p.inicio DESC
+    ";
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute([':paseador_id' => $paseadorId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
+
 
     /**
      * 🔹 Listar paseos de un dueño

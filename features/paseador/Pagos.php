@@ -36,39 +36,15 @@ function h($v): string
     return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
 }
 
-// === Construir array de pagos a partir de paseos ===
-$pagos = [];
-foreach ($paseos as $p) {
-    $estadoPagoRaw = strtolower($p['estado_pago'] ?? '');
-    // En tu sistema estás usando "procesado" como pagado
-    $estadoPago = in_array($estadoPagoRaw, ['procesado', 'pagado'], true)
-        ? 'pagado'
-        : 'pendiente';
-
-    $pagos[] = [
-        'id'       => (int)($p['paseo_id'] ?? 0),
-        'pago_id'  => isset($p['pago_id']) ? (int)$p['pago_id'] : null,
-        'paseo'    => 'Paseo de ' . ($p['mascota_nombre'] ?? $p['nombre_mascota'] ?? 'Mascota'),
-        'monto'    => (float)($p['precio_total'] ?? 0),
-        'fecha'    => $p['inicio'] ?? null,
-        'estado'   => $estadoPago,
-    ];
-}
-
-// === Totales ===
-$totalPagado    = array_sum(array_map(fn($p) => $p['estado'] === 'pagado' ? (float)$p['monto'] : 0, $pagos));
-$totalPendiente = array_sum(array_map(fn($p) => $p['estado'] === 'pendiente' ? (float)$p['monto'] : 0, $pagos));
-$totalPaseos    = count($pagos);
-
 // === Filtro por fecha (para ganancias) ===
 $fechaInicio = $_GET['fecha_inicio'] ?? '';
 $fechaFin    = $_GET['fecha_fin'] ?? '';
 
 $paseosCompletados = array_filter($paseos, function ($p) use ($fechaInicio, $fechaFin) {
-    $estado = strtolower($p['estado'] ?? '');
-    $fecha  = isset($p['inicio']) ? date('Y-m-d', strtotime($p['inicio'])) : null;
+    $estado = strtolower((string)($p['estado'] ?? ''));
+    $fecha  = !empty($p['inicio']) ? date('Y-m-d', strtotime((string)$p['inicio'])) : null;
 
-    if (!$fecha || !in_array($estado, ['completo', 'finalizado'], true)) {
+    if (!$fecha || !in_array($estado, ['completo', 'finalizado', 'completado'], true)) {
         return false;
     }
     if ($fechaInicio && $fecha < $fechaInicio) {
@@ -84,6 +60,35 @@ $paseosCompletados = array_filter($paseos, function ($p) use ($fechaInicio, $fec
 $gananciasTotales = array_sum(
     array_map(fn($p) => (float)($p['precio_total'] ?? 0), $paseosCompletados)
 );
+
+// === Construir array de pagos a partir de paseos ===
+$pagos = [];
+foreach ($paseos as $p) {
+    $estadoPagoRaw = strtolower((string)($p['estado_pago'] ?? ''));
+
+    // En tu sistema estás usando "procesado" como pagado
+    $estadoPago = in_array($estadoPagoRaw, ['procesado', 'pagado'], true)
+        ? 'pagado'
+        : 'pendiente';
+
+    // IMPORTANTE: esto depende de que indexForPaseador() traiga pago_id
+    $pagoId = isset($p['pago_id']) && (int)$p['pago_id'] > 0 ? (int)$p['pago_id'] : null;
+
+    $pagos[] = [
+        'id'       => (int)($p['paseo_id'] ?? 0),
+        'pago_id'  => $pagoId,
+        'paseo'    => 'Paseo de ' . ($p['mascota_nombre'] ?? $p['nombre_mascota'] ?? 'Mascota'),
+        'monto'    => (float)($p['precio_total'] ?? 0),
+        'fecha'    => $p['inicio'] ?? null,
+        'estado'   => $estadoPago,
+    ];
+}
+
+// === Totales (arriba) ===
+$totalPagado    = array_sum(array_map(fn($x) => $x['estado'] === 'pagado' ? (float)$x['monto'] : 0, $pagos));
+$totalPendiente = array_sum(array_map(fn($x) => $x['estado'] === 'pendiente' ? (float)$x['monto'] : 0, $pagos));
+$totalPaseos    = count($pagos);
+
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -93,12 +98,12 @@ $gananciasTotales = array_sum(
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pagos y Ganancias - Paseador | Jaguata</title>
 
-    <!-- 🌿 Tema general Jaguata -->
-    <link href="<?= ASSETS_URL; ?>/css/jaguata-theme.css" rel="stylesheet">
-
     <!-- Bootstrap & FontAwesome -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+
+    <!-- 🌿 Tema general Jaguata (ponelo después de bootstrap para que pise estilos) -->
+    <link href="<?= ASSETS_URL; ?>/css/jaguata-theme.css" rel="stylesheet">
 </head>
 
 <body>
@@ -108,15 +113,15 @@ $gananciasTotales = array_sum(
     </button>
 
     <div class="layout">
-        <!-- Sidebar paseador unificado -->
+        <!-- Sidebar paseador -->
         <?php include __DIR__ . '/../../src/Templates/SidebarPaseador.php'; ?>
 
         <!-- Contenido principal -->
         <main class="content bg-light">
-            <div class="container-fluid py-4">
+            <div class="container-fluid py-1">
 
-                <!-- Header con estilo global -->
-                <div class="header-box header-dashboard mb-4">
+                <!-- Header -->
+                <div class="header-box header-dashboard mb-1">
                     <div>
                         <h1 class="h4 mb-1">
                             <i class="fas fa-wallet me-2"></i> Pagos y ganancias
@@ -130,7 +135,7 @@ $gananciasTotales = array_sum(
                     </a>
                 </div>
 
-                <!-- Totales (usa estilo tipo stat-card) -->
+                <!-- Totales -->
                 <div class="row g-3 mb-4">
                     <div class="col-md-4">
                         <div class="stat-card text-center">
@@ -149,59 +154,61 @@ $gananciasTotales = array_sum(
                     <div class="col-md-4">
                         <div class="stat-card text-center">
                             <i class="fas fa-list text-info mb-2"></i>
-                            <h4><?= $totalPaseos ?></h4>
+                            <h4><?= (int)$totalPaseos ?></h4>
                             <p class="mb-0">Total de paseos</p>
                         </div>
                     </div>
                 </div>
 
-                <!-- Bloque: Ganancias -->
-                <div class="card jag-card shadow-sm mb-4">
-                    <div class="card-header bg-success text-white fw-semibold">
-                        <i class="fas fa-coins me-2"></i> Mis ganancias
-                    </div>
-                    <div class="card-body">
+                <!-- ✅ MIS GANANCIAS (estirado) -->
+                <div class="section-card section-full mb-4">
+                    <div class="section-header">
+                        <div class="title">
+                            <i class="fas fa-coins"></i>
+                            <span>Mis ganancias</span>
+                        </div>
 
-                        <!-- Filtros de fecha -->
-                        <form method="get" class="row g-3 mb-3">
+                        <?php if (!empty($paseosCompletados)): ?>
+                            <a href="<?= BASE_URL ?>/public/api/pagos/exportarGananciasPaseador.php?fecha_inicio=<?= urlencode((string)$fechaInicio) ?>&fecha_fin=<?= urlencode((string)$fechaFin) ?>"
+                                class="btn btn-light btn-sm fw-semibold">
+                                <i class="fas fa-file-excel me-1 text-success"></i> Exportar Excel
+                            </a>
+                        <?php endif; ?>
+                    </div>
+
+                    <div class="section-body">
+
+                        <!-- Filtros -->
+                        <form method="get" class="row g-3 align-items-end mb-3">
                             <div class="col-md-4">
-                                <label class="form-label">Desde</label>
-                                <input type="date" name="fecha_inicio" class="form-control"
-                                    value="<?= h($fechaInicio) ?>">
+                                <label class="form-label fw-semibold">Desde</label>
+                                <input type="date" name="fecha_inicio" class="form-control" value="<?= h($fechaInicio) ?>">
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">Hasta</label>
-                                <input type="date" name="fecha_fin" class="form-control"
-                                    value="<?= h($fechaFin) ?>">
+                                <label class="form-label fw-semibold">Hasta</label>
+                                <input type="date" name="fecha_fin" class="form-control" value="<?= h($fechaFin) ?>">
                             </div>
-                            <div class="col-md-4 d-flex align-items-end gap-2">
-                                <button type="submit" class="btn btn-success">
+                            <div class="col-md-4 d-flex gap-2">
+                                <button type="submit" class="btn btn-success flex-grow-1">
                                     <i class="fas fa-filter me-1"></i> Filtrar
                                 </button>
                                 <a href="Pagos.php" class="btn btn-outline-secondary">
-                                    Quitar filtro
+                                    Quitar
                                 </a>
                             </div>
                         </form>
 
-                        <!-- Botón Exportar Excel (API externa) -->
-                        <?php if (!empty($paseosCompletados)): ?>
-                            <div class="d-flex justify-content-end mb-3">
-                                <a href="<?= BASE_URL ?>/public/api/pagos/exportarGananciasPaseador.php?fecha_inicio=<?= urlencode($fechaInicio) ?>&fecha_fin=<?= urlencode($fechaFin) ?>"
-                                    class="btn btn-success d-flex align-items-center gap-2">
-                                    <i class="fas fa-file-excel"></i> Exportar Excel
-                                </a>
+                        <!-- Total del período -->
+                        <div class="ganancias-total-box mb-3">
+                            <div class="ganancias-total-label">
+                                Ganancias en el período seleccionado
                             </div>
-                        <?php endif; ?>
-
-                        <!-- Total Ganancias -->
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h5 class="mb-0 fw-semibold">Ganancias en el período seleccionado:</h5>
-                            <h4 class="mb-0 text-success">
+                            <div class="ganancias-total-value">
                                 ₲<?= number_format($gananciasTotales, 0, ',', '.') ?>
-                            </h4>
+                            </div>
                         </div>
 
+                        <!-- Tabla ganancias -->
                         <?php if (empty($paseosCompletados)): ?>
                             <div class="alert alert-info text-center mb-0">
                                 No hay paseos completados en el período seleccionado.
@@ -209,7 +216,7 @@ $gananciasTotales = array_sum(
                         <?php else: ?>
                             <div class="table-responsive">
                                 <table class="table table-hover align-middle text-center">
-                                    <thead class="table-light">
+                                    <thead>
                                         <tr>
                                             <th>Mascota</th>
                                             <th>Fecha</th>
@@ -217,12 +224,12 @@ $gananciasTotales = array_sum(
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <?php foreach ($paseosCompletados as $p): ?>
+                                        <?php foreach ($paseosCompletados as $pp): ?>
                                             <tr>
-                                                <td><?= h($p['mascota_nombre'] ?? $p['nombre_mascota'] ?? '-') ?></td>
-                                                <td><?= $p['inicio'] ? date('d/m/Y H:i', strtotime($p['inicio'])) : '—' ?></td>
+                                                <td><?= h($pp['mascota_nombre'] ?? $pp['nombre_mascota'] ?? '-') ?></td>
+                                                <td><?= !empty($pp['inicio']) ? date('d/m/Y H:i', strtotime((string)$pp['inicio'])) : '—' ?></td>
                                                 <td class="fw-semibold text-success">
-                                                    ₲<?= number_format((float)($p['precio_total'] ?? 0), 0, ',', '.') ?>
+                                                    ₲<?= number_format((float)($pp['precio_total'] ?? 0), 0, ',', '.') ?>
                                                 </td>
                                             </tr>
                                         <?php endforeach; ?>
@@ -230,6 +237,7 @@ $gananciasTotales = array_sum(
                                 </table>
                             </div>
                         <?php endif; ?>
+
                     </div>
                 </div>
 
@@ -238,6 +246,7 @@ $gananciasTotales = array_sum(
                     <div class="card-header bg-success text-white fw-semibold">
                         <i class="fas fa-list me-2"></i> Historial de pagos
                     </div>
+
                     <div class="card-body">
                         <?php if (empty($pagos)): ?>
                             <p class="text-center text-muted mb-0">
@@ -257,34 +266,40 @@ $gananciasTotales = array_sum(
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <?php foreach ($pagos as $p): ?>
+                                        <?php foreach ($pagos as $row): ?>
                                             <?php
-                                            $badgeColor       = $p['estado'] === 'pagado'
+                                            $badgeColor = $row['estado'] === 'pagado'
                                                 ? 'bg-success'
                                                 : 'bg-warning text-dark';
-                                            $tieneComprobante = $p['estado'] === 'pagado' && !empty($p['pago_id']);
 
+                                            // ✅ solo muestra "Ver" si está pagado y hay pago_id real
+                                            $tieneComprobante = ($row['estado'] === 'pagado') && !empty($row['pago_id']);
                                             ?>
                                             <tr>
-                                                <td>#<?= (int)$p['id'] ?></td>
-                                                <td><?= h($p['paseo']) ?></td>
-                                                <td>₲<?= number_format($p['monto'], 0, ',', '.') ?></td>
-                                                <td><?= $p['fecha'] ? date('d/m/Y', strtotime($p['fecha'])) : '—' ?></td>
+                                                <td>#<?= (int)$row['id'] ?></td>
+                                                <td><?= h($row['paseo']) ?></td>
+                                                <td>₲<?= number_format((float)$row['monto'], 0, ',', '.') ?></td>
+                                                <td><?= !empty($row['fecha']) ? date('d/m/Y', strtotime((string)$row['fecha'])) : '—' ?></td>
                                                 <td>
                                                     <span class="badge <?= $badgeColor ?>">
-                                                        <?= ucfirst($p['estado']) ?>
+                                                        <?= ucfirst((string)$row['estado']) ?>
                                                     </span>
                                                 </td>
                                                 <td>
                                                     <?php if ($tieneComprobante): ?>
-                                                        <a href="<?= BASE_URL ?>/public/api/pagos/comprobantePago.php?pago_id=<?= (int)$p['pago_id'] ?>"
+                                                        <a href="<?= BASE_URL ?>/public/api/pagos/comprobantePago.php?pago_id=<?= (int)$row['pago_id'] ?>"
                                                             class="btn btn-sm btn-outline-primary"
-                                                            target="_blank">
+                                                            target="_blank" rel="noopener">
                                                             <i class="fas fa-file-pdf me-1"></i> Ver
                                                         </a>
-
                                                     <?php else: ?>
                                                         <span class="text-muted small">—</span>
+
+                                                        <!-- DEBUG (si no aparece "Ver", descomentá para ver qué trae) -->
+                                                        <!-- <div class="small text-muted">
+                                                            pago_id=<?= h((string)($row['pago_id'] ?? 'NULL')) ?> |
+                                                            estado=<?= h((string)($row['estado'] ?? '')) ?>
+                                                        </div> -->
                                                     <?php endif; ?>
                                                 </td>
                                             </tr>
@@ -296,9 +311,10 @@ $gananciasTotales = array_sum(
                     </div>
                 </div>
 
-                <footer class="text-center text-muted small mt-4">
+                <footer class="text-center text-muted small mt-1">
                     &copy; <?= date('Y'); ?> Jaguata — Panel de Paseador.
                 </footer>
+
             </div>
         </main>
     </div>

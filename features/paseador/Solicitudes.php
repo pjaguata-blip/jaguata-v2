@@ -63,7 +63,7 @@ function h($v): string
 
         <!-- Contenido -->
         <main class="content bg-light">
-            <div class="container-fluid py-4">
+            <div class="container-fluid py-1">
 
                 <!-- Header usando estilos globales -->
                 <div class="header-box header-dashboard mb-4">

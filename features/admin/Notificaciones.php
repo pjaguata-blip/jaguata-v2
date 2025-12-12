@@ -73,6 +73,50 @@ function labelDestino(string $rol): string
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
     <link href="<?= BASE_URL; ?>/public/assets/css/jaguata-theme.css" rel="stylesheet">
+
+    <style>
+        /* ✅ Modal “estirado” y con estética Jaguata */
+        .modal-jaguata .modal-content {
+            border-radius: 18px;
+            border: 0;
+            overflow: hidden;
+            box-shadow: 0 18px 45px rgba(0, 0, 0, .15);
+        }
+
+        .modal-jaguata .modal-header {
+            background: var(--verde-jaguata, #3c6255);
+            color: #fff;
+            border: 0;
+        }
+
+        .modal-jaguata .modal-title {
+            font-weight: 700;
+        }
+
+        .modal-jaguata .modal-body {
+            background: #fff;
+        }
+
+        .modal-jaguata .meta-pill {
+            display: inline-flex;
+            gap: .5rem;
+            align-items: center;
+            padding: .35rem .65rem;
+            border-radius: 999px;
+            background: rgba(32, 201, 151, .12);
+            color: var(--verde-jaguata, #3c6255);
+            font-weight: 600;
+            font-size: .85rem;
+        }
+
+        .modal-jaguata .mensaje-box {
+            background: var(--gris-fondo, #f4f6f9);
+            border-radius: 14px;
+            padding: 14px 16px;
+            white-space: pre-wrap;
+            line-height: 1.5;
+        }
+    </style>
 </head>
 
 <body>
@@ -82,14 +126,13 @@ function labelDestino(string $rol): string
     <main>
         <div class="container-fluid px-3 px-md-4">
 
-            <!-- HEADER (unificado con otros módulos admin) -->
+            <!-- HEADER -->
             <div class="header-box header-notificaciones mb-3">
                 <div>
                     <h1 class="fw-bold mb-1">Centro de Notificaciones</h1>
                     <p class="mb-0">Envía avisos, recordatorios y promociones a los usuarios 🔔</p>
                 </div>
                 <div class="d-flex align-items-center gap-2">
-                    <!-- Toggle sidebar en móvil -->
                     <button class="btn btn-light d-lg-none" id="btnSidebarToggle" type="button">
                         <i class="fas fa-bars"></i>
                     </button>
@@ -129,7 +172,7 @@ function labelDestino(string $rol): string
                 <?php endforeach; ?>
             </div>
 
-            <!-- FILTROS (buscador + estado) -->
+            <!-- FILTROS -->
             <div class="filtros mb-4">
                 <form class="row g-3 align-items-end">
                     <div class="col-md-6">
@@ -179,7 +222,6 @@ function labelDestino(string $rol): string
                                 placeholder="Escribe el contenido del aviso..." required></textarea>
                         </div>
 
-                        <!-- Opcionales: tipo / prioridad / canal -->
                         <div class="row mb-3">
                             <div class="col-md-4">
                                 <label class="form-label fw-semibold">Tipo</label>
@@ -214,7 +256,7 @@ function labelDestino(string $rol): string
                 </div>
             </div>
 
-            <!-- HISTORIAL DE NOTIFICACIONES -->
+            <!-- HISTORIAL -->
             <div class="section-card mb-3">
                 <div class="section-header d-flex align-items-center">
                     <i class="fas fa-history me-2"></i>
@@ -259,13 +301,8 @@ function labelDestino(string $rol): string
                                         <tr class="fade-in-row"
                                             data-estado="<?= htmlspecialchars($estado, ENT_QUOTES, 'UTF-8'); ?>">
 
-                                            <!-- ID unificado: # + negrita y centrado -->
                                             <td class="text-center">
-                                                <?php if ($id > 0): ?>
-                                                    <strong>#<?= $id; ?></strong>
-                                                <?php else: ?>
-                                                    -
-                                                <?php endif; ?>
+                                                <?= $id > 0 ? "<strong>#{$id}</strong>" : '-' ?>
                                             </td>
 
                                             <td><?= htmlspecialchars($titulo); ?></td>
@@ -286,7 +323,6 @@ function labelDestino(string $rol): string
                                                     data-mensaje="<?= htmlspecialchars($mensaje, ENT_QUOTES, 'UTF-8'); ?>">
                                                     <i class="fas fa-eye"></i> Ver
                                                 </button>
-
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
@@ -304,12 +340,47 @@ function labelDestino(string $rol): string
             <footer class="mt-3">
                 <small>© <?= date('Y') ?> Jaguata — Panel de Administración</small>
             </footer>
-        </div><!-- /.container-fluid -->
+        </div>
     </main>
 
+    <!-- ✅ MODAL VER NOTIFICACIÓN (ANTES de cerrar body) -->
+    <div class="modal fade modal-jaguata" id="verNotiModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div>
+                        <h5 class="modal-title mb-0">
+                            <i class="fas fa-eye me-2"></i>
+                            <span id="notiTitulo">Notificación</span>
+                        </h5>
+                        <div class="mt-2">
+                            <span class="meta-pill">
+                                <i class="fas fa-users"></i>
+                                <span id="notiDestinatario">—</span>
+                            </span>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="mensaje-box" id="notiMensaje">—</div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                        Cerrar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
     <script>
-        // === Toggle sidebar en mobile (igual que otros módulos) ===
+        // Toggle sidebar en mobile
         document.addEventListener('DOMContentLoaded', () => {
             const sidebar = document.querySelector('.sidebar');
             const btnToggle = document.getElementById('btnSidebarToggle');
@@ -321,7 +392,7 @@ function labelDestino(string $rol): string
             }
         });
 
-        // === Filtros dinámicos ===
+        // Filtros dinámicos
         const searchInput = document.getElementById('searchInput');
         const filterEstado = document.getElementById('filterEstado');
         const rows = document.querySelectorAll('#tablaNotificaciones tbody tr');
@@ -348,7 +419,7 @@ function labelDestino(string $rol): string
             el.addEventListener('change', aplicarFiltros);
         });
 
-        // === Modal detalle ===
+        // ✅ Modal detalle
         const verNotiModal = document.getElementById('verNotiModal');
         if (verNotiModal) {
             verNotiModal.addEventListener('show.bs.modal', event => {
@@ -359,12 +430,17 @@ function labelDestino(string $rol): string
                 const destinatario = button.getAttribute('data-destinatario') || '';
                 const mensaje = button.getAttribute('data-mensaje') || '';
 
-                document.getElementById('notiTitulo').textContent = titulo;
-                document.getElementById('notiDestinatario').textContent = destinatario;
-                document.getElementById('notiMensaje').textContent = mensaje;
+                const tEl = document.getElementById('notiTitulo');
+                const dEl = document.getElementById('notiDestinatario');
+                const mEl = document.getElementById('notiMensaje');
+
+                if (tEl) tEl.textContent = titulo;
+                if (dEl) dEl.textContent = destinatario;
+                if (mEl) mEl.textContent = mensaje;
             });
         }
     </script>
+
 </body>
 
 </html>

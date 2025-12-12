@@ -6,16 +6,22 @@ require_once __DIR__ . '/../../src/Config/AppConfig.php';
 require_once __DIR__ . '/../../src/Controllers/AuthController.php';
 require_once __DIR__ . '/../../src/Controllers/DisponibilidadController.php';
 require_once __DIR__ . '/../../src/Models/Usuario.php';
+require_once __DIR__ . '/../../src/Models/Paseador.php';
 require_once __DIR__ . '/../../src/Helpers/Session.php';
-require_once __DIR__ . '/../../src/Services/CalificacionService.php'; // ⭐ reputación
+require_once __DIR__ . '/../../src/Services/CalificacionService.php';
 require_once __DIR__ . '/../../vendor/autoload.php';
+require_once __DIR__ . '/../../src/Services/DatabaseService.php';
+
 
 use Jaguata\Config\AppConfig;
 use Jaguata\Controllers\AuthController;
 use Jaguata\Controllers\DisponibilidadController;
 use Jaguata\Models\Usuario;
+use Jaguata\Models\Paseador;
 use Jaguata\Helpers\Session;
 use Jaguata\Services\CalificacionService;
+use Jaguata\Services\DatabaseService;
+
 
 AppConfig::init();
 
@@ -32,7 +38,12 @@ if (!$usuario) {
     exit;
 }
 
-/* ===== Helpers perfil ===== */
+/* 🔹 Datos del paseador (tabla paseadores: precio_hora, etc.) */
+$paseadorModel = new Paseador();
+$paseadorRow   = $paseadorModel->find($usuarioId) ?: [];
+$precioHora    = (float)($paseadorRow['precio_hora'] ?? 0);
+
+/* ===== Helpers ===== */
 function h(?string $v, string $fallback = '—'): string
 {
     $v = trim((string)($v ?? ''));
@@ -60,7 +71,7 @@ function esUrlAbsoluta(string $p): bool
     return (bool)preg_match('#^https?://#i', $p);
 }
 
-/* ===== Datos derivados perfil ===== */
+/* ===== Foto ===== */
 $foto = $usuario['foto_perfil'] ?? ($usuario['perfil_foto'] ?? '');
 if ($foto && !esUrlAbsoluta($foto)) {
     $foto = rtrim(BASE_URL, '/') . $foto;
@@ -71,31 +82,47 @@ if (!$foto) {
 
 $edad = calcularEdad($usuario['fecha_nacimiento'] ?? null);
 
-// Zonas (JSON o CSV)
+/* Zonas */
 $zonas = [];
 if (!empty($usuario['zona'])) {
-    $decoded = json_decode($usuario['zona'], true);
+    $decoded = json_decode((string)$usuario['zona'], true);
     if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
         $zonas = array_values(array_filter(array_map('trim', $decoded)));
     } else {
-        $zonas = array_values(array_filter(array_map('trim', explode(',', $usuario['zona']))));
+        $zonas = array_values(array_filter(array_map('trim', explode(',', (string)$usuario['zona']))));
     }
 }
 
-/* 💳 Datos de cuenta para recibir transferencias
-   Ajustá los índices según cómo se llamen en tu tabla `usuarios`.
-   Ejemplo: banco_pago / alias_pago / cuenta_pago  */
-$ctaBanco  = $usuario['banco_pago']  ?? ($usuario['banco']  ?? '');
-$ctaAlias  = $usuario['alias_pago']  ?? ($usuario['alias']  ?? '');
-$ctaCuenta = $usuario['cuenta_pago'] ?? ($usuario['cuenta'] ?? '');
+/* Cuenta pago (ajusta nombres a tu tabla si cambia) */
+$ctaBanco = $ctaAlias = $ctaCuenta = '';
 
-/* ===== Disponibilidad ===== */
+try {
+    $db = DatabaseService::getInstance()->getConnection(); // ✅ PDO real
+
+    $stmt = $db->prepare("
+        SELECT banco, alias, cuenta
+        FROM cuentas_pago
+        WHERE usuario_id = :uid
+        LIMIT 1
+    ");
+    $stmt->execute([':uid' => $usuarioId]);
+
+    $cta = $stmt->fetch(\PDO::FETCH_ASSOC) ?: [];
+
+    $ctaBanco  = (string)($cta['banco']  ?? '');
+    $ctaAlias  = (string)($cta['alias']  ?? '');
+    $ctaCuenta = (string)($cta['cuenta'] ?? '');
+} catch (\Throwable $e) {
+    // no rompemos la vista si falla
+}
+
+
+/* Disponibilidad */
 $diasSemana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
-
 $dispCtrl             = new DisponibilidadController();
-$disponibilidadActual = $dispCtrl->getFormDataByPaseador($usuarioId); // ['Lunes' => ['inicio'=>..]]
+$disponibilidadActual = $dispCtrl->getFormDataByPaseador($usuarioId);
 
-/* ⭐ Reputación del paseador (promedio + total) */
+/* ⭐ reputación */
 $califService = new CalificacionService();
 $stats        = $califService->getPromedioByUsuario($usuarioId);
 $repPromedio  = isset($stats['promedio']) ? (float)$stats['promedio'] : 0.0;
@@ -110,29 +137,25 @@ $repTotal     = isset($stats['total']) ? (int)$stats['total'] : 0;
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mi Perfil - Paseador | Jaguata</title>
 
-    <!-- CSS global Jaguata (igual que MiPerfil dueño) -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
     <link href="<?= BASE_URL; ?>/public/assets/css/jaguata-theme.css" rel="stylesheet">
 
     <style>
-        /* 🐾 Foto de perfil igual que en MiPerfil dueño */
         .perfil-avatar-wrapper {
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 0.75rem;
+            margin-bottom: .75rem;
         }
 
         .perfil-avatar {
             width: 160px !important;
             height: 160px !important;
-            max-width: 160px !important;
-            max-height: 160px !important;
             object-fit: cover;
             border-radius: 50% !important;
             border: 4px solid var(--verde-jaguata);
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.12);
+            box-shadow: 0 0 10px rgba(0, 0, 0, .12);
             display: block;
         }
 
@@ -140,33 +163,32 @@ $repTotal     = isset($stats['total']) ? (int)$stats['total'] : 0;
             background-color: #e6f4ea;
             color: var(--verde-jaguata);
             border-radius: 8px;
-            font-size: 0.85rem;
-            padding: 0.4em 0.6em;
+            font-size: .85rem;
+            padding: .4em .6em;
         }
 
         .rating-block-paseador {
             border-top: 1px solid #e6e6e6;
             margin-top: 1rem;
-            padding-top: 0.75rem;
+            padding-top: .75rem;
         }
 
         .rating-block-paseador .rating-stars i {
             margin-right: 2px;
         }
 
-        /* Disponibilidad dentro de section-card */
         .day-row {
             display: grid;
             grid-template-columns: 130px 110px 1fr;
             align-items: center;
             border-bottom: 1px solid #eaeaea;
-            padding: 0.7rem 0;
-            gap: 0.75rem;
+            padding: .7rem 0;
+            gap: .75rem;
         }
 
         .day-name {
             font-weight: 600;
-            font-size: 0.95rem;
+            font-size: .95rem;
             color: var(--verde-jaguata);
         }
 
@@ -183,26 +205,26 @@ $repTotal     = isset($stats['total']) ? (int)$stats['total'] : 0;
         .time-group input[type="time"] {
             border-radius: 8px;
             border: 1px solid #d0d0d0;
-            padding: 0.35rem 0.5rem;
-            font-size: 0.85rem;
+            padding: .35rem .5rem;
+            font-size: .85rem;
             width: 115px;
         }
 
         .time-group span {
             color: #888;
-            margin: 0 0.3rem;
+            margin: 0 .3rem;
         }
 
         .time-group.disabled input,
         .time-group.disabled button {
-            opacity: 0.4;
+            opacity: .4;
             pointer-events: none;
         }
 
         .copy-btn {
             border: none;
             background: transparent;
-            margin-left: 0.5rem;
+            margin-left: .5rem;
         }
 
         .copy-btn i {
@@ -216,34 +238,28 @@ $repTotal     = isset($stats['total']) ? (int)$stats['total'] : 0;
             border-radius: 12px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, .2);
             display: none;
-            font-size: 0.95rem;
+            font-size: .95rem;
             z-index: 2000;
         }
     </style>
 </head>
 
 <body>
-    <!-- Sidebar paseador unificado -->
     <?php include __DIR__ . '/../../src/Templates/SidebarPaseador.php'; ?>
 
-    <!-- Botón hamburguesa mobile -->
     <button class="btn btn-outline-secondary d-md-none ms-2 mt-3" id="toggleSidebar">
         <i class="fas fa-bars"></i>
     </button>
 
-    <!-- Contenido principal (mismo layout que MiPerfil dueño) -->
     <main>
-        <div class="py-4">
+        <div class="py-2">
 
-            <!-- HEADER estilo dueño -->
             <div class="header-box header-dashboard mb-4 d-flex justify-content-between align-items-center">
                 <div>
                     <h1 class="fw-bold mb-1">
                         <i class="fas fa-user me-2"></i>Mi Perfil — Paseador
                     </h1>
-                    <p class="mb-0">
-                        Zonas de trabajo, tu experiencia, disponibilidad y reputación dentro de Jaguata 🐾
-                    </p>
+                    <p class="mb-0">Zonas de trabajo, tu experiencia, disponibilidad y reputación 🐾</p>
                 </div>
 
                 <div class="text-end">
@@ -256,9 +272,7 @@ $repTotal     = isset($stats['total']) ? (int)$stats['total'] : 0;
                             <?= $repTotal ?> opinión<?= $repTotal === 1 ? '' : 'es' ?>
                         </small>
                     <?php else: ?>
-                        <small class="text-white-50 d-block mb-2">
-                            Aún sin calificaciones.
-                        </small>
+                        <small class="text-white-50 d-block mb-2">Aún sin calificaciones.</small>
                     <?php endif; ?>
 
                     <div class="d-flex justify-content-end gap-2">
@@ -273,17 +287,11 @@ $repTotal     = isset($stats['total']) ? (int)$stats['total'] : 0;
             </div>
 
             <div class="row g-3">
-                <!-- Columna izquierda: Info básica + reputación -->
                 <div class="col-lg-4">
                     <div class="section-card text-center">
                         <div class="mb-3">
                             <div class="perfil-avatar-wrapper">
-                                <img
-                                    src="<?= h($foto) ?>"
-                                    alt="Foto de perfil"
-                                    class="perfil-avatar mb-2"
-                                    width="160"
-                                    height="160">
+                                <img src="<?= h($foto) ?>" alt="Foto de perfil" class="perfil-avatar mb-2" width="160" height="160">
                             </div>
                             <h4 class="mb-1"><?= h($usuario['nombre'] ?? null, 'Sin nombre') ?></h4>
                             <span class="badge-rol">Paseador</span>
@@ -292,12 +300,19 @@ $repTotal     = isset($stats['total']) ? (int)$stats['total'] : 0;
                         <div class="perfil-datos text-start small">
                             <div class="mb-2">
                                 <i class="fa-solid fa-envelope me-2"></i>
-                                <strong>Email:</strong> <?= h($usuario['email']) ?>
+                                <strong>Email:</strong> <?= h($usuario['email'] ?? '') ?>
                             </div>
                             <div class="mb-2">
                                 <i class="fa-solid fa-phone me-2"></i>
-                                <strong>Teléfono:</strong> <?= h($usuario['telefono']) ?>
+                                <strong>Teléfono:</strong> <?= h($usuario['telefono'] ?? '') ?>
                             </div>
+
+                            <div class="mb-2">
+                                <i class="fa-solid fa-money-bill-wave me-2"></i>
+                                <strong>Tarifa:</strong>
+                                ₲<?= number_format($precioHora, 0, ',', '.') ?>/hora
+                            </div>
+
                             <div class="mb-2">
                                 <i class="fa-solid fa-cake-candles me-2"></i>
                                 <strong>Cumpleaños:</strong>
@@ -312,7 +327,6 @@ $repTotal     = isset($stats['total']) ? (int)$stats['total'] : 0;
                             </div>
                         </div>
 
-                        <!-- ⭐ Reputación como paseador -->
                         <div class="rating-block-paseador text-start mt-3">
                             <h6 class="text-muted mb-2">
                                 <i class="fas fa-star me-2 text-warning"></i>Reputación como paseador
@@ -346,32 +360,50 @@ $repTotal     = isset($stats['total']) ? (int)$stats['total'] : 0;
                     </div>
                 </div>
 
-                <!-- Columna derecha: zonas + experiencia + cuenta + disponibilidad -->
                 <div class="col-lg-8">
                     <div class="row g-3">
-                        <!-- Zonas de trabajo -->
+
+                        <!-- ✅ Zonas de trabajo (solo lectura) -->
                         <div class="col-12">
                             <div class="section-card">
                                 <div class="section-header">
-                                    <i class="fa-solid fa-map-location-dot me-2"></i> Zonas de trabajo
+                                    <i class="fa-solid fa-map me-2"></i> Zonas de trabajo
                                 </div>
+
                                 <div class="section-body">
-                                    <?php if (empty($zonas)): ?>
-                                        <span class="text-muted">Sin zonas registradas.</span>
-                                    <?php else: ?>
+                                    <p class="text-muted small mb-3">
+                                        Estas son las zonas que tenés configuradas en tu perfil.
+                                    </p>
+
+                                    <?php if (!empty($zonas)): ?>
                                         <div class="d-flex flex-wrap gap-2">
                                             <?php foreach ($zonas as $z): ?>
-                                                <span class="badge bg-success-subtle text-success-emphasis">
-                                                    <?= htmlspecialchars($z, ENT_QUOTES, 'UTF-8') ?>
+                                                <span class="badge rounded-pill"
+                                                    style="background:#20c99722; color: var(--verde-jaguata); border:1px solid #20c99755; padding:.55rem .85rem;">
+                                                    <i class="fa-solid fa-location-dot me-1"></i>
+                                                    <?= htmlspecialchars((string)$z, ENT_QUOTES, 'UTF-8') ?>
                                                 </span>
                                             <?php endforeach; ?>
+                                        </div>
+                                    <?php else: ?>
+                                        <div class="alert alert-light border mb-0">
+                                            <i class="fa-solid fa-circle-info me-2 text-success"></i>
+                                            Aún no tenés zonas cargadas.
+                                            <span class="d-block small text-muted mt-1">
+                                                Podés configurarlas desde <b>Editar</b>.
+                                            </span>
+
+                                            <div class="mt-2">
+                                                <a href="EditarPerfil.php" class="btn btn-outline-success btn-sm">
+                                                    <i class="fas fa-edit me-1"></i> Ir a Editar Perfil
+                                                </a>
+                                            </div>
                                         </div>
                                     <?php endif; ?>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Experiencia -->
                         <div class="col-12">
                             <div class="section-card">
                                 <div class="section-header">
@@ -380,7 +412,7 @@ $repTotal     = isset($stats['total']) ? (int)$stats['total'] : 0;
                                 <div class="section-body">
                                     <?php if (!empty($usuario['experiencia'])): ?>
                                         <div class="text-muted" style="white-space: pre-wrap;">
-                                            <?= htmlspecialchars($usuario['experiencia'], ENT_QUOTES, 'UTF-8') ?>
+                                            <?= htmlspecialchars((string)$usuario['experiencia'], ENT_QUOTES, 'UTF-8') ?>
                                         </div>
                                     <?php else: ?>
                                         <span class="text-muted">No especificada.</span>
@@ -389,7 +421,6 @@ $repTotal     = isset($stats['total']) ? (int)$stats['total'] : 0;
                             </div>
                         </div>
 
-                        <!-- 💳 Datos de cuenta para recibir transferencias -->
                         <div class="col-12">
                             <div class="section-card">
                                 <div class="section-header">
@@ -397,38 +428,25 @@ $repTotal     = isset($stats['total']) ? (int)$stats['total'] : 0;
                                 </div>
                                 <div class="section-body">
                                     <p class="text-muted small mb-3">
-                                        Estos datos se mostrarán al dueño al momento de pagar tu paseo
-                                        (en la pantalla de pago), para que pueda transferirte correctamente. 💸
+                                        Estos datos se mostrarán al dueño al momento de pagar tu paseo. 💸
                                     </p>
 
                                     <form id="formCuenta">
                                         <div class="row g-3">
                                             <div class="col-md-4">
                                                 <label class="form-label">Banco</label>
-                                                <input type="text"
-                                                    name="banco"
-                                                    class="form-control"
-                                                    maxlength="100"
-                                                    value="<?= htmlspecialchars($ctaBanco, ENT_QUOTES, 'UTF-8') ?>"
-                                                    placeholder="Ej: Banco Familiar">
+                                                <input type="text" name="banco" class="form-control" maxlength="100"
+                                                    value="<?= htmlspecialchars((string)$ctaBanco, ENT_QUOTES, 'UTF-8') ?>">
                                             </div>
                                             <div class="col-md-4">
                                                 <label class="form-label">Alias / Cuenta</label>
-                                                <input type="text"
-                                                    name="alias"
-                                                    class="form-control"
-                                                    maxlength="120"
-                                                    value="<?= htmlspecialchars($ctaAlias, ENT_QUOTES, 'UTF-8') ?>"
-                                                    placeholder="Alias o número de cuenta">
+                                                <input type="text" name="alias" class="form-control" maxlength="120"
+                                                    value="<?= htmlspecialchars((string)$ctaAlias, ENT_QUOTES, 'UTF-8') ?>">
                                             </div>
                                             <div class="col-md-4">
                                                 <label class="form-label">Número de cuenta (opcional)</label>
-                                                <input type="text"
-                                                    name="cuenta"
-                                                    class="form-control"
-                                                    maxlength="120"
-                                                    value="<?= htmlspecialchars($ctaCuenta, ENT_QUOTES, 'UTF-8') ?>"
-                                                    placeholder="Si es distinto del alias">
+                                                <input type="text" name="cuenta" class="form-control" maxlength="120"
+                                                    value="<?= htmlspecialchars((string)$ctaCuenta, ENT_QUOTES, 'UTF-8') ?>">
                                             </div>
                                         </div>
 
@@ -442,7 +460,6 @@ $repTotal     = isset($stats['total']) ? (int)$stats['total'] : 0;
                             </div>
                         </div>
 
-                        <!-- Disponibilidad semanal -->
                         <div class="col-12">
                             <div class="section-card">
                                 <div class="section-header">
@@ -451,7 +468,7 @@ $repTotal     = isset($stats['total']) ? (int)$stats['total'] : 0;
                                 <div class="section-body">
                                     <p class="text-muted mb-3">
                                         Activá los días que estás disponible y definí tus horarios.
-                                        <br><small class="text-secondary">Podés copiar tus horarios de un día a otro fácilmente.</small>
+                                        <br><small class="text-secondary">Podés copiar tus horarios de un día a otro.</small>
                                     </p>
 
                                     <form id="formDisponibilidad">
@@ -465,15 +482,12 @@ $repTotal     = isset($stats['total']) ? (int)$stats['total'] : 0;
                                             <div class="day-row">
                                                 <div class="day-name"><?= $dia ?></div>
                                                 <div class="form-switch">
-                                                    <input type="checkbox"
-                                                        class="form-check-input toggle-dia"
-                                                        data-dia="<?= $dia ?>"
-                                                        <?= $checked ?>>
+                                                    <input type="checkbox" class="form-check-input toggle-dia" data-dia="<?= $dia ?>" <?= $checked ?>>
                                                 </div>
                                                 <div class="time-group <?= $checked ? '' : 'disabled' ?>">
-                                                    <input type="time" class="hora-inicio" value="<?= $inicio ?>">
+                                                    <input type="time" class="hora-inicio" value="<?= htmlspecialchars((string)$inicio) ?>">
                                                     <span>–</span>
-                                                    <input type="time" class="hora-fin" value="<?= $fin ?>">
+                                                    <input type="time" class="hora-fin" value="<?= htmlspecialchars((string)$fin) ?>">
                                                     <button type="button" class="copy-btn" title="Copiar horario a todos">
                                                         <i class="fas fa-copy"></i>
                                                     </button>
@@ -501,12 +515,10 @@ $repTotal     = isset($stats['total']) ? (int)$stats['total'] : 0;
         </div>
     </main>
 
-    <!-- Alertita flotante -->
     <div id="alerta" class="alert" role="alert"></div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Toggle sidebar en mobile
         document.getElementById('toggleSidebar')?.addEventListener('click', function() {
             document.getElementById('sidebar')?.classList.toggle('sidebar-open');
         });
@@ -523,8 +535,7 @@ $repTotal     = isset($stats['total']) ? (int)$stats['total'] : 0;
             setTimeout(() => alerta.style.display = 'none', 2500);
         }
 
-        // ====== DISPONIBILIDAD ======
-        // Habilitar / deshabilitar filas según checkbox
+        // DISPONIBILIDAD
         document.querySelectorAll('.toggle-dia').forEach(toggle => {
             toggle.addEventListener('change', e => {
                 const grupo = e.target.closest('.day-row').querySelector('.time-group');
@@ -532,7 +543,6 @@ $repTotal     = isset($stats['total']) ? (int)$stats['total'] : 0;
             });
         });
 
-        // Copiar horario de una fila a todos los días activos
         document.querySelectorAll('.copy-btn').forEach(btn => {
             btn.addEventListener('click', e => {
                 const row = e.target.closest('.day-row');
@@ -543,7 +553,6 @@ $repTotal     = isset($stats['total']) ? (int)$stats['total'] : 0;
                     alert("Completá los horarios antes de copiar.");
                     return;
                 }
-
                 document.querySelectorAll('.day-row').forEach(r => {
                     const activo = r.querySelector('.toggle-dia').checked;
                     if (activo) {
@@ -554,10 +563,8 @@ $repTotal     = isset($stats['total']) ? (int)$stats['total'] : 0;
             });
         });
 
-        // Guardar disponibilidad vía API
-        formDisp.addEventListener('submit', async (e) => {
+        formDisp?.addEventListener('submit', async (e) => {
             e.preventDefault();
-
             const disponibilidad = [];
 
             document.querySelectorAll('.day-row').forEach(row => {
@@ -592,7 +599,7 @@ $repTotal     = isset($stats['total']) ? (int)$stats['total'] : 0;
                 let data;
                 try {
                     data = JSON.parse(raw);
-                } catch (e) {
+                } catch {
                     data = {
                         ok: false,
                         mensaje: 'Respuesta inválida del servidor'
@@ -600,15 +607,14 @@ $repTotal     = isset($stats['total']) ? (int)$stats['total'] : 0;
                 }
 
                 mostrarAlerta(!!data.ok, data.mensaje || 'Error al guardar la disponibilidad.');
-
             } catch (err) {
                 console.error(err);
                 mostrarAlerta(false, 'Error al guardar la disponibilidad.');
             }
         });
 
-        // ====== CUENTA PARA TRANSFERENCIAS ======
-        formCuenta.addEventListener('submit', async (e) => {
+        // CUENTA PAGO
+        formCuenta?.addEventListener('submit', async (e) => {
             e.preventDefault();
 
             const formData = new FormData(formCuenta);
@@ -627,10 +633,17 @@ $repTotal     = isset($stats['total']) ? (int)$stats['total'] : 0;
                     body: JSON.stringify(payload)
                 });
 
-                const data = await resp.json().catch(() => ({
-                    ok: false,
-                    mensaje: 'Respuesta inválida del servidor'
-                }));
+                const raw = await resp.text();
+                console.log("STATUS:", resp.status);
+                console.log("RAW:", raw);
+
+                let data;
+                try {
+                    data = JSON.parse(raw);
+                } catch (e) {
+                    mostrarAlerta(false, 'Respuesta inválida del servidor (mirá consola: RAW).');
+                    return;
+                }
 
                 mostrarAlerta(!!data.ok, data.mensaje || 'Error al guardar los datos de cuenta.');
 

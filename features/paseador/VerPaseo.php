@@ -2,17 +2,22 @@
 
 declare(strict_types=1);
 
+error_reporting(E_ALL);
+ini_set('display_errors', '1');
+
 require_once __DIR__ . '/../../src/Config/AppConfig.php';
 require_once __DIR__ . '/../../src/Controllers/AuthController.php';
 require_once __DIR__ . '/../../src/Controllers/PaseoController.php';
 require_once __DIR__ . '/../../src/Helpers/Session.php';
-require_once __DIR__ . '/../../src/Models/Calificacion.php'; // 👈 NUEVO
+require_once __DIR__ . '/../../src/Models/Calificacion.php';
+require_once __DIR__ . '/../../src/Services/DatabaseService.php';
 
 use Jaguata\Config\AppConfig;
 use Jaguata\Controllers\AuthController;
 use Jaguata\Controllers\PaseoController;
 use Jaguata\Helpers\Session;
-use Jaguata\Models\Calificacion; // 👈 NUEVO
+use Jaguata\Models\Calificacion;
+use Jaguata\Services\DatabaseService;
 
 AppConfig::init();
 
@@ -20,10 +25,12 @@ AppConfig::init();
 $auth = new AuthController();
 $auth->checkRole('paseador');
 
-function h($v)
+function h($v): string
 {
     return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
 }
+
+$debug = isset($_GET['debug']) && $_GET['debug'] === '1';
 
 // 🔹 ID de paseo
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
@@ -46,7 +53,7 @@ if ((int)($paseo['paseador_id'] ?? 0) !== $paseadorIdSesion) {
 }
 
 // =========================
-// Formato de campos
+// Normalización / datos base
 // =========================
 $mascotaNombre  = $paseo['mascota_nombre']  ?? $paseo['nombre_mascota'] ?? '-';
 $paseadorNombre = $paseo['paseador_nombre'] ?? $paseo['nombre_paseador'] ?? '-';
@@ -69,7 +76,6 @@ $badgeClass = match ($estado) {
 
 $inicio    = $paseo['inicio']     ?? '';
 $updatedAt = $paseo['updated_at'] ?? '';
-
 $direccion = $paseo['direccion'] ?? $paseo['ubicacion'] ?? '-';
 
 // 🔹 Punto de recogida
@@ -86,21 +92,41 @@ foreach ($rutaPuntos as $punto) {
 // Para acciones
 $paseoId = (int)($paseo['paseo_id'] ?? $id);
 
-// 🔹 Mascota a calificar
-$mascotaId = (int)($paseo['mascota_id'] ?? 0);
+// =========================
+// DUEÑO ID (CRÍTICO PARA FK)
+// =========================
+// 1) Intento directo desde show()
+$duenoId = (int)($paseo['dueno_id'] ?? 0);
+
+// 2) Fallback SQL si no viene en show()
+if ($duenoId <= 0) {
+    $db = DatabaseService::getInstance()->getConnection();
+    $st = $db->prepare("
+        SELECT m.dueno_id
+        FROM paseos p
+        INNER JOIN mascotas m ON m.mascota_id = p.mascota_id
+        WHERE p.paseo_id = :paseo_id
+        LIMIT 1
+    ");
+    $st->execute([':paseo_id' => $paseoId]);
+    $duenoId = (int)($st->fetch(PDO::FETCH_ASSOC)['dueno_id'] ?? 0);
+}
 
 // =========================
 // Calificación del paseador
 // =========================
-$califModel      = new Calificacion();
-$yaCalifico      = $califModel->existeParaPaseo($paseoId, 'mascota', $paseadorIdSesion); // tipo 'mascota'
-$puedeCalificar  = in_array($estado, ['completo', 'finalizado'], true) && !$yaCalifico;
+// Nota: tu BD exige rated_id -> usuarios.usu_id
+$califModel = new Calificacion();
+$yaCalifico = $califModel->existeParaPaseo($paseoId, 'mascota', $paseadorIdSesion);
+
+// Solo permitir si paseo finalizado y duenoId válido
+$puedeCalificar = $duenoId > 0 && in_array($estado, ['completo', 'finalizado'], true) && !$yaCalifico;
 
 // =========================
 // Rutas
 // =========================
-$baseUrl   = AppConfig::getBaseUrl();
-$backUrl   = $baseUrl . "/features/paseador/MisPaseos.php";
+$baseUrl = AppConfig::getBaseUrl();
+$backUrl = $baseUrl . "/features/paseador/MisPaseos.php";
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -157,7 +183,7 @@ $backUrl   = $baseUrl . "/features/paseador/MisPaseos.php";
             padding: 1.5rem 1.5rem 2rem;
         }
 
-        @media (max-width: 768px) {
+        @media (max-width:768px) {
             main {
                 margin-left: 0;
             }
@@ -167,18 +193,24 @@ $backUrl   = $baseUrl . "/features/paseador/MisPaseos.php";
 
 <body>
 
-    <!-- Sidebar del paseador -->
     <?php include __DIR__ . '/../../src/Templates/SidebarPaseador.php'; ?>
 
     <main>
         <div class="container-fluid px-3 px-md-4">
 
-            <!-- HEADER UNIFICADO + BOTÓN VER MAPA -->
+            <?php if ($debug): ?>
+                <div class="alert alert-warning">
+                    <strong>DEBUG:</strong>
+                    paseo_id=<?= (int)$paseoId ?> |
+                    paseador_sesion=<?= (int)$paseadorIdSesion ?> |
+                    dueno_id=<?= (int)$duenoId ?> |
+                    estado="<?= h($estado) ?>"
+                </div>
+            <?php endif; ?>
+
             <div class="header-box header-paseos mb-3 d-flex justify-content-between align-items-center">
                 <div>
-                    <h1 class="fw-bold mb-1">
-                        Detalle del Paseo #<?= h((string)$id) ?>
-                    </h1>
+                    <h1 class="fw-bold mb-1">Detalle del Paseo #<?= h((string)$id) ?></h1>
                     <p class="mb-0">Información completa del recorrido, estado y ubicación 🐾</p>
                 </div>
                 <div class="d-flex flex-column align-items-end gap-2">
@@ -189,7 +221,6 @@ $backUrl   = $baseUrl . "/features/paseador/MisPaseos.php";
                 </div>
             </div>
 
-            <!-- Botón volver -->
             <div class="mb-3">
                 <a href="<?= h($backUrl) ?>" class="btn-volver">
                     <i class="fas fa-arrow-left"></i> Volver a mis paseos
@@ -197,7 +228,6 @@ $backUrl   = $baseUrl . "/features/paseador/MisPaseos.php";
             </div>
 
             <div class="row g-3">
-                <!-- Información del Paseo -->
                 <div class="col-lg-6">
                     <div class="card mb-4">
                         <div class="card-header">
@@ -219,37 +249,25 @@ $backUrl   = $baseUrl . "/features/paseador/MisPaseos.php";
                                 </div>
                                 <div class="col-md-6">
                                     <p class="info-label">Duración:</p>
-                                    <p><?= $duracionMin ?> minutos</p>
+                                    <p><?= (int)$duracionMin ?> minutos</p>
                                 </div>
                                 <div class="col-md-6">
                                     <p class="info-label">Monto:</p>
-                                    <p>₲<?= number_format($monto, 0, ',', '.') ?></p>
+                                    <p>₲<?= number_format((float)$monto, 0, ',', '.') ?></p>
                                 </div>
                                 <div class="col-md-6">
                                     <p class="info-label">Estado:</p>
                                     <span class="badge <?= $badgeClass ?>">
-                                        <?= ucfirst(str_replace('_', ' ', $estado)) ?>
+                                        <?= h(ucfirst(str_replace('_', ' ', $estado))) ?>
                                     </span>
                                 </div>
                                 <div class="col-md-6">
                                     <p class="info-label">Fecha de inicio:</p>
-                                    <p>
-                                        <?php
-                                        echo $inicio
-                                            ? h(date('d/m/Y H:i', strtotime($inicio)))
-                                            : '-';
-                                        ?>
-                                    </p>
+                                    <p><?= $inicio ? h(date('d/m/Y H:i', strtotime($inicio))) : '-' ?></p>
                                 </div>
                                 <div class="col-md-6">
                                     <p class="info-label">Última actualización:</p>
-                                    <p>
-                                        <?php
-                                        echo $updatedAt
-                                            ? h(date('d/m/Y H:i', strtotime($updatedAt)))
-                                            : 'Sin cambios';
-                                        ?>
-                                    </p>
+                                    <p><?= $updatedAt ? h(date('d/m/Y H:i', strtotime($updatedAt))) : 'Sin cambios' ?></p>
                                 </div>
                                 <div class="col-12">
                                     <p class="info-label">Dirección:</p>
@@ -259,43 +277,43 @@ $backUrl   = $baseUrl . "/features/paseador/MisPaseos.php";
                         </div>
                     </div>
 
-                    <!-- Acciones del Paseador -->
                     <div class="card mb-4">
                         <div class="card-header">
                             <i class="fas fa-tools me-2"></i> Acciones del paseador
                         </div>
-                        <div class="card-body text-center action-buttons d-flex flex-wrap justify-content-center gap-2">
+                        <div class="card-body text-center d-flex flex-wrap justify-content-center gap-2">
+
                             <?php if (in_array($estado, ['pendiente', 'solicitado'], true)): ?>
-                                <a href="AccionPaseo.php?id=<?= $paseoId ?>&accion=confirmar"
+                                <a href="AccionPaseo.php?id=<?= (int)$paseoId ?>&accion=confirmar"
                                     class="btn btn-success"
                                     onclick="return confirm('¿Confirmar este paseo?');">
                                     <i class="fas fa-check-circle me-1"></i> Confirmar paseo
                                 </a>
-                                <a href="AccionPaseo.php?id=<?= $paseoId ?>&accion=cancelar"
+                                <a href="AccionPaseo.php?id=<?= (int)$paseoId ?>&accion=cancelar"
                                     class="btn btn-danger"
                                     onclick="return confirm('¿Cancelar este paseo?');">
                                     <i class="fas fa-times-circle me-1"></i> Cancelar paseo
                                 </a>
 
                             <?php elseif ($estado === 'confirmado'): ?>
-                                <a href="AccionPaseo.php?id=<?= $paseoId ?>&accion=iniciar"
+                                <a href="AccionPaseo.php?id=<?= (int)$paseoId ?>&accion=iniciar"
                                     class="btn btn-success"
                                     onclick="return confirm('¿Iniciar este paseo?');">
                                     <i class="fas fa-play me-1"></i> Iniciar paseo
                                 </a>
-                                <a href="AccionPaseo.php?id=<?= $paseoId ?>&accion=cancelar"
+                                <a href="AccionPaseo.php?id=<?= (int)$paseoId ?>&accion=cancelar"
                                     class="btn btn-danger"
                                     onclick="return confirm('¿Cancelar este paseo?');">
                                     <i class="fas fa-times-circle me-1"></i> Cancelar paseo
                                 </a>
 
                             <?php elseif ($estado === 'en_curso'): ?>
-                                <a href="AccionPaseo.php?id=<?= $paseoId ?>&accion=completar"
+                                <a href="AccionPaseo.php?id=<?= (int)$paseoId ?>&accion=completar"
                                     class="btn btn-success"
                                     onclick="return confirm('¿Marcar este paseo como completado?');">
                                     <i class="fas fa-check-circle me-1"></i> Completar paseo
                                 </a>
-                                <a href="AccionPaseo.php?id=<?= $paseoId ?>&accion=cancelar"
+                                <a href="AccionPaseo.php?id=<?= (int)$paseoId ?>&accion=cancelar"
                                     class="btn btn-danger"
                                     onclick="return confirm('¿Cancelar paseo en curso?');">
                                     <i class="fas fa-times-circle me-1"></i> Cancelar paseo
@@ -315,20 +333,18 @@ $backUrl   = $baseUrl . "/features/paseador/MisPaseos.php";
                                     </span>
                                 <?php else: ?>
                                     <span class="text-muted">
-                                        No hay acciones disponibles para este estado.
+                                        No se puede calificar (dueño inválido o estado no permitido).
                                     </span>
                                 <?php endif; ?>
 
                             <?php else: ?>
-                                <span class="text-muted">
-                                    No hay acciones disponibles para este estado.
-                                </span>
+                                <span class="text-muted">No hay acciones disponibles para este estado.</span>
                             <?php endif; ?>
+
                         </div>
                     </div>
                 </div>
 
-                <!-- Mapa (punto de recogida + ruta con huellitas) -->
                 <div class="col-lg-6">
                     <div class="card mb-4">
                         <div class="card-header">
@@ -345,7 +361,7 @@ $backUrl   = $baseUrl . "/features/paseador/MisPaseos.php";
         </div>
     </main>
 
-    <!-- MODAL: CALIFICAR DUEÑO / MASCOTA -->
+    <!-- MODAL: CALIFICAR DUEÑO -->
     <div class="modal fade" id="modalCalificarMascota" tabindex="-1" aria-labelledby="modalCalificarMascotaLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -358,8 +374,13 @@ $backUrl   = $baseUrl . "/features/paseador/MisPaseos.php";
                     </div>
 
                     <div class="modal-body">
-                        <input type="hidden" name="paseo_id" value="<?= $paseoId; ?>">
-                        <input type="hidden" name="rated_id" value="<?= $mascotaId; ?>">
+                        <input type="hidden" name="paseo_id" value="<?= (int)$paseoId; ?>">
+                        <!-- CLAVE: rated_id debe ser USUARIO (dueño) -->
+                        <input type="hidden" name="rated_id" value="<?= (int)$duenoId; ?>">
+
+                        <div class="mb-2 small text-muted">
+                            (Se guardará como calificación del servicio del dueño/mascota, asociada al dueño.)
+                        </div>
 
                         <div class="mb-3">
                             <label class="form-label">Calificación (1 a 5)</label>
@@ -392,7 +413,10 @@ $backUrl   = $baseUrl . "/features/paseador/MisPaseos.php";
         </div>
     </div>
 
-    <!-- Script toggle sidebar mobile -->
+    <!-- Bootstrap bundle (una sola vez) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Sidebar toggle (si tu template tiene btnSidebarToggle/backdrop) -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const sidebar = document.querySelector('.sidebar');
@@ -413,8 +437,9 @@ $backUrl   = $baseUrl . "/features/paseador/MisPaseos.php";
         });
     </script>
 
-    <!-- Mapa Leaflet + tracking -->
+    <!-- Mapa + tracking + envío calificación -->
     <script>
+        // === Datos para el mapa ===
         const pickupLat = <?= $pickupLat !== null ? (float)$pickupLat : 'null' ?>;
         const pickupLng = <?= $pickupLng !== null ? (float)$pickupLng : 'null' ?>;
         const rutaCoords = <?= json_encode($rutaCoords, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
@@ -443,7 +468,6 @@ $backUrl   = $baseUrl . "/features/paseador/MisPaseos.php";
             popupAnchor: [0, -32]
         });
 
-        // 🔹 Punto de recogida
         if (pickupLat && pickupLng) {
             L.marker([pickupLat, pickupLng], {
                     icon: pawIcon
@@ -453,7 +477,6 @@ $backUrl   = $baseUrl . "/features/paseador/MisPaseos.php";
                 .openPopup();
         }
 
-        // 🔹 Ruta actual del paseo
         if (rutaCoords.length > 0) {
             const polyline = L.polyline(rutaCoords, {
                 weight: 5,
@@ -470,8 +493,8 @@ $backUrl   = $baseUrl . "/features/paseador/MisPaseos.php";
             }
         }
 
-        // 🔹 Tracking en tiempo real si está EN CURSO
-        const estadoActual = "<?= $estado ?>";
+        // Tracking si está EN CURSO
+        const estadoActual = "<?= h($estado) ?>";
         const paseoIdJs = <?= (int)$paseoId ?>;
 
         if (estadoActual === 'en_curso' && "geolocation" in navigator) {
@@ -488,9 +511,7 @@ $backUrl   = $baseUrl . "/features/paseador/MisPaseos.php";
                         body: `paseo_id=${encodeURIComponent(paseoIdJs)}&lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}`
                     }).catch(console.error);
                 },
-                (err) => {
-                    console.error("Error geolocalización:", err);
-                }, {
+                (err) => console.error("Error geolocalización:", err), {
                     enableHighAccuracy: true,
                     maximumAge: 5000,
                     timeout: 10000
@@ -498,13 +519,18 @@ $backUrl   = $baseUrl . "/features/paseador/MisPaseos.php";
             );
         }
 
-        // 🔹 Envío AJAX de la calificación (paseador → mascota/dueño)
+        // Envío AJAX de la calificación (paseador → dueño, tipo 'mascota')
         const formCalificarMascota = document.getElementById('formCalificarMascota');
         if (formCalificarMascota) {
             formCalificarMascota.addEventListener('submit', async (e) => {
                 e.preventDefault();
 
                 const formData = new FormData(formCalificarMascota);
+
+                // Debug en consola
+                <?php if ($debug): ?>
+                    console.log("POST calificación:", Object.fromEntries(formData.entries()));
+                <?php endif; ?>
 
                 try {
                     const resp = await fetch('<?= $baseUrl; ?>/public/api/calificar_mascota.php', {
@@ -527,8 +553,7 @@ $backUrl   = $baseUrl . "/features/paseador/MisPaseos.php";
             });
         }
     </script>
+
 </body>
-<!-- JS Bootstrap (necesario para que los modales y el data-bs-toggle funcionen) -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 </html>

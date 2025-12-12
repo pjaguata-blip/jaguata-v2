@@ -12,6 +12,9 @@ require_once dirname(__DIR__, 2) . '/src/Controllers/PaseoController.php';
 require_once dirname(__DIR__, 2) . '/src/Controllers/MascotaController.php';
 require_once dirname(__DIR__, 2) . '/src/Controllers/ReporteController.php';
 require_once dirname(__DIR__, 2) . '/src/Models/Calificacion.php'; // 👈 NUEVO
+require_once dirname(__DIR__, 2) . '/src/Services/DatabaseService.php';
+
+use Jaguata\Services\DatabaseService;
 
 use Jaguata\Config\AppConfig;
 use Jaguata\Helpers\Session;
@@ -49,8 +52,23 @@ $totalPaseos     = count($paseos);
 $totalMascotas   = count($mascotas);
 $paseosActivos   = array_filter($paseos, fn($p) => in_array(strtolower($p['estado'] ?? ''), ['pendiente', 'solicitado', 'confirmado', 'en_curso']));
 $paseosCompletos = array_filter($paseos, fn($p) => in_array(strtolower($p['estado'] ?? ''), ['completo', 'finalizado']));
-$totalPagosPend  = count(array_filter($paseos, fn($p) => strtolower($p['estado_pago'] ?? '') === 'pendiente'));
-$totalPagosReal  = count(array_filter($paseos, fn($p) => strtolower($p['estado_pago'] ?? '') === 'pagado'));
+$db = DatabaseService::getInstance()->getConnection();
+
+$sql = "
+    SELECT TRIM(LOWER(estado)) AS estado, COUNT(*) AS c
+    FROM pagos
+    GROUP BY TRIM(LOWER(estado))
+";
+$stmt = $db->query($sql);
+$rows = $stmt ? ($stmt->fetchAll(PDO::FETCH_ASSOC) ?: []) : [];
+
+$map = [];
+foreach ($rows as $r) {
+    $map[$r['estado']] = (int)($r['c'] ?? 0);
+}
+
+$totalPagosReal = $map['confirmado_por_dueno'] ?? 0; // ✅ tu “pagado”
+$totalPagosPend = $map['pendiente'] ?? 0;
 
 // =============================
 //   REPORTES (ReporteController)

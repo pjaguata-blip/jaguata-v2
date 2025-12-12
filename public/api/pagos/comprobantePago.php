@@ -29,17 +29,21 @@ if ($pagoId <= 0) {
 try {
     $db = DatabaseService::getInstance()->getConnection();
 
-    // 🔹 Traer el pago + paseo
+    // 🔹 Pago + paseo + dueño + paseador (para validar permisos)
     $sql = "
         SELECT 
-            pg.*,
+            pg.id,
+            pg.paseo_id,
+            pg.comprobante,
+            pg.usuario_id AS usuario_id_en_pago,   -- quien figura en pagos (según tu diseño)
             p.paseador_id,
-            p.mascota_id
+            p.dueno_id
         FROM pagos pg
         INNER JOIN paseos p ON p.paseo_id = pg.paseo_id
         WHERE pg.id = :id
         LIMIT 1
     ";
+
     $stmt = $db->prepare($sql);
     $stmt->execute([':id' => $pagoId]);
     $pago = $stmt->fetch(\PDO::FETCH_ASSOC);
@@ -50,9 +54,9 @@ try {
         exit;
     }
 
-    // ⚠️ Opcional: validar permisos
+    // ✅ Validar permisos
     $usuarioId = (int)(Session::getUsuarioId() ?? 0);
-    $rol       = Session::getUsuarioRol();
+    $rol       = (string)(Session::getUsuarioRol() ?? '');
 
     if ($rol === 'paseador' && (int)$pago['paseador_id'] !== $usuarioId) {
         http_response_code(403);
@@ -60,36 +64,63 @@ try {
         exit;
     }
 
-    // 📁 Ruta del archivo de comprobante tal como se guardó en la BD
-    $archivoDb = trim((string)($pago['comprobante'] ?? ''));
+    if ($rol === 'dueno' && (int)$pago['dueno_id'] !== $usuarioId) {
+        http_response_code(403);
+        echo 'No tienes permiso para ver este comprobante.';
+        exit;
+    }
 
+    // 📁 Nombre / ruta guardada en BD
+    $archivoDb = trim((string)($pago['comprobante'] ?? ''));
     if ($archivoDb === '') {
         http_response_code(404);
         echo 'Este pago no tiene comprobante adjunto.';
         exit;
     }
 
-    // Nos quedamos solo con el nombre del archivo, aunque venga con ruta
-    $nombreArchivo = basename($archivoDb);
+    // ✅ Normalizar a nombre de archivo
+    // (si en BD viene con carpetas, nos quedamos con el basename)
+    $nombreArchivo = basename(str_replace('\\', '/', $archivoDb));
 
-    // Ruta física donde realmente guardaste los archivos
-    $baseDir  = __DIR__ . '/../../../assets/uploads/comprobantes/';
-    $filePath = $baseDir . $nombreArchivo;
+    // ✅ Rutas físicas posibles (dependiendo de tu estructura real)
+    $candidatos = [
+        // 1) si tu subida está en: public/assets/uploads/comprobantes/
+        __DIR__ . '/../../assets/uploads/comprobantes/' . $nombreArchivo,
 
-    if (!is_file($filePath)) {
+        // 2) si tu subida está en: assets/uploads/comprobantes/ (fuera de public)
+        dirname(__DIR__, 3) . '/assets/uploads/comprobantes/' . $nombreArchivo,
+
+        // 3) por si guardaste en: public/uploads/comprobantes/
+        dirname(__DIR__, 3) . '/public/uploads/comprobantes/' . $nombreArchivo,
+
+        // 4) por si guardaste en: uploads/comprobantes/ (raíz)
+        dirname(__DIR__, 3) . '/uploads/comprobantes/' . $nombreArchivo,
+    ];
+
+    $filePath = null;
+    foreach ($candidatos as $path) {
+        if (is_file($path)) {
+            $filePath = $path;
+            break;
+        }
+    }
+
+    if (!$filePath) {
         http_response_code(404);
         echo 'Archivo de comprobante no encontrado.';
         exit;
     }
 
-    // Detectar MIME
+    // ✅ MIME
     $mime = function_exists('mime_content_type')
-        ? mime_content_type($filePath)
+        ? (mime_content_type($filePath) ?: 'application/octet-stream')
         : 'application/octet-stream';
 
+    // ✅ Headers para mostrar inline en el navegador
     header('Content-Type: ' . $mime);
     header('Content-Disposition: inline; filename="' . $nombreArchivo . '"');
     header('Content-Length: ' . filesize($filePath));
+    header('X-Content-Type-Options: nosniff');
 
     readfile($filePath);
     exit;

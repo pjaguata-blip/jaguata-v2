@@ -17,7 +17,7 @@ use PDOException;
 AppConfig::init();
 
 /**
- * Controlador de Mascotas (lado dueño)
+ * Controlador de Mascotas (lado dueño / admin)
  */
 class MascotaController
 {
@@ -30,12 +30,13 @@ class MascotaController
 
     /**
      * Listar mascotas del dueño logueado
+     * Si es admin -> lista todas
      */
     public function index(): array
     {
         $rol = Session::getUsuarioRol() ?? '';
 
-        // 👉 Si es ADMIN, listamos TODAS las mascotas
+        // 👉 ADMIN: listar todas
         if ($rol === 'admin') {
             $sql = "
                 SELECT 
@@ -56,11 +57,10 @@ class MascotaController
 
             $st = $this->db->prepare($sql);
             $st->execute();
-
             return $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
         }
 
-        // 👉 Si es dueño (u otro rol), solo las del dueño actual
+        // 👉 Dueño: solo las suyas
         $duenoId = (int)(Session::getUsuarioId() ?? 0);
         if ($duenoId <= 0) {
             return [];
@@ -100,11 +100,47 @@ class MascotaController
     }
 
     /**
-     * Obtener una mascota específica (ver PerfilMascota)
-     * Valida que pertenezca al dueño logueado.
+     * Obtener una mascota específica
+     * - Dueño: valida pertenencia
+     * - Admin: puede ver cualquiera
      */
     public function show(int $id): array
     {
+        $rol = Session::getUsuarioRol() ?? '';
+        $id  = (int)$id;
+
+        if ($id <= 0) {
+            return ['error' => 'ID inválido'];
+        }
+
+        // ✅ ADMIN: sin restricción
+        if ($rol === 'admin') {
+            $sql = "
+                SELECT 
+                    mascota_id,
+                    dueno_id,
+                    nombre,
+                    raza,
+                    peso_kg,
+                    tamano,
+                    edad_meses,
+                    observaciones,
+                    foto_url,
+                    created_at,
+                    updated_at
+                FROM mascotas
+                WHERE mascota_id = :id
+                LIMIT 1
+            ";
+            $st = $this->db->prepare($sql);
+            $st->bindValue(':id', $id, PDO::PARAM_INT);
+            $st->execute();
+
+            $row = $st->fetch(PDO::FETCH_ASSOC);
+            return $row ?: ['error' => 'Mascota no encontrada'];
+        }
+
+        // ✅ DUEÑO: validar que sea suya
         $duenoId = (int)(Session::getUsuarioId() ?? 0);
         if ($duenoId <= 0) {
             return ['error' => 'Sesión no válida'];
@@ -144,6 +180,12 @@ class MascotaController
     }
 
     /**
+     * ✅ Actualizar mascota (usado por EditarMascota.php)
+     * Devuelve: ['success'=>true] o ['error'=>'...']
+     */
+
+
+    /**
      * Crear mascota (usado por AgregarMascota.php)
      */
     public function store(): void
@@ -169,31 +211,25 @@ class MascotaController
         $edadUnidad = $_POST['edad_unidad'] ?? 'meses';
         $obs        = trim($_POST['observaciones'] ?? '');
 
-        // Si eligió "Otra", usamos lo que escribió
         if ($raza === 'Otra' && $razaOtra !== '') {
             $raza = $razaOtra;
         }
 
-        // Validaciones básicas
         if ($nombre === '' || $pesoKg <= 0) {
             Session::setError('Completá al menos el nombre y el peso de la mascota.');
-            return; // volvemos al formulario sin redirigir, los valores quedan en $_POST
+            return;
         }
 
-        // Edad en meses
         $edadMeses = null;
         if ($edadValor !== null && $edadValor > 0) {
             $edadMeses = ($edadUnidad === 'anios') ? $edadValor * 12 : $edadValor;
         }
 
-        // Tamaño: si no marcó nada, calculamos por peso
         if (!$tamano) {
             if ($pesoKg <= 7)        $tamano = 'pequeno';
             elseif ($pesoKg <= 18)   $tamano = 'mediano';
-            elseif ($pesoKg <= 35)   $tamano = 'grande';
-            else                     $tamano = 'grande'; // la BD solo tiene pequeño/mediano/grande
+            else                     $tamano = 'grande';
         } elseif ($tamano === 'gigante') {
-            // Por seguridad, lo mapeamos a 'grande' porque el ENUM de la BD no tiene 'gigante'
             $tamano = 'grande';
         }
 
@@ -238,7 +274,198 @@ class MascotaController
             exit;
         } catch (PDOException $e) {
             Session::setError('Error al guardar la mascota: ' . $e->getMessage());
-            // No redirigimos para que el usuario vea el error arriba del formulario
+        }
+    }
+
+    /**
+     * ✅ Actualizar mascota (dueño)
+     * Usado en: features/dueno/EditarMascota.php
+     */
+    public function update(int $id): array
+    {
+        $duenoId = (int)(Session::getUsuarioId() ?? 0);
+        if ($duenoId <= 0) {
+            return ['success' => false, 'error' => 'Sesión no válida.'];
+        }
+
+        // 1) Verificar que la mascota exista y pertenezca al dueño
+        $st = $this->db->prepare("
+            SELECT mascota_id, dueno_id, foto_url
+            FROM mascotas
+            WHERE mascota_id = :id
+              AND dueno_id   = :dueno_id
+            LIMIT 1
+        ");
+        $st->execute([
+            ':id'       => $id,
+            ':dueno_id' => $duenoId
+        ]);
+        $actual = $st->fetch(PDO::FETCH_ASSOC);
+
+        if (!$actual) {
+            return ['success' => false, 'error' => 'Mascota no encontrada o no te pertenece.'];
+        }
+
+        // 2) Leer POST (soporta tus nombres actuales)
+        $nombre   = trim((string)($_POST['nombre'] ?? ''));
+        $raza     = trim((string)($_POST['raza'] ?? ''));
+        $razaOtra = trim((string)($_POST['raza_otra'] ?? ''));
+        if ($raza === 'Otra' && $razaOtra !== '') {
+            $raza = $razaOtra;
+        }
+
+        $pesoKg   = isset($_POST['peso_kg']) && $_POST['peso_kg'] !== '' ? (float)$_POST['peso_kg'] : null;
+        $tamano   = isset($_POST['tamano']) ? trim((string)$_POST['tamano']) : null;
+
+        // Tu EditarMascota manda edad_meses (no edad_valor/unidad)
+        $edadMeses = null;
+        if (isset($_POST['edad_meses']) && $_POST['edad_meses'] !== '') {
+            $edadMeses = (int)$_POST['edad_meses'];
+            if ($edadMeses < 0) $edadMeses = 0;
+        } elseif (isset($_POST['edad_valor']) && $_POST['edad_valor'] !== '') {
+            $edadValor  = (int)$_POST['edad_valor'];
+            $edadUnidad = (string)($_POST['edad_unidad'] ?? 'meses');
+            if ($edadValor > 0) {
+                $edadMeses = ($edadUnidad === 'anios') ? $edadValor * 12 : $edadValor;
+            }
+        }
+
+        $obs = trim((string)($_POST['observaciones'] ?? ''));
+
+        if ($nombre === '') {
+            return ['success' => false, 'error' => 'El nombre es obligatorio.'];
+        }
+
+        // 3) Foto (opcional)
+        $fotoUrl = $actual['foto_url'] ?? null;
+
+        if (!empty($_FILES['foto']) && isset($_FILES['foto']['tmp_name']) && $_FILES['foto']['error'] === UPLOAD_ERR_OK) {
+            $tmp  = $_FILES['foto']['tmp_name'];
+            $name = $_FILES['foto']['name'] ?? 'foto.jpg';
+
+            $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+            $permitidas = ['jpg', 'jpeg', 'png', 'webp'];
+
+            if (!in_array($ext, $permitidas, true)) {
+                return ['success' => false, 'error' => 'Formato de imagen no permitido (jpg, png, webp).'];
+            }
+
+            // Carpeta destino (ajustá si tu proyecto usa otra)
+            $dir = dirname(__DIR__, 2) . '/uploads/mascotas';
+            if (!is_dir($dir)) {
+                @mkdir($dir, 0777, true);
+            }
+
+            $fileName = 'mascota_' . $id . '_' . time() . '.' . $ext;
+            $destAbs  = $dir . '/' . $fileName;
+
+            if (!move_uploaded_file($tmp, $destAbs)) {
+                return ['success' => false, 'error' => 'No se pudo subir la foto.'];
+            }
+
+            // URL/Path guardado en BD (relativo)
+            $fotoUrl = BASE_URL . '/uploads/mascotas/' . $fileName;
+        }
+
+        // 4) Update
+        try {
+            $sql = "
+                UPDATE mascotas
+                SET nombre        = :nombre,
+                    raza          = :raza,
+                    peso_kg       = :peso_kg,
+                    tamano        = :tamano,
+                    edad_meses    = :edad_meses,
+                    observaciones = :observaciones,
+                    foto_url      = :foto_url,
+                    updated_at    = NOW()
+                WHERE mascota_id  = :id
+                  AND dueno_id    = :dueno_id
+            ";
+
+            $stUp = $this->db->prepare($sql);
+            $stUp->execute([
+                ':nombre'        => $nombre,
+                ':raza'          => ($raza !== '' ? $raza : null),
+                ':peso_kg'       => $pesoKg,
+                ':tamano'        => ($tamano !== '' ? $tamano : null),
+                ':edad_meses'    => $edadMeses,
+                ':observaciones' => ($obs !== '' ? $obs : null),
+                ':foto_url'      => $fotoUrl,
+                ':id'            => $id,
+                ':dueno_id'      => $duenoId,
+            ]);
+
+            return ['success' => true];
+        } catch (PDOException $e) {
+            error_log('MascotaController::update error: ' . $e->getMessage());
+            return ['success' => false, 'error' => 'Error al actualizar la mascota.'];
+        }
+    }
+
+    /**
+     * ✅ Eliminar mascota (dueño)
+     * Usado en: features/dueno/EliminarMascota.php
+     * Regla: si tiene paseos asociados, NO se elimina (por FK).
+     */
+    public function destroy(int $id): void
+    {
+        $duenoId = (int)(Session::getUsuarioId() ?? 0);
+        if ($duenoId <= 0) {
+            $_SESSION['error'] = 'Sesión no válida.';
+            header('Location: MisMascotas.php');
+            exit;
+        }
+
+        // Verificar propiedad
+        $st = $this->db->prepare("
+            SELECT mascota_id
+            FROM mascotas
+            WHERE mascota_id = :id
+              AND dueno_id   = :dueno_id
+            LIMIT 1
+        ");
+        $st->execute([':id' => $id, ':dueno_id' => $duenoId]);
+        $row = $st->fetch(PDO::FETCH_ASSOC);
+
+        if (!$row) {
+            $_SESSION['error'] = 'Mascota no encontrada o no te pertenece.';
+            header('Location: MisMascotas.php');
+            exit;
+        }
+
+        // Verificar paseos asociados (evita error por FK)
+        $st2 = $this->db->prepare("
+            SELECT COUNT(*) 
+            FROM paseos
+            WHERE mascota_id = :id
+        ");
+        $st2->execute([':id' => $id]);
+        $cantPaseos = (int)$st2->fetchColumn();
+
+        if ($cantPaseos > 0) {
+            $_SESSION['error'] = 'No podés eliminar esta mascota porque tiene paseos asociados.';
+            header('Location: MisMascotas.php');
+            exit;
+        }
+
+        // Eliminar
+        try {
+            $del = $this->db->prepare("
+                DELETE FROM mascotas
+                WHERE mascota_id = :id
+                  AND dueno_id   = :dueno_id
+            ");
+            $del->execute([':id' => $id, ':dueno_id' => $duenoId]);
+
+            $_SESSION['success'] = 'Mascota eliminada correctamente.';
+            header('Location: MisMascotas.php');
+            exit;
+        } catch (PDOException $e) {
+            error_log('MascotaController::destroy error: ' . $e->getMessage());
+            $_SESSION['error'] = 'No se pudo eliminar la mascota.';
+            header('Location: MisMascotas.php');
+            exit;
         }
     }
 }

@@ -89,7 +89,7 @@ $usuarioNombre = htmlspecialchars(Session::getUsuarioNombre() ?? 'Dueño/a', ENT
         <div class="py-4"><!-- mismo padding que otras pantallas -->
 
             <!-- Header -->
-            <div class="header-box header-mascotas mb-4 d-flex justify-content-between align-items-center">
+            <div class="header-box header-mascotas mb-1 d-flex justify-content-between align-items-center">
                 <div>
                     <h1 class="fw-bold mb-1">
                         <i class="fas fa-dog me-2"></i>Agregar Mascota
@@ -264,7 +264,7 @@ $usuarioNombre = htmlspecialchars(Session::getUsuarioNombre() ?? 'Dueño/a', ENT
                 </div>
             </div>
 
-            <footer class="mt-4 text-center text-muted small">
+            <footer class="mt- text-center text-muted small">
                 © <?= date('Y') ?> Jaguata — Panel del Dueño
             </footer>
         </div>

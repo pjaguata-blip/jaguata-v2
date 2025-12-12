@@ -81,7 +81,7 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
 
         <!-- Contenido principal -->
         <main class="content bg-light">
-            <div class="container-fluid py-4">
+            <div class="container-fluid py-1">
 
                 <!-- Header con estilo global -->
                 <div class="header-box header-dashboard mb-4">

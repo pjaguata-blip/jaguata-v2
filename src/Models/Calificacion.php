@@ -134,4 +134,98 @@ class Calificacion
 
         return round((float)$prom, 1);
     }
+    public function opinionesPorUsuario(int $ratedId, string $tipo = 'paseador', int $limite = 20): array
+    {
+        $tipo = strtolower(trim($tipo));
+        if (!in_array($tipo, ['paseador', 'mascota'], true)) {
+            $tipo = 'paseador';
+        }
+
+        $limite = max(1, min(50, $limite));
+
+        $sql = "
+        SELECT
+            c.cali_id,
+            c.paseo_id,
+            c.calificacion,
+            c.comentario,
+            c.tipo,
+            c.created_at,
+            u.usu_id   AS rater_id,
+            u.nombre   AS rater_nombre,
+            u.email    AS rater_email
+        FROM calificaciones c
+        INNER JOIN usuarios u ON u.usu_id = c.rater_id
+        WHERE c.rated_id = :rated_id
+          AND c.tipo = :tipo
+          AND c.comentario IS NOT NULL
+          AND TRIM(c.comentario) <> ''
+        ORDER BY c.created_at DESC
+        LIMIT {$limite}
+    ";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([
+            ':rated_id' => $ratedId,
+            ':tipo'     => $tipo,
+        ]);
+
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+    }
+    public function resumenPorRated(int $ratedId, string $tipo): array
+    {
+        $sql = "
+        SELECT 
+            AVG(calificacion) AS promedio,
+            COUNT(*)          AS total
+        FROM calificaciones
+        WHERE rated_id = :rated_id
+          AND tipo     = :tipo
+    ";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([
+            ':rated_id' => $ratedId,
+            ':tipo'     => $tipo,
+        ]);
+
+        $row = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+        return [
+            'promedio' => isset($row['promedio']) ? (float)$row['promedio'] : null,
+            'total'    => isset($row['total']) ? (int)$row['total'] : 0,
+        ];
+    }
+
+    public function opinionesPorRated(int $ratedId, string $tipo, int $limit = 5, int $offset = 0): array
+    {
+        // OJO: LIMIT/OFFSET conviene pasarlos como int directo (sin comillas)
+        $limit  = max(1, min(100, $limit));
+        $offset = max(0, $offset);
+
+        $sql = "
+        SELECT
+            c.cali_id,
+            c.paseo_id,
+            c.rater_id,
+            c.rated_id,
+            c.calificacion,
+            c.comentario,
+            c.tipo,
+            c.created_at,
+            u.nombre AS autor_nombre,
+            u.email  AS autor_email
+        FROM calificaciones c
+        LEFT JOIN usuarios u ON u.usu_id = c.rater_id
+        WHERE c.rated_id = :rated_id
+          AND c.tipo     = :tipo
+        ORDER BY c.created_at DESC
+        LIMIT {$limit} OFFSET {$offset}
+    ";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([
+            ':rated_id' => $ratedId,
+            ':tipo'     => $tipo,
+        ]);
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
 }

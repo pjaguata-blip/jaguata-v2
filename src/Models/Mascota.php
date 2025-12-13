@@ -55,6 +55,7 @@ class Mascota extends BaseModel
                 m.edad_meses,
                 m.observaciones,
                 m.foto_url,
+                m.estado,
                 m.created_at,
                 m.updated_at,
                 u.nombre AS dueno_nombre,

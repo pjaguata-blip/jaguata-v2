@@ -15,7 +15,6 @@ use Jaguata\Config\AppConfig;
 use Jaguata\Helpers\Session;
 use Jaguata\Models\Mascota;
 use Jaguata\Models\Usuario;
-use Jaguata\Models\Calificacion;
 
 AppConfig::init();
 
@@ -25,45 +24,34 @@ if (!Session::isLoggedIn() || Session::getUsuarioRol() !== 'admin') {
     exit;
 }
 
-// Helper escape
 function h(?string $v): string
 {
     return htmlspecialchars((string)($v ?? ''), ENT_QUOTES, 'UTF-8');
 }
 
-// ID de mascota
 $mascotaId = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 if ($mascotaId <= 0) {
     http_response_code(400);
     exit('<h3 style="color:red; text-align:center;">ID de mascota no válido</h3>');
 }
 
-// Modelos
-$mascotaModel      = new Mascota();
-$usuarioModel      = new Usuario();
+$mascotaModel = new Mascota();
+$usuarioModel = new Usuario();
 
-
-// Mascota (BaseModel → find)
 $mascota = $mascotaModel->find($mascotaId);
-
 if (!$mascota) {
     http_response_code(404);
     exit('<h3 style="color:red; text-align:center;">Mascota no encontrada</h3>');
 }
 
-// Dueño (📌 CORREGIDO: usamos find() en vez de getById())
 $duenoId = (int)($mascota['dueno_id'] ?? 0);
 $dueno   = $duenoId > 0 ? $usuarioModel->find($duenoId) : null;
 
-// Reputación de esta mascota
-// Reputación de esta mascota (usamos el modelo Mascota)
 $reputacion  = $mascotaModel->resumenPorMascota($mascotaId);
 $promMascota = $reputacion['promedio'] ?? null;
-$totalOpin   = $reputacion['total'] ?? 0;
+$totalOpin   = (int)($reputacion['total'] ?? 0);
 
-
-// Datos derivados
-$tamano = strtolower($mascota['tamano'] ?? '');
+$tamano = strtolower((string)($mascota['tamano'] ?? ''));
 $badgeTamano = match ($tamano) {
     'pequeno' => 'bg-success',
     'mediano' => 'bg-info',
@@ -81,19 +69,32 @@ $edadMeses = (int)($mascota['edad_meses'] ?? 0);
 if ($edadMeses >= 12) {
     $anios = intdiv($edadMeses, 12);
     $resto = $edadMeses % 12;
-    if ($resto > 0) {
-        $edadTexto = $anios . ' año' . ($anios > 1 ? 's' : '') .
-            " y $resto mes" . ($resto > 1 ? 'es' : '');
-    } else {
-        $edadTexto = $anios . ' año' . ($anios > 1 ? 's' : '');
-    }
+    $edadTexto = $anios . ' año' . ($anios > 1 ? 's' : '');
+    if ($resto > 0) $edadTexto .= " y $resto mes" . ($resto > 1 ? 'es' : '');
 } elseif ($edadMeses > 0) {
     $edadTexto = $edadMeses . ' mes' . ($edadMeses > 1 ? 'es' : '');
 } else {
     $edadTexto = 'N/D';
 }
 
-$fotoUrl = $mascota['foto_url'] ?? '';
+$fotoUrl = (string)($mascota['foto_url'] ?? '');
+
+$estadoMascota = strtolower((string)($mascota['estado'] ?? 'activo'));
+if (!in_array($estadoMascota, ['activo', 'inactivo'], true)) {
+    $estadoMascota = 'activo';
+}
+$badgeEstado = match ($estadoMascota) {
+    'activo'   => 'estado-activo',
+    'inactivo' => 'estado-inactivo',
+    default    => 'estado-activo'
+};
+$estadoLabel = ucfirst($estadoMascota);
+
+// Acción sugerida
+$accionEstado = ($estadoMascota === 'activo') ? 'inactivar' : 'activar';
+$btnEstadoClass = ($estadoMascota === 'activo') ? 'btn-warning text-dark' : 'btn-success';
+$btnEstadoIcon  = ($estadoMascota === 'activo') ? 'fa-ban' : 'fa-check-circle';
+$btnEstadoText  = ($estadoMascota === 'activo') ? 'Inactivar' : 'Activar';
 
 ?>
 <!DOCTYPE html>
@@ -107,14 +108,85 @@ $fotoUrl = $mascota['foto_url'] ?? '';
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
     <link href="<?= BASE_URL; ?>/public/assets/css/jaguata-theme.css" rel="stylesheet">
+
+    <!-- ✅ Extra: orden visual sin romper tu theme -->
+    <style>
+        .kv-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: .75rem;
+        }
+
+        .kv {
+            background: #fff;
+            border: 1px solid rgba(0, 0, 0, .06);
+            border-radius: 16px;
+            padding: .75rem .9rem;
+            text-align: left;
+        }
+
+        .kv .k {
+            font-size: .78rem;
+            opacity: .75;
+        }
+
+        .kv .v {
+            font-weight: 700;
+            margin-top: .1rem;
+        }
+
+        .chip-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: .5rem;
+        }
+
+        .pet-hero {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: .75rem;
+            border: 1px dashed rgba(60, 98, 85, .25);
+            border-radius: 18px;
+            background: rgba(32, 201, 151, .06);
+        }
+
+        .pet-hero img,
+        .pet-hero .avatar {
+            width: 86px;
+            height: 86px;
+            border-radius: 999px;
+            object-fit: cover;
+        }
+
+        .pet-hero .avatar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #e9f7f1;
+        }
+
+        .pet-actions {
+            display: flex;
+            gap: .5rem;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+
+        .pet-actions .btn {
+            border-radius: 14px;
+        }
+
+        .section-body hr {
+            opacity: .15;
+        }
+    </style>
 </head>
 
 <body>
-
     <?php include __DIR__ . '/../../src/Templates/SidebarAdmin.php'; ?>
 
-    <!-- Botón hamburguesa mobile -->
-    <button class="btn btn-outline-secondary d-md-none ms-2 mt-3" id="toggleSidebar">
+    <button class="btn btn-outline-secondary d-md-none ms-2 mt-3" id="toggleSidebar" type="button">
         <i class="fas fa-bars"></i>
     </button>
 
@@ -124,162 +196,188 @@ $fotoUrl = $mascota['foto_url'] ?? '';
             <!-- HEADER -->
             <div class="header-box header-dashboard mb-4">
                 <div>
-                    <h1 class="fw-bold mb-1">
-                        <i class="fas fa-paw me-2"></i>
-                        Perfil de Mascota
-                    </h1>
-                    <p class="mb-0">
-                        Visualizá los datos detallados de la mascota y su dueño 🐶
-                    </p>
+                    <h1 class="fw-bold mb-1"><i class="fas fa-paw me-2"></i>Perfil de Mascota</h1>
+                    <p class="mb-0">Visualizá los datos detallados de la mascota y su dueño 🐶</p>
                 </div>
                 <div class="text-end">
-                    <a href="<?= BASE_URL; ?>/features/admin/Mascotas.php"
-                        class="btn btn-outline-light btn-sm">
+                    <a href="<?= BASE_URL; ?>/features/admin/Mascotas.php" class="btn btn-outline-light btn-sm">
                         <i class="fas fa-arrow-left me-1"></i> Volver al listado
                     </a>
                 </div>
             </div>
 
             <div class="row g-3">
-                <!-- Columna izquierda: info principal -->
+                <!-- IZQUIERDA -->
                 <div class="col-lg-5">
                     <div class="section-card">
-                        <div class="section-header">
-                            <i class="fas fa-dog me-2"></i>
-                            Mascota #<?= (int)$mascota['mascota_id']; ?> — <?= h($mascota['nombre'] ?? ''); ?>
+                        <div class="section-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+                            <div>
+                                <i class="fas fa-dog me-2"></i>
+                                Mascota #<?= (int)$mascota['mascota_id']; ?>
+                            </div>
+
+                            <!-- chips arriba -->
+                            <div class="chip-row">
+                                <span class="badge <?= h($badgeTamano); ?>"><?= h($tamanoLabel); ?></span>
+                                <span class="badge-estado <?= h($badgeEstado); ?>"><?= h($estadoLabel); ?></span>
+                            </div>
                         </div>
+
                         <div class="section-body">
-                            <div class="d-flex flex-column align-items-center mb-3">
-                                <?php if (!empty($fotoUrl)): ?>
-                                    <img src="<?= h($fotoUrl); ?>"
-                                        alt="Foto de <?= h($mascota['nombre'] ?? ''); ?>"
-                                        class="rounded-circle mb-2"
-                                        style="width:90px;height:90px;object-fit:cover;">
+                            <!-- HERO -->
+                            <div class="pet-hero">
+                                <?php if ($fotoUrl !== ''): ?>
+                                    <img src="<?= h($fotoUrl); ?>" alt="Foto de <?= h($mascota['nombre'] ?? ''); ?>">
                                 <?php else: ?>
-                                    <div class="rounded-circle d-flex align-items-center justify-content-center mb-2"
-                                        style="width:90px;height:90px;background:#e9f7f1;">
+                                    <div class="avatar">
                                         <i class="fas fa-dog fa-2x text-success"></i>
                                     </div>
                                 <?php endif; ?>
-                                <h3 class="mb-0"><?= h($mascota['nombre'] ?? ''); ?></h3>
-                                <small class="text-muted">
-                                    Registrada el <?= h(substr((string)($mascota['created_at'] ?? ''), 0, 10)); ?>
-                                </small>
-                            </div>
 
-                            <hr>
-
-                            <div class="row g-2 mb-2">
-                                <div class="col-6">
-                                    <span class="text-muted small d-block">Raza</span>
-                                    <strong><?= h($mascota['raza'] ?? 'N/D'); ?></strong>
-                                </div>
-                                <div class="col-6">
-                                    <span class="text-muted small d-block">Tamaño</span>
-                                    <span class="badge <?= $badgeTamano; ?>">
-                                        <?= $tamanoLabel; ?>
-                                    </span>
+                                <div class="flex-grow-1">
+                                    <h3 class="mb-1"><?= h($mascota['nombre'] ?? ''); ?></h3>
+                                    <div class="text-muted small">
+                                        <i class="fas fa-calendar-alt me-1"></i>
+                                        Registrada el <?= h(substr((string)($mascota['created_at'] ?? ''), 0, 10)); ?>
+                                    </div>
+                                    <div class="text-muted small">
+                                        <i class="fas fa-user me-1"></i>
+                                        Dueño ID: #<?= (int)$duenoId; ?>
+                                    </div>
                                 </div>
                             </div>
 
-                            <div class="row g-2 mb-2">
-                                <div class="col-6">
-                                    <span class="text-muted small d-block">Peso</span>
-                                    <strong>
-                                        <?= number_format((float)($mascota['peso_kg'] ?? 0), 1, ',', '.'); ?> kg
-                                    </strong>
+                            <hr class="my-3">
+
+                            <!-- DATOS ORDENADOS -->
+                            <div class="kv-grid">
+                                <div class="kv">
+                                    <div class="k">Raza</div>
+                                    <div class="v"><?= h($mascota['raza'] ?? 'N/D'); ?></div>
                                 </div>
-                                <div class="col-6">
-                                    <span class="text-muted small d-block">Edad estimada</span>
-                                    <strong><?= h($edadTexto); ?></strong>
+                                <div class="kv">
+                                    <div class="k">Edad estimada</div>
+                                    <div class="v"><?= h($edadTexto); ?></div>
+                                </div>
+                                <div class="kv">
+                                    <div class="k">Peso</div>
+                                    <div class="v"><?= number_format((float)($mascota['peso_kg'] ?? 0), 1, ',', '.'); ?> kg</div>
+                                </div>
+                                <div class="kv">
+                                    <div class="k">Estado</div>
+                                    <div class="v">
+                                        <span class="badge-estado <?= h($badgeEstado); ?>"><?= h($estadoLabel); ?></span>
+                                    </div>
                                 </div>
                             </div>
 
+                            <!-- ACCIONES -->
+                            <div class="pet-actions mt-3">
+                                <button
+                                    type="button"
+                                    class="btn btn-sm <?= h($btnEstadoClass); ?>"
+                                    id="btnEstadoMascota"
+                                    data-id="<?= (int)$mascotaId ?>"
+                                    data-accion="<?= h($accionEstado); ?>">
+                                    <i class="fas <?= h($btnEstadoIcon); ?> me-1"></i> <?= h($btnEstadoText); ?>
+                                </button>
+
+                                <a class="btn btn-sm btn-outline-secondary"
+                                    href="<?= BASE_URL; ?>/features/admin/Mascotas.php">
+                                    <i class="fas fa-list me-1"></i> Listado
+                                </a>
+                            </div>
+
+                            <!-- OBSERVACIONES -->
                             <div class="mt-3">
-                                <span class="text-muted small d-block mb-1">Observaciones</span>
-                                <?php if (!empty($mascota['observaciones'])): ?>
-                                    <p class="mb-0"><?= nl2br(h($mascota['observaciones'])); ?></p>
-                                <?php else: ?>
-                                    <p class="mb-0 text-muted">Sin observaciones registradas.</p>
-                                <?php endif; ?>
+                                <div class="text-muted small mb-1">Observaciones</div>
+                                <div class="kv" style="padding: .85rem 1rem;">
+                                    <?php if (!empty($mascota['observaciones'])): ?>
+                                        <div class="mb-0"><?= nl2br(h((string)$mascota['observaciones'])); ?></div>
+                                    <?php else: ?>
+                                        <div class="text-muted mb-0">Sin observaciones registradas.</div>
+                                    <?php endif; ?>
+                                </div>
                             </div>
+
                         </div>
                     </div>
                 </div>
 
-                <!-- Columna derecha: dueño + reputación -->
+                <!-- DERECHA -->
                 <div class="col-lg-7">
                     <!-- Dueño -->
                     <div class="section-card mb-3">
                         <div class="section-header">
-                            <i class="fas fa-user me-2"></i>
-                            Dueño de la mascota
+                            <i class="fas fa-user me-2"></i>Dueño de la mascota
                         </div>
                         <div class="section-body">
                             <?php if ($dueno): ?>
-                                <div class="d-flex justify-content-between align-items-center flex-wrap mb-2">
+                                <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
                                     <div>
                                         <h5 class="mb-1"><?= h($dueno['nombre'] ?? ''); ?></h5>
+
                                         <div class="text-muted small">
-                                            <i class="fas fa-envelope me-1"></i>
-                                            <?= h($dueno['email'] ?? ''); ?>
+                                            <i class="fas fa-envelope me-1"></i><?= h($dueno['email'] ?? ''); ?>
                                         </div>
                                         <div class="text-muted small">
-                                            <i class="fas fa-id-card me-1"></i>
-                                            ID Usuario: #<?= (int)$dueno['usu_id']; ?>
+                                            <i class="fas fa-id-card me-1"></i>ID Usuario: #<?= (int)($dueno['usu_id'] ?? 0); ?>
                                         </div>
                                     </div>
-                                    <div class="mt-2 mt-sm-0">
+
+                                    <div class="text-end">
                                         <span class="badge bg-info text-dark">
-                                            <?= ucfirst(strtolower($dueno['rol'] ?? 'dueno')); ?>
+                                            <?= h(ucfirst(strtolower((string)($dueno['rol'] ?? 'dueno')))); ?>
                                         </span>
                                     </div>
                                 </div>
 
-                                <button class="btn btn-outline-success btn-sm"
-                                    onclick="window.location.href='<?= BASE_URL; ?>/features/admin/editar_usuario.php?id=<?= (int)$dueno['usu_id']; ?>'">
-                                    <i class="fas fa-user-pen me-1"></i>
-                                    Ver / editar perfil de dueño
-                                </button>
+                                <div class="mt-3">
+                                    <button class="btn btn-outline-success btn-sm"
+                                        type="button"
+                                        onclick="window.location.href='<?= BASE_URL; ?>/features/admin/editar_usuario.php?id=<?= (int)($dueno['usu_id'] ?? 0); ?>'">
+                                        <i class="fas fa-user-pen me-1"></i> Ver / editar perfil de dueño
+                                    </button>
+                                </div>
                             <?php else: ?>
                                 <div class="alert alert-light mb-0">
-                                    <i class="fas fa-info-circle me-1"></i>
-                                    No se encontró información del dueño.
+                                    <i class="fas fa-info-circle me-1"></i>No se encontró información del dueño.
                                 </div>
                             <?php endif; ?>
                         </div>
                     </div>
 
-                    <!-- Reputación de la mascota -->
+                    <!-- Reputación -->
                     <div class="section-card">
                         <div class="section-header">
-                            <i class="fas fa-star-half-alt me-2"></i>
-                            Reputación de la mascota
+                            <i class="fas fa-star-half-alt me-2"></i>Reputación de la mascota
                         </div>
                         <div class="section-body">
                             <?php if ($promMascota !== null && $totalOpin > 0): ?>
-                                <div class="d-flex flex-column flex-sm-row align-items-center justify-content-between">
-                                    <div class="mb-2 mb-sm-0">
+                                <div class="d-flex flex-column flex-sm-row align-items-center justify-content-between gap-3">
+                                    <div class="text-center text-sm-start">
                                         <div class="display-6 mb-0">
                                             <?= number_format((float)$promMascota, 1, ',', '.'); ?>
                                             <span class="fs-5">/ 5</span>
                                         </div>
+
                                         <div class="rating-stars fs-4">
                                             <?php
-                                            $rounded = (int)round($promMascota);
+                                            $rounded = (int)round((float)$promMascota);
                                             for ($i = 1; $i <= 5; $i++):
                                                 $cls = $i <= $rounded ? 'fas text-warning' : 'far text-muted';
                                             ?>
-                                                <i class="<?= $cls; ?> fa-star"></i>
+                                                <i class="<?= h($cls); ?> fa-star"></i>
                                             <?php endfor; ?>
                                         </div>
+
                                         <div class="small text-muted">
                                             <?= (int)$totalOpin; ?> opinión<?= $totalOpin === 1 ? '' : 'es'; ?> de paseadores
                                         </div>
                                     </div>
+
                                     <div class="text-muted small">
-                                        Las calificaciones de la mascota ayudan a los paseadores
-                                        a anticipar su comportamiento y necesidades.
+                                        Las calificaciones ayudan a anticipar comportamiento y necesidades durante el paseo.
                                     </div>
                                 </div>
                             <?php else: ?>
@@ -290,23 +388,60 @@ $fotoUrl = $mascota['foto_url'] ?? '';
                             <?php endif; ?>
                         </div>
                     </div>
+                </div>
 
-                </div><!-- col derecha -->
-            </div><!-- row -->
+            </div>
 
             <footer class="mt-4 text-center text-muted small">
                 © <?= date('Y'); ?> Jaguata — Panel de Administración
             </footer>
-        </div><!-- py-4 -->
+        </div>
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
     <script>
         // Toggle sidebar móvil
         document.getElementById('toggleSidebar')?.addEventListener('click', function() {
-            document.getElementById('sidebar')?.classList.toggle('sidebar-open');
+            document.querySelector('.sidebar')?.classList.toggle('sidebar-open');
+            document.querySelector('.sidebar-backdrop')?.classList.toggle('show');
+        });
+
+        // Activar/Inactivar mascota
+        document.getElementById('btnEstadoMascota')?.addEventListener('click', async function() {
+            const id = this.dataset.id;
+            const accion = this.dataset.accion;
+
+            const msg = accion === 'activar' ?
+                '¿Activar esta mascota?' :
+                '¿Inactivar esta mascota?';
+
+            if (!confirm(msg)) return;
+
+            this.disabled = true;
+
+            try {
+                const fd = new FormData();
+                fd.append('id', id);
+                fd.append('accion', accion);
+
+                const res = await fetch('<?= BASE_URL; ?>/public/api/mascotas/accionesMascota.php', {
+                    method: 'POST',
+                    body: fd
+                });
+
+                const data = await res.json();
+                alert(data.mensaje || 'Operación realizada');
+                if (data.ok) location.reload();
+            } catch (e) {
+                console.error(e);
+                alert('Error inesperado al actualizar el estado.');
+            } finally {
+                this.disabled = false;
+            }
         });
     </script>
+
 </body>
 
 </html>

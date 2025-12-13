@@ -487,7 +487,7 @@ if (Session::isLoggedIn()) {
                                         Únete a Jaguata
                                     </a>
                                     <a href="<?= BASE_URL; ?>/contacto.php"
-                                        class="btn btn-outline-light btn-outline-soft">
+                                        class="btn btn-outline-black btn-outline-soft">
                                         <i class="fas fa-envelope me-2" aria-hidden="true"></i>
                                         Contáctanos
                                     </a>

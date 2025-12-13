@@ -49,6 +49,7 @@ class MascotaController
                     edad_meses,
                     observaciones,
                     foto_url,
+                    estado,
                     created_at,
                     updated_at
                 FROM mascotas
@@ -126,6 +127,7 @@ class MascotaController
                     edad_meses,
                     observaciones,
                     foto_url,
+                    estado,
                     created_at,
                     updated_at
                 FROM mascotas
@@ -157,6 +159,7 @@ class MascotaController
                 edad_meses,
                 observaciones,
                 foto_url,
+                estado,
                 created_at,
                 updated_at
             FROM mascotas
@@ -466,6 +469,36 @@ class MascotaController
             $_SESSION['error'] = 'No se pudo eliminar la mascota.';
             header('Location: MisMascotas.php');
             exit;
+        }
+    }
+    public function setEstado(int $mascotaId, string $estado): array
+    {
+        $rol = Session::getUsuarioRol() ?? '';
+        if ($rol !== 'admin') {
+            return ['success' => false, 'error' => 'No autorizado'];
+        }
+
+        $estado = strtolower(trim($estado));
+        if (!in_array($estado, ['activo', 'inactivo'], true)) {
+            return ['success' => false, 'error' => 'Estado inválido'];
+        }
+
+        try {
+            $st = $this->db->prepare("
+            UPDATE mascotas
+            SET estado = :estado,
+                updated_at = NOW()
+            WHERE mascota_id = :id
+        ");
+            $st->execute([
+                ':estado' => $estado,
+                ':id' => $mascotaId
+            ]);
+
+            return ['success' => true];
+        } catch (PDOException $e) {
+            error_log('MascotaController::setEstado error: ' . $e->getMessage());
+            return ['success' => false, 'error' => 'No se pudo actualizar el estado'];
         }
     }
 }

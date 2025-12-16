@@ -27,14 +27,27 @@ $paseoCtrl = new PaseoController();
 $duenoId   = (int)(Session::getUsuarioId() ?? 0);
 $paseos    = $duenoId ? ($paseoCtrl->indexByDueno($duenoId) ?? []) : [];
 
-/* Normalización de estados */
-$norm = static function (?string $s): string {
+/* Helpers */
+$norm = static function ($s): string {
     return strtolower(trim((string)$s));
 };
 
+$h = static function ($v): string {
+    return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
+};
+
+$fmtEstado = static function (string $estado): string {
+    $estado = strtolower(trim($estado));
+    $estado = str_replace('_', ' ', $estado);
+    return $estado === '' ? '—' : ucfirst($estado);
+};
+
+/* Estados válidos */
+$estadosValidos = ['solicitado', 'confirmado', 'en_curso', 'completo', 'cancelado'];
+
 /* Filtro por estado (GET) */
 $estadoFiltro = $norm($_GET['estado'] ?? '');
-if ($estadoFiltro !== '') {
+if ($estadoFiltro !== '' && in_array($estadoFiltro, $estadosValidos, true)) {
     $paseos = array_values(array_filter(
         $paseos,
         fn($p) => $norm($p['estado'] ?? '') === $estadoFiltro
@@ -44,15 +57,10 @@ if ($estadoFiltro !== '') {
 /* Métricas (sobre todos los paseos del dueño, sin filtrar por GET) */
 $all        = $duenoId ? ($paseoCtrl->indexByDueno($duenoId) ?? []) : [];
 $total      = count($all);
-$pendientes = array_filter($all, fn($p) => in_array($norm($p['estado'] ?? ''), ['pendiente', 'confirmado'], true));
+$pendientes = array_filter($all, fn($p) => in_array($norm($p['estado'] ?? ''), ['solicitado', 'confirmado'], true));
 $completos  = array_filter($all, fn($p) => $norm($p['estado'] ?? '') === 'completo');
 $cancelados = array_filter($all, fn($p) => $norm($p['estado'] ?? '') === 'cancelado');
 $gastoTotal = array_sum(array_map(fn($p) => (float)($p['precio_total'] ?? 0), $completos));
-
-/* Util */
-$h = static function ($v): string {
-    return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
-};
 
 ?>
 <!DOCTYPE html>
@@ -69,7 +77,6 @@ $h = static function ($v): string {
     <link href="<?= BASE_URL; ?>/public/assets/css/jaguata-theme.css" rel="stylesheet">
 
     <style>
-        /* Que estire como los otros dashboards */
         html,
         body {
             height: 100%;
@@ -92,7 +99,6 @@ $h = static function ($v): string {
             }
         }
 
-        /* Tarjetas tipo dashboard */
         .dash-card {
             background: #ffffff;
             border-radius: 18px;
@@ -168,33 +174,33 @@ $h = static function ($v): string {
                 </div>
             </div>
 
-            <!-- Métricas (tarjetas como dashboard) -->
+            <!-- Métricas -->
             <div class="row g-3 mb-4">
                 <div class="col-md-3">
                     <div class="dash-card">
                         <i class="fas fa-list dash-card-icon icon-blue"></i>
-                        <div class="dash-card-value"><?= $total; ?></div>
+                        <div class="dash-card-value"><?= (int)$total; ?></div>
                         <div class="dash-card-label">Total de paseos</div>
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="dash-card">
                         <i class="fas fa-hourglass-half dash-card-icon icon-yellow"></i>
-                        <div class="dash-card-value"><?= count($pendientes); ?></div>
-                        <div class="dash-card-label">Pendientes / Confirmados</div>
+                        <div class="dash-card-value"><?= (int)count($pendientes); ?></div>
+                        <div class="dash-card-label">Solicitados / Confirmados</div>
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="dash-card">
                         <i class="fas fa-check-circle dash-card-icon icon-green"></i>
-                        <div class="dash-card-value"><?= count($completos); ?></div>
+                        <div class="dash-card-value"><?= (int)count($completos); ?></div>
                         <div class="dash-card-label">Completados</div>
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="dash-card">
                         <i class="fas fa-wallet dash-card-icon icon-red"></i>
-                        <div class="dash-card-value">₲<?= number_format($gastoTotal, 0, ',', '.'); ?></div>
+                        <div class="dash-card-value">₲<?= number_format((float)$gastoTotal, 0, ',', '.'); ?></div>
                         <div class="dash-card-label">Gasto total</div>
                     </div>
                 </div>
@@ -211,7 +217,7 @@ $h = static function ($v): string {
                         <?php
                         $opts = [
                             ''           => 'Todos',
-                            'pendiente'  => 'Pendientes',
+                            'solicitado' => 'Solicitados',
                             'confirmado' => 'Confirmados',
                             'en_curso'   => 'En curso',
                             'completo'   => 'Completos',
@@ -227,7 +233,7 @@ $h = static function ($v): string {
                 </div>
             </div>
 
-            <!-- Lista / estado -->
+            <!-- Lista -->
             <?php if (empty($paseos)): ?>
                 <div class="section-card text-center">
                     <div class="mb-3">
@@ -263,17 +269,20 @@ $h = static function ($v): string {
                                 <tbody>
                                     <?php foreach ($paseos as $p): ?>
                                         <?php
-                                        $estado    = $norm($p['estado'] ?? '');
-                                        $estadoPago = strtolower((string)($p['estado_pago'] ?? ''));
+                                        // ✅ Fallback: si viene NULL/'' lo tratamos como solicitado
+                                        $estadoRaw = $norm($p['estado'] ?? '');
+                                        $estado    = $estadoRaw !== '' ? $estadoRaw : 'solicitado';
 
-                                        $badge  = match ($estado) {
+                                        $estadoPago = $norm($p['estado_pago'] ?? '');
+
+                                        $badge = match ($estado) {
                                             'completo'   => 'success',
                                             'cancelado'  => 'danger',
                                             'en_curso'   => 'info',
                                             'confirmado' => 'primary',
-                                            default      => 'warning', // pendiente u otros
+                                            'solicitado' => 'warning',
+                                            default      => 'secondary',
                                         };
-
                                         ?>
                                         <tr>
                                             <td>
@@ -292,7 +301,7 @@ $h = static function ($v): string {
                                             <td><?= (int)($p['duracion'] ?? 0); ?> min</td>
                                             <td>
                                                 <span class="badge bg-<?= $badge; ?>">
-                                                    <?= ucfirst($estado ?: '-'); ?>
+                                                    <?= $fmtEstado($estado); ?>
                                                 </span>
                                             </td>
                                             <td>
@@ -300,16 +309,13 @@ $h = static function ($v): string {
                                             </td>
                                             <td class="text-center">
                                                 <div class="btn-group">
-                                                    <!-- 🔍 Ver detalle -->
                                                     <a href="<?= $baseFeatures; ?>/VerPaseo.php?paseo_id=<?= (int)($p['paseo_id'] ?? 0); ?>"
                                                         class="btn-ver"
                                                         title="Ver detalles del paseo">
                                                         <i class="fas fa-eye"></i> Ver
                                                     </a>
 
-
-                                                    <?php if (in_array($estado, ['pendiente', 'confirmado'], true)): ?>
-                                                        <!-- ❌ Cancelar paseo mientras aún no empezó -->
+                                                    <?php if (in_array($estado, ['solicitado', 'confirmado'], true)): ?>
                                                         <a href="<?= $baseFeatures; ?>/CancelarPaseo.php?id=<?= (int)($p['paseo_id'] ?? 0); ?>"
                                                             class="btn btn-sm btn-accion btn-rechazar"
                                                             onclick="return confirm('¿Cancelar este paseo?')"
@@ -319,7 +325,6 @@ $h = static function ($v): string {
                                                     <?php endif; ?>
 
                                                     <?php if ($estado === 'en_curso' && $estadoPago !== 'procesado'): ?>
-                                                        <!-- 💳 Pagar paseo SOLO cuando está EN CURSO y aún no está procesado -->
                                                         <a href="<?= $baseFeatures; ?>/pago_paseo_dueno.php?paseo_id=<?= (int)($p['paseo_id'] ?? 0); ?>"
                                                             class="btn btn-sm btn-accion btn-activar"
                                                             title="Pagar paseo">
@@ -346,19 +351,14 @@ $h = static function ($v): string {
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Filtro por estado (mantiene backend tal cual, solo manipula querystring)
         function aplicarFiltro() {
             const estado = document.getElementById('filtroEstado').value;
             const url = new URL(window.location.href);
-            if (estado) {
-                url.searchParams.set('estado', estado);
-            } else {
-                url.searchParams.delete('estado');
-            }
+            if (estado) url.searchParams.set('estado', estado);
+            else url.searchParams.delete('estado');
             window.location.replace(url.toString());
         }
 
-        // Toggle sidebar en mobile
         document.getElementById('toggleSidebar')?.addEventListener('click', function() {
             document.getElementById('sidebar')?.classList.toggle('sidebar-open');
         });

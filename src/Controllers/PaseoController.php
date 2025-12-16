@@ -579,27 +579,27 @@ class PaseoController
         $cantidadMascotas = 1 + ($mascota2 > 0 ? 1 : 0);
 
         try {
-            // validar mascota 1
+            // ✅ Validar que mascota 1 pertenezca al dueño
             $chk1 = $this->db->prepare("
-                SELECT COUNT(*)
-                FROM mascotas
-                WHERE mascota_id = :mascota_id
-                  AND dueno_id   = :dueno_id
-            ");
+            SELECT COUNT(*)
+            FROM mascotas
+            WHERE mascota_id = :mascota_id
+              AND dueno_id   = :dueno_id
+        ");
             $chk1->execute([':mascota_id' => $mascota1, ':dueno_id' => $duenoId]);
             if ((int)$chk1->fetchColumn() === 0) {
                 $_SESSION['error'] = 'La Mascota 1 seleccionada no te pertenece.';
                 return;
             }
 
-            // validar mascota 2
+            // ✅ Validar mascota 2 (si existe)
             if ($mascota2 > 0) {
                 $chk2 = $this->db->prepare("
-                    SELECT COUNT(*)
-                    FROM mascotas
-                    WHERE mascota_id = :mascota_id
-                      AND dueno_id   = :dueno_id
-                ");
+                SELECT COUNT(*)
+                FROM mascotas
+                WHERE mascota_id = :mascota_id
+                  AND dueno_id   = :dueno_id
+            ");
                 $chk2->execute([':mascota_id' => $mascota2, ':dueno_id' => $duenoId]);
                 if ((int)$chk2->fetchColumn() === 0) {
                     $_SESSION['error'] = 'La Mascota 2 seleccionada no te pertenece.';
@@ -607,13 +607,13 @@ class PaseoController
                 }
             }
 
-            // precio hora
+            // ✅ Precio por hora del paseador
             $stmtPrecio = $this->db->prepare("
-                SELECT precio_hora
-                FROM paseadores
-                WHERE paseador_id = :paseador_id
-                LIMIT 1
-            ");
+            SELECT precio_hora
+            FROM paseadores
+            WHERE paseador_id = :paseador_id
+            LIMIT 1
+        ");
             $stmtPrecio->execute([':paseador_id' => $paseadorId]);
             $precioHora = (float)($stmtPrecio->fetchColumn() ?: 0);
 
@@ -626,33 +626,45 @@ class PaseoController
                     : round($precioHora * $horas, 0);
             }
 
+            // ✅ Estados iniciales
+            $estadoInicial     = 'solicitado';
+            $estadoPagoInicial = 'pendiente';
+            $puntosInicial     = 0;
+
+            // ✅ INSERT incluyendo estado para que NO quede NULL
             $sql = "
-                INSERT INTO paseos (
-                    mascota_id,
-                    mascota_id_2,
-                    cantidad_mascotas,
-                    paseador_id,
-                    inicio,
-                    duracion,
-                    ubicacion,
-                    precio_total,
-                    pickup_lat,
-                    pickup_lng,
-                    pickup_direccion
-                ) VALUES (
-                    :mascota_id,
-                    :mascota_id_2,
-                    :cantidad_mascotas,
-                    :paseador_id,
-                    :inicio,
-                    :duracion,
-                    :ubicacion,
-                    :precio_total,
-                    :pickup_lat,
-                    :pickup_lng,
-                    :pickup_direccion
-                )
-            ";
+            INSERT INTO paseos (
+                mascota_id,
+                mascota_id_2,
+                cantidad_mascotas,
+                paseador_id,
+                inicio,
+                duracion,
+                ubicacion,
+                precio_total,
+                pickup_lat,
+                pickup_lng,
+                pickup_direccion,
+                estado,
+                estado_pago,
+                puntos_ganados
+            ) VALUES (
+                :mascota_id,
+                :mascota_id_2,
+                :cantidad_mascotas,
+                :paseador_id,
+                :inicio,
+                :duracion,
+                :ubicacion,
+                :precio_total,
+                :pickup_lat,
+                :pickup_lng,
+                :pickup_direccion,
+                :estado,
+                :estado_pago,
+                :puntos_ganados
+            )
+        ";
 
             $st = $this->db->prepare($sql);
             $ok = $st->execute([
@@ -667,6 +679,9 @@ class PaseoController
                 ':pickup_lat'        => $pickupLat,
                 ':pickup_lng'        => $pickupLng,
                 ':pickup_direccion'  => $ubicacion,
+                ':estado'            => $estadoInicial,
+                ':estado_pago'       => $estadoPagoInicial,
+                ':puntos_ganados'    => $puntosInicial,
             ]);
 
             if ($ok) {
@@ -681,6 +696,7 @@ class PaseoController
             $_SESSION['error'] = 'Ocurrió un error al solicitar el paseo.';
         }
     }
+
 
     /** 🔹 Obtener ruta del paseo */
     public function getRuta(int $paseoId): array

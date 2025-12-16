@@ -57,16 +57,12 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mis Paseos - Paseador | Jaguata</title>
 
-    <!-- 🌿 Tema general Jaguata -->
     <link href="<?= ASSETS_URL; ?>/css/jaguata-theme.css" rel="stylesheet">
-
-    <!-- Bootstrap y FontAwesome -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
 </head>
 
 <body>
-    <!-- Botón hamburguesa mobile -->
     <button class="btn btn-outline-secondary d-md-none ms-2 mt-2" id="toggleSidebar">
         <i class="fas fa-bars"></i>
     </button>
@@ -162,8 +158,6 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
                     </div>
                 </div>
 
-                <?php echo '<!-- CANTIDAD PASEOS: ' . count($paseos) . " -->\n"; ?>
-
                 <?php if (empty($paseos)): ?>
                     <div class="text-center py-5">
                         <i class="fas fa-dog fa-5x text-secondary mb-4"></i>
@@ -190,6 +184,7 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
                                     </thead>
                                     <tbody>
                                         <?php foreach ($paseos as $p):
+                                            // ✅ estado con fallback
                                             $estadoRaw = trim((string)($p['estado'] ?? ''));
                                             $estado    = strtolower($estadoRaw !== '' ? $estadoRaw : 'solicitado');
                                             $paseoId   = (int)($p['paseo_id'] ?? 0);
@@ -205,8 +200,12 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
 
                                             $esSolicitado = ($estado === 'solicitado');
 
-                                            $nombre1 = (string)($p['mascota_nombre'] ?? $p['nombre_mascota'] ?? '');
-                                            $nombre2 = (string)($p['mascota2_nombre'] ?? $p['nombre_mascota_2'] ?? '');
+                                            $nombre1 = (string)($p['mascota_nombre'] ?? '');
+                                            $nombre2 = (string)($p['mascota2_nombre'] ?? '');
+                                            $dueno   = (string)($p['dueno_nombre'] ?? '');
+
+                                            // ✅ pago siempre desde paseos.estado_pago
+                                            $estadoPago = strtolower(trim((string)($p['estado_pago'] ?? '')));
                                         ?>
                                             <tr data-estado="<?= h($estado) ?>">
                                                 <td>
@@ -217,26 +216,28 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
                                                     <?php endif; ?>
                                                 </td>
 
-                                                <td><?= h($p['dueno_nombre'] ?? $p['nombre_dueno'] ?? '') ?></td>
+                                                <td><?= h($dueno) ?></td>
 
                                                 <td>
-                                                    <strong><?= isset($p['inicio']) ? date('d/m/Y', strtotime($p['inicio'])) : '—' ?></strong><br>
-                                                    <small><?= isset($p['inicio']) ? date('H:i', strtotime($p['inicio'])) : '—' ?></small>
+                                                    <strong><?= !empty($p['inicio']) ? date('d/m/Y', strtotime((string)$p['inicio'])) : '—' ?></strong><br>
+                                                    <small><?= !empty($p['inicio']) ? date('H:i', strtotime((string)$p['inicio'])) : '—' ?></small>
                                                 </td>
 
-                                                <td><?= h($p['duracion'] ?? $p['duracion_min'] ?? '') ?> min</td>
+                                                <td><?= h($p['duracion'] ?? '') ?> min</td>
 
                                                 <td>
                                                     <span class="badge bg-<?= $badge ?>">
-                                                        <?= ucfirst(str_replace('_', ' ', $estado ?: '—')) ?>
+                                                        <?= ucfirst(str_replace('_', ' ', $estado)) ?>
                                                     </span>
                                                 </td>
 
                                                 <td>
-                                                    <?php if (($p['estado_pago'] ?? '') === 'procesado'): ?>
+                                                    <?php if ($estadoPago === 'procesado'): ?>
                                                         <span class="text-success">Pagado</span>
-                                                    <?php elseif (($p['estado_pago'] ?? '') === 'pendiente'): ?>
+                                                    <?php elseif ($estadoPago === 'pendiente'): ?>
                                                         <span class="text-warning">Pendiente</span>
+                                                    <?php elseif ($estadoPago === 'fallido'): ?>
+                                                        <span class="text-danger">Fallido</span>
                                                     <?php else: ?>
                                                         <span class="text-muted">—</span>
                                                     <?php endif; ?>

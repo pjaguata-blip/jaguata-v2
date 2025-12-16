@@ -22,6 +22,12 @@ AppConfig::init();
 $auth = new AuthController();
 $auth->checkRole('dueno');
 
+/* 🔒 BLOQUEO POR ESTADO (MUY IMPORTANTE) */
+if (Session::getUsuarioEstado() !== 'aprobado') {
+    Session::setError('Tu cuenta aún no fue aprobada.');
+    header('Location: ' . BASE_URL . '/public/login.php');
+    exit;
+}
 /* ID del dueño logueado */
 $duenoId = (int)(Session::getUsuarioId() ?? 0);
 
@@ -79,6 +85,7 @@ function h(?string $v): string
 {
     return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
 }
+
 ?>
 <!DOCTYPE html>
 <html lang="es">

@@ -30,8 +30,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $error   = Session::getError();
 $success = Session::getSuccess() ?? null;
 
-// Para rellenar el campo email si hay cookie o si hubo POST previo
-$email = $_POST['email'] ?? ($_COOKIE['remember_email'] ?? '');
+// Para rellenar el campo email SOLO si existe cookie (recordarme)
+// (no usamos $_POST para que al recargar quede limpio)
+$email = $_COOKIE['remember_email'] ?? '';
 ?>
 <!doctype html>
 <html lang="es">
@@ -436,7 +437,7 @@ $email = $_POST['email'] ?? ($_COOKIE['remember_email'] ?? '');
                         </div>
                     <?php endif; ?>
 
-                    <form method="POST" action="" novalidate>
+                    <form method="POST" action="" autocomplete="off" novalidate>
                         <input type="hidden" name="csrf_token"
                             value="<?= htmlspecialchars(Validaciones::generarCSRF(), ENT_QUOTES, 'UTF-8'); ?>">
 
@@ -449,10 +450,9 @@ $email = $_POST['email'] ?? ($_COOKIE['remember_email'] ?? '');
                                 class="form-control"
                                 id="email"
                                 name="email"
-                                required
-                                value="<?= htmlspecialchars($email ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                                value="<?= htmlspecialchars($email, ENT_QUOTES, 'UTF-8') ?>"
                                 placeholder="tu@email.com"
-                                autocomplete="username">
+                                autocomplete="off">
                         </div>
 
                         <div class="mb-3">
@@ -467,7 +467,7 @@ $email = $_POST['email'] ?? ($_COOKIE['remember_email'] ?? '');
                                     name="password"
                                     placeholder="Tu contraseña"
                                     required
-                                    autocomplete="current-password"
+                                    autocomplete="off"
                                     aria-describedby="togglePassword">
                                 <button
                                     class="btn btn-outline-Black"
@@ -496,7 +496,7 @@ $email = $_POST['email'] ?? ($_COOKIE['remember_email'] ?? '');
                         </div>
 
                         <div class="d-flex justify-content-between">
-                            <a href="<?= BASE_URL ?>/recuperar-password.php">¿Olvidaste tu contraseña?</a>
+                            <a href="<?= BASE_URL ?>/recuperar_password.php">¿Olvidaste tu contraseña?</a>
                             <a href="<?= BASE_URL ?>/registro.php" class="fw-semibold">Crear cuenta</a>
                         </div>
                     </form>

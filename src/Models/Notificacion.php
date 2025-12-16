@@ -12,6 +12,7 @@ require_once __DIR__ . '/BaseModel.php';
  * Modelo de Notificaciones
  * -------------------------
  * Soporta notificaciones individuales, por rol y globales.
+ * ✅ Regla: las masivas (rol/todos) solo se muestran desde que el usuario existe.
  */
 class Notificacion extends BaseModel
 {
@@ -20,15 +21,44 @@ class Notificacion extends BaseModel
 
     public function __construct()
     {
-        parent::__construct(); // inicializa $this->db como PDO
+        parent::__construct();
+    }
+
+    /** ✅ Fecha de creación del usuario (para filtrar masivas antiguas) */
+    private function getUserCreatedAt(int $usuId): string
+    {
+        $stmt = $this->db->prepare("SELECT created_at FROM usuarios WHERE usu_id = :id LIMIT 1");
+        $stmt->execute([':id' => $usuId]);
+        return (string)($stmt->fetchColumn() ?: '1970-01-01 00:00:00');
+    }
+
+    /** ✅ WHERE reutilizable */
+    private function buildWhereUserRolTodos(int $usuId, string $rol, string $userCreatedAt): array
+    {
+        $rol = strtolower($rol);
+
+        $where = ["
+            (
+                usu_id = :usu_id
+                OR (
+                    (rol_destinatario = :rol OR rol_destinatario = 'todos')
+                    AND created_at >= :user_created
+                )
+            )
+        "];
+
+        $params = [
+            ':usu_id'       => $usuId,
+            ':rol'          => $rol,
+            ':user_created' => $userCreatedAt,
+        ];
+
+        return [$where, $params];
     }
 
     /**
-     * 🔹 Lista notificaciones según usuario y su rol.
-     * Incluye:
-     *  - Notificaciones del usuario (usu_id)
-     *  - Notificaciones dirigidas a su rol
-     *  - Notificaciones globales (rol_destinatario = 'todos')
+     * 🔹 Lista notificaciones (usuario + rol + globales)
+     * ✅ Masivas solo desde created_at del usuario
      */
     public function listByUser(
         int $usuId,
@@ -39,26 +69,22 @@ class Notificacion extends BaseModel
         int $perPage = 10,
         ?string $tipo = null
     ): array {
-        $rol = strtolower($rol);
+        $userCreatedAt = $this->getUserCreatedAt($usuId);
 
-        $where   = ['(usu_id = :usu_id OR rol_destinatario = :rol OR rol_destinatario = \'todos\')'];
-        $params  = [
-            ':usu_id' => $usuId,
-            ':rol'    => $rol,
-        ];
+        [$where, $params] = $this->buildWhereUserRolTodos($usuId, $rol, $userCreatedAt);
 
         if ($leido !== null) {
-            $where[]        = 'leido = :leido';
+            $where[] = 'leido = :leido';
             $params[':leido'] = $leido;
         }
 
         if ($tipo) {
-            $where[]        = 'tipo = :tipo';
+            $where[] = 'tipo = :tipo';
             $params[':tipo'] = $tipo;
         }
 
         if ($search) {
-            $where[]         = '(titulo LIKE :q OR mensaje LIKE :q)';
+            $where[] = '(titulo LIKE :q OR mensaje LIKE :q)';
             $params[':q'] = "%{$search}%";
         }
 
@@ -66,15 +92,15 @@ class Notificacion extends BaseModel
 
         $whereSql = 'WHERE ' . implode(' AND ', $where);
 
-        // 🔹 Total de registros
-        $sqlCount = "SELECT COUNT(*) AS c FROM {$this->table} {$whereSql}";
+        // COUNT
+        $sqlCount = "SELECT COUNT(*) FROM {$this->table} {$whereSql}";
         $stmt = $this->db->prepare($sqlCount);
         $stmt->execute($params);
         $total = (int)$stmt->fetchColumn();
 
-        // 🔹 Datos paginados
+        // DATA
         $offset = max(0, ($page - 1) * $perPage);
-        $sql    = "
+        $sql = "
             SELECT *
             FROM {$this->table}
             {$whereSql}
@@ -90,7 +116,7 @@ class Notificacion extends BaseModel
         $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
         $stmt->execute();
 
-        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
         return [
             'data'       => $rows,
@@ -102,30 +128,61 @@ class Notificacion extends BaseModel
     }
 
     /**
-     * 🔹 Notificaciones recientes (usuario + rol + globales)
+     * 🔹 Notificaciones recientes (para dashboard/campanita)
+     * ✅ Masivas solo desde created_at del usuario
      */
     public function getRecientes(int $usuId, string $rol, int $limit = 5): array
     {
+        $userCreatedAt = $this->getUserCreatedAt($usuId);
+        $limit = max(1, min($limit, 50));
+
+        [$where, $params] = $this->buildWhereUserRolTodos($usuId, $rol, $userCreatedAt);
+        $where[] = '(expira IS NULL OR expira > NOW())';
+
+        $whereSql = 'WHERE ' . implode(' AND ', $where);
+
         $sql = "
             SELECT *
             FROM {$this->table}
-            WHERE (usu_id = :usu_id OR rol_destinatario = :rol OR rol_destinatario = 'todos')
-              AND (expira IS NULL OR expira > NOW())
+            {$whereSql}
             ORDER BY created_at DESC
             LIMIT :limit
         ";
 
         $stmt = $this->db->prepare($sql);
-        $stmt->bindValue(':usu_id', $usuId, PDO::PARAM_INT);
-        $stmt->bindValue(':rol', strtolower($rol), PDO::PARAM_STR);
+        foreach ($params as $k => $v) {
+            $stmt->bindValue($k, $v);
+        }
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
         $stmt->execute();
 
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    /**
+     * 🔹 Contador de no leídas (badge)
+     * ✅ Masivas solo desde created_at del usuario
+     */
+    public function countUnread(int $usuId, string $rol): int
+    {
+        $userCreatedAt = $this->getUserCreatedAt($usuId);
+
+        [$where, $params] = $this->buildWhereUserRolTodos($usuId, $rol, $userCreatedAt);
+        $where[] = 'leido = 0';
+        $where[] = '(expira IS NULL OR expira > NOW())';
+
+        $whereSql = 'WHERE ' . implode(' AND ', $where);
+
+        $sql = "SELECT COUNT(*) FROM {$this->table} {$whereSql}";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+
+        return (int)$stmt->fetchColumn();
     }
 
     /**
      * 🔹 Marcar una notificación como leída
+     * (permite usu_id = NULL para masivas)
      */
     public function markRead(int $notiId, int $usuId): bool
     {
@@ -145,43 +202,35 @@ class Notificacion extends BaseModel
 
     /**
      * 🔹 Marcar todas como leídas (usuario + rol + globales)
+     * ✅ Masivas solo desde created_at del usuario
      */
     public function markAllRead(int $usuId, string $rol): int
     {
+        $userCreatedAt = $this->getUserCreatedAt($usuId);
+
+        // Armamos el WHERE igual que listByUser
+        $rol = strtolower($rol);
+
         $sql = "
             UPDATE {$this->table}
             SET leido = 1
-            WHERE (usu_id = :usu_id OR rol_destinatario = :rol OR rol_destinatario = 'todos')
+            WHERE
+            (
+                usu_id = :usu_id
+                OR (
+                    (rol_destinatario = :rol OR rol_destinatario = 'todos')
+                    AND created_at >= :user_created
+                )
+            )
         ";
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute([
-            ':usu_id' => $usuId,
-            ':rol'    => strtolower($rol),
+            ':usu_id'       => $usuId,
+            ':rol'          => $rol,
+            ':user_created' => $userCreatedAt,
         ]);
 
         return (int)$stmt->rowCount();
-    }
-
-    /**
-     * 🔹 Contador de no leídas (usuario + rol + globales)
-     */
-    public function countUnread(int $usuId, string $rol): int
-    {
-        $sql = "
-            SELECT COUNT(*)
-            FROM {$this->table}
-            WHERE (usu_id = :usu_id OR rol_destinatario = :rol OR rol_destinatario = 'todos')
-              AND leido = 0
-              AND (expira IS NULL OR expira > NOW())
-        ";
-
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute([
-            ':usu_id' => $usuId,
-            ':rol'    => strtolower($rol),
-        ]);
-
-        return (int)$stmt->fetchColumn();
     }
 }

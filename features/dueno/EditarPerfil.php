@@ -27,40 +27,110 @@ if (!$usuarioId) {
 
 $usuarioModel = new Usuario();
 
-/* Traer datos actuales desde la BD (BaseModel::find) */
+/* Traer datos actuales desde la BD */
 $usuario = $usuarioModel->find((int)$usuarioId);
 if (!$usuario) {
     http_response_code(404);
     exit('Usuario no encontrado.');
 }
 
-/* Catálogos (ejemplo, podés ampliar) */
-$DEPARTAMENTOS = ['Central', 'Alto Paraná', 'Itapúa', 'Cordillera', 'Guairá', 'Caaguazú'];
-$CIUDADES = [
-    'Central'      => ['Asunción', 'San Lorenzo', 'Luque', 'Otra'],
-    'Alto Paraná'  => ['Ciudad del Este', 'Minga Guazú', 'Otra'],
+/* =========================
+   CATÁLOGOS: Dep → Ciudad → Barrios
+   ========================= */
+$DEPARTAMENTOS = ['Asunción', 'Gran Asunción', 'Otra'];
+
+/**
+ * Estructura:
+ *  UBICACIONES[Departamento][Ciudad] = [Barrios...]
+ */
+$UBICACIONES = [
+    'Asunción' => [
+        'Asunción' => [
+            'Villa Morra',
+            'Las Mercedes',
+            'Recoleta',
+            'Manorá',
+            'Mburucuyá',
+            'Madame Lynch',
+            'Trinidad',
+            'Sajonia',
+            'Centro',
+            'Otra'
+        ],
+    ],
+
+    'Gran Asunción' => [
+        'San Lorenzo' => ['Centro', 'Barcequillo', 'La Victoria', 'Otra'],
+        'Luque'       => ['Centro', 'Itapuami', 'Ycuá Duré', 'Otra'],
+        'Lambaré'     => ['Centro', 'Valle Apu’a', 'Otra'],
+        'Fernando de la Mora' => ['Zona Norte', 'Zona Sur', 'Otra'],
+        'Mariano Roque Alonso' => ['Centro', 'Otra'],
+        'Ñemby'       => ['Centro', 'Cañadita', 'Otra'],
+        'Villa Elisa' => ['Centro', 'Otra'],
+        'Capiatá'     => ['Centro', 'Ruta 1', 'Otra'],
+        'Limpio'      => ['Centro', 'Piquete Cue', 'Otra'],
+        'Itauguá'     => ['Centro', 'Otra'],
+        'Otra'        => ['Otra'],
+    ],
+
+    'Otra' => [
+        'Otra' => ['Otra'],
+    ],
 ];
 
-/* Datos actuales para el formulario */
+/* =========================
+   DATOS ACTUALES
+   ========================= */
 $nombre     = $usuario['nombre']       ?? '';
 $email      = $usuario['email']        ?? '';
 $telefono   = $usuario['telefono']     ?? '';
-$direccion  = $usuario['direccion']    ?? '';
+
 $depActual  = $usuario['departamento'] ?? '';
 $ciudadAct  = $usuario['ciudad']       ?? '';
-$fotoActual = $usuario['foto_perfil']  ?? '';
+
+$calle      = $usuario['calle']        ?? '';
+$zona       = $usuario['zona']         ?? '';
+$direccion  = $usuario['direccion']    ?? '';
+
+/**
+ * Barrio guardado en BD (un solo campo):
+ * - puede ser uno del select
+ * - o un texto cualquiera si antes era input
+ */
+$barrioGuardado = $usuario['barrio'] ?? '';
+
+/**
+ * Estos son los que usaremos en el form:
+ */
+$barrioSelect = $barrioGuardado; // intentamos matchear con lista
+$barrioTexto  = '';              // si no matchea o si es "Otra"
+
+$fotoActual = $usuario['foto_perfil'] ?? '';
 
 $msg   = '';
 $error = '';
 
-/* 📨 Procesar POST (guardar cambios) */
+/* =========================
+   📨 PROCESAR POST
+   ========================= */
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nombre    = trim($_POST['nombre'] ?? '');
     $email     = trim($_POST['email'] ?? '');
     $telefono  = trim($_POST['telefono'] ?? '');
-    $direccion = trim($_POST['direccion'] ?? '');
+
     $depActual = trim($_POST['departamento'] ?? '');
     $ciudadAct = trim($_POST['ciudad'] ?? '');
+
+    $calle     = trim($_POST['calle'] ?? '');
+    $zona      = trim($_POST['zona'] ?? '');
+    $direccion = trim($_POST['direccion'] ?? '');
+
+    // Barrio: select + texto
+    $barrioSelect = trim($_POST['barrio_select'] ?? '');
+    $barrioTexto  = trim($_POST['barrio_texto'] ?? '');
+
+    // Si eligió "Otra", guardamos lo escrito
+    $barrioFinal = ($barrioSelect === 'Otra') ? $barrioTexto : $barrioSelect;
 
     if ($nombre === '' || $email === '') {
         $error = 'Nombre y correo son obligatorios.';
@@ -69,7 +139,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $fotoNueva = null;
 
-        /* 👇 Manejo de foto de perfil (upload a /assets/uploads/perfiles) */
+        /* 👇 Foto de perfil */
         if (!empty($_FILES['foto']['name']) && is_uploaded_file($_FILES['foto']['tmp_name'])) {
             $file   = $_FILES['foto'];
             $permit = [
@@ -78,12 +148,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'image/jpg'  => 'jpg',
             ];
 
-            $mime = @mime_content_type($file['tmp_name']) ?: $file['type'];
+            $mime = @mime_content_type($file['tmp_name']) ?: ($file['type'] ?? '');
 
             if (isset($permit[$mime])) {
                 $ext = $permit[$mime];
 
-                // Ruta física en el proyecto: /jaguata/assets/uploads/perfiles
                 $dir = __DIR__ . '/../../assets/uploads/perfiles';
                 if (!is_dir($dir)) {
                     mkdir($dir, 0775, true);
@@ -93,54 +162,64 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $dest  = $dir . '/' . $fname;
 
                 if (move_uploaded_file($file['tmp_name'], $dest)) {
-                    // Ruta pública que se guarda en la BD
                     $fotoNueva = '/assets/uploads/perfiles/' . $fname;
                 }
             }
         }
 
-        /* Datos a actualizar en la BD (tabla usuarios) */
+        /* Datos a actualizar */
         $data = [
             'nombre'       => $nombre,
             'email'        => $email,
             'telefono'     => $telefono,
-            'direccion'    => $direccion,
-            'departamento' => $depActual,
-            'ciudad'       => $ciudadAct,
+
+            'departamento' => $depActual !== '' ? $depActual : null,
+            'ciudad'       => $ciudadAct !== '' ? $ciudadAct : null,
+
+            'barrio'       => $barrioFinal !== '' ? $barrioFinal : null,
+            'calle'        => $calle !== '' ? $calle : null,
+            'zona'         => $zona !== '' ? $zona : null,
+            'direccion'    => $direccion !== '' ? $direccion : null,
         ];
 
         if ($fotoNueva) {
             $data['foto_perfil'] = $fotoNueva;
         }
 
-        // ✅ Usamos BaseModel::update sobre el modelo Usuario
         if ($usuarioModel->update((int)$usuarioId, $data)) {
-            $msg      = 'Perfil actualizado correctamente.';
-            $usuario  = $usuarioModel->find((int)$usuarioId);
+            $msg = 'Perfil actualizado correctamente.';
+            $usuario = $usuarioModel->find((int)$usuarioId);
+
             $fotoActual = $usuario['foto_perfil'] ?? $fotoActual;
+
+            // refrescar barrio guardado
+            $barrioGuardado = $usuario['barrio'] ?? '';
+            $barrioSelect = $barrioGuardado;
+            $barrioTexto  = '';
         } else {
             $error = 'No se pudo guardar los cambios.';
         }
     }
 }
 
-/* Rutas base para enlaces */
+/* =========================
+   RUTAS BASE
+   ========================= */
 $rolMenu      = Session::getUsuarioRol() ?: 'dueno';
 $baseFeatures = BASE_URL . "/features/{$rolMenu}";
 
-/* Helper de escape */
+/* Helper */
 function h(?string $v): string
 {
     return htmlspecialchars((string)($v ?? ''), ENT_QUOTES, 'UTF-8');
 }
 
-/* Foto para el preview */
+/* Foto preview */
 if (!empty($fotoActual)) {
     $srcFoto = rtrim(BASE_URL, '/') . $fotoActual;
 } else {
     $srcFoto = ASSETS_URL . '/images/user-placeholder.png';
 }
-
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -150,28 +229,21 @@ if (!empty($fotoActual)) {
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
     <title>Editar Perfil - Jaguata</title>
 
-    <!-- Bootstrap + Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
-
-    <!-- 🎨 Estilos globales Jaguata (mismo CSS que todo el sistema) -->
     <link href="<?= ASSETS_URL; ?>/css/jaguata-theme.css" rel="stylesheet">
 </head>
 
 <body>
-    <!-- Sidebar dueño unificado -->
     <?php include __DIR__ . '/../../src/Templates/SidebarDueno.php'; ?>
 
-    <!-- Botón hamburguesa para mobile (usa .sidebar-open del CSS) -->
     <button class="btn btn-outline-secondary d-md-none ms-2 mt-3" id="toggleSidebar">
         <i class="fas fa-bars"></i>
     </button>
 
-    <!-- Contenido -->
     <main>
         <div class="py-4">
 
-            <!-- Header usando header-box + header-dashboard del CSS global -->
             <div class="header-box header-dashboard mb-4">
                 <div>
                     <h1 class="fw-bold mb-1">
@@ -185,11 +257,9 @@ if (!empty($fotoActual)) {
                     <a href="<?= $baseFeatures; ?>/MiPerfil.php" class="btn btn-outline-light btn-sm">
                         <i class="fas fa-arrow-left me-1"></i> Volver
                     </a>
-
                 </div>
             </div>
 
-            <!-- Mensajes -->
             <?php if ($msg): ?>
                 <div class="alert alert-success"><?= h($msg); ?></div>
             <?php endif; ?>
@@ -197,10 +267,10 @@ if (!empty($fotoActual)) {
                 <div class="alert alert-danger"><?= h($error); ?></div>
             <?php endif; ?>
 
-            <!-- Formulario -->
             <form method="POST" enctype="multipart/form-data">
                 <div class="row g-3">
-                    <!-- Col izquierda: foto + datos básicos -->
+
+                    <!-- Col izquierda -->
                     <div class="col-lg-4">
                         <div class="section-card text-center">
                             <div class="mb-3">
@@ -236,17 +306,20 @@ if (!empty($fotoActual)) {
                         </div>
                     </div>
 
-                    <!-- Col derecha: dirección -->
+                    <!-- Col derecha -->
                     <div class="col-lg-8">
                         <div class="section-card">
                             <div class="section-header">
                                 <i class="fas fa-map-marker-alt me-2"></i>Dirección
                             </div>
+
                             <div class="section-body">
                                 <div class="row g-3">
-                                    <div class="col-md-6">
+
+                                    <!-- Departamento -->
+                                    <div class="col-md-4">
                                         <label class="form-label">Departamento</label>
-                                        <select class="form-select" name="departamento">
+                                        <select class="form-select" name="departamento" id="departamento">
                                             <option value="">Seleccione…</option>
                                             <?php foreach ($DEPARTAMENTOS as $d): ?>
                                                 <option value="<?= h($d); ?>" <?= $d === $depActual ? 'selected' : ''; ?>>
@@ -255,28 +328,52 @@ if (!empty($fotoActual)) {
                                             <?php endforeach; ?>
                                         </select>
                                     </div>
-                                    <div class="col-md-6">
+
+                                    <!-- Ciudad -->
+                                    <div class="col-md-4">
                                         <label class="form-label">Ciudad</label>
-                                        <select class="form-select" name="ciudad">
+                                        <select class="form-select" name="ciudad" id="ciudad">
                                             <option value="">Seleccione…</option>
-                                            <?php foreach (($CIUDADES[$depActual] ?? []) as $c): ?>
-                                                <option value="<?= h($c); ?>" <?= $c === $ciudadAct ? 'selected' : ''; ?>>
-                                                    <?= h($c); ?>
-                                                </option>
-                                            <?php endforeach; ?>
                                         </select>
                                     </div>
-                                    <div class="col-12">
-                                        <label class="form-label">Referencia / Dirección</label>
-                                        <input type="text" class="form-control" name="direccion" value="<?= h($direccion); ?>">
+
+                                    <!-- Barrio (select) -->
+                                    <div class="col-md-4">
+                                        <label class="form-label">Barrio</label>
+                                        <select class="form-select" name="barrio_select" id="barrio_select">
+                                            <option value="">Seleccione…</option>
+                                        </select>
                                     </div>
+
+                                    <!-- Barrio (texto si eligió "Otra") -->
+                                    <div class="col-12" id="barrio_texto_wrap" style="display:none;">
+                                        <label class="form-label">Especificar barrio</label>
+                                        <input type="text" class="form-control" name="barrio_texto" id="barrio_texto"
+                                            placeholder="Escribí tu barrio...">
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label">Calle</label>
+                                        <input type="text" class="form-control" name="calle" value="<?= h($calle); ?>" placeholder="Ej: Av. Mariscal López">
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label">Zona / Referencia</label>
+                                        <input type="text" class="form-control" name="zona" value="<?= h($zona); ?>" placeholder="Ej: cerca del Shopping, portón negro, etc.">
+                                    </div>
+
+                                    <div class="col-12">
+                                        <label class="form-label">Dirección (completa)</label>
+                                        <input type="text" class="form-control" name="direccion" value="<?= h($direccion); ?>" placeholder="Ej: Calle X c/ Calle Y, N° 123">
+                                    </div>
+
                                 </div>
                             </div>
                         </div>
                     </div>
+
                 </div>
 
-                <!-- Botón guardar -->
                 <div class="text-end mt-3">
                     <button type="submit" class="btn-guardar">
                         <i class="fas fa-save me-1"></i> Guardar cambios
@@ -287,18 +384,19 @@ if (!empty($fotoActual)) {
             <footer class="mt-4 text-center text-muted small">
                 © <?= date('Y'); ?> Jaguata — Panel del Dueño
             </footer>
+
         </div>
     </main>
 
-    <!-- JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
     <script>
-        // Toggle sidebar en mobile (usa la clase .sidebar-open de tu CSS global)
+        // Sidebar mobile
         document.getElementById('toggleSidebar')?.addEventListener('click', function() {
             document.getElementById('sidebar')?.classList.toggle('sidebar-open');
         });
 
-        // Preview de la foto seleccionada
+        // Preview foto
         document.getElementById('foto')?.addEventListener('change', function(e) {
             const file = e.target.files?.[0];
             if (!file) return;
@@ -306,6 +404,93 @@ if (!empty($fotoActual)) {
             const img = document.getElementById('previewFoto');
             if (img) img.src = url;
         });
+
+        // =========================
+        // Dep → Ciudad → Barrio
+        // =========================
+        const UBICACIONES = <?= json_encode($UBICACIONES, JSON_UNESCAPED_UNICODE); ?>;
+
+        const depEl = document.getElementById('departamento');
+        const ciudadEl = document.getElementById('ciudad');
+        const barrioSelEl = document.getElementById('barrio_select');
+        const barrioTxtWrap = document.getElementById('barrio_texto_wrap');
+        const barrioTxtEl = document.getElementById('barrio_texto');
+
+        const depActual = <?= json_encode($depActual, JSON_UNESCAPED_UNICODE); ?>;
+        const ciudadAct = <?= json_encode($ciudadAct, JSON_UNESCAPED_UNICODE); ?>;
+        const barrioDB = <?= json_encode($barrioGuardado, JSON_UNESCAPED_UNICODE); ?>;
+
+        function setOptions(select, items, selectedValue = '') {
+            select.innerHTML = '<option value="">Seleccione…</option>';
+            (items || []).forEach(v => {
+                const opt = document.createElement('option');
+                opt.value = v;
+                opt.textContent = v;
+                if (v === selectedValue) opt.selected = true;
+                select.appendChild(opt);
+            });
+        }
+
+        function loadCiudades(depto, selected = '') {
+            if (!depto || !UBICACIONES[depto]) {
+                setOptions(ciudadEl, []);
+                setOptions(barrioSelEl, []);
+                barrioTxtWrap.style.display = 'none';
+                barrioTxtEl.value = '';
+                return;
+            }
+            const ciudades = Object.keys(UBICACIONES[depto]);
+            setOptions(ciudadEl, ciudades, selected);
+
+            loadBarrios(depto, ciudadEl.value, barrioDB);
+        }
+
+        function loadBarrios(depto, ciudad, barrioSeleccionado = '') {
+            if (!depto || !ciudad || !UBICACIONES[depto] || !UBICACIONES[depto][ciudad]) {
+                setOptions(barrioSelEl, []);
+                barrioTxtWrap.style.display = 'none';
+                barrioTxtEl.value = '';
+                return;
+            }
+
+            const barrios = UBICACIONES[depto][ciudad] || [];
+
+            const existe = barrios.includes(barrioSeleccionado);
+            const selected = existe ? barrioSeleccionado : (barrios.includes('Otra') ? 'Otra' : '');
+
+            setOptions(barrioSelEl, barrios, selected);
+
+            // Si barrio guardado NO existe en lista => lo dejamos en input
+            if (!existe && barrioSeleccionado) {
+                barrioTxtWrap.style.display = 'block';
+                barrioTxtEl.value = barrioSeleccionado;
+            } else {
+                barrioTxtWrap.style.display = (barrioSelEl.value === 'Otra') ? 'block' : 'none';
+                if (barrioSelEl.value !== 'Otra') barrioTxtEl.value = '';
+            }
+        }
+
+        depEl?.addEventListener('change', () => {
+            loadCiudades(depEl.value, '');
+        });
+
+        ciudadEl?.addEventListener('change', () => {
+            loadBarrios(depEl.value, ciudadEl.value, '');
+        });
+
+        barrioSelEl?.addEventListener('change', () => {
+            barrioTxtWrap.style.display = (barrioSelEl.value === 'Otra') ? 'block' : 'none';
+            if (barrioSelEl.value !== 'Otra') barrioTxtEl.value = '';
+        });
+
+        // Inicializar selects con valores de BD
+        if (depActual) {
+            depEl.value = depActual;
+            loadCiudades(depActual, ciudadAct || '');
+        } else {
+            setOptions(ciudadEl, []);
+            setOptions(barrioSelEl, []);
+        }
     </script>
 </body>
 

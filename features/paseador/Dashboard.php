@@ -18,6 +18,12 @@ AppConfig::init();
 
 $authController = new AuthController();
 $authController->checkRole('paseador');
+/* 🔒 BLOQUEO POR ESTADO (MUY IMPORTANTE) */
+if (Session::getUsuarioEstado() !== 'aprobado') {
+    Session::setError('Tu cuenta aún no fue aprobada.');
+    header('Location: ' . BASE_URL . '/public/login.php');
+    exit;
+}
 
 $rolMenu       = Session::getUsuarioRol() ?: 'paseador';
 $baseFeatures  = BASE_URL . "/features/{$rolMenu}";

@@ -211,9 +211,11 @@ unset($_SESSION['success'], $_SESSION['error']);
                 </div>
                 <div class="d-flex flex-column align-items-end gap-2">
                     <i class="fas fa-map-location-dot fa-3x opacity-75"></i>
-                    <a href="#map" class="btn btn-sm btn-outline-light">
-                        <i class="fas fa-map"></i> Ver mapa
-                    </a>
+                    <div class="mb-3">
+                        <a href="<?= h($backUrl); ?>" class="btn-volver">
+                            <i class="fas fa-arrow-left"></i> Volver a mis paseos
+                        </a>
+                    </div>
                 </div>
             </div>
 
@@ -233,11 +235,7 @@ unset($_SESSION['success'], $_SESSION['error']);
             <?php endif; ?>
 
             <!-- Botón volver -->
-            <div class="mb-3">
-                <a href="<?= h($backUrl); ?>" class="btn-volver">
-                    <i class="fas fa-arrow-left"></i> Volver a mis paseos
-                </a>
-            </div>
+
 
             <div class="row g-3">
                 <!-- Información del Paseo -->

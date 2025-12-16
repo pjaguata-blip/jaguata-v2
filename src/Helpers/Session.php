@@ -21,11 +21,16 @@ class Session
     {
         self::start();
 
-        $_SESSION['usuario_id']   = $usuario['usu_id']   ?? null;
-        $_SESSION['usuario_nombre'] = $usuario['nombre'] ?? null;
-        $_SESSION['usuario_email']  = $usuario['email']  ?? null;
-        $_SESSION['usuario_rol']    = $usuario['rol']    ?? null;
+        $_SESSION['usuario_id']     = $usuario['usu_id']   ?? null;
+        $_SESSION['usuario_nombre'] = $usuario['nombre']   ?? null;
+        $_SESSION['usuario_email']  = $usuario['email']    ?? null;
+        $_SESSION['usuario_rol']    = $usuario['rol']      ?? null;
+        $_SESSION['usuario_estado'] = $usuario['estado'] ?? null;
+
+        // ✅ NUEVO: estado del usuario (pendiente / aprobado / rechazado)
+        $_SESSION['usuario_estado'] = $usuario['estado']   ?? 'pendiente';
     }
+
 
     public static function logout(): void
     {
@@ -150,5 +155,10 @@ class Session
         // Permitimos solo caracteres seguros para la carpeta del rol
         $rolLimpio = preg_replace('/[^A-Za-z0-9_-]/', '', $rol);
         return $rolLimpio !== '' ? $rolLimpio : null;
+    }
+    public static function getUsuarioEstado(): ?string
+    {
+        self::start();
+        return $_SESSION['usuario_estado'] ?? null;
     }
 }

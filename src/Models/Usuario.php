@@ -20,7 +20,7 @@ class Usuario extends BaseModel
     }
 
     /**
-     * Devuelve los campos base para los SELECT
+     * Campos base para SELECT
      */
     private function baseSelectFields(): string
     {
@@ -30,6 +30,7 @@ class Usuario extends BaseModel
             email,
             pass,
             rol,
+            estado,
             telefono,
             direccion,
             experiencia,
@@ -39,7 +40,19 @@ class Usuario extends BaseModel
             calle,
             zona,
             puntos,
-            foto_perfil AS perfil_foto,
+            foto_perfil,
+            foto_cedula_frente,
+            foto_cedula_dorso,
+            foto_selfie,
+            certificado_antecedentes,
+            acepto_terminos,
+            fecha_aceptacion,
+            ip_registro,
+            latitud,
+            longitud,
+            sexo,
+            tipo_documento,
+            numero_documento,
             banco_nombre,
             alias_cuenta,
             cuenta_numero,
@@ -51,38 +64,53 @@ class Usuario extends BaseModel
     }
 
     /**
-     * Buscar usuario por email
+     * Buscar usuario por email (normalizado)
      */
     public function getByEmail(string $email): ?array
     {
         $sql = "
             SELECT {$this->baseSelectFields()}
             FROM {$this->table}
-            WHERE email = :email
+            WHERE LOWER(TRIM(email)) = LOWER(TRIM(:email))
             LIMIT 1
         ";
+
         $stmt = $this->db->prepare($sql);
-        $stmt->execute([':email' => $email]);
+        $stmt->execute([':email' => trim($email)]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
         return $row !== false ? $row : null;
     }
 
     /**
-     * Crear usuario desde formulario de registro
+     * Crear usuario desde formulario de registro (web / controlador)
+     * ✅ Fix: acepta contraseña venga como 'password' o 'pass'
      */
     public function crearDesdeRegistro(array $data): array
     {
         try {
-            // Normalizar campos
-            $data['nombre'] = trim($data['nombre'] ?? '');
-            $data['email']  = strtolower(trim($data['email'] ?? ''));
-            $data['rol']    = $data['rol'] ?? 'dueno';
+            // Normalizar básicos
+            $data['nombre'] = trim((string)($data['nombre'] ?? ''));
+            $data['email']  = strtolower(trim((string)($data['email'] ?? '')));
+            $data['rol']    = (string)($data['rol'] ?? 'dueno');
 
+            // ✅ FIX: si el form manda "password", lo copiamos a "pass"
+            if (empty($data['pass']) && !empty($data['password'])) {
+                $data['pass'] = $data['password'];
+            }
+            unset($data['password']); // para que NO intente insertarlo como columna
+
+            // Hash de contraseña
             if (!empty($data['pass'])) {
-                $data['pass'] = password_hash($data['pass'], PASSWORD_BCRYPT);
+                $data['pass'] = password_hash((string)$data['pass'], PASSWORD_BCRYPT);
             }
 
-            // Por defecto puntos 0
+            // Estado por defecto (si no viene)
+            if (empty($data['estado'])) {
+                $data['estado'] = 'pendiente';
+            }
+
+            // Puntos por defecto
             if (!isset($data['puntos'])) {
                 $data['puntos'] = 0;
             }
@@ -107,67 +135,68 @@ class Usuario extends BaseModel
             ];
         }
     }
+
+    /**
+     * Actualizar contraseña (recuperación o cambio)
+     */
     public function actualizarPassword(int $id, string $hashPassword): bool
     {
         $sql = "UPDATE usuarios SET pass = :pass WHERE usu_id = :id";
         $stmt = $this->db->prepare($sql);
-        $stmt->bindValue(':pass', $hashPassword);
+        $stmt->bindValue(':pass', $hashPassword, PDO::PARAM_STR);
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
         return $stmt->execute();
     }
+
+    /**
+     * Crear usuario (otra forma) - si la usás en algún admin/seed
+     * ✅ Fix: también acepta password/pass
+     */
     public function createUsuario(array $data): int
     {
-        // Aseguramos hash de contraseña
-        $passwordHash = password_hash($data['password'], PASSWORD_DEFAULT);
+        $nombre   = trim((string)($data['nombre'] ?? ''));
+        $email    = strtolower(trim((string)($data['email'] ?? '')));
+        $rolIn    = (string)($data['rol'] ?? 'dueno');
+        $rol      = in_array($rolIn, ['dueno', 'paseador', 'admin'], true) ? $rolIn : 'dueno';
+        $telefono = trim((string)($data['telefono'] ?? ''));
+
+        // ✅ FIX: password puede venir como password o pass
+        $plain = (string)($data['password'] ?? ($data['pass'] ?? ''));
+        $passwordHash = password_hash($plain, PASSWORD_DEFAULT);
 
         $sql = "
-        INSERT INTO usuarios (
-            nombre,
-            email,
-            pass,
-            rol,
-            telefono,
-            estado,
-            foto_cedula_frente,
-            foto_cedula_dorso,
-            foto_selfie,
-            certificado_antecedentes,
-            acepto_terminos,
-            fecha_aceptacion,
-            ip_registro
-        ) VALUES (
-            :nombre,
-            :email,
-            :pass,
-            :rol,
-            :telefono,
-            :estado,
-            :foto_cedula_frente,
-            :foto_cedula_dorso,
-            :foto_selfie,
-            :certificado_antecedentes,
-            :acepto_terminos,
-            :fecha_aceptacion,
-            :ip_registro
-        )
-    ";
+            INSERT INTO usuarios (
+                nombre, email, pass, rol, estado, telefono,
+                foto_cedula_frente, foto_cedula_dorso, foto_selfie, certificado_antecedentes,
+                acepto_terminos, fecha_aceptacion, ip_registro,
+                puntos
+            ) VALUES (
+                :nombre, :email, :pass, :rol, :estado, :telefono,
+                :foto_cedula_frente, :foto_cedula_dorso, :foto_selfie, :certificado_antecedentes,
+                :acepto_terminos, :fecha_aceptacion, :ip_registro,
+                :puntos
+            )
+        ";
 
         $stmt = $this->db->prepare($sql);
-
         $stmt->execute([
-            ':nombre'                 => $data['nombre'],
-            ':email'                  => $data['email'],
-            ':pass'                   => $passwordHash,
-            ':rol'                    => $data['rol'],
-            ':telefono'               => $data['telefono'],
-            ':estado'                 => $data['estado'] ?? 'pendiente',
-            ':foto_cedula_frente'     => $data['foto_cedula_frente'] ?? null,
-            ':foto_cedula_dorso'      => $data['foto_cedula_dorso'] ?? null,
-            ':foto_selfie'            => $data['foto_selfie'] ?? null,
+            ':nombre' => $nombre,
+            ':email'  => $email,
+            ':pass'   => $passwordHash,
+            ':rol'    => $rol,
+            ':estado' => $data['estado'] ?? 'pendiente',
+            ':telefono' => $telefono !== '' ? $telefono : null,
+
+            ':foto_cedula_frente' => $data['foto_cedula_frente'] ?? null,
+            ':foto_cedula_dorso'  => $data['foto_cedula_dorso'] ?? null,
+            ':foto_selfie'        => $data['foto_selfie'] ?? null,
             ':certificado_antecedentes' => $data['certificado_antecedentes'] ?? null,
-            ':acepto_terminos'        => $data['acepto_terminos'] ?? 0,
-            ':fecha_aceptacion'       => $data['fecha_aceptacion'] ?? date('Y-m-d H:i:s'),
-            ':ip_registro'            => $data['ip_registro'] ?? null,
+
+            ':acepto_terminos'  => (int)($data['acepto_terminos'] ?? 0),
+            ':fecha_aceptacion' => $data['fecha_aceptacion'] ?? null,
+            ':ip_registro'      => $data['ip_registro'] ?? null,
+
+            ':puntos' => (int)($data['puntos'] ?? 0),
         ]);
 
         return (int)$this->db->lastInsertId();

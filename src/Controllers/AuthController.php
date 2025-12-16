@@ -6,13 +6,13 @@ require_once __DIR__ . '/../Config/AppConfig.php';
 require_once __DIR__ . '/../Helpers/Session.php';
 require_once __DIR__ . '/../Helpers/Validaciones.php';
 require_once __DIR__ . '/../Models/Usuario.php';
-require_once __DIR__ . '/../Helpers/Auditoria.php'; // 🔹 AUDITORÍA
+require_once __DIR__ . '/../Helpers/Auditoria.php';
 
 use Jaguata\Config\AppConfig;
 use Jaguata\Helpers\Session;
 use Jaguata\Helpers\Validaciones;
 use Jaguata\Models\Usuario;
-use Jaguata\Helpers\Auditoria; // 🔹 AUDITORÍA
+use Jaguata\Helpers\Auditoria;
 
 AppConfig::init();
 
@@ -25,9 +25,6 @@ class AuthController
         $this->usuarioModel = new Usuario();
     }
 
-    /**
-     * Verifica que el usuario tenga un rol específico (modo WEB)
-     */
     public function requireRole(array $rolesPermitidos): void
     {
         if (!Session::isLoggedIn()) {
@@ -43,13 +40,23 @@ class AuthController
         }
     }
 
-    /**
-     * Maneja el POST del formulario de login (web)
-     */
+    public function checkRole(string $rol): void
+    {
+        $this->requireRole([$rol]);
+    }
+
     public function login(): void
     {
-        $email    = trim($_POST['email'] ?? '');
-        $password = $_POST['password'] ?? '';
+        // (Opcional pero recomendado) validar CSRF
+        $token = $_POST['csrf_token'] ?? null;
+        if (!Validaciones::verificarCSRF(is_string($token) ? $token : null)) {
+            Session::setError('Sesión expirada. Volvé a intentar.');
+            header('Location: ' . BASE_URL . '/public/login.php');
+            exit;
+        }
+
+        $email    = strtolower(trim((string)($_POST['email'] ?? '')));
+        $password = (string)($_POST['password'] ?? '');
 
         if ($email === '' || $password === '') {
             Session::setError('Debes ingresar email y contraseña.');
@@ -58,8 +65,8 @@ class AuthController
         }
 
         $usuario = $this->usuarioModel->getByEmail($email);
-        if (!$usuario || empty($usuario['pass']) || !password_verify($password, $usuario['pass'])) {
-            // 🔹 AUDITORÍA: intento de login fallido
+
+        if (!$usuario || empty($usuario['pass']) || !password_verify($password, (string)$usuario['pass'])) {
             Auditoria::log(
                 'LOGIN FALLIDO',
                 'Autenticación',
@@ -71,37 +78,61 @@ class AuthController
             exit;
         }
 
+        // ✅ Estado: permitir aprobado y activo (porque tu admin usa ambos estados)
+        $estado = (string)($usuario['estado'] ?? 'pendiente');
+        if (!in_array($estado, ['aprobado', 'activo'], true)) {
+            Auditoria::log(
+                'LOGIN BLOQUEADO',
+                'Autenticación',
+                "Intento de login bloqueado (estado=$estado) para email: " . ($usuario['email'] ?? $email),
+                (int)($usuario['usu_id'] ?? 0)
+            );
+
+            $msg = match ($estado) {
+                'pendiente'  => 'Tu cuenta está en revisión por el administrador.',
+                'rechazado'  => 'Tu solicitud fue rechazada. Contactá al administrador.',
+                'cancelado'  => 'Tu cuenta fue cancelada. Contactá al administrador.',
+                'inactivo'   => 'Tu cuenta está inactiva. Contactá al administrador.',
+                'suspendido' => 'Tu cuenta está suspendida. Contactá al administrador.',
+                default      => 'Tu cuenta no está habilitada para ingresar.',
+            };
+
+            Session::setError($msg);
+            header('Location: ' . BASE_URL . '/public/login.php');
+            exit;
+        }
+
+        // ✅ Recordarme email
+        if (!empty($_POST['remember_me'])) {
+            setcookie('remember_email', $email, time() + (60 * 60 * 24 * 30), '/');
+        } else {
+            setcookie('remember_email', '', time() - 3600, '/');
+        }
+
         // Login OK
         Session::login($usuario);
 
-        // 🔹 AUDITORÍA: login exitoso (admin / dueño / paseador)
         Auditoria::log(
             'LOGIN',
             'Autenticación',
             'Inicio de sesión del usuario: ' . ($usuario['email'] ?? ''),
-            (int) $usuario['usu_id']
+            (int)$usuario['usu_id']
         );
 
-        // Redirigir según rol
-        $rol = $usuario['rol'] ?? 'dueno';
+        $rol = (string)($usuario['rol'] ?? 'dueno');
 
         if ($rol === 'admin') {
             header('Location: ' . BASE_URL . '/features/admin/Dashboard.php');
         } elseif ($rol === 'paseador') {
             header('Location: ' . BASE_URL . '/features/paseador/Dashboard.php');
         } else {
-            // dueño
             header('Location: ' . BASE_URL . '/features/dueno/Dashboard.php');
         }
         exit;
     }
 
-    /**
-     * Logout
-     */
     public function logout(): void
     {
-        // 🔹 AUDITORÍA: logout antes de cerrar sesión
         if (Session::isLoggedIn()) {
             $email = Session::getUsuarioEmail() ?? 'desconocido';
             Auditoria::log(
@@ -116,21 +147,18 @@ class AuthController
         exit;
     }
 
-    /**
-     * API: login (devuelve JSON, por si usás fetch/ajax)
-     */
     public function apiLogin(): array
     {
-        $email    = trim($_POST['email'] ?? '');
-        $password = $_POST['password'] ?? '';
+        $email    = strtolower(trim((string)($_POST['email'] ?? '')));
+        $password = (string)($_POST['password'] ?? '');
 
         if ($email === '' || $password === '') {
             return ['success' => false, 'error' => 'Campos incompletos'];
         }
 
         $usuario = $this->usuarioModel->getByEmail($email);
-        if (!$usuario || empty($usuario['pass']) || !password_verify($password, $usuario['pass'])) {
-            // 🔹 AUDITORÍA: intento de login API fallido
+
+        if (!$usuario || empty($usuario['pass']) || !password_verify($password, (string)$usuario['pass'])) {
             Auditoria::log(
                 'LOGIN API FALLIDO',
                 'Autenticación',
@@ -140,14 +168,18 @@ class AuthController
             return ['success' => false, 'error' => 'Credenciales incorrectas'];
         }
 
+        $estado = (string)($usuario['estado'] ?? 'pendiente');
+        if (!in_array($estado, ['aprobado', 'activo'], true)) {
+            return ['success' => false, 'error' => 'Cuenta no habilitada'];
+        }
+
         Session::login($usuario);
 
-        // 🔹 AUDITORÍA: login API exitoso
         Auditoria::log(
             'LOGIN API',
             'Autenticación',
             'Inicio de sesión vía API del usuario: ' . ($usuario['email'] ?? ''),
-            (int) $usuario['usu_id']
+            (int)$usuario['usu_id']
         );
 
         return [
@@ -161,15 +193,12 @@ class AuthController
         ];
     }
 
-    /**
-     * API: registro de usuario
-     */
     public function apiRegister(): array
     {
-        $nombre   = trim($_POST['nombre'] ?? '');
-        $email    = trim($_POST['email'] ?? '');
-        $pass     = $_POST['pass'] ?? '';
-        $rol      = $_POST['rol'] ?? 'dueno';
+        $nombre = trim((string)($_POST['nombre'] ?? ''));
+        $email  = strtolower(trim((string)($_POST['email'] ?? '')));
+        $pass   = (string)($_POST['pass'] ?? ($_POST['password'] ?? ''));
+        $rol    = (string)($_POST['rol'] ?? 'dueno');
 
         if ($nombre === '' || $email === '' || $pass === '') {
             return ['success' => false, 'error' => 'Todos los campos son obligatorios'];
@@ -179,7 +208,6 @@ class AuthController
             return ['success' => false, 'error' => 'Email inválido'];
         }
 
-        // Revisar si ya existe
         if ($this->usuarioModel->getByEmail($email)) {
             return ['success' => false, 'error' => 'Ya existe un usuario con ese email'];
         }
@@ -187,24 +215,24 @@ class AuthController
         $data = [
             'nombre' => $nombre,
             'email'  => $email,
-            'pass'   => $pass,
+            'pass'   => $pass,   // el modelo lo hashea
             'rol'    => $rol,
+            'estado' => 'pendiente',
         ];
 
         $result = $this->usuarioModel->crearDesdeRegistro($data);
-        if (!$result['success']) {
+        if (empty($result['success'])) {
             return ['success' => false, 'error' => $result['error'] ?? 'Error al registrar'];
         }
 
         $usuario = $result['usuario'];
         Session::login($usuario);
 
-        // 🔹 AUDITORÍA: registro de usuario (dueño o paseador normalmente)
         Auditoria::log(
             'REGISTRO',
             'Autenticación',
             'Registro de nuevo usuario: ' . $email . ' con rol ' . $rol,
-            (int) $usuario['usu_id']
+            (int)$usuario['usu_id']
         );
 
         return [
@@ -216,9 +244,5 @@ class AuthController
                 'rol'    => $usuario['rol'],
             ],
         ];
-    }
-    public function checkRole(string $rol): void
-    {
-        $this->requireRole([$rol]);
     }
 }

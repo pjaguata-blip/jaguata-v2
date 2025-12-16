@@ -446,16 +446,6 @@ $urlNueva    = $baseFeatures . '/MisMascotas.php?vista=nueva';
                                 </select>
                             </div>
 
-                            <div class="col-md-1">
-                                <label class="form-label">Edad ≥</label>
-                                <input type="number" class="form-control" name="edad_min" value="<?= $edadMin ?? '' ?>">
-                            </div>
-
-                            <div class="col-md-1">
-                                <label class="form-label">Edad ≤</label>
-                                <input type="number" class="form-control" name="edad_max" value="<?= $edadMax ?? '' ?>">
-                            </div>
-
                             <div class="col-12 d-flex gap-2">
                                 <button class="btn btn-success">
                                     <i class="fas fa-filter me-1"></i> Filtrar

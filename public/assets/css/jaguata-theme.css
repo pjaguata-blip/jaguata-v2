@@ -661,3 +661,37 @@ footer{
   font-weight: 700;
   white-space: nowrap;
 }
+
+/* ==============================
+lo nuevo
+   ============================== */
+h2 {
+  font-size: 1.4rem;
+}
+
+.illustration-title {
+  font-size: 1.35rem;
+}
+.form-control {
+  padding: .65rem .85rem;
+  font-size: .88rem;
+  border-radius: 10px;
+}
+.btn-jg {
+  padding: .65rem 1rem;
+  font-size: .9rem;
+}
+.logo-circle {
+  width: 64px;
+  height: 64px;
+  margin-bottom: 8px;
+}
+
+.logo-circle img {
+  width: 56px;
+  height: 56px;
+}
+.illustration-text,
+.illustration-list li {
+  font-size: .85rem;
+}

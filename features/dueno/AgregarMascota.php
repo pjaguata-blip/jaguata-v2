@@ -21,242 +21,191 @@ $auth->checkRole('dueno');
 /* POST -> crear mascota */
 $mascotaController = new MascotaController();
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $mascotaController->store();   // 👈 en minúsculas
+    $mascotaController->store();
 }
 
 /* Datos UI */
-// Cargar la lista completa de razas desde src/Data/Razas.php
 $razasDisponibles = require __DIR__ . '/../../src/Data/Razas.php';
-sort($razasDisponibles); // orden alfabético
+sort($razasDisponibles);
 
-/* Estado de inputs (persistencia tras error) */
-$tamanoPost      = $_POST['tamano']       ?? '';
-$pesoPost        = $_POST['peso_kg']      ?? '';
-$edadValorPost   = $_POST['edad_valor']   ?? '';
-$edadUnidadPost  = $_POST['edad_unidad']  ?? 'meses';
+/* Estado de inputs */
+$tamanoPost     = $_POST['tamano'] ?? '';
+$pesoPost       = $_POST['peso_kg'] ?? '';
+$edadValorPost  = $_POST['edad_valor'] ?? '';
+$edadUnidadPost = $_POST['edad_unidad'] ?? 'meses';
 
 $rolMenu       = Session::getUsuarioRol() ?: 'dueno';
 $baseFeatures  = BASE_URL . "/features/{$rolMenu}";
 $usuarioNombre = htmlspecialchars(Session::getUsuarioNombre() ?? 'Dueño/a', ENT_QUOTES, 'UTF-8');
-
 ?>
 <!DOCTYPE html>
 <html lang="es">
 
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="UTF-8">
     <title>Agregar Mascota - Jaguata</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <!-- CSS global -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
     <link href="<?= BASE_URL; ?>/public/assets/css/jaguata-theme.css" rel="stylesheet">
 
     <style>
-        /* Volver arriba solo para esta página */
+        /* 🔹 Resaltado tamaño sugerido */
+        .tamano-sugerido+label {
+            outline: 3px solid rgba(32, 201, 151, .45);
+            box-shadow: 0 0 0 4px rgba(32, 201, 151, .2);
+            transform: translateY(-1px);
+        }
+
+        .hint-ok {
+            color: #198754;
+        }
+
+        .hint-warn {
+            color: #d39e00;
+        }
+
+        .hint-bad {
+            color: #dc3545;
+        }
+
         #btnTop {
             position: fixed;
             bottom: 30px;
             right: 30px;
             width: 45px;
             height: 45px;
-            border: none;
             border-radius: 50%;
+            border: none;
             background: linear-gradient(135deg, #3c6255, #20c997);
             color: #fff;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, .25);
-            cursor: pointer;
             display: none;
-            z-index: 1000;
-            transition: transform .2s, opacity .2s;
-        }
-
-        #btnTop:hover {
-            transform: scale(1.1);
-            opacity: .9;
+            z-index: 999;
         }
     </style>
 </head>
 
 <body>
 
-    <!-- Sidebar -->
     <?php include __DIR__ . '/../../src/Templates/SidebarDueno.php'; ?>
 
-    <!-- Contenido -->
     <main>
-        <div class="py-4"><!-- mismo padding que otras pantallas -->
+        <div class="py-4">
 
-            <!-- Header -->
-            <div class="header-box header-mascotas mb-1 d-flex justify-content-between align-items-center">
+            <div class="header-box header-mascotas mb-3 d-flex justify-content-between">
                 <div>
-                    <h1 class="fw-bold mb-1">
+                    <h1 class="fw-bold">
                         <i class="fas fa-dog me-2"></i>Agregar Mascota
                     </h1>
-                    <p class="mb-0">
-                        Cargá los datos básicos para gestionar paseos y fichas médicas, <?= $usuarioNombre; ?>.
-                    </p>
+                    <p class="mb-0">Cargá los datos de tu mascota, <?= $usuarioNombre; ?> 🐾</p>
                 </div>
-                <a href="<?= $baseFeatures; ?>/MisMascotas.php" class="btn btn-outline-light fw-semibold">
+                <a href="<?= $baseFeatures; ?>/MisMascotas.php" class="btn btn-outline-light">
                     <i class="fas fa-arrow-left me-1"></i> Volver
                 </a>
             </div>
 
-            <!-- Mensajes de estado -->
             <?php if (isset($_SESSION['success'])): ?>
-                <div class="alert alert-success alert-dismissible fade show shadow-sm">
-                    <i class="fas fa-check-circle me-2"></i><?= $_SESSION['success']; ?>
-                    <?php unset($_SESSION['success']); ?>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
+                <div class="alert alert-success"><?= $_SESSION['success'];
+                                                    unset($_SESSION['success']); ?></div>
             <?php endif; ?>
 
             <?php if (isset($_SESSION['error'])): ?>
-                <div class="alert alert-danger alert-dismissible fade show shadow-sm">
-                    <i class="fas fa-exclamation-triangle me-2"></i><?= $_SESSION['error']; ?>
-                    <?php unset($_SESSION['error']); ?>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
+                <div class="alert alert-danger"><?= $_SESSION['error'];
+                                                unset($_SESSION['error']); ?></div>
             <?php endif; ?>
 
-            <!-- Formulario: ahora como section-card -->
             <div class="section-card">
                 <div class="section-header">
                     <i class="fas fa-info-circle me-2"></i>Información de la Mascota
                 </div>
+
                 <div class="section-body">
-                    <form method="POST" novalidate>
+                    <form method="POST">
+
                         <div class="row g-3">
+
                             <div class="col-md-6">
                                 <label class="form-label">Nombre *</label>
-                                <input
-                                    type="text"
-                                    class="form-control"
-                                    name="nombre"
-                                    required
+                                <input type="text" class="form-control" name="nombre" required
                                     value="<?= htmlspecialchars($_POST['nombre'] ?? '') ?>">
                             </div>
 
                             <div class="col-md-6">
                                 <label class="form-label">Raza</label>
                                 <select class="form-select" id="raza" name="raza">
-                                    <option value="">Seleccione una raza</option>
-
+                                    <option value="">Seleccione</option>
                                     <?php foreach ($razasDisponibles as $r): ?>
-                                        <option value="<?= htmlspecialchars($r) ?>"
-                                            <?= (($_POST['raza'] ?? '') === $r ? 'selected' : '') ?>>
+                                        <option value="<?= htmlspecialchars($r) ?>" <?= (($_POST['raza'] ?? '') === $r ? 'selected' : '') ?>>
                                             <?= htmlspecialchars($r) ?>
                                         </option>
                                     <?php endforeach; ?>
-
-                                    <!-- Opción para escribir una raza personalizada -->
-                                    <option value="Otra" <?= (($_POST['raza'] ?? '') === 'Otra' ? 'selected' : '') ?>>
-                                        Otra
-                                    </option>
+                                    <option value="Otra">Otra</option>
                                 </select>
 
-                                <!-- Campo que aparece cuando el usuario elige "Otra" -->
-                                <input
-                                    type="text"
+                                <input type="text" id="raza_otra" name="raza_otra"
                                     class="form-control mt-2 d-none"
-                                    id="raza_otra"
-                                    name="raza_otra"
                                     placeholder="Especifique la raza"
                                     value="<?= htmlspecialchars($_POST['raza_otra'] ?? '') ?>">
                             </div>
 
                             <div class="col-md-6">
                                 <label class="form-label">Peso (kg) *</label>
-                                <input
-                                    type="number"
-                                    step="0.1"
-                                    min="0"
-                                    class="form-control"
-                                    id="peso_kg"
-                                    name="peso_kg"
-                                    required
+                                <input type="number" step="0.1" min="0.3" max="120"
+                                    id="peso_kg" name="peso_kg"
+                                    class="form-control" required
                                     value="<?= htmlspecialchars($pesoPost) ?>">
                                 <div class="form-text">
-                                    Podés elegir tamaño manualmente o dejar que se calcule por peso.
+                                    Pequeño (0–7 kg) · Mediano (7.1–18) · Grande (18.1–35) · Gigante (+35)
                                 </div>
                             </div>
 
                             <div class="col-md-6">
                                 <label class="form-label">Tamaño</label>
-                                <div class="btn-group w-100 flex-wrap" role="group" aria-label="Seleccionar tamaño">
-                                    <input
-                                        type="radio"
-                                        class="btn-check"
-                                        name="tamano"
-                                        id="tam_peq"
-                                        value="pequeno"
-                                        <?= $tamanoPost === 'pequeno' ? 'checked' : '' ?>>
-                                    <label class="btn btn-outline-success" for="tam_peq">Pequeño</label>
+                                <div class="btn-group w-100 flex-wrap">
 
-                                    <input
-                                        type="radio"
-                                        class="btn-check"
-                                        name="tamano"
-                                        id="tam_med"
-                                        value="mediano"
-                                        <?= $tamanoPost === 'mediano' ? 'checked' : '' ?>>
-                                    <label class="btn btn-outline-warning" for="tam_med">Mediano</label>
-
-                                    <input
-                                        type="radio"
-                                        class="btn-check"
-                                        name="tamano"
-                                        id="tam_gra"
-                                        value="grande"
-                                        <?= $tamanoPost === 'grande' ? 'checked' : '' ?>>
-                                    <label class="btn btn-outline-danger" for="tam_gra">Grande</label>
-
-                                    <input
-                                        type="radio"
-                                        class="btn-check"
-                                        name="tamano"
-                                        id="tam_gig"
-                                        value="gigante"
-                                        <?= $tamanoPost === 'gigante' ? 'checked' : '' ?>>
-                                    <label class="btn btn-outline-dark" for="tam_gig">Gigante</label>
+                                    <?php
+                                    $sizes = [
+                                        'pequeno' => 'Pequeño',
+                                        'mediano' => 'Mediano',
+                                        'grande'  => 'Grande',
+                                        'gigante' => 'Gigante'
+                                    ];
+                                    foreach ($sizes as $k => $lbl):
+                                    ?>
+                                        <input type="radio" class="btn-check"
+                                            name="tamano" id="tam_<?= $k ?>"
+                                            value="<?= $k ?>" <?= $tamanoPost === $k ? 'checked' : '' ?>>
+                                        <label class="btn btn-outline-success" for="tam_<?= $k ?>">
+                                            <?= $lbl ?>
+                                        </label>
+                                    <?php endforeach; ?>
                                 </div>
+
+                                <small id="tamanoAutoText" class="d-block mt-2"></small>
                             </div>
 
                             <div class="col-md-6">
                                 <label class="form-label">Edad</label>
                                 <div class="input-group">
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        step="1"
-                                        class="form-control"
-                                        id="edad_valor"
-                                        name="edad_valor"
-                                        placeholder="Ej: 8"
+                                    <input type="number" class="form-control"
+                                        name="edad_valor" min="0"
                                         value="<?= htmlspecialchars($edadValorPost) ?>">
-                                    <select class="form-select" id="edad_unidad" name="edad_unidad">
-                                        <option value="meses" <?= $edadUnidadPost === 'meses' ? 'selected' : '' ?>>
-                                            Meses
-                                        </option>
-                                        <option value="anios" <?= $edadUnidadPost === 'anios' ? 'selected' : '' ?>>
-                                            Años
-                                        </option>
+                                    <select class="form-select" name="edad_unidad">
+                                        <option value="meses" <?= $edadUnidadPost === 'meses' ? 'selected' : '' ?>>Meses</option>
+                                        <option value="anios" <?= $edadUnidadPost === 'anios' ? 'selected' : '' ?>>Años</option>
                                     </select>
                                 </div>
                             </div>
 
                             <div class="col-12">
                                 <label class="form-label">Observaciones</label>
-                                <textarea
-                                    class="form-control"
-                                    name="observaciones"
-                                    rows="4"><?= htmlspecialchars($_POST['observaciones'] ?? '') ?></textarea>
+                                <textarea class="form-control" name="observaciones" rows="4"><?= htmlspecialchars($_POST['observaciones'] ?? '') ?></textarea>
                             </div>
                         </div>
 
                         <div class="text-end mt-4">
-                            <button type="submit" class="btn btn-gradient px-4">
+                            <button class="btn btn-gradient px-4">
                                 <i class="fas fa-save me-1"></i> Guardar Mascota
                             </button>
                         </div>
@@ -264,62 +213,95 @@ $usuarioNombre = htmlspecialchars(Session::getUsuarioNombre() ?? 'Dueño/a', ENT
                 </div>
             </div>
 
-            <footer class="mt- text-center text-muted small">
+            <footer class="mt-4 text-center text-muted small">
                 © <?= date('Y') ?> Jaguata — Panel del Dueño
             </footer>
         </div>
     </main>
 
-    <!-- Volver arriba -->
-    <button id="btnTop" title="Volver arriba">
-        <i class="fas fa-arrow-up"></i>
-    </button>
+    <button id="btnTop"><i class="fas fa-arrow-up"></i></button>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
     <script>
-        // Mostrar input raza_otra si corresponde
+        /* ===== RAZA OTRA ===== */
         const selRaza = document.getElementById('raza');
         const razaOtra = document.getElementById('raza_otra');
-
-        function toggleRazaOtra() {
+        selRaza.addEventListener('change', () => {
             razaOtra.classList.toggle('d-none', selRaza.value !== 'Otra');
-        }
-        selRaza.addEventListener('change', toggleRazaOtra);
-        toggleRazaOtra();
+        });
 
-        // Autocalcular tamaño por peso si no hay selección manual
+        /* ===== AUTO TAMAÑO POR PESO ===== */
+        const RANGOS = [{
+                k: 'pequeno',
+                min: 0,
+                max: 7,
+                label: 'Pequeño (0–7 kg)'
+            },
+            {
+                k: 'mediano',
+                min: 7.1,
+                max: 18,
+                label: 'Mediano (7.1–18 kg)'
+            },
+            {
+                k: 'grande',
+                min: 18.1,
+                max: 35,
+                label: 'Grande (18.1–35 kg)'
+            },
+            {
+                k: 'gigante',
+                min: 35.1,
+                max: null,
+                label: 'Gigante (+35 kg)'
+            }
+        ];
+
         const peso = document.getElementById('peso_kg');
-        const radios = {
-            pequeno: document.getElementById('tam_peq'),
-            mediano: document.getElementById('tam_med'),
-            grande: document.getElementById('tam_gra'),
-            gigante: document.getElementById('tam_gig')
-        };
+        const radios = {};
+        RANGOS.forEach(r => radios[r.k] = document.getElementById('tam_' + r.k));
+        const txt = document.getElementById('tamanoAutoText');
+
+        function limpiar() {
+            Object.values(radios).forEach(r => r.classList.remove('tamano-sugerido'));
+        }
 
         function autoTamano() {
-            const algunoMarcado = Object.values(radios).some(r => r.checked);
-            if (algunoMarcado) return; // respetar selección manual
+            limpiar();
+            const p = parseFloat(peso.value);
+            if (isNaN(p)) {
+                txt.textContent = '';
+                return;
+            }
 
-            const p = parseFloat(peso.value || '0');
-            let sel = null;
-            if (p <= 7) sel = radios.pequeno;
-            else if (p <= 18) sel = radios.mediano;
-            else if (p <= 35) sel = radios.grande;
-            else if (p > 35) sel = radios.gigante;
-            if (sel) sel.checked = true;
+            for (const r of RANGOS) {
+                if (p >= r.min && (r.max === null || p <= r.max)) {
+                    if (![...Object.values(radios)].some(r => r.checked)) {
+                        radios[r.k].checked = true;
+                        radios[r.k].classList.add('tamano-sugerido');
+                        txt.textContent = 'Tamaño sugerido: ' + r.label;
+                        txt.className = 'hint-ok';
+                    }
+                    return;
+                }
+            }
         }
-        peso.addEventListener('input', autoTamano);
 
-        // Botón volver arriba
+        peso.addEventListener('input', autoTamano);
+        autoTamano();
+
+        /* ===== VOLVER ARRIBA ===== */
         const btnTop = document.getElementById('btnTop');
         window.addEventListener('scroll', () => {
             btnTop.style.display = window.scrollY > 200 ? 'block' : 'none';
         });
-        btnTop.addEventListener('click', () => window.scrollTo({
+        btnTop.onclick = () => window.scrollTo({
             top: 0,
             behavior: 'smooth'
-        }));
+        });
     </script>
+
 </body>
 
 </html>

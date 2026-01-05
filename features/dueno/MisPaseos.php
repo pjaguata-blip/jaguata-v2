@@ -160,7 +160,7 @@ $gastoTotal = array_sum(array_map(fn($p) => (float)($p['precio_total'] ?? 0), $c
         <div class="py-2">
 
             <!-- Header -->
-            <div class="header-box header-paseos mb-4 d-flex justify-content-between align-items-center">
+            <div class="header-box header-paseos mb-2 d-flex justify-content-between align-items-center">
                 <div>
                     <h1 class="fw-bold mb-1">
                         <i class="fas fa-walking me-2"></i>Mis Paseos
@@ -169,9 +169,15 @@ $gastoTotal = array_sum(array_map(fn($p) => (float)($p['precio_total'] ?? 0), $c
                 </div>
                 <div class="d-none d-md-block">
                     <a href="<?= $baseFeatures; ?>/SolicitarPaseo.php" class="btn btn-outline-light btn-sm">
-                        <i class="fas fa-plus me-1"></i> Agregar un nuevo paseo
+                        <i class="fas fa-plus me-1"></i> Solicitar Paseo
+                    </a>
+
+                    <a href="<?= BASE_URL ?>/public/api/paseos/reporte_mis_paseos_dueno.php?<?= $h(http_build_query($_GET)) ?>"
+                        class="btn btn-outline-light btn-sm ms-2">
+                        <i class="fas fa-file-excel me-1"></i> Excel
                     </a>
                 </div>
+
             </div>
 
             <!-- Métricas -->

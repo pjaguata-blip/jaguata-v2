@@ -66,7 +66,7 @@ function h($v): string
             <div class="container-fluid py-1">
 
                 <!-- Header usando estilos globales -->
-                <div class="header-box header-dashboard mb-4">
+                <div class="header-box header-dashboard mb-2">
                     <div>
                         <h1 class="h4 mb-1">
                             <i class="fas fa-envelope-open-text me-2"></i>

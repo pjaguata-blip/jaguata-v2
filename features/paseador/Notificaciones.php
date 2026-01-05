@@ -27,24 +27,64 @@ $selfUrl = BASE_URL . '/features/paseador/Notificaciones.php';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
 
+    // ✅ Marcar una como leída
     if ($action === 'markRead' && isset($_POST['noti_id'])) {
         $notiId = (int)$_POST['noti_id'];
+
         if ($notiId > 0 && $notiCtrl->marcarLeidaForCurrentUser($notiId)) {
             Session::setSuccess('Notificación marcada como leída ✅');
         } else {
             Session::setError('No se pudo marcar la notificación como leída.');
         }
+
         header('Location: ' . $selfUrl);
         exit;
     }
 
+    // ✅ Marcar todas como leídas
     if ($action === 'markAllRead') {
         $cant = $notiCtrl->marcarTodasForCurrentUser();
+
         if ($cant > 0) {
             Session::setSuccess($cant . ' notificación(es) marcadas como leídas ✅');
         } else {
             Session::setError('No se pudo marcar ninguna notificación como leída.');
         }
+
+        header('Location: ' . $selfUrl);
+        exit;
+    }
+
+    // ✅ Eliminar/Limpiar una (personal = archiva / masiva = oculta)
+    if ($action === 'deleteOne' && isset($_POST['noti_id'])) {
+        $notiId = (int)$_POST['noti_id'];
+
+        if ($notiId > 0 && method_exists($notiCtrl, 'limpiarUnaForCurrentUser') && $notiCtrl->limpiarUnaForCurrentUser($notiId)) {
+            Session::setSuccess('Notificación eliminada ✅');
+        } else {
+            Session::setError('No se pudo eliminar la notificación.');
+        }
+
+        header('Location: ' . $selfUrl);
+        exit;
+    }
+
+    // ✅ Eliminar/Limpiar todas (personales = archivar / masivas = ocultar)
+    if ($action === 'deleteAll') {
+        if (!method_exists($notiCtrl, 'limpiarTodasForCurrentUser')) {
+            Session::setError('Falta implementar limpiarTodasForCurrentUser() en NotificacionController.');
+            header('Location: ' . $selfUrl);
+            exit;
+        }
+
+        $cant = (int)$notiCtrl->limpiarTodasForCurrentUser();
+
+        if ($cant > 0) {
+            Session::setSuccess($cant . ' notificación(es) eliminadas ✅');
+        } else {
+            Session::setError('No se pudo eliminar ninguna notificación.');
+        }
+
         header('Location: ' . $selfUrl);
         exit;
     }
@@ -52,11 +92,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 /* 📄 Filtros */
 $q       = trim($_GET['q'] ?? '');
-$leido   = $_GET['leido'] ?? '';
+$leido   = (string)($_GET['leido'] ?? '');
 $page    = max(1, (int)($_GET['page'] ?? 1));
 $perPage = 10;
 
-$leidoParam = $leido === '' ? null : (int)$leido;
+$leidoParam = ($leido === '') ? null : (int)$leido;
 
 /* 🧩 Datos */
 $data = $notiCtrl->listForCurrentUser($page, $perPage, $leidoParam, $q);
@@ -86,33 +126,26 @@ function h(?string $v): string
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
     <link href="<?= BASE_URL; ?>/public/assets/css/jaguata-theme.css" rel="stylesheet">
 
-    <!-- ✅ FIX: layout seguro para que NO “agarre toda la pantalla” -->
     <style>
-        /* Contenedor general (sidebar fijo + main al lado) */
         .jag-layout {
             min-height: 100vh;
         }
 
-        /* Main del contenido: respeta sidebar en desktop */
         .jag-main {
             margin-left: 250px;
-            /* mismo ancho de tu sidebar */
             padding: 1.5rem;
             min-height: 100vh;
             background: var(--gris-fondo, #f4f6f9);
         }
 
-        /* Mobile/tablet: sidebar overlay + main full width + espacio topbar */
         @media (max-width: 992px) {
             .jag-main {
                 margin-left: 0 !important;
                 padding: 1rem;
                 padding-top: 70px;
-                /* deja lugar a la topbar */
             }
         }
 
-        /* Header responsive */
         @media (max-width: 576px) {
             .header-box {
                 flex-direction: column;
@@ -120,11 +153,14 @@ function h(?string $v): string
                 gap: .75rem;
             }
 
-            .header-box form {
+            .header-actions {
                 width: 100%;
+                display: grid;
+                gap: .5rem;
             }
 
-            .header-box .btn-enviar {
+            .header-actions form,
+            .header-actions button {
                 width: 100%;
             }
         }
@@ -134,26 +170,36 @@ function h(?string $v): string
 <body>
 
     <div class="jag-layout">
-        <!-- ✅ Sidebar + Topbar + Overlay dentro del include -->
         <?php include dirname(__DIR__, 2) . '/src/Templates/SidebarPaseador.php'; ?>
 
-        <!-- ✅ Main corregido -->
         <main class="jag-main">
             <div class="container-fluid p-0">
 
                 <!-- HEADER -->
-                <div class="header-box header-notificaciones mb-4">
+                <div class="header-box header-notificaciones mb-4 d-flex justify-content-between align-items-center">
                     <div>
                         <h1 class="fw-bold mb-1"><i class="fas fa-bell me-2"></i>Mis notificaciones</h1>
-                        <p class="mb-0">Revisá tus avisos del sistema y marcá como leídas las que ya viste 🐾</p>
+                        <p class="mb-0">Revisá tus avisos del sistema, marcá como leídas o eliminá las que ya no querés 🐾</p>
                     </div>
 
-                    <form method="post" class="m-0">
-                        <input type="hidden" name="action" value="markAllRead">
-                        <button type="submit" class="btn-enviar">
-                            <i class="fas fa-check-double me-1"></i> Marcar todas como leídas
-                        </button>
-                    </form>
+                    <div class="header-actions d-flex gap-2">
+                        <form method="post" class="m-0">
+                            <input type="hidden" name="action" value="markAllRead">
+                            <button type="submit" class="btn-enviar">
+                                <i class="fas fa-check-double me-1"></i> Marcar todas como leídas
+                            </button>
+                        </form>
+
+                        <form method="post" class="m-0" onsubmit="return confirm('¿Querés eliminar todas tus notificaciones?');">
+                            <input type="hidden" name="action" value="deleteAll">
+                            <button type="submit" class="btn btn-outline-danger">
+                                <i class="fas fa-trash me-1"></i> Eliminar Todo
+                            </button>
+                        </form>
+                    </div>
+                    <a href="Dashboard.php" class="btn btn-outline-light btn-sm">
+                            <i class="fas fa-arrow-left me-1"></i> Volver
+                        </a>
                 </div>
 
                 <!-- FLASH -->
@@ -235,12 +281,24 @@ function h(?string $v): string
                                                 </span>
                                             </td>
                                             <td class="text-center">
+                                                <!-- ✅ Marcar como leída -->
                                                 <?php if (!$leida && $notiId > 0): ?>
                                                     <form method="post" class="d-inline">
                                                         <input type="hidden" name="action" value="markRead">
                                                         <input type="hidden" name="noti_id" value="<?= $notiId; ?>">
                                                         <button type="submit" class="btn-accion btn-activar" title="Marcar como leída">
                                                             <i class="fas fa-check"></i>
+                                                        </button>
+                                                    </form>
+                                                <?php endif; ?>
+
+                                                <!-- ✅ Eliminar -->
+                                                <?php if ($notiId > 0): ?>
+                                                    <form method="post" class="d-inline" onsubmit="return confirm('¿Eliminar esta notificación?');">
+                                                        <input type="hidden" name="action" value="deleteOne">
+                                                        <input type="hidden" name="noti_id" value="<?= $notiId; ?>">
+                                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Eliminar">
+                                                            <i class="fas fa-trash"></i>
                                                         </button>
                                                     </form>
                                                 <?php else: ?>
@@ -259,7 +317,7 @@ function h(?string $v): string
                                     <?php for ($i = 1; $i <= $totalPages; $i++): ?>
                                         <li class="page-item <?= $i === $page ? 'active' : ''; ?>">
                                             <a class="page-link"
-                                                href="?page=<?= $i; ?>&q=<?= urlencode($q); ?>&leido=<?= urlencode($leido); ?>">
+                                                href="?page=<?= $i; ?>&q=<?= urlencode($q); ?>&leido=<?= urlencode((string)$leido); ?>">
                                                 <?= $i; ?>
                                             </a>
                                         </li>
@@ -280,7 +338,6 @@ function h(?string $v): string
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
-    <!-- ✅ Toggle (si tu SidebarPaseador NO lo trae) -->
     <script>
         (function() {
             const sidebar = document.getElementById("sidebar");

@@ -39,7 +39,7 @@ $paseos          = $paseoController->index() ?: [];
     <?php include __DIR__ . '/../../src/Templates/SidebarAdmin.php'; ?>
 
     <main>
-        <div class="container-fluid px-3 px-md-4">
+        <div class="container-fluid px-3 px-md-2">
 
             <!-- HEADER -->
             <div class="header-box header-paseos">

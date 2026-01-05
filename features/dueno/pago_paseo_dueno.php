@@ -173,7 +173,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </button>
 
     <main class="bg-light">
-        <div class="container-fluid py-4">
+        <div class="container-fluid py-2">
 
             <!-- HEADER pagos -->
             <div class="header-box header-pagos mb-4">

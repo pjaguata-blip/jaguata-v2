@@ -7,21 +7,19 @@ require_once __DIR__ . '/../../src/Controllers/AuthController.php';
 require_once __DIR__ . '/../../src/Controllers/DisponibilidadController.php';
 require_once __DIR__ . '/../../src/Models/Usuario.php';
 require_once __DIR__ . '/../../src/Models/Paseador.php';
+require_once __DIR__ . '/../../src/Models/DatosPago.php';
 require_once __DIR__ . '/../../src/Helpers/Session.php';
 require_once __DIR__ . '/../../src/Services/CalificacionService.php';
 require_once __DIR__ . '/../../vendor/autoload.php';
-require_once __DIR__ . '/../../src/Services/DatabaseService.php';
-
 
 use Jaguata\Config\AppConfig;
 use Jaguata\Controllers\AuthController;
 use Jaguata\Controllers\DisponibilidadController;
 use Jaguata\Models\Usuario;
 use Jaguata\Models\Paseador;
+use Jaguata\Models\DatosPago;
 use Jaguata\Helpers\Session;
 use Jaguata\Services\CalificacionService;
-use Jaguata\Services\DatabaseService;
-
 
 AppConfig::init();
 
@@ -93,29 +91,17 @@ if (!empty($usuario['zona'])) {
     }
 }
 
-/* Cuenta pago (ajusta nombres a tu tabla si cambia) */
+/* ✅ Datos de pago (tabla datos_pago) */
 $ctaBanco = $ctaAlias = $ctaCuenta = '';
-
 try {
-    $db = DatabaseService::getInstance()->getConnection(); // ✅ PDO real
-
-    $stmt = $db->prepare("
-        SELECT banco, alias, cuenta
-        FROM cuentas_pago
-        WHERE usuario_id = :uid
-        LIMIT 1
-    ");
-    $stmt->execute([':uid' => $usuarioId]);
-
-    $cta = $stmt->fetch(\PDO::FETCH_ASSOC) ?: [];
-
+    $datosPagoModel = new DatosPago();
+    $cta = $datosPagoModel->getByUsuarioId($usuarioId) ?: [];
     $ctaBanco  = (string)($cta['banco']  ?? '');
     $ctaAlias  = (string)($cta['alias']  ?? '');
     $ctaCuenta = (string)($cta['cuenta'] ?? '');
 } catch (\Throwable $e) {
     // no rompemos la vista si falla
 }
-
 
 /* Disponibilidad */
 $diasSemana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
@@ -254,9 +240,9 @@ $repTotal     = isset($stats['total']) ? (int)$stats['total'] : 0;
     <main>
         <div class="py-2">
 
-            <div class="header-box header-dashboard mb-4 d-flex justify-content-between align-items-center">
+            <div class="header-box header-dashboard mb-2 d-flex justify-content-between align-items-center">
                 <div>
-                    <h1 class="fw-bold mb-1">
+                    <h1 class="fw-bold mb-2">
                         <i class="fas fa-user me-2"></i>Mi Perfil — Paseador
                     </h1>
                     <p class="mb-0">Zonas de trabajo, tu experiencia, disponibilidad y reputación 🐾</p>
@@ -363,7 +349,7 @@ $repTotal     = isset($stats['total']) ? (int)$stats['total'] : 0;
                 <div class="col-lg-8">
                     <div class="row g-3">
 
-                        <!-- ✅ Zonas de trabajo (solo lectura) -->
+                        <!-- ✅ Zonas de trabajo -->
                         <div class="col-12">
                             <div class="section-card">
                                 <div class="section-header">
@@ -404,6 +390,45 @@ $repTotal     = isset($stats['total']) ? (int)$stats['total'] : 0;
                             </div>
                         </div>
 
+                        <!-- ✅ NUEVO: Datos para recibir transferencias -->
+                        <!-- ✅ Datos para recibir transferencias (SOLO LECTURA) -->
+                        <div class="col-12">
+                            <div class="section-card">
+                                <div class="section-header">
+                                    <i class="fas fa-piggy-bank me-2"></i> Datos para recibir transferencias
+                                </div>
+                                <div class="section-body">
+                                    <p class="text-muted small mb-3">
+                                        Estos datos se mostrarán al dueño al seleccionar <b>Transferencia</b>.
+                                        <span class="d-block small text-secondary mt-1">
+                                            Para editarlos, andá a <b>Editar Perfil</b>.
+                                        </span>
+                                    </p>
+
+                                    <?php if (trim($ctaBanco) !== '' || trim($ctaAlias) !== '' || trim($ctaCuenta) !== ''): ?>
+                                        <div class="alert alert-light border small mb-0">
+                                            <div><b>Banco:</b> <?= h($ctaBanco, '—') ?></div>
+                                            <div><b>Alias:</b> <?= h($ctaAlias, '—') ?></div>
+                                            <div><b>Cuenta:</b> <?= h($ctaCuenta, '—') ?></div>
+                                        </div>
+                                    <?php else: ?>
+                                        <div class="alert alert-warning small mb-0">
+                                            <i class="fas fa-exclamation-triangle me-2"></i>
+                                            Aún no cargaste tus datos de transferencia.
+                                            <div class="mt-2">
+                                                <a href="EditarPerfil.php" class="btn btn-outline-success btn-sm">
+                                                    <i class="fas fa-edit me-1"></i> Cargar datos en Editar Perfil
+                                                </a>
+                                            </div>
+                                        </div>
+                                    <?php endif; ?>
+
+                                </div>
+                            </div>
+                        </div>
+
+
+                        <!-- ✅ Experiencia -->
                         <div class="col-12">
                             <div class="section-card">
                                 <div class="section-header">
@@ -421,45 +446,7 @@ $repTotal     = isset($stats['total']) ? (int)$stats['total'] : 0;
                             </div>
                         </div>
 
-                        <div class="col-12">
-                            <div class="section-card">
-                                <div class="section-header">
-                                    <i class="fas fa-piggy-bank me-2"></i> Datos para recibir transferencias
-                                </div>
-                                <div class="section-body">
-                                    <p class="text-muted small mb-3">
-                                        Estos datos se mostrarán al dueño al momento de pagar tu paseo. 💸
-                                    </p>
-
-                                    <form id="formCuenta">
-                                        <div class="row g-3">
-                                            <div class="col-md-4">
-                                                <label class="form-label">Banco</label>
-                                                <input type="text" name="banco" class="form-control" maxlength="100"
-                                                    value="<?= htmlspecialchars((string)$ctaBanco, ENT_QUOTES, 'UTF-8') ?>">
-                                            </div>
-                                            <div class="col-md-4">
-                                                <label class="form-label">Alias / Cuenta</label>
-                                                <input type="text" name="alias" class="form-control" maxlength="120"
-                                                    value="<?= htmlspecialchars((string)$ctaAlias, ENT_QUOTES, 'UTF-8') ?>">
-                                            </div>
-                                            <div class="col-md-4">
-                                                <label class="form-label">Número de cuenta (opcional)</label>
-                                                <input type="text" name="cuenta" class="form-control" maxlength="120"
-                                                    value="<?= htmlspecialchars((string)$ctaCuenta, ENT_QUOTES, 'UTF-8') ?>">
-                                            </div>
-                                        </div>
-
-                                        <div class="text-end mt-3">
-                                            <button type="submit" class="btn btn-gradient px-4 py-2">
-                                                <i class="fas fa-save me-2"></i> Guardar datos de cuenta
-                                            </button>
-                                        </div>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
-
+                        <!-- ✅ Disponibilidad -->
                         <div class="col-12">
                             <div class="section-card">
                                 <div class="section-header">
@@ -472,7 +459,9 @@ $repTotal     = isset($stats['total']) ? (int)$stats['total'] : 0;
                                     </p>
 
                                     <form id="formDisponibilidad">
-                                        <?php foreach ($diasSemana as $dia):
+                                        <?php
+                                        $diasSemana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+                                        foreach ($diasSemana as $dia):
                                             $dispo   = $disponibilidadActual[$dia] ?? null;
                                             $activo  = $dispo['activo'] ?? false;
                                             $checked = $activo ? 'checked' : '';
@@ -613,15 +602,15 @@ $repTotal     = isset($stats['total']) ? (int)$stats['total'] : 0;
             }
         });
 
-        // CUENTA PAGO
+        // ✅ CUENTA PAGO (TRANSFERENCIAS)
         formCuenta?.addEventListener('submit', async (e) => {
             e.preventDefault();
 
             const formData = new FormData(formCuenta);
             const payload = {
-                banco: formData.get('banco') || '',
-                alias: formData.get('alias') || '',
-                cuenta: formData.get('cuenta') || ''
+                banco: (formData.get('banco') || '').toString().trim(),
+                alias: (formData.get('alias') || '').toString().trim(),
+                cuenta: (formData.get('cuenta') || '').toString().trim()
             };
 
             try {
@@ -634,18 +623,18 @@ $repTotal     = isset($stats['total']) ? (int)$stats['total'] : 0;
                 });
 
                 const raw = await resp.text();
-                console.log("STATUS:", resp.status);
-                console.log("RAW:", raw);
-
                 let data;
                 try {
                     data = JSON.parse(raw);
-                } catch (e) {
-                    mostrarAlerta(false, 'Respuesta inválida del servidor (mirá consola: RAW).');
+                } catch {
+                    console.log("STATUS:", resp.status);
+                    console.log("RAW:", raw);
+                    mostrarAlerta(false, 'Respuesta inválida del servidor (mirá consola).');
                     return;
                 }
 
                 mostrarAlerta(!!data.ok, data.mensaje || 'Error al guardar los datos de cuenta.');
+                if (data.ok) location.reload(); // para refrescar y mostrar lo guardado arriba
 
             } catch (err) {
                 console.error(err);

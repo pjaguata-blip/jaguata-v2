@@ -138,8 +138,37 @@ $backUrl = $baseUrl . "/features/paseador/MisPaseos.php";
 
 // Fotos (si no hay, placeholder)
 $placeholderDog = $baseUrl . "/public/assets/images/dog-placeholder.png";
-$foto1 = $mascota1Foto ? $baseUrl . "/" . ltrim((string)$mascota1Foto, '/') : $placeholderDog;
-$foto2 = ($hayMascota2 && $mascota2Foto) ? $baseUrl . "/" . ltrim((string)$mascota2Foto, '/') : $placeholderDog;
+
+/**
+ * Normaliza foto_url:
+ * - si viene absoluta (http://...) -> se usa tal cual
+ * - si viene relativa (/uploads/... o uploads/...) -> se le agrega BASE_URL
+ * - si viene vacía -> placeholder
+ */
+function fotoUrl(?string $raw, string $baseUrl, string $placeholder): string
+{
+    $raw = trim((string)$raw);
+    if ($raw === '') return $placeholder;
+
+    // Ya es URL absoluta
+    if (preg_match('~^https?://~i', $raw)) {
+        return $raw;
+    }
+
+    // Si te guardó algo tipo "localhost/..." sin esquema, lo arreglamos
+    if (preg_match('~^localhost/~i', $raw)) {
+        return 'http://' . $raw;
+    }
+
+    // Relativa -> BASE_URL + / + path sin slash inicial
+    return rtrim($baseUrl, '/') . '/' . ltrim($raw, '/');
+}
+
+$foto1 = fotoUrl($mascota1Foto, $baseUrl, $placeholderDog);
+$foto2 = ($hayMascota2)
+    ? fotoUrl($mascota2Foto, $baseUrl, $placeholderDog)
+    : $placeholderDog;
+
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -247,13 +276,14 @@ $foto2 = ($hayMascota2 && $mascota2Foto) ? $baseUrl . "/" . ltrim((string)$masco
                 </div>
                 <div class="d-flex flex-column align-items-end gap-2">
                     <i class="fas fa-map-location-dot fa-3x opacity-75"></i>
+                    <a href="<?= h($backUrl) ?>" class="btn-volver">
+                        <i class="fas fa-arrow-left"></i> Volver a mis paseos
+                    </a>
                 </div>
             </div>
 
             <div class="mb-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
-                <a href="<?= h($backUrl) ?>" class="btn-volver">
-                    <i class="fas fa-arrow-left"></i> Volver a mis paseos
-                </a>
+
 
                 <?php if ($hayMascota2): ?>
                     <span class="badge bg-success px-3 py-2">

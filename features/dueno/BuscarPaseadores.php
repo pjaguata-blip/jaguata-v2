@@ -206,10 +206,10 @@ $usuarioNombre = h(Session::getUsuarioNombre() ?? 'Dueño/a');
 
     <!-- Contenido -->
     <main>
-        <div class="py-4">
+        <div class="py-2">
 
             <!-- Header -->
-            <div class="header-box mb-4 d-flex justify-content-between align-items-center">
+            <div class="header-box mb-2 d-flex justify-content-between align-items-center">
                 <div>
                     <h1 class="fw-bold mb-1">
                         <i class="fas fa-dog me-2"></i>Buscar Paseadores
@@ -224,7 +224,7 @@ $usuarioNombre = h(Session::getUsuarioNombre() ?? 'Dueño/a');
             </div>
 
             <!-- Filtros -->
-            <div class="section-card mb-4">
+            <div class="section-card mb-2">
                 <div class="section-header">
                     <i class="fas fa-filter me-2"></i>Filtros de búsqueda
                 </div>

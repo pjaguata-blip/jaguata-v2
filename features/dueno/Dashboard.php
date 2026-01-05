@@ -188,7 +188,7 @@ function h(?string $v): string
         <div class="py-2">
 
             <!-- Header -->
-            <div class="header-box header-dashboard mb-4">
+            <div class="header-box header-dashboard mb-2">
                 <div>
                     <h1>¡Hola, <?= h($usuarioNombre); ?>! 🐾</h1>
                     <p>Gestioná tus paseos, disponibilidad, ganancias y estadísticas desde un solo lugar.</p>

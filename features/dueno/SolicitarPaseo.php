@@ -96,10 +96,10 @@ $usuarioNombre = h(Session::getUsuarioNombre() ?? 'Dueño');
 
     <!-- Contenido -->
     <main>
-        <div class="py-4">
+        <div class="py-2">
 
             <!-- Header unificado -->
-            <div class="header-box header-paseos mb-4 d-flex justify-content-between align-items-center">
+            <div class="header-box header-paseos mb-2 d-flex justify-content-between align-items-center">
                 <div>
                     <h1 class="mb-1">
                         <i class="fas fa-calendar-check me-2"></i>Solicitar Paseo
@@ -110,7 +110,7 @@ $usuarioNombre = h(Session::getUsuarioNombre() ?? 'Dueño');
                 </div>
                 <div class="d-none d-md-block">
                     <a href="<?= $baseFeatures; ?>/Dashboard.php" class="btn btn-outline-light btn-sm">
-                        <i class="fas fa-arrow-left me-1"></i> Volver al panel
+                        <i class="fas fa-arrow-left me-1"></i> Volver
                     </a>
                 </div>
             </div>
@@ -232,10 +232,10 @@ $usuarioNombre = h(Session::getUsuarioNombre() ?? 'Dueño');
 
                             <!-- Total estimado -->
                             <div class="col-12">
-                                <div class="p-3 rounded-3" style="background:#f4f6f9;border:1px solid #dee2e6;">
+                                <div class="p-3 rounded-3" style="background:#42e1faff;border:1px solid #080808ff;">
                                     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
                                         <div>
-                                            <div class="fw-semibold">
+                                            <div class="fw-bold">
                                                 <i class="fas fa-receipt me-2"></i>Total estimado
                                             </div>
                                             <small class="text-muted">
@@ -284,11 +284,11 @@ $usuarioNombre = h(Session::getUsuarioNombre() ?? 'Dueño');
                         <hr class="my-4">
 
                         <div class="d-flex justify-content-between">
-                            <a href="<?= $baseFeatures; ?>/Dashboard.php" class="btn btn-outline-secondary">
-                                <i class="fas fa-times me-1"></i> Cancelar
+                           <a href="<?= $baseFeatures; ?>/Dashboard.php" class="btn btn-secondary">
+                                 <i class="fas fa-times me-1"></i> Cancelar
                             </a>
-                            <button type="submit" class="btn btn-gradient">
-                                <i class="fas fa-paper-plane me-1"></i> Solicitar Paseo
+                            <button type="submit" class="btn btn-success">
+                                 <i class="fas fa-paper-plane me-1"></i> Solicitar Paseo
                             </button>
                         </div>
                     </form>

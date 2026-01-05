@@ -124,7 +124,7 @@ function h(?string $v): string
         <div class="py-4 container-fluid">
 
             <!-- Header igual estilo que otros módulos admin -->
-            <div class="header-box header-dashboard mb-4 d-flex flex-wrap justify-content-between align-items-center">
+            <div class="header-box header-dashboard mb-2 d-flex flex-wrap justify-content-between align-items-center">
                 <div>
                     <h1 class="fw-bold mb-1">
                         <i class="fas fa-user-gear me-2"></i>Editar Usuario

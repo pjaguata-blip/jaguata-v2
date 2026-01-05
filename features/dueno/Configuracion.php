@@ -146,7 +146,7 @@ function h(?string $v): string
 
     <main>
         <!-- HEADER CONFIGURACIÓN -->
-        <div class="header-box header-config mb-4 d-flex justify-content-between align-items-center">
+        <div class="header-box header-config mb-2 d-flex justify-content-between align-items-center">
             <div>
                 <h1 class="fw-bold mb-1">
                     <i class="fas fa-user-cog me-2"></i>Configuración de cuenta — Dueño
@@ -154,7 +154,7 @@ function h(?string $v): string
                 <p class="mb-0">Actualizá tus datos de contacto, zona de referencia y contraseña 🐾</p>
             </div>
             <a href="<?= BASE_URL; ?>/features/dueno/Dashboard.php" class="btn btn-outline-light">
-                <i class="fas fa-arrow-left me-1"></i> Volver al panel
+                <i class="fas fa-arrow-left me-1"></i> Volver
             </a>
         </div>
 

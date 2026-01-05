@@ -154,7 +154,7 @@ function h(?string $v): string
                 <p class="mb-0">Actualizá tus datos de contacto, zona de trabajo y contraseña 🐾</p>
             </div>
             <a href="<?= BASE_URL; ?>/features/paseador/Dashboard.php" class="btn btn-outline-light">
-                <i class="fas fa-arrow-left me-1"></i> Volver al panel
+                <i class="fas fa-arrow-left me-1"></i> Volver
             </a>
         </div>
 

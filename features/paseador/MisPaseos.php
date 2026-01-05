@@ -71,9 +71,9 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
         <?php include __DIR__ . '/../../src/Templates/SidebarPaseador.php'; ?>
 
         <main class="content bg-light">
-            <div class="container-fluid py-1">
+            <div class="container-fluid py-0">
 
-                <div class="header-box header-dashboard mb-4">
+                <div class="header-box header-dashboard mb-2">
                     <div>
                         <h1 class="h4 mb-1">
                             <i class="fas fa-walking me-2"></i> Mis paseos asignados
@@ -90,7 +90,7 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
                 <div class="row g-3 mb-4">
                     <div class="col-xl-3 col-md-6">
                         <div class="stat-card text-center">
-                            <i class="fas fa-list text-success mb-2"></i>
+                            <i class="fas fa-list text-success mb-1"></i>
                             <h4><?= (int)$totalPaseos ?></h4>
                             <p class="mb-0">Total de paseos</p>
                         </div>
@@ -116,13 +116,6 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
                             <p class="mb-0">Ingresos totales</p>
                         </div>
                     </div>
-                </div>
-
-                <div class="d-flex justify-content-end mb-3">
-                    <button class="btn btn-success d-flex align-items-center gap-2"
-                        onclick="window.location.href='<?= BASE_URL; ?>/public/api/paseos/exportarPaseosPaseador.php'">
-                        <i class="fas fa-file-excel"></i> Exportar Excel
-                    </button>
                 </div>
 
                 <div class="card jag-card shadow-sm mb-4">
@@ -156,6 +149,12 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
                             </div>
                         </div>
                     </div>
+                </div>
+                 <div class="d-flex justify-content-end mb-3">
+                    <button class="btn btn-success d-flex align-items-center gap-2"
+                        onclick="window.location.href='<?= BASE_URL; ?>/public/api/paseos/exportarPaseosPaseador.php'">
+                        <i class="fas fa-file-excel"></i> Excel
+                    </button>
                 </div>
 
                 <?php if (empty($paseos)): ?>

@@ -205,11 +205,13 @@ class PaseoController
     }
 
     /** 🔹 Obtener un paseo simple por ID */
+    /** 🔹 Obtener un paseo por ID (con detalle/joins) */
     public function getById(int $id): ?array
     {
         if ($id <= 0) return null;
-        return $this->paseoModel->find($id);
+        return $this->show($id); // ✅ trae nombre_mascota, nombre_mascota_2, paseador_nombre, inicio, precio_total, etc.
     }
+
 
     /**
      * 🔹 Detalle de paseo (paseador / dueño)

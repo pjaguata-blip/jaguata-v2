@@ -74,20 +74,25 @@ class PagoController
             }
         }
 
-        $estado = ($data['metodo'] === 'efectivo')
+        // ✅ NORMALIZAR método (acepta EFECTIVO / efectivo / Transferencia, etc.)
+        $metodo = strtoupper(trim((string)$data['metodo'])); // EFECTIVO | TRANSFERENCIA
+
+        // ✅ Para el dueño: si ya cargó el pago, lo marcamos como confirmado por dueño
+        // (así en Paseador ya se ve “Pagado” si vos querés eso)
+        $estado = ($metodo === 'EFECTIVO' || $metodo === 'TRANSFERENCIA')
             ? 'confirmado_por_dueno'
             : 'pendiente';
 
         $payload = [
-            'paseo_id'    => (int) $data['paseo_id'],
-            'usuario_id'  => (int) $data['usuario_id'],
-            'metodo'      => (string) $data['metodo'],
+            'paseo_id'    => (int)$data['paseo_id'],
+            'usuario_id'  => (int)$data['usuario_id'],
+            'metodo'      => $metodo, // guardamos normalizado
             'banco'       => $data['banco'] ?? null,
             'cuenta'      => $data['cuenta'] ?? null,
             'comprobante' => $data['comprobante'] ?? null,
             'alias'       => $data['alias'] ?? null,
             'referencia'  => $data['referencia'] ?? null,
-            'monto'       => (float) $data['monto'],
+            'monto'       => (float)$data['monto'],
             'estado'      => $estado,
             'observacion' => $data['observacion'] ?? null,
         ];
@@ -95,15 +100,14 @@ class PagoController
         try {
             $id = $this->pagoModel->create($payload);
 
-            // Si es efectivo, marcamos el paseo como procesado directamente
-            if ($data['metodo'] === 'efectivo') {
-                $st = $this->db->prepare(
-                    "UPDATE paseos 
-                     SET estado_pago = 'procesado' 
-                     WHERE paseo_id = :id"
-                );
-                $st->execute([':id' => (int) $data['paseo_id']]);
-            }
+            // ✅ CLAVE: reflejar en la tabla paseos lo que usa tu pantalla del paseador
+            // Tu MisPaseos.php muestra pago leyendo: $p['estado_pago']
+            $st = $this->db->prepare("
+            UPDATE paseos
+            SET estado_pago = 'procesado'
+            WHERE paseo_id = :id
+        ");
+            $st->execute([':id' => (int)$data['paseo_id']]);
 
             return ['success' => true, 'id' => $id, 'estado' => $estado];
         } catch (Exception $e) {
@@ -111,6 +115,7 @@ class PagoController
             return ['error' => 'Error interno al crear el pago'];
         }
     }
+
 
     /**
      * Alias por si desde el front llamás a /api/pagos/crear
@@ -175,55 +180,70 @@ class PagoController
     public function listarGastosDueno(array $filters): array
     {
         $sql = "
-            SELECT 
-                pg.id,
-                pg.paseo_id,
-                pg.metodo,
-                UPPER(pg.estado) AS estado,
-                pg.monto,
-                pg.referencia,
-                pg.observacion,
-                DATE(pg.created_at) AS fecha_pago,
-                ps.inicio AS fecha_paseo,
-                m.nombre AS mascota,
-                u_p.nombre AS paseador
-            FROM pagos pg
-            INNER JOIN paseos ps ON ps.paseo_id = pg.paseo_id
-            INNER JOIN mascotas m ON m.mascota_id = ps.mascota_id
-            INNER JOIN usuarios u_p ON u_p.usu_id = ps.paseador_id
-            WHERE m.dueno_id = :dueno_id
-        ";
+        SELECT 
+            pg.id,
+            pg.paseo_id,
+            UPPER(pg.metodo) AS metodo,
 
-        $params = ['dueno_id' => $filters['dueno_id']];
+            /* ✅ Normalizamos el estado para la UI */
+            CASE
+                WHEN LOWER(pg.estado) LIKE 'confirmado%' THEN 'CONFIRMADO'
+                WHEN LOWER(pg.estado) = 'pendiente'      THEN 'PENDIENTE'
+                WHEN LOWER(pg.estado) IN ('rechazado','observacion') THEN 'RECHAZADO'
+                ELSE UPPER(pg.estado)
+            END AS estado,
+
+            pg.monto,
+            pg.referencia,
+            pg.observacion,
+            DATE(pg.created_at) AS fecha_pago,
+            ps.inicio AS fecha_paseo,
+            m.nombre AS mascota,
+            u_p.nombre AS paseador
+        FROM pagos pg
+        INNER JOIN paseos ps   ON ps.paseo_id   = pg.paseo_id
+        INNER JOIN mascotas m  ON m.mascota_id  = ps.mascota_id
+        INNER JOIN usuarios u_p ON u_p.usu_id   = ps.paseador_id
+        WHERE m.dueno_id = :dueno_id
+    ";
+
+        $params = [':dueno_id' => (int)$filters['dueno_id']];
 
         if (!empty($filters['from'])) {
             $sql .= " AND DATE(pg.created_at) >= :from";
-            $params['from'] = $filters['from'];
+            $params[':from'] = $filters['from'];
         }
 
         if (!empty($filters['to'])) {
             $sql .= " AND DATE(pg.created_at) <= :to";
-            $params['to'] = $filters['to'];
+            $params[':to'] = $filters['to'];
         }
 
         if (!empty($filters['mascota_id'])) {
             $sql .= " AND m.mascota_id = :mascota_id";
-            $params['mascota_id'] = $filters['mascota_id'];
+            $params[':mascota_id'] = (int)$filters['mascota_id'];
         }
 
         if (!empty($filters['paseador_id'])) {
             $sql .= " AND ps.paseador_id = :paseador_id";
-            $params['paseador_id'] = $filters['paseador_id'];
+            $params[':paseador_id'] = (int)$filters['paseador_id'];
         }
 
         if (!empty($filters['metodo'])) {
-            $sql .= " AND LOWER(pg.metodo) = LOWER(:metodo)";
-            $params['metodo'] = $filters['metodo'];
+            // UI manda EFECTIVO / TRANSFERENCIA, en BD puede estar en minúscula
+            $sql .= " AND UPPER(pg.metodo) = :metodo";
+            $params[':metodo'] = strtoupper((string)$filters['metodo']);
         }
 
-        if (!empty($filters['estado'])) {
-            $sql .= " AND LOWER(pg.estado) = LOWER(:estado)";
-            $params['estado'] = $filters['estado'];
+        /* ✅ Estado UI: CONFIRMADO / PENDIENTE / RECHAZADO
+       Si NO se envía estado => por defecto mostramos SOLO confirmados */
+        $estadoUI = strtoupper(trim((string)($filters['estado'] ?? '')));
+        if ($estadoUI === 'CONFIRMADO' || $estadoUI === '') {
+            $sql .= " AND LOWER(pg.estado) LIKE 'confirmado%'";
+        } elseif ($estadoUI === 'PENDIENTE') {
+            $sql .= " AND LOWER(pg.estado) = 'pendiente'";
+        } elseif ($estadoUI === 'RECHAZADO') {
+            $sql .= " AND LOWER(pg.estado) IN ('rechazado','observacion')";
         }
 
         $sql .= " ORDER BY pg.created_at DESC";
@@ -231,8 +251,9 @@ class PagoController
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
 
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
     }
+
     public function filtrar(array $filtros): array
     {
         $sql = "

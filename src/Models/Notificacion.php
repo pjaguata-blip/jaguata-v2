@@ -8,12 +8,6 @@ use PDO;
 
 require_once __DIR__ . '/BaseModel.php';
 
-/**
- * Modelo de Notificaciones
- * -------------------------
- * Soporta notificaciones individuales, por rol y globales.
- * ✅ Regla: las masivas (rol/todos) solo se muestran desde que el usuario existe.
- */
 class Notificacion extends BaseModel
 {
     protected string $table      = 'notificaciones';
@@ -24,7 +18,8 @@ class Notificacion extends BaseModel
         parent::__construct();
     }
 
-    /** ✅ Fecha de creación del usuario (para filtrar masivas antiguas) */
+    /* =================== Helpers =================== */
+
     private function getUserCreatedAt(int $usuId): string
     {
         $stmt = $this->db->prepare("SELECT created_at FROM usuarios WHERE usu_id = :id LIMIT 1");
@@ -32,34 +27,54 @@ class Notificacion extends BaseModel
         return (string)($stmt->fetchColumn() ?: '1970-01-01 00:00:00');
     }
 
-    /** ✅ WHERE reutilizable */
+    /**
+     * Filtro base:
+     * - personales: usu_id = :usu_id
+     * - masivas: usu_id IS NULL y rol_destinatario coincide con rol o 'todos'
+     * - NO archivadas
+     * - NO ocultas (notificaciones_ocultas)
+     * - masivas solo desde created_at del usuario
+     */
     private function buildWhereUserRolTodos(int $usuId, string $rol, string $userCreatedAt): array
     {
-        $rol = strtolower($rol);
+        $rol = strtolower(trim($rol));
 
-        $where = ["
+        // ✅ soportar dueno/dueño (por consistencia)
+        $rolAlt = $rol;
+        if ($rol === 'dueno') $rolAlt = 'dueño';
+        if ($rol === 'dueño') $rolAlt = 'dueno';
+
+        $where = ["(
             (
                 usu_id = :usu_id
                 OR (
-                    (rol_destinatario = :rol OR rol_destinatario = 'todos')
+                    usu_id IS NULL
+                    AND (rol_destinatario = :rol OR rol_destinatario = :rol_alt OR rol_destinatario = 'todos')
                     AND created_at >= :user_created
                 )
             )
-        "];
+            AND (archivada IS NULL OR archivada = 0)
+            AND NOT EXISTS (
+                SELECT 1
+                FROM notificaciones_ocultas o
+                WHERE o.noti_id = {$this->table}.{$this->primaryKey}
+                  AND o.usu_id  = :uid_oculta
+            )
+        )"];
 
         $params = [
             ':usu_id'       => $usuId,
             ':rol'          => $rol,
+            ':rol_alt'      => $rolAlt,
             ':user_created' => $userCreatedAt,
+            ':uid_oculta'   => $usuId,
         ];
 
         return [$where, $params];
     }
 
-    /**
-     * 🔹 Lista notificaciones (usuario + rol + globales)
-     * ✅ Masivas solo desde created_at del usuario
-     */
+    /* =================== Listado =================== */
+
     public function listByUser(
         int $usuId,
         string $rol,
@@ -70,7 +85,6 @@ class Notificacion extends BaseModel
         ?string $tipo = null
     ): array {
         $userCreatedAt = $this->getUserCreatedAt($usuId);
-
         [$where, $params] = $this->buildWhereUserRolTodos($usuId, $rol, $userCreatedAt);
 
         if ($leido !== null) {
@@ -109,9 +123,7 @@ class Notificacion extends BaseModel
         ";
 
         $stmt = $this->db->prepare($sql);
-        foreach ($params as $k => $v) {
-            $stmt->bindValue($k, $v);
-        }
+        foreach ($params as $k => $v) $stmt->bindValue($k, $v);
         $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
         $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
         $stmt->execute();
@@ -127,10 +139,6 @@ class Notificacion extends BaseModel
         ];
     }
 
-    /**
-     * 🔹 Notificaciones recientes (para dashboard/campanita)
-     * ✅ Masivas solo desde created_at del usuario
-     */
     public function getRecientes(int $usuId, string $rol, int $limit = 5): array
     {
         $userCreatedAt = $this->getUserCreatedAt($usuId);
@@ -150,24 +158,18 @@ class Notificacion extends BaseModel
         ";
 
         $stmt = $this->db->prepare($sql);
-        foreach ($params as $k => $v) {
-            $stmt->bindValue($k, $v);
-        }
+        foreach ($params as $k => $v) $stmt->bindValue($k, $v);
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
         $stmt->execute();
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
-    /**
-     * 🔹 Contador de no leídas (badge)
-     * ✅ Masivas solo desde created_at del usuario
-     */
     public function countUnread(int $usuId, string $rol): int
     {
         $userCreatedAt = $this->getUserCreatedAt($usuId);
-
         [$where, $params] = $this->buildWhereUserRolTodos($usuId, $rol, $userCreatedAt);
+
         $where[] = 'leido = 0';
         $where[] = '(expira IS NULL OR expira > NOW())';
 
@@ -180,10 +182,8 @@ class Notificacion extends BaseModel
         return (int)$stmt->fetchColumn();
     }
 
-    /**
-     * 🔹 Marcar una notificación como leída
-     * (permite usu_id = NULL para masivas)
-     */
+    /* =================== Leído =================== */
+
     public function markRead(int $notiId, int $usuId): bool
     {
         $sql = "
@@ -192,45 +192,164 @@ class Notificacion extends BaseModel
             WHERE {$this->primaryKey} = :id
               AND (usu_id = :usu_id OR usu_id IS NULL)
         ";
-
         $stmt = $this->db->prepare($sql);
-        return $stmt->execute([
-            ':id'     => $notiId,
-            ':usu_id' => $usuId,
-        ]);
+        return $stmt->execute([':id' => $notiId, ':usu_id' => $usuId]);
     }
 
-    /**
-     * 🔹 Marcar todas como leídas (usuario + rol + globales)
-     * ✅ Masivas solo desde created_at del usuario
-     */
     public function markAllRead(int $usuId, string $rol): int
     {
         $userCreatedAt = $this->getUserCreatedAt($usuId);
+        $rol = strtolower(trim($rol));
 
-        // Armamos el WHERE igual que listByUser
-        $rol = strtolower($rol);
+        // ✅ alt
+        $rolAlt = $rol;
+        if ($rol === 'dueno') $rolAlt = 'dueño';
+        if ($rol === 'dueño') $rolAlt = 'dueno';
 
         $sql = "
-            UPDATE {$this->table}
-            SET leido = 1
+            UPDATE {$this->table} n
+            SET n.leido = 1
             WHERE
-            (
-                usu_id = :usu_id
-                OR (
-                    (rol_destinatario = :rol OR rol_destinatario = 'todos')
-                    AND created_at >= :user_created
+                (
+                    (
+                        n.usu_id = :usu_id
+                        OR (
+                            n.usu_id IS NULL
+                            AND (n.rol_destinatario = :rol OR n.rol_destinatario = :rol_alt OR n.rol_destinatario = 'todos')
+                            AND n.created_at >= :user_created
+                        )
+                    )
+                    AND (n.archivada IS NULL OR n.archivada = 0)
+                    AND NOT EXISTS (
+                        SELECT 1 FROM notificaciones_ocultas o
+                        WHERE o.noti_id = n.{$this->primaryKey}
+                          AND o.usu_id  = :uid_oculta
+                    )
                 )
-            )
         ";
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute([
             ':usu_id'       => $usuId,
             ':rol'          => $rol,
+            ':rol_alt'      => $rolAlt,
             ':user_created' => $userCreatedAt,
+            ':uid_oculta'   => $usuId,
         ]);
 
         return (int)$stmt->rowCount();
+    }
+
+    /* =================== ELIMINAR / LIMPIAR =================== */
+
+    /**
+     * Devuelve:
+     * - 'personal' si usu_id = usuario
+     * - 'masiva' si usu_id IS NULL (rol/todos)
+     * - null si no pertenece / no existe / expirada / archivada
+     */
+    public function tipoParaUsuario(int $notiId, int $usuId, string $rol): ?string
+    {
+        $userCreatedAt = $this->getUserCreatedAt($usuId);
+        $rol = strtolower(trim($rol));
+
+        $rolAlt = $rol;
+        if ($rol === 'dueno') $rolAlt = 'dueño';
+        if ($rol === 'dueño') $rolAlt = 'dueno';
+
+        $sql = "
+            SELECT usu_id
+            FROM {$this->table}
+            WHERE {$this->primaryKey} = :id
+              AND (expira IS NULL OR expira > NOW())
+              AND (archivada IS NULL OR archivada = 0)
+              AND (
+                    usu_id = :uid
+                    OR (
+                        usu_id IS NULL
+                        AND (rol_destinatario = :rol OR rol_destinatario = :rol_alt OR rol_destinatario = 'todos')
+                        AND created_at >= :user_created
+                    )
+              )
+            LIMIT 1
+        ";
+
+        $st = $this->db->prepare($sql);
+        $st->execute([
+            ':id'           => $notiId,
+            ':uid'          => $usuId,
+            ':rol'          => $rol,
+            ':rol_alt'      => $rolAlt,
+            ':user_created' => $userCreatedAt,
+        ]);
+
+        $row = $st->fetch(PDO::FETCH_ASSOC);
+        if (!$row) return null;
+
+        return ($row['usu_id'] === null) ? 'masiva' : 'personal';
+    }
+
+    public function archivarPersonal(int $notiId, int $usuId): bool
+    {
+        $st = $this->db->prepare("
+            UPDATE {$this->table}
+            SET archivada = 1
+            WHERE {$this->primaryKey} = :id AND usu_id = :uid
+            LIMIT 1
+        ");
+        $st->execute([':id' => $notiId, ':uid' => $usuId]);
+        return $st->rowCount() > 0;
+    }
+
+    public function ocultarMasivaParaUsuario(int $notiId, int $usuId): bool
+    {
+        $st = $this->db->prepare("
+            INSERT IGNORE INTO notificaciones_ocultas (noti_id, usu_id, created_at)
+            VALUES (:nid, :uid, NOW())
+        ");
+        return $st->execute([':nid' => $notiId, ':uid' => $usuId]);
+    }
+
+    public function archivarTodasPersonales(int $usuId): int
+    {
+        $st = $this->db->prepare("
+            UPDATE {$this->table}
+            SET archivada = 1
+            WHERE usu_id = :uid
+        ");
+        $st->execute([':uid' => $usuId]);
+        return (int)$st->rowCount();
+    }
+
+    public function ocultarTodasMasivasParaUsuario(int $usuId, string $rol): int
+    {
+        $userCreatedAt = $this->getUserCreatedAt($usuId);
+        $rol = strtolower(trim($rol));
+
+        $rolAlt = $rol;
+        if ($rol === 'dueno') $rolAlt = 'dueño';
+        if ($rol === 'dueño') $rolAlt = 'dueno';
+
+        $sql = "
+            INSERT IGNORE INTO notificaciones_ocultas (noti_id, usu_id, created_at)
+            SELECT n.{$this->primaryKey}, :uid, NOW()
+            FROM {$this->table} n
+            WHERE
+                n.usu_id IS NULL
+                AND (n.rol_destinatario = :rol OR n.rol_destinatario = :rol_alt OR n.rol_destinatario = 'todos')
+                AND n.created_at >= :user_created
+                AND (n.expira IS NULL OR n.expira > NOW())
+                AND (n.archivada IS NULL OR n.archivada = 0)
+        ";
+
+        $st = $this->db->prepare($sql);
+        $st->execute([
+            ':uid'          => $usuId,
+            ':rol'          => $rol,
+            ':rol_alt'      => $rolAlt,
+            ':user_created' => $userCreatedAt,
+        ]);
+
+        return (int)$st->rowCount();
     }
 }

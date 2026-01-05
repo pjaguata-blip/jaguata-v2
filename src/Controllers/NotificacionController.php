@@ -12,21 +12,12 @@ use Jaguata\Config\AppConfig;
 use Jaguata\Services\DatabaseService;
 use Jaguata\Helpers\Session;
 use Jaguata\Models\Notificacion;
+use Jaguata\Helpers\Auditoria;
 use PDO;
 use PDOException;
-use Jaguata\Helpers\Auditoria;
 
 AppConfig::init();
 
-/**
- * Controlador de notificaciones
- * - Admin:
- *    - indexAdmin: listado para el panel admin
- *    - crearDesdeAdmin: alta de notificación masiva
- * - Paseador / Dueño:
- *    - index / listForCurrentUser: listado filtrado por usuario + rol + globales
- *    - markRead / marcarLeidaForCurrentUser / markAllRead / marcarTodasForCurrentUser
- */
 class NotificacionController
 {
     private PDO $db;
@@ -38,10 +29,10 @@ class NotificacionController
         $this->notificacionModel = new Notificacion();
     }
 
-    /**
-     * 🔹 Listar notificaciones para el panel Admin
-     * $destino: 'todos', 'admin', 'paseador', 'dueno'
-     */
+    /* ==========================================================
+       ADMIN
+       ========================================================== */
+
     public function indexAdmin(string $destino = 'todos'): array
     {
         try {
@@ -63,12 +54,8 @@ class NotificacionController
             $params = [];
 
             $destino = strtolower(trim($destino));
-            // en la BD tenés enum('admin', 'paseador', 'dueño', 'todos')
             if (in_array($destino, ['admin', 'paseador', 'dueno', 'dueño', 'todos'], true)) {
-                // normalizamos 'dueno' -> 'dueño'
-                if ($destino === 'dueno') {
-                    $destino = 'dueño';
-                }
+                if ($destino === 'dueno') $destino = 'dueño';
                 if ($destino !== 'todos') {
                     $sql .= " AND n.rol_destinatario = :destino";
                     $params[':destino'] = $destino;
@@ -81,14 +68,11 @@ class NotificacionController
             $stmt->execute($params);
             return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
         } catch (PDOException $e) {
-            error_log('❌ Error NotificacionController::indexAdmin() => ' . $e->getMessage());
+            error_log('❌ NotificacionController::indexAdmin => ' . $e->getMessage());
             return [];
         }
     }
 
-    /**
-     * 🔹 Crear notificación desde el panel Admin (masiva por rol o todos)
-     */
     public function crearDesdeAdmin(array $data): array
     {
         $titulo    = trim($data['titulo'] ?? '');
@@ -102,21 +86,16 @@ class NotificacionController
             return ['success' => false, 'error' => 'Título y mensaje son obligatorios.'];
         }
 
-        // 🔁 Normalizar destinatario a los valores reales del ENUM:
-        // enum('admin', 'paseador', 'dueño', 'todos')
         $mapDestinos = [
-            'todos'       => 'todos',
-            'todo'        => 'todos',
-
-            'duenos'      => 'dueño',
-            'dueños'      => 'dueño',
-            'dueno'       => 'dueño',
-            'dueño'       => 'dueño',
-
-            'paseadores'  => 'paseador',
-            'paseador'    => 'paseador',
-
-            'admin'       => 'admin',
+            'todos' => 'todos',
+            'todo' => 'todos',
+            'duenos' => 'dueño',
+            'dueños' => 'dueño',
+            'dueno' => 'dueño',
+            'dueño' => 'dueño',
+            'paseadores' => 'paseador',
+            'paseador' => 'paseador',
+            'admin' => 'admin',
             'administrador' => 'admin',
         ];
 
@@ -124,65 +103,50 @@ class NotificacionController
         $destinatario = $mapDestinos[$destKey] ?? 'todos';
 
         $validPrioridades = ['baja', 'media', 'alta'];
-        if (!in_array($prioridad, $validPrioridades, true)) {
-            $prioridad = 'media';
-        }
+        if (!in_array($prioridad, $validPrioridades, true)) $prioridad = 'media';
 
         $validCanales = ['app', 'email', 'push'];
-        if (!in_array($canal, $validCanales, true)) {
-            $canal = 'app';
-        }
+        if (!in_array($canal, $validCanales, true)) $canal = 'app';
 
-        // Admin que envía
         $adminId = Session::getUsuarioId() ?: null;
-
-        // 🔹 Notificación masiva: usu_id NULL
-        $usuIdMasivo = null;
 
         try {
             $sql = "
-                INSERT INTO notificaciones (
-                    usu_id,
-                    rol_destinatario,
-                    admin_id,
-                    tipo,
-                    prioridad,
-                    canal,
-                    titulo,
-                    mensaje,
-                    paseo_id,
-                    leido,
-                    estado
-                ) VALUES (
-                    :usu_id,
-                    :rol_destinatario,
-                    :admin_id,
-                    :tipo,
-                    :prioridad,
-                    :canal,
-                    :titulo,
-                    :mensaje,
-                    NULL,
-                    0,
-                    'pendiente'
-                )
-            ";
+    INSERT INTO notificaciones (
+        usu_id,
+        rol_destinatario,
+        admin_id,
+        tipo,
+        prioridad,
+        canal,
+        titulo,
+        mensaje,
+        paseo_id,
+        leido,
+        estado
+    ) VALUES (
+        :usu_id,
+        :rol_destinatario,
+        :admin_id,
+        :tipo,
+        :prioridad,
+        :canal,
+        :titulo,
+        :mensaje,
+        NULL,
+        0,
+        'enviada'
+    )
+";
+
 
             $stmt = $this->db->prepare($sql);
 
-            // usu_id NULL para masivas
-            if ($usuIdMasivo === null) {
-                $stmt->bindValue(':usu_id', null, PDO::PARAM_NULL);
-            } else {
-                $stmt->bindValue(':usu_id', $usuIdMasivo, PDO::PARAM_INT);
-            }
+            // masiva => usu_id NULL
+            $stmt->bindValue(':usu_id', null, PDO::PARAM_NULL);
 
-            // admin_id puede ser null
-            if ($adminId !== null) {
-                $stmt->bindValue(':admin_id', $adminId, PDO::PARAM_INT);
-            } else {
-                $stmt->bindValue(':admin_id', null, PDO::PARAM_NULL);
-            }
+            if ($adminId !== null) $stmt->bindValue(':admin_id', $adminId, PDO::PARAM_INT);
+            else $stmt->bindValue(':admin_id', null, PDO::PARAM_NULL);
 
             $stmt->bindValue(':rol_destinatario', $destinatario);
             $stmt->bindValue(':tipo', $tipo);
@@ -195,38 +159,25 @@ class NotificacionController
 
             return ['success' => true];
         } catch (PDOException $e) {
-            error_log('❌ Error NotificacionController::crearDesdeAdmin() => ' . $e->getMessage());
-            return [
-                'success' => false,
-                'error'   => 'Error al guardar la notificación: ' . $e->getMessage(),
-            ];
+            error_log('❌ NotificacionController::crearDesdeAdmin => ' . $e->getMessage());
+            return ['success' => false, 'error' => 'Error al guardar: ' . $e->getMessage()];
         }
     }
 
     /* ==========================================================
-       MÉTODOS PARA PASEADOR / DUEÑO (vistas de cada usuario)
+       USUARIO (dueño / paseador)
        ========================================================== */
 
-    /**
-     * 🔹 Listado paginado para el usuario logueado (dueño / paseador)
-     * Usa Notificacion::listByUser()
-     */
     public function index(array $filters = []): array
     {
-        $usuId = Session::getUsuarioId();
-        $rol   = Session::getUsuarioRol() ?? '';
+        $usuId = (int)(Session::getUsuarioId() ?? 0);
+        $rol   = (string)(Session::getUsuarioRol() ?? '');
 
-        if (!$usuId || $rol === '') {
-            return [
-                'data'       => [],
-                'total'      => 0,
-                'page'       => 1,
-                'perPage'    => (int)($filters['perPage'] ?? 10),
-                'totalPages' => 1,
-            ];
+        if ($usuId <= 0 || $rol === '') {
+            return ['data' => [], 'total' => 0, 'page' => 1, 'perPage' => 10, 'totalPages' => 1];
         }
 
-        $q       = trim($filters['q'] ?? '');
+        $q       = trim((string)($filters['q'] ?? ''));
         $leido   = $filters['leido'] ?? '';
         $page    = max(1, (int)($filters['page'] ?? 1));
         $perPage = max(1, (int)($filters['perPage'] ?? 10));
@@ -234,117 +185,100 @@ class NotificacionController
         $leidoFilter = ($leido === '' ? null : (int)$leido);
 
         return $this->notificacionModel->listByUser(
-            (int)$usuId,
-            (string)$rol,
+            $usuId,
+            $rol,
             $leidoFilter,
             $q !== '' ? $q : null,
             $page,
             $perPage,
-            null // tipo (futuro)
+            null
         );
     }
 
-    /**
-     * 🔹 Convenience para la vista (paseador/dueno)
-     * Coincide con lo que usás en Notificaciones.php (paseador)
-     */
-    public function listForCurrentUser(
-        int $page = 1,
-        int $perPage = 10,
-        ?int $leido = null,
-        ?string $q = null
-    ): array {
-        $filters = [
-            'page'    => $page,
-            'perPage' => $perPage,
-        ];
-
-        if ($leido !== null) {
-            $filters['leido'] = $leido;
-        }
-
-        if ($q !== null && $q !== '') {
-            $filters['q'] = $q;
-        }
-
+    public function listForCurrentUser(int $page = 1, int $perPage = 10, ?int $leido = null, ?string $q = null): array
+    {
+        $filters = ['page' => $page, 'perPage' => $perPage];
+        if ($leido !== null) $filters['leido'] = $leido;
+        if ($q !== null && $q !== '') $filters['q'] = $q;
         return $this->index($filters);
     }
 
-    /**
-     * 🔹 Marcar una notificación como leída (para el usuario actual)
-     * Recibe normalmente $_POST con 'noti_id'
-     */
-    public function markRead(array $data): bool
-    {
-        $notiId = (int)($data['noti_id'] ?? 0);
-        $usuId  = Session::getUsuarioId() ?? 0;
-
-        if ($notiId <= 0 || $usuId <= 0) {
-            return false;
-        }
-
-        return $this->notificacionModel->markRead($notiId, (int)$usuId);
-    }
-
-    /**
-     * 🔹 Wrapper para la vista: marcar una notificación desde Paseador/Dueño
-     */
     public function marcarLeidaForCurrentUser(int $notiId): bool
     {
-        if ($notiId <= 0) {
-            return false;
-        }
-        return $this->markRead(['noti_id' => $notiId]);
+        $usuId = (int)(Session::getUsuarioId() ?? 0);
+        if ($usuId <= 0 || $notiId <= 0) return false;
+        return $this->notificacionModel->markRead($notiId, $usuId);
     }
 
-    /**
-     * 🔹 Marcar todas como leídas para el usuario actual (rol + globales)
-     * Devuelve TRUE/FALSE
-     */
-    public function markAllRead(): bool
-    {
-        $usuId = Session::getUsuarioId() ?? 0;
-        $rol   = Session::getUsuarioRol() ?? '';
-
-        if ($usuId <= 0 || $rol === '') {
-            return false;
-        }
-
-        $count = $this->notificacionModel->markAllRead((int)$usuId, (string)$rol);
-        return $count > 0;
-    }
-
-    /**
-     * 🔹 Wrapper para la vista: devuelve CUÁNTAS se marcaron como leídas
-     */
     public function marcarTodasForCurrentUser(): int
     {
-        $usuId = Session::getUsuarioId() ?? 0;
-        $rol   = Session::getUsuarioRol() ?? '';
-
-        if ($usuId <= 0 || $rol === '') {
-            return 0;
-        }
-
-        return $this->notificacionModel->markAllRead((int)$usuId, (string)$rol);
+        $usuId = (int)(Session::getUsuarioId() ?? 0);
+        $rol   = (string)(Session::getUsuarioRol() ?? '');
+        if ($usuId <= 0 || $rol === '') return 0;
+        return $this->notificacionModel->markAllRead($usuId, $rol);
     }
 
+    /* ==========================================================
+       ✅ LO QUE TE FALTA: LIMPIAR / ELIMINAR
+       - personal (usu_id = user) => archivada=1
+       - masiva  (usu_id IS NULL) => notificaciones_ocultas
+       ========================================================== */
+
+    public function limpiarUnaForCurrentUser(int $notiId): bool
+    {
+        $usuId = (int)(Session::getUsuarioId() ?? 0);
+        $rol   = strtolower(trim((string)(Session::getUsuarioRol() ?? '')));
+
+        if ($usuId <= 0 || $notiId <= 0 || $rol === '') return false;
+
+        $tipo = $this->notificacionModel->tipoParaUsuario($notiId, $usuId, $rol);
+        if ($tipo === null) return false;
+
+        if ($tipo === 'personal') {
+            return $this->notificacionModel->archivarPersonal($notiId, $usuId);
+        }
+
+        return $this->notificacionModel->ocultarMasivaParaUsuario($notiId, $usuId);
+    }
+
+    public function limpiarTodasForCurrentUser(): int
+    {
+        $usuId = (int)(Session::getUsuarioId() ?? 0);
+        $rol   = strtolower(trim((string)(Session::getUsuarioRol() ?? '')));
+
+        if ($usuId <= 0 || $rol === '') return 0;
+
+        $a = $this->notificacionModel->archivarTodasPersonales($usuId);
+        $b = $this->notificacionModel->ocultarTodasMasivasParaUsuario($usuId, $rol);
+
+        return $a + $b;
+    }
+
+    public function getRecientes(int $usuId, int $limit = 5): array
+    {
+        if ($usuId <= 0) return [];
+        $rol = (string)(Session::getUsuarioRol() ?? 'paseador');
+        try {
+            return $this->notificacionModel->getRecientes($usuId, $rol, $limit);
+        } catch (PDOException $e) {
+            error_log('❌ NotificacionController::getRecientes => ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /* (tus métodos de auditoría “simulados” los dejo igual) */
     public function enviarNotificacionUsuario(int $usuarioId, string $titulo, string $mensaje): bool
     {
-        // Acá iría la lógica real de creación
-        $ok = true; // simulado
+        $ok = true;
 
         if ($ok) {
-            $adminId = Session::getUsuarioId(); // el admin que envía
-
-            // 🔹 AUDITORÍA
+            $adminId = Session::getUsuarioId();
             Auditoria::log(
                 'ENVIAR NOTIFICACIÓN',
                 'Notificaciones',
-                'El admin ID ' . $adminId .
-                    ' envió una notificación al usuario ID ' . $usuarioId . ' con título: "' . $titulo . '"',
-                $usuarioId,  // usuario afectado
-                $adminId     // admin que hace la acción
+                'El admin ID ' . $adminId . ' envió una notificación al usuario ID ' . $usuarioId . ' con título: "' . $titulo . '"',
+                $usuarioId,
+                $adminId
             );
         }
 
@@ -358,39 +292,15 @@ class NotificacionController
 
         if ($ok) {
             $adminId = Session::getUsuarioId();
-
             Auditoria::log(
                 'ENVIAR NOTIFICACIÓN MASIVA',
                 'Notificaciones',
-                'El admin ID ' . $adminId .
-                    ' envió una notificación masiva a ' . $cantidad .
-                    ' usuarios. Título: "' . $titulo . '"',
+                'El admin ID ' . $adminId . ' envió una notificación masiva a ' . $cantidad . ' usuarios. Título: "' . $titulo . '"',
                 null,
                 $adminId
             );
         }
 
         return $ok;
-    }
-
-    /**
-     * 🔹 Notificaciones recientes para el usuario logueado (paseador, dueño, etc.)
-     * Usado en: Dashboard Paseador / Dashboard Dueño
-     */
-    public function getRecientes(int $usuId, int $limit = 5): array
-    {
-        if ($usuId <= 0) {
-            return [];
-        }
-
-        // Rol real desde sesión para filtrar
-        $rol = Session::getUsuarioRol() ?? 'paseador';
-
-        try {
-            return $this->notificacionModel->getRecientes($usuId, $rol, $limit);
-        } catch (\PDOException $e) {
-            error_log('❌ Error NotificacionController::getRecientes => ' . $e->getMessage());
-            return [];
-        }
     }
 }

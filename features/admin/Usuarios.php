@@ -49,7 +49,7 @@ $calificacionModel = new Calificacion();
     <?php include __DIR__ . '/../../src/Templates/SidebarAdmin.php'; ?>
 
     <main>
-        <div class="container-fluid px-3 px-md-4">
+        <div class="container-fluid px-3 px-md-2">
 
             <!-- HEADER -->
             <div class="header-box header-usuarios">
@@ -63,6 +63,7 @@ $calificacionModel = new Calificacion();
                     </button>
                     <i class="fas fa-user-gear fa-3x opacity-75 d-none d-lg-block"></i>
                 </div>
+
             </div>
 
             <!-- FILTROS -->
@@ -214,14 +215,7 @@ $calificacionModel = new Calificacion();
                                                             <?= (int)$reputacionTotal ?> opinión<?= ((int)$reputacionTotal === 1) ? '' : 'es' ?>
                                                         </div>
 
-                                                        <button
-                                                            type="button"
-                                                            class="btn btn-sm btn-opiniones mt-2 btn-opiniones-js"
-                                                            data-usuario="<?= (int)$u['usu_id'] ?>"
-                                                            data-tipo="<?= ($rolUsuario === 'paseador') ? 'paseador' : 'mascota' ?>"
-                                                            data-nombre="<?= h($u['nombre'] ?? 'Usuario') ?>">
-                                                            <i class="fas fa-comment-dots me-1"></i> Ver opiniones
-                                                        </button>
+
                                                     </div>
                                                 <?php else: ?>
                                                     <span class="badge bg-light text-muted">Sin calificaciones</span>

@@ -6,12 +6,14 @@ require_once __DIR__ . '/../../src/Config/AppConfig.php';
 require_once __DIR__ . '/../../src/Controllers/AuthController.php';
 require_once __DIR__ . '/../../src/Models/Usuario.php';
 require_once __DIR__ . '/../../src/Models/Paseador.php';
+require_once __DIR__ . '/../../src/Models/DatosPago.php';
 require_once __DIR__ . '/../../src/Helpers/Session.php';
 
 use Jaguata\Config\AppConfig;
 use Jaguata\Controllers\AuthController;
 use Jaguata\Models\Usuario;
 use Jaguata\Models\Paseador;
+use Jaguata\Models\DatosPago;
 use Jaguata\Helpers\Session;
 
 AppConfig::init();
@@ -20,8 +22,9 @@ AppConfig::init();
 $authController = new AuthController();
 $authController->checkRole('paseador');
 
-$usuarioModel = new Usuario();
-$paseadorModel = new Paseador();
+$usuarioModel   = new Usuario();
+$paseadorModel  = new Paseador();
+$datosPagoModel = new DatosPago();
 
 $usuarioId = (int)(Session::getUsuarioId() ?? 0);
 if ($usuarioId <= 0) {
@@ -36,8 +39,8 @@ if (!$usuario) {
     exit;
 }
 
-$paseadorRow = $paseadorModel->find($usuarioId) ?: [];
-$precioHoraActual = (float)($paseadorRow['precio_hora'] ?? 0);
+$paseadorRow       = $paseadorModel->find($usuarioId) ?: [];
+$precioHoraActual  = (float)($paseadorRow['precio_hora'] ?? 0);
 
 $mensaje = '';
 $error   = '';
@@ -82,6 +85,12 @@ if (!empty($usuario['zona'])) {
     $zonasActuales = array_values(array_filter(array_map('trim', $zonasActuales)));
 }
 
+/* ✅ Datos de transferencia actuales (tabla datos_pago) */
+$dp = $datosPagoModel->getByUsuarioId($usuarioId) ?: [];
+$ctaBanco  = (string)($dp['banco']  ?? '');
+$ctaAlias  = (string)($dp['alias']  ?? '');
+$ctaCuenta = (string)($dp['cuenta'] ?? '');
+
 /* ===== Guardar ===== */
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
@@ -103,6 +112,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $zonasTrabajo = json_decode($zonaJsonPost, true);
     if (!is_array($zonasTrabajo)) $zonasTrabajo = [];
 
+    /* ✅ Datos transferencia POST */
+    $ctaBancoPost  = trim($_POST['banco'] ?? '');
+    $ctaAliasPost  = trim($_POST['alias'] ?? '');
+    $ctaCuentaPost = trim($_POST['cuenta'] ?? '');
+
     if ($nombre === '' || $email === '') {
         $error = "El nombre y el email son obligatorios.";
     } elseif (!in_array($departamento, $DEPARTAMENTOS, true)) {
@@ -111,6 +125,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = "Seleccione una ciudad válida (Gran Asunción / Central).";
     } elseif ($precioHora === null || $precioHora < 0) {
         $error = "Ingrese una tarifa válida (0 o mayor).";
+    } elseif ($fechaNac !== '' && $fechaNac > date('Y-m-d')) {
+        $error = "La fecha de nacimiento no puede ser futura.";
     } else {
 
         /* 📷 Foto */
@@ -152,7 +168,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($error === '') {
 
-            /* 1) Actualiza USUARIOS (calle/barrio/ciudad/departamento etc.) */
+            /* 1) Actualiza USUARIOS */
             $dataUsuario = [
                 'nombre'           => $nombre,
                 'email'            => $email,
@@ -177,10 +193,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $okUsuario = $usuarioModel->update($usuarioId, $dataUsuario);
 
-            if ($okUsuario && $okPaseador) {
+            /* ✅ 3) Guarda DATOS TRANSFERENCIA en datos_pago */
+            // Permitimos guardar aunque estén vacíos, pero si querés exigir banco+alias, avisame.
+            $okDatosPago = $datosPagoModel->upsert(
+                $usuarioId,
+                $ctaBancoPost !== '' ? $ctaBancoPost : null,
+                $ctaAliasPost !== '' ? $ctaAliasPost : null,
+                $ctaCuentaPost !== '' ? $ctaCuentaPost : null
+            );
+
+            if ($okUsuario && $okPaseador && $okDatosPago) {
                 $mensaje = "Perfil actualizado correctamente.";
 
-                $usuario = $usuarioModel->find($usuarioId) ?: $usuario;
+                // refrescar
+                $usuario     = $usuarioModel->find($usuarioId) ?: $usuario;
                 $paseadorRow = $paseadorModel->find($usuarioId) ?: $paseadorRow;
                 $precioHoraActual = (float)($paseadorRow['precio_hora'] ?? $precioHora);
 
@@ -197,8 +223,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $decoded = json_decode($z, true);
                 $zonasActuales = json_last_error() === JSON_ERROR_NONE ? (array)$decoded : explode(',', $z);
                 $zonasActuales = array_values(array_filter(array_map('trim', $zonasActuales)));
+
+                // refrescar datos pago
+                $dp = $datosPagoModel->getByUsuarioId($usuarioId) ?: [];
+                $ctaBanco  = (string)($dp['banco']  ?? '');
+                $ctaAlias  = (string)($dp['alias']  ?? '');
+                $ctaCuenta = (string)($dp['cuenta'] ?? '');
             } else {
-                $error = "Error al guardar los cambios (usuario o paseador).";
+                $error = "Error al guardar los cambios (usuario, paseador o datos de pago).";
             }
         }
     }
@@ -239,7 +271,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <main>
         <div class="py-1">
 
-            <div class="header-box header-dashboard mb-4 d-flex justify-content-between align-items-center">
+            <div class="header-box header-dashboard mb-2 d-flex justify-content-between align-items-center">
                 <div>
                     <h1 class="fw-bold mb-1">
                         <i class="fas fa-edit me-2"></i>Editar Perfil — Paseador
@@ -302,9 +334,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                                 <!-- ✅ TARIFA -->
                                 <div class="mb-0 text-start">
-                                    <label class="form-label">
-                                        Tarifa por hora (₲)
-                                    </label>
+                                    <label class="form-label">Tarifa por hora (₲)</label>
                                     <input type="number" class="form-control" name="precio_hora"
                                         min="0" step="1"
                                         value="<?= htmlspecialchars((string)$precioHoraActual) ?>"
@@ -318,7 +348,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="col-lg-8">
                         <div class="row g-3">
 
-                            <!-- ✅ Dirección y contacto (Calle/Barrio/Ciudad/Departamento) -->
+                            <!-- ✅ Dirección y contacto -->
                             <div class="col-12">
                                 <div class="section-card">
                                     <div class="section-header">
@@ -373,21 +403,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 </div>
                             </div>
 
-                            <!-- Experiencia -->
-                            <div class="col-12">
-                                <div class="section-card">
-                                    <div class="section-header">
-                                        <i class="fa-solid fa-briefcase me-2"></i> Experiencia
-                                    </div>
-                                    <div class="section-body">
-                                        <textarea class="form-control" name="experiencia" rows="3"
-                                            placeholder="Contanos tu experiencia paseando perros..."><?= htmlspecialchars($expAct) ?></textarea>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Zonas -->
-                            <!-- ✅ Zonas de trabajo (SELECT Ciudad + Barrio) -->
+                            <!-- ✅ Zonas de trabajo -->
                             <div class="col-12">
                                 <div class="section-card">
                                     <div class="section-header">
@@ -432,13 +448,62 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 </div>
                             </div>
 
+                            <!-- ✅ Experiencia -->
+                            <div class="col-12">
+                                <div class="section-card">
+                                    <div class="section-header">
+                                        <i class="fa-solid fa-briefcase me-2"></i> Experiencia
+                                    </div>
+                                    <div class="section-body">
+                                        <textarea class="form-control" name="experiencia" rows="3"
+                                            placeholder="Contanos tu experiencia paseando perros..."><?= htmlspecialchars($expAct) ?></textarea>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- ✅ Transferencias (GUARDA en datos_pago) -->
+                            <div class="col-12">
+                                <div class="section-card">
+                                    <div class="section-header">
+                                        <i class="fas fa-piggy-bank me-2"></i> Datos para recibir transferencias
+                                    </div>
+                                    <div class="section-body">
+                                        <p class="text-muted small mb-3">
+                                            Estos datos se mostrarán al dueño al momento de pagar tu paseo. 💸
+                                        </p>
+
+                                        <div class="row g-3">
+                                            <div class="col-md-4">
+                                                <label class="form-label">Banco</label>
+                                                <input type="text" name="banco" class="form-control" maxlength="100"
+                                                    value="<?= htmlspecialchars($ctaBanco, ENT_QUOTES, 'UTF-8') ?>">
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label">Alias</label>
+                                                <input type="text" name="alias" class="form-control" maxlength="100"
+                                                    value="<?= htmlspecialchars($ctaAlias, ENT_QUOTES, 'UTF-8') ?>">
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label">Número de cuenta (opcional)</label>
+                                                <input type="text" name="cuenta" class="form-control" maxlength="100"
+                                                    value="<?= htmlspecialchars($ctaCuenta, ENT_QUOTES, 'UTF-8') ?>">
+                                            </div>
+                                        </div>
+
+                                        <small class="text-muted d-block mt-2">
+                                            Se guarda en <code>datos_pago</code> por tu <code>usuario_id</code>.
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+
                         </div>
                     </div>
                 </div>
 
-                <div class="mt-3">
-                    <button type="submit" class="btn btn-gradient px-4">
-                        <i class="fas fa-save me-2"></i> Guardar cambios
+                <div class="text-end mt-3">
+                    <button type="submit" class="btn-guardar">
+                        <i class="fas fa-save me-1"></i> Guardar cambios
                     </button>
                 </div>
             </form>
@@ -474,7 +539,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ciudadSel?.addEventListener('change', autoDepartamento);
         autoDepartamento();
 
-        // ===== ZONAS: ciudad + barrio (select dependiente) =====
+        // ===== ZONAS: ciudad + barrio =====
         const inputZonas = document.getElementById('zona_json');
         const contZonas = document.getElementById('zonasSeleccionadas');
 
@@ -482,7 +547,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         const selBarrioZ = document.getElementById('zonaBarrio');
         const btnAddZ = document.getElementById('btnAgregarZonaSelect');
 
-        // ⚠️ Lista base (podés ampliar)
         const BARRIOS_POR_CIUDAD = {
             "Asunción": [
                 "Villa Morra", "Las Mercedes", "Recoleta", "Carmelitas",
@@ -572,7 +636,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 selBarrioZ.appendChild(opt);
             });
 
-            // Si no hay barrios cargados, igual dejá seleccionar "Otro"
             if (!barrios.length) {
                 const opt = document.createElement('option');
                 opt.value = 'Otro';
@@ -600,7 +663,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             setZonas(zonas);
             renderZonas();
 
-            // opcional: reset barrio
             selBarrioZ.value = '';
         });
 

@@ -85,6 +85,11 @@ $nombre     = $usuario['nombre']       ?? '';
 $email      = $usuario['email']        ?? '';
 $telefono   = $usuario['telefono']     ?? '';
 
+$fechaNacAct = $usuario['fecha_nacimiento'] ?? '';
+if (!empty($fechaNacAct) && strlen((string)$fechaNacAct) > 10) {
+    $fechaNacAct = substr((string)$fechaNacAct, 0, 10); // por si viniera con hora
+}
+
 $depActual  = $usuario['departamento'] ?? '';
 $ciudadAct  = $usuario['ciudad']       ?? '';
 
@@ -118,6 +123,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email     = trim($_POST['email'] ?? '');
     $telefono  = trim($_POST['telefono'] ?? '');
 
+    $fechaNacAct = trim($_POST['fecha_nacimiento'] ?? '');
+
     $depActual = trim($_POST['departamento'] ?? '');
     $ciudadAct = trim($_POST['ciudad'] ?? '');
 
@@ -132,10 +139,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Si eligió "Otra", guardamos lo escrito
     $barrioFinal = ($barrioSelect === 'Otra') ? $barrioTexto : $barrioSelect;
 
+    // Validaciones
     if ($nombre === '' || $email === '') {
         $error = 'Nombre y correo son obligatorios.';
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $error = 'Correo electrónico inválido.';
+    } elseif ($fechaNacAct !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $fechaNacAct)) {
+        $error = 'Fecha de nacimiento inválida.';
+    } elseif ($fechaNacAct !== '' && $fechaNacAct > date('Y-m-d')) {
+        $error = 'La fecha de nacimiento no puede ser futura.';
     } else {
         $fotoNueva = null;
 
@@ -169,17 +181,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         /* Datos a actualizar */
         $data = [
-            'nombre'       => $nombre,
-            'email'        => $email,
-            'telefono'     => $telefono,
+            'nombre'          => $nombre,
+            'email'           => $email,
+            'telefono'        => $telefono,
+            'fecha_nacimiento' => $fechaNacAct !== '' ? $fechaNacAct : null,
 
-            'departamento' => $depActual !== '' ? $depActual : null,
-            'ciudad'       => $ciudadAct !== '' ? $ciudadAct : null,
+            'departamento'    => $depActual !== '' ? $depActual : null,
+            'ciudad'          => $ciudadAct !== '' ? $ciudadAct : null,
 
-            'barrio'       => $barrioFinal !== '' ? $barrioFinal : null,
-            'calle'        => $calle !== '' ? $calle : null,
-            'zona'         => $zona !== '' ? $zona : null,
-            'direccion'    => $direccion !== '' ? $direccion : null,
+            'barrio'          => $barrioFinal !== '' ? $barrioFinal : null,
+            'calle'           => $calle !== '' ? $calle : null,
+            'zona'            => $zona !== '' ? $zona : null,
+            'direccion'       => $direccion !== '' ? $direccion : null,
         ];
 
         if ($fotoNueva) {
@@ -192,10 +205,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $fotoActual = $usuario['foto_perfil'] ?? $fotoActual;
 
+            // refrescar fecha nac
+            $fechaNacAct = $usuario['fecha_nacimiento'] ?? '';
+            if (!empty($fechaNacAct) && strlen((string)$fechaNacAct) > 10) {
+                $fechaNacAct = substr((string)$fechaNacAct, 0, 10);
+            }
+
             // refrescar barrio guardado
             $barrioGuardado = $usuario['barrio'] ?? '';
-            $barrioSelect = $barrioGuardado;
-            $barrioTexto  = '';
+            $barrioSelect   = $barrioGuardado;
+            $barrioTexto    = '';
         } else {
             $error = 'No se pudo guardar los cambios.';
         }
@@ -242,9 +261,9 @@ if (!empty($fotoActual)) {
     </button>
 
     <main>
-        <div class="py-4">
+        <div class="py-2">
 
-            <div class="header-box header-dashboard mb-4">
+            <div class="header-box header-dashboard mb-2">
                 <div>
                     <h1 class="fw-bold mb-1">
                         <i class="fas fa-user-edit me-2"></i>Editar Perfil
@@ -296,6 +315,16 @@ if (!empty($fotoActual)) {
                                 <div class="mb-3">
                                     <label class="form-label">Correo electrónico</label>
                                     <input type="email" class="form-control" name="email" value="<?= h($email); ?>" required>
+                                </div>
+
+                                <div class="mb-3 text-start">
+                                    <label class="form-label">Fecha de nacimiento</label>
+                                    <input
+                                        type="date"
+                                        class="form-control"
+                                        name="fecha_nacimiento"
+                                        value="<?= h($fechaNacAct); ?>"
+                                        max="<?= date('Y-m-d'); ?>">
                                 </div>
 
                                 <div class="mb-0">

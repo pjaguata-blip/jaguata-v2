@@ -191,10 +191,10 @@ $btnEstadoText  = ($estadoMascota === 'activo') ? 'Inactivar' : 'Activar';
     </button>
 
     <main>
-        <div class="py-4">
+        <div class="py-0">
 
             <!-- HEADER -->
-            <div class="header-box header-dashboard mb-4">
+            <div class="header-box header-dashboard mb-2">
                 <div>
                     <h1 class="fw-bold mb-1"><i class="fas fa-paw me-2"></i>Perfil de Mascota</h1>
                     <p class="mb-0">Visualizá los datos detallados de la mascota y su dueño 🐶</p>

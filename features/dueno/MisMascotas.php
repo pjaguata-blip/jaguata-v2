@@ -196,7 +196,7 @@ $urlNueva    = $baseFeatures . '/MisMascotas.php?vista=nueva';
     </button>
 
     <main class="main-content">
-        <div class="container-fluid py-2">
+        <div class="container-fluid py-0">
 
             <!-- Header -->
             <div class="header-box header-mascotas mb-3 d-flex justify-content-between align-items-center">
@@ -218,7 +218,13 @@ $urlNueva    = $baseFeatures . '/MisMascotas.php?vista=nueva';
                     <a href="<?= $urlNueva ?>" class="btn btn-light text-success fw-semibold <?= $vista === 'nueva' ? 'active' : '' ?>">
                         <i class="fas fa-plus me-1"></i> Nueva
                     </a>
+
+                    <a href="<?= BASE_URL ?>/public/api/mascotas/reporte_mis_mascotas_dueno.php?<?= h(http_build_query($_GET)) ?>"
+                        class="btn btn-outline-light fw-semibold">
+                        <i class="fas fa-file-excel me-1"></i> Exportar
+                    </a>
                 </div>
+
             </div>
 
             <!-- Mensajes -->

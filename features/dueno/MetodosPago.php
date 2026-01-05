@@ -110,7 +110,7 @@ $metodosPago = $controller->index(); // obtiene todos los métodos del usuario l
     <?php include __DIR__ . '/../../src/Templates/Header.php'; ?>
     <?php include __DIR__ . '/../../src/Templates/Navbar.php'; ?>
 
-    <div class="container-fluid py-4">
+    <div class="container-fluid py-2">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
                 <h1 class="h3 mb-1"><i class="fas fa-credit-card text-success me-2"></i>Mis Métodos de Pago</h1>

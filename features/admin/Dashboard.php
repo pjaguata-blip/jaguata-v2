@@ -135,7 +135,7 @@ $estadisticas['promedio_duenos']     = $promedioDuenos;
         </div>
 
         <!-- ========== BLOQUE 1: MÉTRICAS GENERALES ========== -->
-        <div class="row g-3 mb-4">
+        <div class="row g-3 mb-2">
             <div class="col-md-3">
                 <div class="stat-card">
                     <i class="fas fa-users text-primary"></i>

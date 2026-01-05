@@ -127,10 +127,10 @@ $estadoLabel = ucfirst($estado);
     </button>
 
     <main>
-        <div class="py-4 container-fluid">
+        <div class="py-2 container-fluid">
 
             <!-- HEADER -->
-            <div class="header-box header-dashboard mb-4 d-flex flex-wrap justify-content-between align-items-center">
+            <div class="header-box header-dashboard mb-2 d-flex flex-wrap justify-content-between align-items-center">
                 <div>
                     <h1 class="fw-bold mb-1">
                         <i class="fas fa-user me-2"></i> Perfil de Usuario
@@ -146,7 +146,7 @@ $estadoLabel = ucfirst($estado);
                     </a>
                     <a href="<?= BASE_URL; ?>/features/admin/editar_usuario.php?id=<?= (int)$usuario['usu_id']; ?>"
                         class="btn btn-light btn-sm">
-                        <i class="fas fa-user-pen me-1"></i> Ver / Editar
+                        <i class="fas fa-user-pen me-1"></i> Editar
                     </a>
                 </div>
             </div>

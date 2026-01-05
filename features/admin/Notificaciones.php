@@ -124,7 +124,7 @@ function labelDestino(string $rol): string
     <?php include __DIR__ . '/../../src/Templates/SidebarAdmin.php'; ?>
 
     <main>
-        <div class="container-fluid px-3 px-md-4">
+        <div class="container-fluid px-3 px-md-2">
 
             <!-- HEADER -->
             <div class="header-box header-notificaciones mb-3">
@@ -184,9 +184,12 @@ function labelDestino(string $rol): string
                         <label class="form-label fw-semibold">Estado</label>
                         <select id="filterEstado" class="form-select">
                             <option value="">Todos</option>
+                            <!-- valores lógicos (igual que data-estado) -->
                             <option value="enviado">Enviado</option>
                             <option value="pendiente">Pendiente</option>
+                            <option value="fallida">Fallida</option>
                         </select>
+
                     </div>
                 </form>
             </div>
@@ -243,8 +246,7 @@ function labelDestino(string $rol): string
                                 <label class="form-label fw-semibold">Canal</label>
                                 <select name="canal" class="form-select">
                                     <option value="app" selected>App</option>
-                                    <option value="email">Email</option>
-                                    <option value="push">Push</option>
+
                                 </select>
                             </div>
                         </div>
@@ -290,14 +292,36 @@ function labelDestino(string $rol): string
                                         $rolDestinoRaw = $n['rol_destinatario'] ?? '';
                                         $rolLabel      = labelDestino($rolDestinoRaw);
                                         $fecha         = $n['fecha'] ?? '';
-                                        $estado        = strtolower($n['estado'] ?? 'pendiente');
-                                        $estadoLabel   = ucfirst($estado);
                                         $mensaje       = $n['mensaje'] ?? '';
 
-                                        $badgeClass = $estado === 'enviado'
-                                            ? 'badge-enviado'
-                                            : 'badge-pendiente';
+                                        // ✅ estado REAL desde BD
+                                        $estadoRaw = strtolower(trim((string)($n['estado'] ?? 'pendiente')));
+
+                                        // ✅ mapeo BD -> estado lógico
+                                        $estado = match ($estadoRaw) {
+                                            'enviada'   => 'enviado',
+                                            'pendiente' => 'pendiente',
+                                            'fallida'   => 'fallida',
+                                            default     => 'pendiente',
+                                        };
+
+                                        // ✅ etiqueta visible
+                                        $estadoLabel = match ($estado) {
+                                            'enviado'   => 'Enviado',
+                                            'pendiente' => 'Pendiente',
+                                            'fallida'   => 'Fallida',
+                                            default     => 'Pendiente',
+                                        };
+
+                                        // ✅ clase badge correcta (NO se pisa después)
+                                        $badgeClass = match ($estado) {
+                                            'enviado'   => 'badge-enviado',
+                                            'pendiente' => 'badge-pendiente',
+                                            'fallida'   => 'badge-fallida',
+                                            default     => 'badge-pendiente',
+                                        };
                                         ?>
+
                                         <tr class="fade-in-row"
                                             data-estado="<?= htmlspecialchars($estado, ENT_QUOTES, 'UTF-8'); ?>">
 
@@ -343,7 +367,7 @@ function labelDestino(string $rol): string
         </div>
     </main>
 
-    <!-- ✅ MODAL VER NOTIFICACIÓN (ANTES de cerrar body) -->
+    <!-- ✅ MODAL VER NOTIFICACIÓN -->
     <div class="modal fade modal-jaguata" id="verNotiModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
             <div class="modal-content">
@@ -419,7 +443,7 @@ function labelDestino(string $rol): string
             el.addEventListener('change', aplicarFiltros);
         });
 
-        // ✅ Modal detalle
+        // Modal detalle
         const verNotiModal = document.getElementById('verNotiModal');
         if (verNotiModal) {
             verNotiModal.addEventListener('show.bs.modal', event => {

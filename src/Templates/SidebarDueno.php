@@ -179,9 +179,14 @@ $currentFile   = basename($_SERVER['PHP_SELF']);
         const backdrop = document.getElementById('sidebarBackdrop');
         const btn = document.getElementById('toggleSidebar');
 
-        if (!sidebar || !backdrop || !btn) return;
-
+        if (!sidebar || !backdrop || !btn){
+            console.log("return");
+            return;
+        } 
+        console.log("hola evelyn");
         const open = () => {
+            console.log("hola",sidebar);
+            console.log(" ejecuta abrir");
             sidebar.classList.add('sidebar-open');
             backdrop.classList.add('show');
             document.body.style.overflow = 'hidden';
@@ -194,6 +199,7 @@ $currentFile   = basename($_SERVER['PHP_SELF']);
         };
 
         btn.addEventListener('click', () => {
+            console.log("abrir o cerrar click sidebar");
             sidebar.classList.contains('sidebar-open') ? close() : open();
         });
 

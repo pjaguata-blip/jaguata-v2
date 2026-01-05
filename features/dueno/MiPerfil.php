@@ -147,10 +147,10 @@ $direccionRef = $usuario['direccion'] ?? null;
 
     <!-- Contenido -->
     <main>
-        <div class="py-4">
+        <div class="py-2">
 
             <!-- HEADER unificado Perfil + Puntos -->
-            <div class="header-box header-dashboard mb-4">
+            <div class="header-box header-dashboard mb-2">
                 <div>
                     <h1 class="fw-bold mb-1">
                         <i class="fas fa-user me-2"></i>Mi Perfil — Dueño

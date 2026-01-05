@@ -223,10 +223,10 @@ function h(?string $v): string
         <?php include __DIR__ . '/../../src/Templates/SidebarPaseador.php'; ?>
 
         <main class="bg-light">
-            <div class="container-fluid py-1">
+            <div class="container-fluid py-2">
 
                 <!-- Header -->
-                <div class="header-box header-dashboard mb-4">
+                <div class="header-box header-dashboard mb-1">
                     <div>
                         <h1>¡Hola, <?= h($usuarioNombre); ?>! 🐾</h1>
                         <p>Gestioná tus paseos, disponibilidad, ganancias y estadísticas desde un solo lugar.</p>
@@ -235,7 +235,7 @@ function h(?string $v): string
                 </div>
 
                 <!-- Cards -->
-                <div class="row g-3 mb-4">
+                <div class="row g-3 mb-2">
                     <div class="col-12 col-sm-6 col-lg-3">
                         <div class="stat-card">
                             <i class="fas fa-list text-success"></i>

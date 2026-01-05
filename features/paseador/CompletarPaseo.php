@@ -91,9 +91,9 @@ $monto    = number_format((float)($paseo['precio_total'] ?? 0), 0, ',', '.');
 
         <!-- Contenido principal -->
         <main class="content bg-light">
-            <div class="container-fluid py-4">
+            <div class="container-fluid py-2">
 
-                <div class="header-box header-dashboard mb-4">
+                <div class="header-box header-dashboard mb-2">
                     <div>
                         <h1 class="h4 mb-1">
                             <i class="fas fa-check-circle me-2"></i> Completar paseo

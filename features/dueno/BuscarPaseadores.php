@@ -33,6 +33,23 @@ function bindUsedParams(\PDOStatement $st, string $sql, array $params): void
     }
 }
 
+/**
+ * ✅ Normaliza la foto del paseador para que SIEMPRE funcione:
+ * - si viene URL completa -> se usa tal cual
+ * - si viene ruta relativa (uploads/..., public/uploads/...) -> se antepone BASE_URL
+ * - si viene vacía -> ''
+ */
+function resolveFotoUrl(?string $foto): string
+{
+    $foto = trim((string)$foto);
+    if ($foto === '') return '';
+
+    if (preg_match('~^https?://~i', $foto)) return $foto;
+
+    $foto = ltrim(str_replace('\\', '/', $foto), '/');
+    return BASE_URL . '/' . $foto;
+}
+
 /* ===== Filtros ===== */
 $q        = trim($_GET['q'] ?? '');
 $zona     = trim($_GET['zona'] ?? '');
@@ -79,18 +96,18 @@ if ($maxPriceF !== null) {
 }
 
 if ($dispF !== null) {
-    $where[]      = 'p.disponible = :disp';
+    $where[]       = 'p.disponible = :disp';
     $args[':disp'] = $dispF;
 }
 
 /* ✅ filtros por calificación (reputación real) - en SQL */
 if ($minRateF !== null) {
-    $where[]           = 'COALESCE(r.promedio,0) >= :minRate';
-    $args[':minRate']  = $minRateF;
+    $where[]          = 'COALESCE(r.promedio,0) >= :minRate';
+    $args[':minRate'] = $minRateF;
 }
 if ($maxRateF !== null) {
-    $where[]           = 'COALESCE(r.promedio,0) <= :maxRate';
-    $args[':maxRate']  = $maxRateF;
+    $where[]          = 'COALESCE(r.promedio,0) <= :maxRate';
+    $args[':maxRate'] = $maxRateF;
 }
 
 $whereSql = $where ? ('WHERE ' . implode(' AND ', $where)) : '';
@@ -107,7 +124,7 @@ $orderBy = match ($sort) {
 /* ===== DB ===== */
 $pdo = AppConfig::db();
 
-/* ===== COUNT para paginación (mismo JOIN + mismo WHERE) ===== */
+/* ===== COUNT para paginación ===== */
 $sqlCount = "
     SELECT COUNT(*)
     FROM paseadores p
@@ -129,7 +146,7 @@ $stc->execute();
 $total      = (int)$stc->fetchColumn();
 $totalPages = max(1, (int)ceil($total / $perPage));
 
-/* ===== LISTADO (perfil + reputación real) ===== */
+/* ===== LISTADO ===== */
 $sql = "
     SELECT 
         p.paseador_id AS id,
@@ -198,14 +215,140 @@ $usuarioNombre = h(Session::getUsuarioNombre() ?? 'Dueño/a');
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
     <link href="<?= BASE_URL; ?>/public/assets/css/jaguata-theme.css" rel="stylesheet">
+
+    <style>
+        html,
+        body {
+            height: 100%;
+        }
+
+        body {
+            background: var(--gris-fondo, #f4f6f9);
+        }
+
+        /* ✅ Si tu theme ya controla main, esto es solo “por si acaso” */
+        main.main-content {
+            margin-left: 260px;
+            min-height: 100vh;
+            padding: 24px;
+        }
+
+        @media (max-width: 768px) {
+            main.main-content {
+                margin-left: 0;
+                padding: 16px;
+            }
+        }
+
+        /* ✅ Cards paseadores (más pro) */
+        .paseador-card {
+            border: 0;
+            border-radius: 18px;
+            overflow: hidden;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, .06);
+            background: #fff;
+        }
+
+        /* ✅ FOTO “ESTIRADA” (cover) */
+        .paseador-cover {
+            position: relative;
+            width: 100%;
+            height: 280px; /* 👈 más grande */
+            background: #eef2f5;
+            overflow: hidden;
+        }
+
+        @media (min-width: 992px) {
+            .paseador-cover {
+                height: 320px; /* 👈 aún más grande en desktop */
+            }
+        }
+
+        .paseador-cover img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center;
+            display: block;
+        }
+
+        .paseador-cover .cover-fallback {
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .paseador-cover .badge-disponible {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            border-radius: 999px;
+            padding: .35rem .65rem;
+            font-size: .80rem;
+        }
+
+        .paseador-title {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            align-items: start;
+        }
+
+        .paseador-title h5 {
+            margin: 0;
+            font-weight: 900;
+        }
+
+        .paseador-sub {
+            color: #6c757d;
+            font-size: .90rem;
+            display: grid;
+            gap: 4px;
+        }
+
+        .paseador-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }
+
+        .paseador-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: auto;
+        }
+
+        .paseador-actions .btn {
+            flex: 1;
+        }
+
+        /* ✅ Modal: foto más grande */
+        .mp-foto {
+            width: 200px;
+            height: 200px;
+            object-fit: cover;
+            object-position: center;
+            background: #f4f6f9;
+        }
+
+        @media (max-width: 576px) {
+            .mp-foto {
+                width: 100%;
+                height: 220px;
+            }
+        }
+    </style>
 </head>
 
 <body>
-    <!-- Sidebar -->
+    <!-- ✅ Sidebar Dueño (incluye topbar-mobile + backdrop + JS propio) -->
     <?php include __DIR__ . '/../../src/Templates/SidebarDueno.php'; ?>
 
     <!-- Contenido -->
-    <main>
+    <main class="main-content">
         <div class="py-2">
 
             <!-- Header -->
@@ -216,11 +359,20 @@ $usuarioNombre = h(Session::getUsuarioNombre() ?? 'Dueño/a');
                     </h1>
                     <p class="mb-0">Encontrá paseadores de confianza cerca tuyo, <?= $usuarioNombre; ?> 🐾</p>
                 </div>
-                <div class="text-end">
-                    <a href="<?= $baseFeatures; ?>/Dashboard.php" class="btn btn-outline-light fw-semibold">
+
+                <!-- ✅ VOLVER desktop -->
+                <div class="d-none d-md-block">
+                    <a href="<?= $baseFeatures; ?>/Dashboard.php" class="btn btn-outline-light btn-sm fw-semibold">
                         <i class="fas fa-arrow-left me-1"></i> Volver
                     </a>
                 </div>
+            </div>
+
+            <!-- ✅ VOLVER mobile -->
+            <div class="d-md-none mb-3">
+                <a href="<?= $baseFeatures; ?>/Dashboard.php" class="btn btn-secondary btn-sm w-100">
+                    <i class="fas fa-arrow-left me-1"></i> Volver
+                </a>
             </div>
 
             <!-- Filtros -->
@@ -308,88 +460,91 @@ $usuarioNombre = h(Session::getUsuarioNombre() ?? 'Dueño/a');
 
                 <div class="row g-4">
                     <?php foreach ($paseadores as $p): ?>
+                        <?php
+                        $foto = resolveFotoUrl((string)($p['foto_url'] ?? ''));
+                        $disponible = (int)($p['disponible'] ?? 0) === 1;
+                        $badgeClass = $disponible ? 'bg-primary' : 'bg-dark';
+
+                        $id      = (int)($p['id'] ?? 0);
+                        $nombre  = (string)($p['nombre_paseador'] ?? 'Paseador');
+                        $zonaTxt = trim((string)($p['zona'] ?? ''));
+                        $ciuTxt  = trim((string)($p['ciudad'] ?? ''));
+                        $barTxt  = trim((string)($p['barrio'] ?? ''));
+                        $ubiTxt  = trim($ciuTxt . ' ' . $barTxt);
+
+                        $telefono = trim((string)($p['telefono'] ?? ''));
+                        $precio   = (float)($p['precio_hora'] ?? 0);
+                        $rate     = (float)($p['calificacion'] ?? 0);
+                        $rateCnt  = (int)($p['total_calificaciones'] ?? 0);
+                        $paseos   = (int)($p['total_paseos'] ?? 0);
+                        ?>
                         <div class="col-sm-6 col-lg-4">
-                            <div class="card h-100 shadow-sm border-0">
-                                <?php if (!empty($p['foto_url'])): ?>
-                                    <img src="<?= h($p['foto_url']) ?>"
-                                        alt="Foto de <?= h($p['nombre_paseador']) ?>"
-                                        style="height:190px;object-fit:cover;width:100%;">
-                                <?php else: ?>
-                                    <div class="bg-light d-flex align-items-center justify-content-center" style="height:190px;">
-                                        <i class="fas fa-user-circle fa-5x text-secondary"></i>
-                                    </div>
-                                <?php endif; ?>
+                            <div class="card paseador-card h-100">
+
+                                <!-- ✅ FOTO ESTIRADA -->
+                               <!-- FOTO COVER PASEADOR -->
+<div class="profile-cover">
+    <?php if ($foto !== ''): ?>
+        <img
+            src="<?= h($foto) ?>"
+            alt="Foto de <?= h($nombre) ?>"
+            loading="lazy"
+            onerror="this.onerror=null; this.style.display='none'; this.parentElement.querySelector('.cover-fallback')?.classList.remove('d-none');">
+        <div class="cover-fallback d-none">
+            <i class="fas fa-user-circle fa-5x text-secondary"></i>
+        </div>
+    <?php else: ?>
+        <div class="cover-fallback">
+            <i class="fas fa-user-circle fa-5x text-secondary"></i>
+        </div>
+    <?php endif; ?>
+</div>
+
 
                                 <div class="card-body d-flex flex-column">
-                                    <div class="d-flex justify-content-between align-items-start gap-2">
-                                        <div>
-                                            <h5 class="mb-1 fw-semibold">
-                                                <?= h($p['nombre_paseador']) ?>
-                                            </h5>
-
-                                            <div class="text-muted small">
-                                                <i class="fas fa-map-marker-alt me-1"></i>
-                                                <?= h(trim(($p['ciudad'] ?? '') . ' ' . ($p['barrio'] ?? '')) ?: 'Sin ubicación') ?>
-                                            </div>
-
-                                            <div class="text-muted small">
-                                                <i class="fas fa-location-dot me-1"></i>
-                                                Zona: <?= h($p['zona'] ?: 'Sin zona') ?>
-                                            </div>
-                                        </div>
-
-                                        <span class="badge <?= (int)($p['disponible'] ?? 0) ? 'bg-primary' : 'bg-dark' ?>">
-                                            <?= (int)($p['disponible'] ?? 0) ? 'Disponible' : 'No disponible' ?>
-                                        </span>
-                                    </div>
-
-                                    <div class="d-flex flex-wrap gap-2 mt-3 mb-2">
+                                    <div class="paseador-title">
+                                        <h5><?= h($nombre) ?></h5>
                                         <span class="badge bg-success">
-                                            ⭐ <?= number_format((float)($p['calificacion'] ?? 0), 1) ?>
-                                        </span>
-                                        <span class="badge bg-light text-dark">
-                                            Opiniones: <?= (int)($p['total_calificaciones'] ?? 0) ?>
-                                        </span>
-                                        <span class="badge bg-secondary">
-                                            ₲<?= number_format((float)($p['precio_hora'] ?? 0), 0, ',', '.') ?>/h
-                                        </span>
-                                        <span class="badge bg-light text-dark">
-                                            Paseos: <?= (int)($p['total_paseos'] ?? 0) ?>
+                                            ⭐ <?= number_format($rate, 1) ?>
                                         </span>
                                     </div>
 
-                                    <div class="text-muted small mb-2">
-                                        <i class="fas fa-phone me-1"></i>
-                                        <?= h($p['telefono'] ?? 'Sin teléfono') ?>
+                                    <div class="paseador-sub mt-2">
+                                        <div>
+                                            <i class="fas fa-map-marker-alt me-1"></i>
+                                            <?= h($ubiTxt !== '' ? $ubiTxt : 'Sin ubicación') ?>
+                                        </div>
+                                        <div>
+                                            <i class="fas fa-location-dot me-1"></i>
+                                            Zona: <?= h($zonaTxt !== '' ? $zonaTxt : 'Sin zona') ?>
+                                        </div>
+                                        <div>
+                                            <i class="fas fa-phone me-1"></i>
+                                            <?= h($telefono !== '' ? $telefono : 'Sin teléfono') ?>
+                                        </div>
                                     </div>
 
-                                    <p class="text-muted small mb-3">
-                                        <?= h(mb_strimwidth($p['descripcion'] ?? '', 0, 120, '…')) ?>
+                                    <div class="paseador-badges">
+                                        <span class="badge bg-light text-dark">Opiniones: <?= $rateCnt ?></span>
+                                        <span class="badge bg-secondary">₲<?= number_format($precio, 0, ',', '.') ?>/h</span>
+                                        <span class="badge bg-light text-dark">Paseos: <?= $paseos ?></span>
+                                    </div>
+
+                                    <p class="text-muted small mb-0">
+                                        <?= h(mb_strimwidth((string)($p['descripcion'] ?? ''), 0, 120, '…')) ?>
                                     </p>
 
-                                    <div class="d-flex gap-2 mt-auto">
-                                        <button
-                                            type="button"
-                                            class="btn btn-outline-success w-100"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#modalPerfilPaseador"
-                                            data-id="<?= (int)$p['id'] ?>"
-                                            data-nombre="<?= h($p['nombre_paseador']) ?>"
-                                            data-zona="<?= h($p['zona'] ?? '') ?>"
-                                            data-ciudad="<?= h($p['ciudad'] ?? '') ?>"
-                                            data-barrio="<?= h($p['barrio'] ?? '') ?>"
-                                            data-telefono="<?= h($p['telefono'] ?? '') ?>"
-                                            data-desc="<?= h($p['descripcion'] ?? '') ?>"
-                                            data-precio="<?= number_format((float)($p['precio_hora'] ?? 0), 0, ',', '.') ?>"
-                                            data-rate="<?= number_format((float)($p['calificacion'] ?? 0), 1) ?>"
-                                            data-ratecount="<?= (int)($p['total_calificaciones'] ?? 0) ?>"
-                                            data-paseos="<?= (int)($p['total_paseos'] ?? 0) ?>"
-                                            data-foto="<?= h($p['foto_url'] ?? '') ?>">
-                                            <i class="fas fa-user me-1"></i> Ver perfil
-                                        </button>
+                                    <div class="paseador-actions mt-3">
+                                       
+<a
+  class="btn btn-outline-success"
+  href="<?= $baseFeatures; ?>/VerPaseador.php?id=<?= (int)$id ?>"
+>
+  <i class="fas fa-user me-1"></i> Ver perfil
+</a>
 
-                                        <a href="<?= $baseFeatures; ?>/SolicitarPaseo.php?paseador_id=<?= (int)$p['id'] ?>"
-                                            class="btn btn-gradient w-100">
+                                        <a href="<?= $baseFeatures; ?>/SolicitarPaseo.php?paseador_id=<?= (int)$id ?>"
+                                            class="btn btn-gradient">
                                             <i class="fas fa-paw me-1"></i> Solicitar
                                         </a>
                                     </div>
@@ -436,8 +591,15 @@ $usuarioNombre = h(Session::getUsuarioNombre() ?? 'Dueño/a');
 
                         <div class="modal-body">
                             <div class="d-flex gap-3 align-items-start flex-wrap">
-                                <img id="mp-foto" alt="Foto" class="rounded-3 border"
-                                    style="width:120px;height:120px;object-fit:cover;background:#f4f6f9;">
+
+                                <!-- ✅ FOTO GRANDE (y fallback) -->
+                                <div style="min-width:200px;">
+                                    <img id="mp-foto" alt="Foto" class="rounded-4 border mp-foto d-none">
+                                    <div id="mp-foto-fallback" class="bg-light rounded-4 border d-flex align-items-center justify-content-center"
+                                         style="width:200px;height:200px;">
+                                        <i class="fas fa-user-circle fa-5x text-secondary"></i>
+                                    </div>
+                                </div>
 
                                 <div class="flex-grow-1">
                                     <h4 id="mp-nombre" class="mb-1"></h4>
@@ -499,17 +661,17 @@ $usuarioNombre = h(Session::getUsuarioNombre() ?? 'Dueño/a');
                 const btn = event.relatedTarget;
                 if (!btn) return;
 
-                const id = btn.getAttribute('data-id');
-                const nom = btn.getAttribute('data-nombre') || '';
+                const id   = btn.getAttribute('data-id') || '';
+                const nom  = btn.getAttribute('data-nombre') || '';
                 const zona = btn.getAttribute('data-zona') || '';
-                const ciu = btn.getAttribute('data-ciudad') || '';
-                const bar = btn.getAttribute('data-barrio') || '';
-                const tel = btn.getAttribute('data-telefono') || 'Sin teléfono';
-                const des = btn.getAttribute('data-desc') || 'Sin descripción.';
-                const pre = btn.getAttribute('data-precio') || '0';
-                const rat = btn.getAttribute('data-rate') || '0.0';
-                const rc = btn.getAttribute('data-ratecount') || '0';
-                const pas = btn.getAttribute('data-paseos') || '0';
+                const ciu  = btn.getAttribute('data-ciudad') || '';
+                const bar  = btn.getAttribute('data-barrio') || '';
+                const tel  = btn.getAttribute('data-telefono') || 'Sin teléfono';
+                const des  = btn.getAttribute('data-desc') || 'Sin descripción.';
+                const pre  = btn.getAttribute('data-precio') || '0';
+                const rat  = btn.getAttribute('data-rate') || '0.0';
+                const rc   = btn.getAttribute('data-ratecount') || '0';
+                const pas  = btn.getAttribute('data-paseos') || '0';
                 const foto = btn.getAttribute('data-foto') || '';
 
                 document.getElementById('mp-nombre').textContent = nom;
@@ -523,9 +685,24 @@ $usuarioNombre = h(Session::getUsuarioNombre() ?? 'Dueño/a');
                 document.getElementById('mp-paseos').textContent = pas;
 
                 const img = document.getElementById('mp-foto');
-                if (foto) {
+                const fallback = document.getElementById('mp-foto-fallback');
+
+                const ok = foto && foto.trim() !== '' && foto !== '0';
+
+                if (ok) {
+                    img.classList.remove('d-none');
+                    fallback.classList.add('d-none');
                     img.src = foto;
+
+                    img.onerror = () => {
+                        img.onerror = null;
+                        img.classList.add('d-none');
+                        fallback.classList.remove('d-none');
+                        img.removeAttribute('src');
+                    };
                 } else {
+                    img.classList.add('d-none');
+                    fallback.classList.remove('d-none');
                     img.removeAttribute('src');
                 }
 

@@ -1,41 +1,64 @@
 <?php
-
 declare(strict_types=1);
 
-require_once __DIR__ . '/../src/Config/AppConfig.php';
+require_once dirname(__DIR__, 2) . '/src/Config/AppConfig.php';
+
 
 use Jaguata\Config\AppConfig;
 
 AppConfig::init();
-
 header('Content-Type: application/json; charset=utf-8');
 
-// Coordenadas desde GET
-$lat = isset($_GET['lat']) ? (float)$_GET['lat'] : null;
-$lng = isset($_GET['lng']) ? (float)$_GET['lng'] : null;
+/*
+  Este endpoint normalmente hace reverse geocoding (lat/lng → dirección)
+  Acá te dejo una estructura base segura.
+  Si vos ya tenías lógica con cURL, pegala dentro del try.
+*/
 
-if ($lat === null || $lng === null) {
-    echo json_encode(['error' => 'Coordenadas inválidas']);
+$lat = isset($_GET['lat']) ? (float)$_GET['lat'] : 0.0;
+$lng = isset($_GET['lng']) ? (float)$_GET['lng'] : 0.0;
+
+if ($lat === 0.0 || $lng === 0.0) {
+    echo json_encode(['error' => 'Parámetros lat/lng inválidos']);
     exit;
 }
 
-// URL de Nominatim (OpenStreetMap)
-$url = "https://nominatim.openstreetmap.org/reverse?lat={$lat}&lon={$lng}&format=json&addressdetails=1";
+try {
+    // ✅ Nominatim Reverse (sin API key)
+    $url = "https://nominatim.openstreetmap.org/reverse?format=json&lat={$lat}&lon={$lng}&zoom=18&addressdetails=1";
 
-// Nominatim exige un User-Agent identificable
-$opts = [
-    'http' => [
-        'header' => "User-Agent: Jaguata/1.0 (admin@jaguata.com)\r\n"
-    ]
-];
+    $ch = curl_init();
+    curl_setopt_array($ch, [
+        CURLOPT_URL => $url,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT => 12,
+        CURLOPT_SSL_VERIFYPEER => false,
+        CURLOPT_HTTPHEADER => [
+            'Accept: application/json',
+            'User-Agent: Jaguata/1.0 (localhost)'
+        ],
+    ]);
 
-$context  = stream_context_create($opts);
-$response = @file_get_contents($url, false, $context);
+    $raw = curl_exec($ch);
+    $err = curl_error($ch);
+    curl_close($ch);
 
-if ($response === false) {
-    echo json_encode(['error' => 'No se pudo contactar con Nominatim']);
-    exit;
+    if ($raw === false) {
+        echo json_encode(['error' => 'cURL error: ' . $err]);
+        exit;
+    }
+
+    $data = json_decode($raw, true);
+    if (!is_array($data)) {
+        echo json_encode(['error' => 'Respuesta inválida del servicio']);
+        exit;
+    }
+
+    // devolvemos lo mismo que tu JS espera: address + display_name
+    echo json_encode([
+        'address' => $data['address'] ?? [],
+        'display_name' => $data['display_name'] ?? '',
+    ]);
+} catch (Throwable $e) {
+    echo json_encode(['error' => $e->getMessage()]);
 }
-
-// Devolvemos la respuesta tal cual para que el frontend la use
-echo $response;

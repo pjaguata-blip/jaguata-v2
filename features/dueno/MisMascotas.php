@@ -118,8 +118,8 @@ $resultCount = count($mascotasFiltradas);
 $urlLista    = $baseFeatures . '/MisMascotas.php?vista=lista';
 $urlTarjetas = $baseFeatures . '/MisMascotas.php?vista=tarjetas';
 $urlNueva    = $baseFeatures . '/MisMascotas.php?vista=nueva';
-?>
 
+?>
 <!DOCTYPE html>
 <html lang="es">
 
@@ -134,25 +134,23 @@ $urlNueva    = $baseFeatures . '/MisMascotas.php?vista=nueva';
     <link href="<?= BASE_URL; ?>/public/assets/css/jaguata-theme.css" rel="stylesheet">
 
     <style>
-        html,
-        body {
-            height: 100%;
-        }
+        html, body { height: 100%; }
+        body { background: var(--gris-fondo, #f4f6f9); }
 
-        body {
-            background: var(--gris-fondo, #f4f6f9);
-        }
-
-        main.main-content {
+        /* ✅ Desktop: igual */
+        main.main-content{
             margin-left: 260px;
             min-height: 100vh;
             padding: 24px;
         }
 
-        @media (max-width: 768px) {
-            main.main-content {
+        /* ✅ Mobile: NO margin-top, reservamos espacio arriba con padding-top */
+        @media (max-width: 768px){
+            main.main-content{
                 margin-left: 0;
-                padding: 16px;
+                margin-top: 0 !important;
+                width: 100% !important;
+                padding: calc(16px + var(--topbar-h)) 16px 16px !important;
             }
         }
 
@@ -185,15 +183,15 @@ $urlNueva    = $baseFeatures . '/MisMascotas.php?vista=nueva';
     </style>
 </head>
 
-<body>
+<body class="page-mis-mascotas">
 
-    <!-- Sidebar -->
+    <!-- ✅ Sidebar unificado (topbar mobile + backdrop + JS toggle) -->
     <?php include __DIR__ . '/../../src/Templates/SidebarDueno.php'; ?>
 
-    <!-- Botón hamburguesa mobile -->
-    <button class="btn btn-outline-secondary d-md-none ms-2 mt-3" id="toggleSidebar">
-        <i class="fas fa-bars"></i>
-    </button>
+    <!-- ✅ IMPORTANTE:
+         Quitamos el botón hamburguesa EXTRA y el JS extra,
+         porque SidebarDueno.php debería manejar el toggle unificado.
+    -->
 
     <main class="main-content">
         <div class="container-fluid py-0">
@@ -208,7 +206,7 @@ $urlNueva    = $baseFeatures . '/MisMascotas.php?vista=nueva';
                         Gestioná, agregá y seleccioná tus mascotas desde una sola vista, <?= $usuarioNombre ?>.
                     </p>
                 </div>
-                <div class="d-flex gap-2">
+                <div class="d-flex flex-wrap gap-2">
                     <a href="<?= $urlLista ?>" class="btn btn-outline-light fw-semibold <?= $vista === 'lista' ? 'active' : '' ?>">
                         <i class="fas fa-table me-1"></i> Lista
                     </a>
@@ -224,22 +222,19 @@ $urlNueva    = $baseFeatures . '/MisMascotas.php?vista=nueva';
                         <i class="fas fa-file-excel me-1"></i> Exportar
                     </a>
                 </div>
-
             </div>
 
             <!-- Mensajes -->
             <?php if (isset($_SESSION['success'])): ?>
                 <div class="alert alert-success alert-dismissible fade show">
-                    <?= $_SESSION['success'];
-                    unset($_SESSION['success']); ?>
+                    <?= $_SESSION['success']; unset($_SESSION['success']); ?>
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
             <?php endif; ?>
 
             <?php if (isset($_SESSION['error'])): ?>
                 <div class="alert alert-danger alert-dismissible fade show">
-                    <?= $_SESSION['error'];
-                    unset($_SESSION['error']); ?>
+                    <?= $_SESSION['error']; unset($_SESSION['error']); ?>
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
             <?php endif; ?>
@@ -276,11 +271,11 @@ $urlNueva    = $baseFeatures . '/MisMascotas.php?vista=nueva';
                                     </select>
 
                                     <input type="text"
-                                        class="form-control mt-2 d-none"
-                                        id="raza_otra"
-                                        name="raza_otra"
-                                        placeholder="Especifique la raza"
-                                        value="<?= h($_POST['raza_otra'] ?? '') ?>">
+                                           class="form-control mt-2 d-none"
+                                           id="raza_otra"
+                                           name="raza_otra"
+                                           placeholder="Especifique la raza"
+                                           value="<?= h($_POST['raza_otra'] ?? '') ?>">
                                 </div>
 
                                 <div class="col-md-6">
@@ -338,9 +333,6 @@ $urlNueva    = $baseFeatures . '/MisMascotas.php?vista=nueva';
 
             <?php elseif ($vista === 'tarjetas'): ?>
 
-                <!-- =============================
-                        VISTA TARJETAS
-                ============================== -->
                 <div class="section-card">
                     <div class="section-header">
                         <i class="fas fa-th-large me-2"></i>Mis Mascotas (vista tarjetas)
@@ -370,7 +362,7 @@ $urlNueva    = $baseFeatures . '/MisMascotas.php?vista=nueva';
                                         <div class="card shadow-sm h-100">
 
                                             <?php if ($foto): ?>
-                                                <img src="<?= h($foto) ?>" class="mascota-card-img">
+                                                <img src="<?= h($foto) ?>" class="mascota-card-img" alt="Foto mascota">
                                             <?php else: ?>
                                                 <div class="mascota-card-img bg-light d-flex justify-content-center align-items-center">
                                                     <i class="fas fa-dog fa-2x text-secondary"></i>
@@ -413,10 +405,6 @@ $urlNueva    = $baseFeatures . '/MisMascotas.php?vista=nueva';
                 </div>
 
             <?php else: ?>
-
-                <!-- =============================
-                        VISTA LISTA (TABLA)
-                ============================== -->
 
                 <div class="section-card mb-3">
                     <div class="section-header">
@@ -495,7 +483,7 @@ $urlNueva    = $baseFeatures . '/MisMascotas.php?vista=nueva';
                                     <tbody>
                                         <?php foreach ($mascotasFiltradas as $m):
                                             $id   = (int)$m['mascota_id'];
-                                            $foto = $m['foto_url'];
+                                            $foto = $m['foto_url'] ?? null;
                                         ?>
                                             <tr>
                                                 <td>
@@ -508,7 +496,7 @@ $urlNueva    = $baseFeatures . '/MisMascotas.php?vista=nueva';
                                                     <?php endif; ?>
                                                 </td>
 
-                                                <td><strong><?= h($m['nombre']) ?></strong></td>
+                                                <td><strong><?= h($m['nombre'] ?? '') ?></strong></td>
                                                 <td><?= h($m['raza'] ?? '-') ?></td>
                                                 <td><?= etiquetaTamano($m['tamano'] ?? null) ?></td>
                                                 <td><?= edadAmigable($m['edad_meses'] ?? null) ?></td>
@@ -520,7 +508,8 @@ $urlNueva    = $baseFeatures . '/MisMascotas.php?vista=nueva';
                                                     <a href="<?= $baseFeatures ?>/EditarMascota.php?id=<?= $id ?>" class="btn btn-sm btn-outline-primary">
                                                         <i class="fas fa-edit"></i>
                                                     </a>
-                                                    <a href="<?= $baseFeatures ?>/EliminarMascota.php?id=<?= $id ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Eliminar mascota?')">
+                                                    <a href="<?= $baseFeatures ?>/EliminarMascota.php?id=<?= $id ?>" class="btn btn-sm btn-outline-danger"
+                                                       onclick="return confirm('¿Eliminar mascota?')">
                                                         <i class="fas fa-trash"></i>
                                                     </a>
                                                 </td>
@@ -548,11 +537,6 @@ $urlNueva    = $baseFeatures . '/MisMascotas.php?vista=nueva';
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Sidebar responsive
-        document.getElementById('toggleSidebar')?.addEventListener('click', () => {
-            document.getElementById('sidebar')?.classList.toggle('sidebar-open');
-        });
-
         // Raza "Otra"
         const selRaza = document.getElementById('raza');
         const razaOtra = document.getElementById('raza_otra');
@@ -587,12 +571,8 @@ $urlNueva    = $baseFeatures . '/MisMascotas.php?vista=nueva';
         window.addEventListener('scroll', () => {
             btnTop.style.display = window.scrollY > 200 ? 'block' : 'none';
         });
-        btnTop.addEventListener('click', () => window.scrollTo({
-            top: 0,
-            behavior: 'smooth'
-        }));
+        btnTop.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
     </script>
 
 </body>
-
 </html>

@@ -51,24 +51,31 @@ $usuarioNombre = htmlspecialchars(Session::getUsuarioNombre() ?? 'Dueño/a', ENT
     <link href="<?= BASE_URL; ?>/public/assets/css/jaguata-theme.css" rel="stylesheet">
 
     <style>
+        /* ✅ FIX TOPBAR MOBILE SOLO PARA ESTA PANTALLA */
+        main{
+            margin-left: 260px;
+            min-height: 100vh;
+            padding: 24px;
+        }
+        @media (max-width: 768px){
+            main{
+                margin-left: 0 !important;
+                width: 100% !important;
+                margin-top: 0 !important;
+                padding: calc(16px + var(--topbar-h)) 16px 16px !important; /* ✅ reserva espacio arriba */
+            }
+        }
+
         /* 🔹 Resaltado tamaño sugerido */
-        .tamano-sugerido+label {
+        .tamano-sugerido + label {
             outline: 3px solid rgba(32, 201, 151, .45);
             box-shadow: 0 0 0 4px rgba(32, 201, 151, .2);
             transform: translateY(-1px);
         }
 
-        .hint-ok {
-            color: #198754;
-        }
-
-        .hint-warn {
-            color: #d39e00;
-        }
-
-        .hint-bad {
-            color: #dc3545;
-        }
+        .hint-ok { color: #198754; }
+        .hint-warn { color: #d39e00; }
+        .hint-bad { color: #dc3545; }
 
         #btnTop {
             position: fixed;
@@ -106,13 +113,15 @@ $usuarioNombre = htmlspecialchars(Session::getUsuarioNombre() ?? 'Dueño/a', ENT
             </div>
 
             <?php if (isset($_SESSION['success'])): ?>
-                <div class="alert alert-success"><?= $_SESSION['success'];
-                                                    unset($_SESSION['success']); ?></div>
+                <div class="alert alert-success">
+                    <?= $_SESSION['success']; unset($_SESSION['success']); ?>
+                </div>
             <?php endif; ?>
 
             <?php if (isset($_SESSION['error'])): ?>
-                <div class="alert alert-danger"><?= $_SESSION['error'];
-                                                unset($_SESSION['error']); ?></div>
+                <div class="alert alert-danger">
+                    <?= $_SESSION['error']; unset($_SESSION['error']); ?>
+                </div>
             <?php endif; ?>
 
             <div class="section-card">
@@ -128,7 +137,7 @@ $usuarioNombre = htmlspecialchars(Session::getUsuarioNombre() ?? 'Dueño/a', ENT
                             <div class="col-md-6">
                                 <label class="form-label">Nombre *</label>
                                 <input type="text" class="form-control" name="nombre" required
-                                    value="<?= htmlspecialchars($_POST['nombre'] ?? '') ?>">
+                                       value="<?= htmlspecialchars($_POST['nombre'] ?? '') ?>">
                             </div>
 
                             <div class="col-md-6">
@@ -140,21 +149,21 @@ $usuarioNombre = htmlspecialchars(Session::getUsuarioNombre() ?? 'Dueño/a', ENT
                                             <?= htmlspecialchars($r) ?>
                                         </option>
                                     <?php endforeach; ?>
-                                    <option value="Otra">Otra</option>
+                                    <option value="Otra" <?= (($_POST['raza'] ?? '') === 'Otra' ? 'selected' : '') ?>>Otra</option>
                                 </select>
 
                                 <input type="text" id="raza_otra" name="raza_otra"
-                                    class="form-control mt-2 d-none"
-                                    placeholder="Especifique la raza"
-                                    value="<?= htmlspecialchars($_POST['raza_otra'] ?? '') ?>">
+                                       class="form-control mt-2 d-none"
+                                       placeholder="Especifique la raza"
+                                       value="<?= htmlspecialchars($_POST['raza_otra'] ?? '') ?>">
                             </div>
 
                             <div class="col-md-6">
                                 <label class="form-label">Peso (kg) *</label>
                                 <input type="number" step="0.1" min="0.3" max="120"
-                                    id="peso_kg" name="peso_kg"
-                                    class="form-control" required
-                                    value="<?= htmlspecialchars($pesoPost) ?>">
+                                       id="peso_kg" name="peso_kg"
+                                       class="form-control" required
+                                       value="<?= htmlspecialchars($pesoPost) ?>">
                                 <div class="form-text">
                                     Pequeño (0–7 kg) · Mediano (7.1–18) · Grande (18.1–35) · Gigante (+35)
                                 </div>
@@ -163,7 +172,6 @@ $usuarioNombre = htmlspecialchars(Session::getUsuarioNombre() ?? 'Dueño/a', ENT
                             <div class="col-md-6">
                                 <label class="form-label">Tamaño</label>
                                 <div class="btn-group w-100 flex-wrap">
-
                                     <?php
                                     $sizes = [
                                         'pequeno' => 'Pequeño',
@@ -174,8 +182,8 @@ $usuarioNombre = htmlspecialchars(Session::getUsuarioNombre() ?? 'Dueño/a', ENT
                                     foreach ($sizes as $k => $lbl):
                                     ?>
                                         <input type="radio" class="btn-check"
-                                            name="tamano" id="tam_<?= $k ?>"
-                                            value="<?= $k ?>" <?= $tamanoPost === $k ? 'checked' : '' ?>>
+                                               name="tamano" id="tam_<?= $k ?>"
+                                               value="<?= $k ?>" <?= $tamanoPost === $k ? 'checked' : '' ?>>
                                         <label class="btn btn-outline-success" for="tam_<?= $k ?>">
                                             <?= $lbl ?>
                                         </label>
@@ -189,8 +197,8 @@ $usuarioNombre = htmlspecialchars(Session::getUsuarioNombre() ?? 'Dueño/a', ENT
                                 <label class="form-label">Edad</label>
                                 <div class="input-group">
                                     <input type="number" class="form-control"
-                                        name="edad_valor" min="0"
-                                        value="<?= htmlspecialchars($edadValorPost) ?>">
+                                           name="edad_valor" min="0"
+                                           value="<?= htmlspecialchars($edadValorPost) ?>">
                                     <select class="form-select" name="edad_unidad">
                                         <option value="meses" <?= $edadUnidadPost === 'meses' ? 'selected' : '' ?>>Meses</option>
                                         <option value="anios" <?= $edadUnidadPost === 'anios' ? 'selected' : '' ?>>Años</option>
@@ -227,35 +235,18 @@ $usuarioNombre = htmlspecialchars(Session::getUsuarioNombre() ?? 'Dueño/a', ENT
         /* ===== RAZA OTRA ===== */
         const selRaza = document.getElementById('raza');
         const razaOtra = document.getElementById('raza_otra');
-        selRaza.addEventListener('change', () => {
+        function toggleOtra(){
             razaOtra.classList.toggle('d-none', selRaza.value !== 'Otra');
-        });
+        }
+        selRaza.addEventListener('change', toggleOtra);
+        toggleOtra();
 
         /* ===== AUTO TAMAÑO POR PESO ===== */
-        const RANGOS = [{
-                k: 'pequeno',
-                min: 0,
-                max: 7,
-                label: 'Pequeño (0–7 kg)'
-            },
-            {
-                k: 'mediano',
-                min: 7.1,
-                max: 18,
-                label: 'Mediano (7.1–18 kg)'
-            },
-            {
-                k: 'grande',
-                min: 18.1,
-                max: 35,
-                label: 'Grande (18.1–35 kg)'
-            },
-            {
-                k: 'gigante',
-                min: 35.1,
-                max: null,
-                label: 'Gigante (+35 kg)'
-            }
+        const RANGOS = [
+            { k: 'pequeno', min: 0,   max: 7,   label: 'Pequeño (0–7 kg)' },
+            { k: 'mediano', min: 7.1, max: 18,  label: 'Mediano (7.1–18 kg)' },
+            { k: 'grande',  min: 18.1,max: 35,  label: 'Grande (18.1–35 kg)' },
+            { k: 'gigante', min: 35.1,max: null,label: 'Gigante (+35 kg)' }
         ];
 
         const peso = document.getElementById('peso_kg');
@@ -272,12 +263,14 @@ $usuarioNombre = htmlspecialchars(Session::getUsuarioNombre() ?? 'Dueño/a', ENT
             const p = parseFloat(peso.value);
             if (isNaN(p)) {
                 txt.textContent = '';
+                txt.className = '';
                 return;
             }
 
             for (const r of RANGOS) {
                 if (p >= r.min && (r.max === null || p <= r.max)) {
-                    if (![...Object.values(radios)].some(r => r.checked)) {
+                    // si el usuario no eligió manualmente
+                    if (!Object.values(radios).some(radio => radio.checked)) {
                         radios[r.k].checked = true;
                         radios[r.k].classList.add('tamano-sugerido');
                         txt.textContent = 'Tamaño sugerido: ' + r.label;
@@ -296,12 +289,8 @@ $usuarioNombre = htmlspecialchars(Session::getUsuarioNombre() ?? 'Dueño/a', ENT
         window.addEventListener('scroll', () => {
             btnTop.style.display = window.scrollY > 200 ? 'block' : 'none';
         });
-        btnTop.onclick = () => window.scrollTo({
-            top: 0,
-            behavior: 'smooth'
-        });
+        btnTop.onclick = () => window.scrollTo({ top: 0, behavior: 'smooth' });
     </script>
 
 </body>
-
 </html>

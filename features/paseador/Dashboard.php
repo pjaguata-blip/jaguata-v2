@@ -222,7 +222,9 @@ function h(?string $v): string
     <div class="layout">
         <?php include __DIR__ . '/../../src/Templates/SidebarPaseador.php'; ?>
 
-        <main class="bg-light">
+        <main class="main-content">
+
+
             <div class="container-fluid py-2">
 
                 <!-- Header -->

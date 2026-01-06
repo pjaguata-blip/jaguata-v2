@@ -133,16 +133,20 @@ $usuarioNombre = htmlspecialchars(Session::getUsuarioNombre() ?? 'Dueño/a', ENT
             background: var(--gris-fondo, #f4f6f9);
         }
 
+        /* ✅ Desktop igual */
         main.main-content {
             margin-left: 260px;
             min-height: 100vh;
             padding: 24px;
         }
 
+        /* ✅ Mobile: NO margin-top, reservamos espacio con padding-top (IGUAL que Dashboard) */
         @media (max-width: 768px) {
             main.main-content {
                 margin-left: 0;
-                padding: 16px;
+                margin-top: 0 !important;
+                width: 100% !important;
+                padding: calc(16px + var(--topbar-h)) 16px 16px !important;
             }
         }
 
@@ -206,10 +210,10 @@ $usuarioNombre = htmlspecialchars(Session::getUsuarioNombre() ?? 'Dueño/a', ENT
     <!-- Sidebar unificada del dueño -->
     <?php include __DIR__ . '/../../src/Templates/SidebarDueno.php'; ?>
 
-    <!-- Botón hamburguesa para mobile -->
-    <button class="btn btn-outline-secondary d-md-none ms-2 mt-3" id="toggleSidebar">
-        <i class="fas fa-bars"></i>
-    </button>
+    <!-- ✅ IMPORTANTE:
+         - Eliminamos el botón hamburguesa EXTRA (data-toggle="sidebar")
+         - Eliminamos el JS extra del toggleSidebar (SidebarDueno ya lo trae)
+    -->
 
     <!-- Contenido -->
     <main class="main-content">
@@ -398,12 +402,6 @@ $usuarioNombre = htmlspecialchars(Session::getUsuarioNombre() ?? 'Dueño/a', ENT
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        // Toggle sidebar en mobile (usa .sidebar-open del CSS)
-        document.getElementById('toggleSidebar')?.addEventListener('click', function() {
-            document.getElementById('sidebar')?.classList.toggle('sidebar-open');
-        });
-    </script>
 </body>
 
 </html>

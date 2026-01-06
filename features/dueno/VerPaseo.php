@@ -44,7 +44,6 @@ $duenoIdSesion = (int)(Session::getUsuarioId() ?? 0);
 $rolUsuario    = Session::getUsuarioRol() ?: 'dueno';
 $baseFeatures  = BASE_URL . "/features/{$rolUsuario}";
 $backUrl       = $baseFeatures . "/MisPaseos.php";
-$panelUrl      = $baseFeatures . "/Dashboard.php";
 
 /* =========================
    Cargar paseo + ruta
@@ -77,7 +76,7 @@ foreach ($rutaPuntos as $p) {
    ========================= */
 
 $fechaPaseo = isset($paseo['inicio'])
-    ? date('d/m/Y H:i', strtotime($paseo['inicio']))
+    ? date('d/m/Y H:i', strtotime((string)$paseo['inicio']))
     : '—';
 
 $estadoRaw   = trim((string)($paseo['estado'] ?? 'solicitado'));
@@ -97,8 +96,6 @@ $monto    = (float)($paseo['precio_total'] ?? $paseo['monto'] ?? 0);
 $montoFmt = number_format($monto, 0, ',', '.');
 
 $duracion = (int)($paseo['duracion'] ?? $paseo['duracion_min'] ?? 0);
-
-$observacion = $paseo['observaciones'] ?? $paseo['observacion'] ?? 'Sin observaciones.';
 
 $paseadorNombre = $paseo['paseador_nombre'] ?? $paseo['nombre_paseador'] ?? '—';
 $mascotaNombre  = $paseo['mascota_nombre']  ?? $paseo['nombre_mascota']  ?? '—';
@@ -138,7 +135,7 @@ unset($_SESSION['success'], $_SESSION['error']);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Paseo #<?= h((string)$paseoIdSeguro) ?> - Jaguata</title>
 
-    <!-- CSS global -->
+    <!-- CSS global (Jaguata) -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
     <link href="<?= BASE_URL; ?>/public/assets/css/jaguata-theme.css" rel="stylesheet">
@@ -148,6 +145,36 @@ unset($_SESSION['success'], $_SESSION['error']);
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <style>
+        /* ✅ Solo estilos propios de la pantalla.
+           El layout (margin-top / padding-top mobile) ya lo maneja jaguata-theme.css */
+        html,
+        body {
+            height: 100%;
+        }
+
+        body {
+            background: var(--gris-fondo, #f4f6f9);
+        }
+
+        /* Desktop (coincide con tu theme: --sidebar-w:250px) */
+        main.main-content {
+            margin-left: var(--sidebar-w);
+            width: calc(100% - var(--sidebar-w));
+            min-height: 100vh;
+            padding: 24px;
+            box-sizing: border-box;
+        }
+
+        /* Mobile: NO margin-top, reservamos espacio con padding-top + topbar */
+        @media (max-width: 768px) {
+            main.main-content {
+                margin-left: 0 !important;
+                width: 100% !important;
+                margin-top: 0 !important;
+                padding: calc(16px + var(--topbar-h)) 16px 16px !important;
+            }
+        }
+
         #map {
             width: 100%;
             height: 320px;
@@ -156,66 +183,36 @@ unset($_SESSION['success'], $_SESSION['error']);
             overflow: hidden;
         }
 
-        .btn-volver {
-            display: inline-flex;
-            align-items: center;
-            gap: .5rem;
-            padding: .4rem .9rem;
-            border-radius: 999px;
-            border: 1px solid #ddd;
-            font-size: .9rem;
-            text-decoration: none;
-            color: #333;
-            background-color: #fff;
-        }
-
-        .btn-volver:hover {
-            background-color: #f1f1f1;
-        }
-
         .info-label {
             font-size: .85rem;
             text-transform: uppercase;
             color: #888;
             margin-bottom: .2rem;
         }
-
-        main {
-            margin-left: 260px;
-            padding: 1.5rem 1.5rem 2rem;
-        }
-
-        @media (max-width: 768px) {
-            main {
-                margin-left: 0;
-            }
-        }
     </style>
 </head>
 
 <body>
 
-    <!-- Sidebar del DUEÑO (igual layout que admin, pero de dueño) -->
+    <!-- Sidebar del DUEÑO (ya trae topbar/backdrop/js unificado) -->
     <?php include __DIR__ . '/../../src/Templates/SidebarDueno.php'; ?>
 
-    <main>
-        <div class="container-fluid px-3 px-md-4">
+    <main class="main-content">
+        <div class="py-0">
 
-            <!-- HEADER UNIFICADO + BOTÓN VER MAPA -->
-            <div class="header-box header-paseos d-flex justify-content-between align-items-center mb-3">
+            <!-- Header -->
+            <div class="header-box header-paseos mb-3 d-flex justify-content-between align-items-center">
                 <div>
                     <h1 class="fw-bold mb-1">
-                        Detalle del Paseo #<?= h((string)$paseoIdSeguro) ?>
+                        <i class="fas fa-map-location-dot me-2"></i>Detalle del Paseo #<?= h((string)$paseoIdSeguro) ?>
                     </h1>
                     <p class="mb-0">Información completa del recorrido, estado y ubicación 🐾</p>
                 </div>
-                <div class="d-flex flex-column align-items-end gap-2">
-                    <i class="fas fa-map-location-dot fa-3x opacity-75"></i>
-                    <div class="mb-3">
-                        <a href="<?= h($backUrl); ?>" class="btn-volver">
-                            <i class="fas fa-arrow-left"></i> Volver a mis paseos
-                        </a>
-                    </div>
+
+                <div class="d-flex gap-2 align-items-center">
+                    <a href="<?= h($backUrl); ?>" class="btn btn-outline-light btn-sm">
+                        <i class="fas fa-arrow-left me-1"></i> Volver
+                    </a>
                 </div>
             </div>
 
@@ -234,9 +231,6 @@ unset($_SESSION['success'], $_SESSION['error']);
                 </div>
             <?php endif; ?>
 
-            <!-- Botón volver -->
-
-
             <div class="row g-3">
                 <!-- Información del Paseo -->
                 <div class="col-lg-6">
@@ -248,23 +242,23 @@ unset($_SESSION['success'], $_SESSION['error']);
                             <div class="row g-3">
                                 <div class="col-md-6">
                                     <p class="info-label">Mascota:</p>
-                                    <p><?= h($mascotaNombre); ?></p>
+                                    <p class="mb-0"><?= h($mascotaNombre); ?></p>
                                 </div>
                                 <div class="col-md-6">
                                     <p class="info-label">Paseador:</p>
-                                    <p><?= h($paseadorNombre); ?></p>
+                                    <p class="mb-0"><?= h($paseadorNombre); ?></p>
                                 </div>
                                 <div class="col-md-6">
                                     <p class="info-label">Dueño:</p>
-                                    <p><?= h($duenoNombre); ?></p>
+                                    <p class="mb-0"><?= h($duenoNombre); ?></p>
                                 </div>
                                 <div class="col-md-6">
                                     <p class="info-label">Duración:</p>
-                                    <p><?= (int)$duracion; ?> minutos</p>
+                                    <p class="mb-0"><?= (int)$duracion; ?> minutos</p>
                                 </div>
                                 <div class="col-md-6">
                                     <p class="info-label">Monto:</p>
-                                    <p>₲<?= $montoFmt; ?></p>
+                                    <p class="mb-0">₲<?= h($montoFmt); ?></p>
                                 </div>
                                 <div class="col-md-6">
                                     <p class="info-label">Estado:</p>
@@ -274,11 +268,11 @@ unset($_SESSION['success'], $_SESSION['error']);
                                 </div>
                                 <div class="col-md-6">
                                     <p class="info-label">Fecha de inicio:</p>
-                                    <p><?= h($fechaPaseo); ?></p>
+                                    <p class="mb-0"><?= h($fechaPaseo); ?></p>
                                 </div>
                                 <div class="col-md-6">
                                     <p class="info-label">Dirección:</p>
-                                    <p><?= h($direccion); ?></p>
+                                    <p class="mb-0"><?= h($direccion); ?></p>
                                 </div>
                             </div>
                         </div>
@@ -289,8 +283,10 @@ unset($_SESSION['success'], $_SESSION['error']);
                         <div class="card-header">
                             <i class="fas fa-tools me-2"></i> Acciones del dueño
                         </div>
-                        <div class="card-body text-center action-buttons d-flex flex-wrap justify-content-center gap-2">
+                        <div class="card-body text-center d-flex flex-wrap justify-content-center gap-2">
+
                             <?php if ($estadoSlug === 'completo'): ?>
+
                                 <?php if ($puedeCalificar): ?>
                                     <button type="button"
                                         class="btn btn-primary"
@@ -305,6 +301,7 @@ unset($_SESSION['success'], $_SESSION['error']);
                                 <?php endif; ?>
 
                             <?php elseif (in_array($estadoSlug, ['solicitado', 'pendiente', 'confirmado', 'en_curso'], true)): ?>
+
                                 <a href="<?= $baseFeatures; ?>/CancelarPaseo.php?id=<?= $paseoIdSeguro; ?>"
                                     class="btn btn-danger"
                                     onclick="return confirm('¿Seguro que deseás cancelar este paseo?');">
@@ -315,16 +312,20 @@ unset($_SESSION['success'], $_SESSION['error']);
                                     class="btn btn-success">
                                     <i class="fas fa-wallet me-1"></i> Pagar paseo
                                 </a>
+
                             <?php else: ?>
+
                                 <span class="text-muted">
                                     No hay acciones disponibles para este estado.
                                 </span>
+
                             <?php endif; ?>
+
                         </div>
                     </div>
                 </div>
 
-                <!-- Mapa (punto de recogida + ruta) -->
+                <!-- Mapa -->
                 <div class="col-lg-6">
                     <div class="card mb-4">
                         <div class="card-header">
@@ -340,7 +341,6 @@ unset($_SESSION['success'], $_SESSION['error']);
                 </div>
             </div>
 
-            <footer><small>© <?= date('Y') ?> Jaguata — Panel del Dueño</small></footer>
         </div>
     </main>
 
@@ -394,27 +394,6 @@ unset($_SESSION['success'], $_SESSION['error']);
     <!-- JS Bootstrap -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
-    <!-- Script toggle sidebar mobile (mismo patrón que admin) -->
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const sidebar = document.querySelector('.sidebar');
-            const backdrop = document.querySelector('.sidebar-backdrop');
-            const btnToggle = document.getElementById('btnSidebarToggle');
-
-            if (btnToggle && sidebar && backdrop) {
-                btnToggle.addEventListener('click', () => {
-                    sidebar.classList.toggle('show');
-                    backdrop.classList.toggle('show');
-                });
-
-                backdrop.addEventListener('click', () => {
-                    sidebar.classList.remove('show');
-                    backdrop.classList.remove('show');
-                });
-            }
-        });
-    </script>
-
     <!-- Mapa + envío de calificación -->
     <script>
         // === Datos para el mapa ===
@@ -463,6 +442,7 @@ unset($_SESSION['success'], $_SESSION['error']);
                 weight: 5,
                 opacity: 0.8
             }).addTo(map);
+
             map.fitBounds(polyline.getBounds());
 
             const paso = 5;

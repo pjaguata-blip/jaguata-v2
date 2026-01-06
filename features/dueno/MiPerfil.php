@@ -100,8 +100,8 @@ $direccionRef = $usuario['direccion'] ?? null;
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
 
-    <!-- 🎨 Estilos globales Jaguata -->
-    <link href="<?= ASSETS_URL; ?>/css/jaguata-theme.css" rel="stylesheet" />
+    <!-- 🎨 Estilos globales Jaguata (unificado) -->
+    <link href="<?= BASE_URL; ?>/public/assets/css/jaguata-theme.css" rel="stylesheet" />
 
     <style>
         /* 🐾 Mismo estilo de foto que el perfil del paseador */
@@ -132,20 +132,24 @@ $direccionRef = $usuario['direccion'] ?? null;
         .rating-block-dueno .rating-stars i {
             margin-right: 2px;
         }
+
+        html,
+        body {
+            height: 100%;
+        }
+
+        body {
+            background: var(--gris-fondo, #f4f6f9);
+        }
     </style>
 </head>
 
 <body>
 
-    <!-- Sidebar dueño unificado -->
+    <!-- ✅ Sidebar dueño unificado (incluye topbar-mobile + backdrop + JS toggle) -->
     <?php include __DIR__ . '/../../src/Templates/SidebarDueno.php'; ?>
 
-    <!-- Botón hamburguesa para móvil -->
-    <button class="btn btn-outline-secondary d-md-none ms-2 mt-3" id="toggleSidebar">
-        <i class="fas fa-bars"></i>
-    </button>
-
-    <!-- Contenido -->
+    <!-- ✅ Contenido (sin botón hamburguesa extra / sin JS duplicado) -->
     <main>
         <div class="py-2">
 
@@ -227,11 +231,11 @@ $direccionRef = $usuario['direccion'] ?? null;
                             <?php if ($repPromedio !== null && $repTotal > 0): ?>
                                 <div class="d-flex flex-column align-items-start">
                                     <div class="fs-5 fw-semibold">
-                                        <?= number_format($repPromedio, 1, ',', '.'); ?>/5
+                                        <?= number_format((float)$repPromedio, 1, ',', '.'); ?>/5
                                     </div>
                                     <div class="rating-stars mb-1">
                                         <?php
-                                        $rounded = (int) round($repPromedio);
+                                        $rounded = (int) round((float)$repPromedio);
                                         for ($i = 1; $i <= 5; $i++):
                                             $cls = $i <= $rounded ? 'fas text-warning' : 'far text-muted';
                                         ?>
@@ -299,7 +303,7 @@ $direccionRef = $usuario['direccion'] ?? null;
                                 <div class="section-body">
                                     <?php if (!empty($usuario['preferencias'])): ?>
                                         <div class="text-muted" style="white-space: pre-wrap;">
-                                            <?= htmlspecialchars($usuario['preferencias'], ENT_QUOTES, 'UTF-8'); ?>
+                                            <?= htmlspecialchars((string)$usuario['preferencias'], ENT_QUOTES, 'UTF-8'); ?>
                                         </div>
                                     <?php else: ?>
                                         <span class="text-muted">No especificadas.</span>
@@ -317,7 +321,7 @@ $direccionRef = $usuario['direccion'] ?? null;
                                 <div class="section-body">
                                     <?php if (!empty($usuario['observaciones'])): ?>
                                         <div class="text-muted" style="white-space: pre-wrap;">
-                                            <?= htmlspecialchars($usuario['observaciones'], ENT_QUOTES, 'UTF-8'); ?>
+                                            <?= htmlspecialchars((string)$usuario['observaciones'], ENT_QUOTES, 'UTF-8'); ?>
                                         </div>
                                     <?php else: ?>
                                         <span class="text-muted">Sin observaciones.</span>
@@ -333,16 +337,12 @@ $direccionRef = $usuario['direccion'] ?? null;
             <footer class="mt-4 text-center text-muted small">
                 © <?= date('Y') ?> Jaguata — Panel del Dueño
             </footer>
+
         </div>
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        // Toggle sidebar en mobile (usa la clase .sidebar-open de tu CSS)
-        document.getElementById('toggleSidebar')?.addEventListener('click', function() {
-            document.getElementById('sidebar')?.classList.toggle('sidebar-open');
-        });
-    </script>
+    <!-- ✅ NO agregamos JS de sidebar acá: SidebarDueno.php ya lo incluye -->
 </body>
 
 </html>

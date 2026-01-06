@@ -30,7 +30,6 @@ $usuarioModel = new Usuario();
 $configCtrl   = new ConfiguracionController();
 
 if (!$usuarioId) {
-    // Por seguridad, si no hay ID de usuario volvemos al login
     header('Location: ' . BASE_URL . '/public/login.php');
     exit;
 }
@@ -44,7 +43,7 @@ if (!$usuarioRow) {
 
 /* Preferencia de notificaciones desde tabla configuracion */
 $notifKey    = 'notif_email_usuario_' . $usuarioId;
-$notifVal    = $configCtrl->get($notifKey); // '1' o '0' o null
+$notifVal    = $configCtrl->get($notifKey);
 $notifActiva = $notifVal === null ? true : ($notifVal === '1');
 
 /* Estado para el formulario */
@@ -60,7 +59,6 @@ $mensajeExito = '';
 $mensajeError = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Tomar datos del formulario
     $dueno['nombre']         = trim($_POST['nombre'] ?? '');
     $dueno['email']          = trim($_POST['email'] ?? '');
     $dueno['telefono']       = trim($_POST['telefono'] ?? '');
@@ -88,19 +86,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (empty($errores)) {
-        // 🔹 Actualizar datos básicos del usuario en la tabla usuarios
         try {
             $usuarioModel->update((int)$usuarioId, [
                 'nombre'   => $dueno['nombre'],
                 'email'    => $dueno['email'],
                 'telefono' => $dueno['telefono'],
-                'zona'     => $dueno['zona'], // opcional: zona de referencia del dueño
+                'zona'     => $dueno['zona'],
             ]);
 
-            // 🔹 Guardar preferencia de notificaciones en tabla configuracion
             $configCtrl->set($notifKey, $dueno['notificaciones'] ? '1' : '0');
 
-            // 🔹 Cambio de contraseña (si corresponde)
             if ($nuevaPassword !== '' && $nuevaPassword === $confirmarPassword) {
                 $hash = password_hash($nuevaPassword, PASSWORD_BCRYPT);
                 $usuarioModel->actualizarPassword((int)$usuarioId, $hash);
@@ -109,10 +104,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $mensajeExito = '✅ Datos actualizados correctamente.';
             }
 
-            // Actualizar nombre de sesión por si lo cambió
             $usuarioRow['nombre'] = $dueno['nombre'];
             $usuarioRow['email']  = $dueno['email'];
-
             Session::login($usuarioRow);
         } catch (\Throwable $e) {
             $mensajeError = '❌ Ocurrió un error al guardar los datos: ' . $e->getMessage();
@@ -137,119 +130,142 @@ function h(?string $v): string
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+
+    <!-- ✅ CSS unificado -->
     <link href="<?= BASE_URL; ?>/public/assets/css/jaguata-theme.css" rel="stylesheet">
+
+    <style>
+        html, body { height: 100%; }
+        body { background: var(--gris-fondo, #f4f6f9); }
+
+        /* ✅ igual que tus otras pantallas */
+        main.main-content{
+            margin-left: 260px;
+            min-height: 100vh;
+            padding: 24px;
+        }
+        @media (max-width: 768px){
+            main.main-content{
+                margin-left: 0;
+                padding: 16px;
+            }
+        }
+    </style>
 </head>
 
 <body>
-    <!-- Sidebar Dueño (mismo estilo que las demás pantallas) -->
+    <!-- Sidebar Dueño (incluye topbar + backdrop + JS unificado) -->
     <?php include dirname(__DIR__, 2) . '/src/Templates/SidebarDueno.php'; ?>
 
-    <main>
-        <!-- HEADER CONFIGURACIÓN -->
-        <div class="header-box header-config mb-2 d-flex justify-content-between align-items-center">
-            <div>
-                <h1 class="fw-bold mb-1">
-                    <i class="fas fa-user-cog me-2"></i>Configuración de cuenta — Dueño
-                </h1>
-                <p class="mb-0">Actualizá tus datos de contacto, zona de referencia y contraseña 🐾</p>
-            </div>
-            <a href="<?= BASE_URL; ?>/features/dueno/Dashboard.php" class="btn btn-outline-light">
-                <i class="fas fa-arrow-left me-1"></i> Volver
-            </a>
-        </div>
+    <main class="main-content">
+        <div class="py-2">
 
-        <!-- MENSAJES -->
-        <?php if ($mensajeExito !== ''): ?>
-            <div class="alert alert-success">
-                <i class="fas fa-check-circle me-2"></i>
-                <?= $mensajeExito; ?>
-            </div>
-        <?php endif; ?>
-
-        <?php if ($mensajeError !== ''): ?>
-            <div class="alert alert-danger">
-                <i class="fas fa-exclamation-triangle me-2"></i>
-                <?= $mensajeError; ?>
-            </div>
-        <?php endif; ?>
-
-        <!-- FORMULARIO -->
-        <div class="section-card">
-            <div class="section-header">
-                <i class="fas fa-id-badge me-2"></i>Datos de tu cuenta
+            <!-- HEADER CONFIGURACIÓN -->
+            <div class="header-box header-config mb-2 d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="fw-bold mb-1">
+                        <i class="fas fa-user-cog me-2"></i>Configuración de cuenta — Dueño
+                    </h1>
+                    <p class="mb-0">Actualizá tus datos de contacto, zona de referencia y contraseña 🐾</p>
+                </div>
+                <a href="<?= BASE_URL; ?>/features/dueno/Dashboard.php" class="btn btn-outline-light">
+                    <i class="fas fa-arrow-left me-1"></i> Volver
+                </a>
             </div>
 
-            <div class="section-body">
-                <form method="post" class="row g-3">
-                    <div class="col-md-6">
-                        <label class="form-label fw-semibold">Nombre completo</label>
-                        <input type="text" name="nombre" class="form-control"
-                            value="<?= h($dueno['nombre']); ?>" required>
-                    </div>
+            <!-- MENSAJES -->
+            <?php if ($mensajeExito !== ''): ?>
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle me-2"></i>
+                    <?= $mensajeExito; ?>
+                </div>
+            <?php endif; ?>
 
-                    <div class="col-md-6">
-                        <label class="form-label fw-semibold">Correo electrónico</label>
-                        <input type="email" name="email" class="form-control"
-                            value="<?= h($dueno['email']); ?>" required>
-                    </div>
+            <?php if ($mensajeError !== ''): ?>
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <?= $mensajeError; ?>
+                </div>
+            <?php endif; ?>
 
-                    <div class="col-md-6">
-                        <label class="form-label fw-semibold">Teléfono</label>
-                        <input type="text" name="telefono" class="form-control"
-                            value="<?= h($dueno['telefono']); ?>">
-                    </div>
+            <!-- FORMULARIO -->
+            <div class="section-card">
+                <div class="section-header">
+                    <i class="fas fa-id-badge me-2"></i>Datos de tu cuenta
+                </div>
 
-                    <div class="col-md-6">
-                        <label class="form-label fw-semibold">Zona de referencia</label>
-                        <input type="text" name="zona" class="form-control"
-                            value="<?= h($dueno['zona']); ?>"
-                            placeholder="Ej: Barrio, ciudad, zona donde vivís">
-                    </div>
-
-                    <div class="col-md-6">
-                        <label class="form-label fw-semibold">Notificaciones</label>
-                        <div class="form-check form-switch mt-2">
-                            <input class="form-check-input" type="checkbox" name="notificaciones"
-                                id="chkNotificaciones"
-                                <?= $dueno['notificaciones'] ? 'checked' : ''; ?>>
-                            <label class="form-check-label" for="chkNotificaciones">
-                                Recibir notificaciones por correo
-                            </label>
+                <div class="section-body">
+                    <form method="post" class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Nombre completo</label>
+                            <input type="text" name="nombre" class="form-control"
+                                   value="<?= h($dueno['nombre']); ?>" required>
                         </div>
-                    </div>
 
-                    <hr class="mt-4 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Correo electrónico</label>
+                            <input type="email" name="email" class="form-control"
+                                   value="<?= h($dueno['email']); ?>" required>
+                        </div>
 
-                    <div class="col-12">
-                        <h5 class="text-success mb-0">
-                            <i class="fas fa-key me-2"></i>Cambio de contraseña
-                        </h5>
-                        <small class="text-muted">Dejá en blanco si no querés cambiar tu contraseña.</small>
-                    </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Teléfono</label>
+                            <input type="text" name="telefono" class="form-control"
+                                   value="<?= h($dueno['telefono']); ?>">
+                        </div>
 
-                    <div class="col-md-6">
-                        <label class="form-label fw-semibold">Nueva contraseña</label>
-                        <input type="password" name="nueva_password" class="form-control"
-                            placeholder="Dejar vacío para no cambiar">
-                    </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Zona de referencia</label>
+                            <input type="text" name="zona" class="form-control"
+                                   value="<?= h($dueno['zona']); ?>"
+                                   placeholder="Ej: Barrio, ciudad, zona donde vivís">
+                        </div>
 
-                    <div class="col-md-6">
-                        <label class="form-label fw-semibold">Confirmar nueva contraseña</label>
-                        <input type="password" name="confirmar_password" class="form-control">
-                    </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Notificaciones</label>
+                            <div class="form-check form-switch mt-2">
+                                <input class="form-check-input" type="checkbox" name="notificaciones"
+                                       id="chkNotificaciones"
+                                       <?= $dueno['notificaciones'] ? 'checked' : ''; ?>>
+                                <label class="form-check-label" for="chkNotificaciones">
+                                    Recibir notificaciones por correo
+                                </label>
+                            </div>
+                        </div>
 
-                    <div class="col-12 text-end mt-3">
-                        <button type="submit" class="btn-enviar">
-                            <i class="fas fa-save me-2"></i>Guardar cambios
-                        </button>
-                    </div>
-                </form>
+                        <hr class="mt-4 mb-3">
+
+                        <div class="col-12">
+                            <h5 class="text-success mb-0">
+                                <i class="fas fa-key me-2"></i>Cambio de contraseña
+                            </h5>
+                            <small class="text-muted">Dejá en blanco si no querés cambiar tu contraseña.</small>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Nueva contraseña</label>
+                            <input type="password" name="nueva_password" class="form-control"
+                                   placeholder="Dejar vacío para no cambiar">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Confirmar nueva contraseña</label>
+                            <input type="password" name="confirmar_password" class="form-control">
+                        </div>
+
+                        <div class="col-12 text-end mt-3">
+                            <button type="submit" class="btn-enviar">
+                                <i class="fas fa-save me-2"></i>Guardar cambios
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
-        </div>
 
-        <footer class="mt-4 text-center text-muted">
-            <small>© <?= date('Y'); ?> Jaguata — Panel del Dueño</small>
-        </footer>
+            <footer class="mt-4 text-center text-muted">
+                <small>© <?= date('Y'); ?> Jaguata — Panel del Dueño</small>
+            </footer>
+        </div>
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

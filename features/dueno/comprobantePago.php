@@ -188,9 +188,10 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
     <?php include __DIR__ . '/../../src/Templates/SidebarDueno.php'; ?>
 
     <!-- Botón hamburguesa -->
-    <button class="btn btn-outline-secondary d-md-none ms-2 mt-3 no-print" id="toggleSidebar">
+   <button class="btn btn-outline-secondary d-md-none ms-2 mt-3" type="button" data-toggle="sidebar">
         <i class="fas fa-bars"></i>
     </button>
+
 
     <main class="main-content">
         <div class="py-2">

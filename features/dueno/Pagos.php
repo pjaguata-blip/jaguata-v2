@@ -34,8 +34,9 @@ if ($duenoId <= 0) {
     exit('No autorizado');
 }
 
-$rolMenu      = Session::getUsuarioRol() ?: 'dueno';
-$baseFeatures = BASE_URL . "/features/{$rolMenu}";
+$rolMenu       = Session::getUsuarioRol() ?: 'dueno';
+$baseFeatures  = BASE_URL . "/features/{$rolMenu}";
+$usuarioNombre = h(Session::getUsuarioNombre() ?? 'Dueño');
 
 /* Datos */
 $pagoCtrl = new PagoController();
@@ -44,12 +45,16 @@ $pagos    = $pagoCtrl->listarPagosDueno($duenoId) ?? [];
 /* Métricas */
 $totalPagado = 0.0;
 $pendientes  = 0;
+
 foreach ($pagos as $p) {
     $estado = strtoupper(trim((string)($p['estado'] ?? 'PENDIENTE')));
+
     if ($estado === 'CONFIRMADO') {
         $totalPagado += (float)($p['monto'] ?? 0);
     }
-    if ($estado === 'PENDIENTE') $pendientes++;
+    if ($estado === 'PENDIENTE') {
+        $pendientes++;
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -66,85 +71,84 @@ foreach ($pagos as $p) {
     <link href="<?= BASE_URL; ?>/public/assets/css/jaguata-theme.css" rel="stylesheet">
 
     <style>
-        html,
-        body {
-            height: 100%;
-        }
+        html, body { height: 100%; }
+        body { background: var(--gris-fondo, #f4f6f9); }
 
-        body {
-            background: var(--gris-fondo, #f4f6f9);
-        }
-
-        main.main-content {
+        /* ✅ Desktop igual a las demás pantallas */
+        main.main-content{
             margin-left: 260px;
             min-height: 100vh;
             padding: 24px;
         }
 
-        @media (max-width: 768px) {
-            main.main-content {
+        /* ✅ Mobile: sin margin-top; reservamos espacio de topbar con padding-top */
+        @media (max-width: 768px){
+            main.main-content{
                 margin-left: 0;
-                padding: 16px;
+                margin-top: 0 !important;
+                width: 100% !important;
+                padding: calc(16px + var(--topbar-h)) 16px 16px !important;
             }
         }
 
         /* Cards estiradas */
-        .dash-card {
-            background: #fff;
-            border-radius: 18px;
-            padding: 18px 20px;
-            box-shadow: 0 12px 30px rgba(0, 0, 0, .06);
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            gap: 6px;
-            text-align: center;
+        .dash-card{
+            background:#fff;
+            border-radius:18px;
+            padding:18px 20px;
+            box-shadow:0 12px 30px rgba(0,0,0,.06);
+            height:100%;
+            display:flex;
+            flex-direction:column;
+            justify-content:center;
+            gap:6px;
+            text-align:center;
         }
-
-        .dash-card-icon {
-            font-size: 2rem;
-            margin-bottom: 6px;
-        }
-
-        .small-muted {
-            font-size: .85rem;
-            color: #666;
-        }
-
-        .pill {
-            display: inline-flex;
-            align-items: center;
-            gap: .35rem;
-            padding: .2rem .6rem;
-            border-radius: 999px;
-            font-size: .85rem;
-        }
+        .dash-card-icon{ font-size:2rem; margin-bottom:6px; }
+        .small-muted{ font-size:.85rem; color:#666; }
     </style>
 </head>
 
-<body>
+<body class="page-mis-pagos">
 
+    <!-- ✅ Sidebar unificado (incluye topbar mobile + backdrop + JS toggle) -->
     <?php include __DIR__ . '/../../src/Templates/SidebarDueno.php'; ?>
 
-    <button class="btn btn-outline-secondary d-md-none ms-2 mt-3" id="toggleSidebar">
-        <i class="fas fa-bars"></i>
-    </button>
+    <!-- ✅ IMPORTANTE:
+         - Quitamos el botón hamburguesa EXTRA (data-toggle="sidebar")
+         - Quitamos el JS extra de toggleSidebar (SidebarDueno ya trae el script unificado)
+    -->
 
     <main class="main-content">
         <div class="py-2">
 
-            <!-- Header -->
+            <!-- Header + VOLVER -->
             <div class="header-box header-pagos mb-4 d-flex justify-content-between align-items-center">
                 <div>
                     <h1 class="fw-bold mb-1">
                         <i class="fas fa-receipt me-2"></i>Mis Pagos
                     </h1>
-                    <p class="mb-0">Visualizá y descargá tus comprobantes de pago 🧾</p>
+                    <p class="mb-0">
+                        Hola, <?= $usuarioNombre; ?>. Visualizá y descargá tus comprobantes de pago 🧾
+                    </p>
+                </div>
+
+                <!-- Botones desktop -->
+                <div class="d-none d-md-flex gap-2">
+                    <a href="<?= $baseFeatures; ?>/Dashboard.php" class="btn btn-outline-light btn-sm">
+                        <i class="fas fa-arrow-left me-1"></i> Volver
+                    </a>
                 </div>
             </div>
 
-            <!-- Métricas (ESTIRADAS) -->
+            <!-- Botón mobile -->
+            <div class="d-md-none mb-3">
+                <a href="<?= $baseFeatures; ?>/Dashboard.php" class="btn btn-secondary btn-sm w-100">
+                    <i class="fas fa-arrow-left me-1"></i> Volver
+                </a>
+            </div>
+
+            <!-- Métricas -->
             <div class="row g-3 mb-4 align-items-stretch">
                 <div class="col-md-4">
                     <div class="dash-card">
@@ -239,20 +243,20 @@ foreach ($pagos as $p) {
                                                 <?php if ($tieneComprobante && $pagoId > 0): ?>
                                                     <div class="d-flex justify-content-center gap-2">
                                                         <a class="btn btn-sm btn-outline-primary"
-                                                            target="_blank"
-                                                            href="<?= BASE_URL; ?>/public/api/pagos/comprobantePago.php?pago_id=<?= (int)$pagoId ?>">
+                                                           target="_blank" rel="noopener"
+                                                           href="<?= BASE_URL; ?>/public/api/pagos/comprobantePago.php?pago_id=<?= (int)$pagoId ?>">
                                                             <i class="fas fa-eye"></i> Ver
                                                         </a>
 
                                                         <a class="btn btn-sm btn-outline-secondary"
-                                                            download
-                                                            href="<?= BASE_URL; ?>/public/api/pagos/comprobantePago.php?pago_id=<?= (int)$pagoId ?>">
+                                                           download
+                                                           href="<?= BASE_URL; ?>/public/api/pagos/comprobantePago.php?pago_id=<?= (int)$pagoId ?>">
                                                             <i class="fas fa-download"></i>
                                                         </a>
 
                                                         <a class="btn btn-sm btn-success"
-                                                            href="<?= $baseFeatures; ?>/comprobante_pago.php?pago_id=<?= (int)$pagoId ?>"
-                                                            title="Ver comprobante bonito">
+                                                           href="<?= $baseFeatures; ?>/comprobante_pago.php?pago_id=<?= (int)$pagoId ?>"
+                                                           title="Ver comprobante bonito">
                                                             <i class="fas fa-receipt"></i>
                                                         </a>
                                                     </div>
@@ -288,12 +292,5 @@ foreach ($pagos as $p) {
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        document.getElementById('toggleSidebar')?.addEventListener('click', function() {
-            document.getElementById('sidebar')?.classList.toggle('sidebar-open');
-        });
-    </script>
-
 </body>
-
 </html>

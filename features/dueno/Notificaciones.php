@@ -44,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    /* ✅ NUEVO: eliminar una */
+    /* ✅ eliminar una */
     if ($action === 'deleteOne' && isset($_POST['noti_id'])) {
         $notiId = (int)$_POST['noti_id'];
         if ($notiId > 0 && $notiCtrl->limpiarUnaForCurrentUser($notiId)) {
@@ -56,7 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    /* ✅ NUEVO: eliminar todas */
+    /* ✅ eliminar todas */
     if ($action === 'deleteAll') {
         $cant = (int)$notiCtrl->limpiarTodasForCurrentUser();
         if ($cant > 0) Session::setSuccess($cant . ' notificación(es) eliminadas ✅');
@@ -75,7 +75,7 @@ $perPage = 10;
 $leidoParam = ($leido === '' ? null : (int)$leido);
 
 /* 🧩 Datos */
-$data = $notiCtrl->listForCurrentUser($page, $perPage, $leidoParam, $q);
+$data           = $notiCtrl->listForCurrentUser($page, $perPage, $leidoParam, $q);
 $notificaciones = $data['data'] ?? [];
 $totalPages     = $data['totalPages'] ?? 1;
 
@@ -89,6 +89,10 @@ function h(?string $v): string
 }
 
 $usuarioNombre = h(Session::getUsuarioNombre() ?? 'Dueño/a');
+
+/* UI */
+$rolMenu      = Session::getUsuarioRol() ?: 'dueno';
+$baseFeatures = BASE_URL . "/features/{$rolMenu}";
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -101,14 +105,23 @@ $usuarioNombre = h(Session::getUsuarioNombre() ?? 'Dueño/a');
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
     <link href="<?= BASE_URL; ?>/public/assets/css/jaguata-theme.css" rel="stylesheet">
+
+    <style>
+        html, body { height: 100%; }
+        body { background: var(--gris-fondo, #f4f6f9); }
+    </style>
 </head>
 
 <body>
+
+    <!-- ✅ Sidebar Dueño unificado (incluye topbar-mobile + backdrop + JS toggle) -->
     <?php include dirname(__DIR__, 2) . '/src/Templates/SidebarDueno.php'; ?>
 
-    <main class="bg-light">
-        <div class="container-fluid py-2">
+    <!-- ✅ Contenido: usamos <main> sin main-content para que aplique el layout global -->
+    <main>
+        <div class="py-2">
 
+            <!-- Header -->
             <div class="header-box header-notificaciones mb-4 d-flex justify-content-between align-items-center">
                 <div>
                     <h1 class="fw-bold mb-1">
@@ -117,26 +130,47 @@ $usuarioNombre = h(Session::getUsuarioNombre() ?? 'Dueño/a');
                     <p class="mb-0">Enterate de novedades sobre tus paseos y tu cuenta, <?= $usuarioNombre; ?> 🐶</p>
                 </div>
 
-                <div class="d-flex gap-2">
-                    
+                <!-- ✅ Botones (desktop) -->
+                <div class="d-none d-md-flex gap-2 align-items-center">
+                    <a href="<?= $baseFeatures; ?>/Dashboard.php" class="btn btn-outline-light btn-sm">
+                        <i class="fas fa-arrow-left me-1"></i> Volver
+                    </a>
+
                     <form method="post" class="m-0">
                         <input type="hidden" name="action" value="markAllRead">
                         <button type="submit" class="btn-enviar">
-                            <i class="fas fa-check-double me-1"></i> Marcar todas como leídas
+                            <i class="fas fa-check-double me-1"></i> Marcar todas
                         </button>
                     </form>
 
-                    <!-- ✅ NUEVO: limpiar bandeja -->
                     <form method="post" class="m-0" onsubmit="return confirm('¿Querés eliminar todas tus notificaciones?');">
                         <input type="hidden" name="action" value="deleteAll">
-                        <button type="submit" class="btn btn-outline-danger">
-                            <i class="fas fa-trash me-1"></i> Eliminar Todo
+                        <button type="submit" class="btn btn-outline-danger btn-sm">
+                            <i class="fas fa-trash me-1"></i> Eliminar todo
                         </button>
                     </form>
                 </div>
-                <a href="Dashboard.php" class="btn btn-outline-light btn-sm">
-                            <i class="fas fa-arrow-left me-1"></i> Volver
-                        </a>
+            </div>
+
+            <!-- ✅ Botones (mobile) -->
+            <div class="d-md-none d-grid gap-2 mb-3">
+                <a href="<?= $baseFeatures; ?>/Dashboard.php" class="btn btn-secondary btn-sm">
+                    <i class="fas fa-arrow-left me-1"></i> Volver
+                </a>
+
+                <form method="post" class="m-0">
+                    <input type="hidden" name="action" value="markAllRead">
+                    <button type="submit" class="btn-enviar w-100">
+                        <i class="fas fa-check-double me-1"></i> Marcar todas como leídas
+                    </button>
+                </form>
+
+                <form method="post" class="m-0" onsubmit="return confirm('¿Querés eliminar todas tus notificaciones?');">
+                    <input type="hidden" name="action" value="deleteAll">
+                    <button type="submit" class="btn btn-outline-danger btn-sm w-100">
+                        <i class="fas fa-trash me-1"></i> Eliminar todo
+                    </button>
+                </form>
             </div>
 
             <?php if (!empty($mensajeSuccess)): ?>
@@ -219,7 +253,6 @@ $usuarioNombre = h(Session::getUsuarioNombre() ?? 'Dueño/a');
                                                 </form>
                                             <?php endif; ?>
 
-                                            <!-- ✅ NUEVO: eliminar -->
                                             <?php if ($notiId > 0): ?>
                                                 <form method="post" class="d-inline" onsubmit="return confirm('¿Eliminar esta notificación?');">
                                                     <input type="hidden" name="action" value="deleteOne">
@@ -241,7 +274,8 @@ $usuarioNombre = h(Session::getUsuarioNombre() ?? 'Dueño/a');
                             <ul class="pagination justify-content-center flex-wrap">
                                 <?php for ($i = 1; $i <= $totalPages; $i++): ?>
                                     <li class="page-item <?= $i === $page ? 'active' : ''; ?>">
-                                        <a class="page-link" href="?page=<?= $i; ?>&q=<?= urlencode($q); ?>&leido=<?= urlencode($leido); ?>">
+                                        <a class="page-link"
+                                           href="?page=<?= $i; ?>&q=<?= urlencode($q); ?>&leido=<?= urlencode($leido); ?>">
                                             <?= $i; ?>
                                         </a>
                                     </li>
@@ -255,10 +289,12 @@ $usuarioNombre = h(Session::getUsuarioNombre() ?? 'Dueño/a');
             <footer class="mt-4 text-center text-muted small">
                 © <?= date('Y'); ?> Jaguata — Panel del Dueño
             </footer>
+
         </div>
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- ✅ NO agregamos JS de sidebar acá: SidebarDueno.php ya lo incluye -->
 </body>
 
 </html>

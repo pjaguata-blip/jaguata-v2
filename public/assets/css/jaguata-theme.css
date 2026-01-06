@@ -4,7 +4,7 @@
    - Sidebar + Topbar responsive unificado
    ============================== */
 
-/* FUENTE GLOBAL */
+/* ✅ FUENTE GLOBAL (SIEMPRE ARRIBA) */
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
 
 :root{
@@ -17,7 +17,9 @@
   --topbar-h:56px;
 }
 
-/* BASE */
+/* ==============================
+   BASE
+   ============================== */
 html, body{
   font-family:"Poppins", sans-serif !important;
   color:#333;
@@ -183,7 +185,7 @@ table,th,td,
 .sidebar-backdrop.show{ display:block; }
 
 /* ==============================
-   MAIN / CONTENT AREA
+   MAIN / CONTENT AREA (soporta main y main.main-content)
    ============================== */
 main{
   margin-left:var(--sidebar-w);
@@ -194,8 +196,19 @@ main{
   background:var(--gris-fondo);
 }
 
+/* ✅ tus páginas usan main.main-content */
+main.main-content{
+  margin-left:var(--sidebar-w);
+  width:calc(100% - var(--sidebar-w));
+  min-height:100vh;
+  padding:1.5rem;
+  box-sizing:border-box;
+  background:var(--gris-fondo);
+}
 /* ==============================
    RESPONSIVE (TABLET / MOBILE)
+   - Sidebar overlay + topbar
+   - Main sin margin-top (usa padding-top)
    ============================== */
 @media (max-width: 992px){
   .topbar-mobile{ display:flex; }
@@ -207,13 +220,25 @@ main{
   }
   .sidebar.sidebar-open{ transform:translateX(0); }
 
-  main{
+  /* ✅ MAIN: SIN margin-top, reservamos espacio con padding-top */
+  main,
+  main.main-content{
     margin-left:0 !important;
     width:100% !important;
-    padding:1rem !important;
-    margin-top:var(--topbar-h) !important;
+    margin-top:0 !important;
+    padding: calc(1rem + var(--topbar-h)) 1rem 1rem !important;
   }
 }
+
+/* Ajuste extra para móviles más chicos */
+@media (max-width: 768px){
+  main,
+  main.main-content{
+    margin-top:0 !important;
+    padding: calc(16px + var(--topbar-h)) 16px 16px !important;
+  }
+}
+
 
 /* ==============================
    HEADERS POR PANTALLA
@@ -242,14 +267,28 @@ main{
   font-size:clamp(.9rem, 1.4vw, .98rem);
 }
 
-/* Gradientes por módulo */
-.header-dashboard{ background:linear-gradient(90deg,#20c997,#3c6255); }
-.header-usuarios{ background:linear-gradient(90deg,#20c997,#08a39a); }
-.header-paseos{ background:linear-gradient(90deg,#00c6ff,#0072ff); }
-.header-pagos{ background:linear-gradient(90deg,#ff9a9e,#f6416c); }
-.header-notificaciones{ background:linear-gradient(90deg,#ffdd57,#ff8a00); }
-.header-auditoria{ background:linear-gradient(90deg,#8e2de2,#4a00e0); }
-.header-configuracion{ background:linear-gradient(90deg,#3c6255,#0f2027); }
+/* ✅ GRADIENTE UNIFICADO (el que estás usando en tus pantallas) */
+.header-box,
+.header-dashboard,
+.header-usuarios,
+.header-paseos,
+.header-pagos,
+.header-notificaciones,
+.header-auditoria,
+.header-configuracion{
+  background: linear-gradient(90deg, #19c192 0%, #064b2b 100%) !important;
+  color:#fff;
+}
+
+/* (Si querés por módulo, descomentá estos y comentá el bloque unificado de arriba)
+.header-dashboard{ background:linear-gradient(90deg,#20c997,#3c6255) !important; }
+.header-usuarios{ background:linear-gradient(90deg,#20c997,#08a39a) !important; }
+.header-paseos{ background:linear-gradient(90deg,#00c6ff,#0072ff) !important; }
+.header-pagos{ background:linear-gradient(90deg,#ff9a9e,#f6416c) !important; }
+.header-notificaciones{ background:linear-gradient(90deg,#ffdd57,#ff8a00) !important; }
+.header-auditoria{ background:linear-gradient(90deg,#8e2de2,#4a00e0) !important; }
+.header-configuracion{ background:linear-gradient(90deg,#3c6255,#0f2027) !important; }
+*/
 
 /* ==============================
    FILTROS GENERALES
@@ -417,6 +456,27 @@ main{
   transform:translateY(-2px);
 }
 
+/* ✅ FALTABA: lo usás en varias pantallas */
+.btn-gradient{
+  border:none;
+  color:#0f172a;
+  font-weight:700;
+  border-radius:10px;
+  padding:.65rem 1rem;
+  background: linear-gradient(90deg, #31c48d 0%, #0ea5e9 100%);
+  box-shadow:0 10px 22px rgba(14,165,233,.18);
+  transition:transform .18s ease, box-shadow .18s ease, filter .18s ease;
+}
+.btn-gradient:hover{
+  transform:translateY(-2px);
+  box-shadow:0 14px 26px rgba(14,165,233,.25);
+  filter:saturate(1.05);
+}
+.btn-gradient:active{
+  transform:translateY(0);
+  box-shadow:0 8px 16px rgba(14,165,233,.18);
+}
+
 .badge-pendiente{ background:#ffc107; color:#000; }
 .badge-enviado{ background:#20c997; color:#fff; }
 
@@ -572,6 +632,28 @@ input:checked + .slider:before{ transform:translateX(30px); }
   }
 }
 
+/* ===== Modal Opiniones (Jaguata) ===== */
+.modal-jaguata .modal-dialog {
+  max-width: 1100px;
+  width: min(1100px, 96vw);
+}
+@media (min-width: 1400px) {
+  .modal-jaguata .modal-dialog {
+    max-width: 1200px;
+    width: min(1200px, 96vw);
+  }
+}
+
+/* Cards dentro del modal */
+.opi-card{
+  border: 1px solid rgba(60,98,85,.12);
+  border-radius: 18px;
+  box-shadow: 0 10px 25px rgba(0,0,0,.06);
+  background: var(--blanco);
+}
+.opi-meta{ font-size:.85rem; color:rgba(0,0,0,.55); }
+.opi-stars{ font-weight:700; white-space:nowrap; }
+
 /* ==============================
    UTILIDADES / EXTRAS
    ============================== */
@@ -587,7 +669,70 @@ input:checked + .slider:before{ transform:translateX(30px); }
   padding:.55rem .85rem;
 }
 
-/* FOOTER */
+/* ==============================
+   AJUSTES “LO NUEVO”
+   ============================== */
+h2{ font-size:1.4rem; }
+
+.illustration-title{ font-size:1.35rem; }
+
+.form-control{
+  padding:.65rem .85rem;
+  font-size:.88rem;
+  border-radius:10px;
+}
+.btn-jg{
+  padding:.65rem 1rem;
+  font-size:.9rem;
+}
+.logo-circle{
+  width:64px;
+  height:64px;
+  margin-bottom:8px;
+}
+.logo-circle img{
+  width:56px;
+  height:56px;
+}
+.illustration-text,
+.illustration-list li{
+  font-size:.85rem;
+}
+
+/* =========================
+   VISTA: GASTOS TOTALES
+   ========================= */
+body.page-gastos .header-box h1{
+  font-size:1.35rem;
+  font-weight:900;
+}
+body.page-gastos .header-box p{
+  font-size:1rem;
+}
+body.page-gastos .dash-card{
+  padding:22px 22px;
+  gap:10px;
+}
+
+
+body.page-gastos .filtros .form-label{ font-weight:800; }
+body.page-gastos .filtros .form-control,
+body.page-gastos .filtros .form-select{
+  padding:.70rem .90rem;
+  font-size:.98rem;
+}
+
+body.page-gastos table.table thead th{
+  font-size:.95rem;
+  font-weight:900;
+}
+body.page-gastos table.table tbody td{
+  font-size:.93rem;
+}
+
+/* ==============================
+   FOOTER
+   ============================== */
 footer{
   margin-top:2rem;
   text-align:center;
@@ -605,126 +750,89 @@ footer{
     width:100%;
   }
 }
-/* ==============================
-   HEADER UNIFICADO JAGUATA
-   ============================== */
+/* ===========================
+   DASH CARDS – UNIFICADO
+   =========================== */
 
-.header-box,
-.header-dashboard,
-.header-usuarios,
-.header-paseos,
-.header-pagos,
-.header-notificaciones,
-.header-auditoria,
-.header-configuracion {
-  background: var(--header-color) !important;
-  color: #fff;
-}
-.header-box,
-.header-dashboard,
-.header-usuarios,
-.header-paseos,
-.header-pagos,
-.header-notificaciones,
-.header-auditoria,
-.header-configuracion{
-  background: linear-gradient(90deg, #19c192 0%, #064b2b 100%) !important;
-  color: #fff;
-}
-/* ===== Modal Opiniones (Jaguata) ===== */
-.modal-jaguata .modal-dialog {
-  max-width: 1100px;
-  width: min(1100px, 96vw);
+.dash-card {
+    background: #ffffff;
+    border-radius: 18px;
+    padding: 18px 20px;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.06);
+    text-align: center;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 6px;
 }
 
-@media (min-width: 1400px) {
-  .modal-jaguata .modal-dialog {
-    max-width: 1200px;
-    width: min(1200px, 96vw);
+/* Icono */
+.dash-card-icon {
+    font-size: 2rem;
+    margin-bottom: 6px;
+}
+
+/* Valor grande */
+.dash-card-value {
+    font-size: 1.4rem;
+    font-weight: 700; /* SOLO el número */
+    color: #222;
+}
+
+/* Texto inferior (igual Dashboard Dueño) */
+.dash-card-label {
+    font-size: 0.9rem;
+    font-weight: 400;      /* 🔑 QUITA NEGRITA */
+    color: #555;           /* 🔑 MISMO COLOR */
+    line-height: 1.2;
+}
+@media (max-width: 992px){
+  body.page-no-topbar-margin main{
+    margin-top: 0 !important;
+    padding: calc(1rem + var(--topbar-h)) 1rem 1rem !important;
   }
 }
 
-/* Cards dentro del modal */
-.opi-card {
-  border: 1px solid rgba(60,98,85,.12);
-  border-radius: 18px;
-  box-shadow: 0 10px 25px rgba(0,0,0,.06);
-  background: var(--blanco);
+
+
+/* ===============================
+   FOTO COVER PERFIL PASEADOR
+   =============================== */
+.profile-cover {
+    width: 100%;
+    height: 320px;
+    background: #eef2f5;
+    overflow: hidden;
+    position: relative;
 }
 
-.opi-meta {
-  font-size: .85rem;
-  color: rgba(0,0,0,.55);
+@media (max-width: 768px) {
+    .profile-cover {
+        height: 240px;
+    }
 }
 
-.opi-stars {
-  font-weight: 700;
-  white-space: nowrap;
+.profile-cover img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    display: block;
 }
 
-/* ==============================
-lo nuevo
-   ============================== */
-h2 {
-  font-size: 1.4rem;
+.profile-cover .cover-fallback {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.illustration-title {
-  font-size: 1.35rem;
-}
-.form-control {
-  padding: .65rem .85rem;
-  font-size: .88rem;
-  border-radius: 10px;
-}
-.btn-jg {
-  padding: .65rem 1rem;
-  font-size: .9rem;
-}
-.logo-circle {
-  width: 64px;
-  height: 64px;
-  margin-bottom: 8px;
-}
 
-.logo-circle img {
-  width: 56px;
-  height: 56px;
-}
-.illustration-text,
-.illustration-list li {
-  font-size: .85rem;
-}
-/* =========================
-   VISTA: GASTOS TOTALES
-   ========================= */
-body.page-gastos .header-box h1{
-  font-size: 1.35rem;
-  font-weight: 900;
-}
-body.page-gastos .header-box p{
-  font-size: 1rem;
-}
-
-body.page-gastos .dash-card{
-  padding: 22px 22px;
-  gap: 10px;
-}
-body.page-gastos .dash-card-icon{ font-size: 2.35rem; }
-body.page-gastos .dash-card-value{ font-size: 1.75rem; font-weight: 900; }
-
-body.page-gastos .filtros .form-label{ font-weight: 800; }
-body.page-gastos .filtros .form-control,
-body.page-gastos .filtros .form-select{
-  padding: .70rem .90rem;
-  font-size: .98rem;
-}
-
-body.page-gastos table.table thead th{
-  font-size: .95rem;
-  font-weight: 900;
-}
-body.page-gastos table.table tbody td{
-  font-size: .93rem;
+/* ✅ En mobile, baja el header del sidebar para que no se esconda bajo la topbar */
+@media (max-width: 991.98px){
+  .sidebar .sidebar-inner > .text-center{
+    padding-top: calc(var(--topbar-h) + 12px) !important;
+  }
 }
 

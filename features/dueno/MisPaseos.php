@@ -19,8 +19,9 @@ $auth = new AuthController();
 $auth->checkRole('dueno');
 
 /* Rutas base */
-$rolUsuario   = Session::getUsuarioRol() ?? 'dueno';
-$baseFeatures = BASE_URL . "/features/{$rolUsuario}";
+$rolUsuario    = Session::getUsuarioRol() ?? 'dueno';
+$baseFeatures  = BASE_URL . "/features/{$rolUsuario}";
+$usuarioNombre = htmlspecialchars(Session::getUsuarioNombre() ?? 'Dueño', ENT_QUOTES, 'UTF-8');
 
 /* Controlador y datos */
 $paseoCtrl = new PaseoController();
@@ -28,13 +29,8 @@ $duenoId   = (int)(Session::getUsuarioId() ?? 0);
 $paseos    = $duenoId ? ($paseoCtrl->indexByDueno($duenoId) ?? []) : [];
 
 /* Helpers */
-$norm = static function ($s): string {
-    return strtolower(trim((string)$s));
-};
-
-$h = static function ($v): string {
-    return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
-};
+$norm = static fn($s) => strtolower(trim((string)$s));
+$h    = static fn($v) => htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
 
 $fmtEstado = static function (string $estado): string {
     $estado = strtolower(trim($estado));
@@ -54,7 +50,7 @@ if ($estadoFiltro !== '' && in_array($estadoFiltro, $estadosValidos, true)) {
     ));
 }
 
-/* Métricas (sobre todos los paseos del dueño, sin filtrar por GET) */
+/* Métricas (sin filtrar por GET) */
 $all        = $duenoId ? ($paseoCtrl->indexByDueno($duenoId) ?? []) : [];
 $total      = count($all);
 $pendientes = array_filter($all, fn($p) => in_array($norm($p['estado'] ?? ''), ['solicitado', 'confirmado'], true));
@@ -71,304 +67,231 @@ $gastoTotal = array_sum(array_map(fn($p) => (float)($p['precio_total'] ?? 0), $c
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Mis Paseos - Jaguata</title>
 
-    <!-- CSS global -->
+    <!-- CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
     <link href="<?= BASE_URL; ?>/public/assets/css/jaguata-theme.css" rel="stylesheet">
 
     <style>
-        html,
-        body {
-            height: 100%;
-        }
+        html, body { height: 100%; }
+        body { background: var(--gris-fondo, #f4f6f9); }
 
-        body {
-            background: var(--gris-fondo, #f4f6f9);
-        }
-
-        main.main-content {
+        /* ✅ Desktop igual que tus otras pantallas */
+        main.main-content{
             margin-left: 260px;
             min-height: 100vh;
             padding: 24px;
         }
 
-        @media (max-width: 768px) {
-            main.main-content {
+        /* ✅ Mobile: NO margin-top, reservamos espacio para la topbar con padding-top */
+        @media (max-width: 768px){
+            main.main-content{
                 margin-left: 0;
-                padding: 16px;
+                margin-top: 0 !important;
+                width: 100% !important;
+                padding: calc(16px + var(--topbar-h)) 16px 16px !important;
             }
         }
 
-        .dash-card {
-            background: #ffffff;
-            border-radius: 18px;
-            padding: 18px 20px;
-            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.06);
-            text-align: center;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            gap: 6px;
+        .dash-card{
+            background:#fff;
+            border-radius:18px;
+            padding:18px 20px;
+            box-shadow:0 12px 30px rgba(0,0,0,.06);
+            text-align:center;
+            height: 100%;
         }
+        .dash-card-icon{ font-size:2rem; margin-bottom:6px; }
+        .dash-card-value{ font-size:1.4rem; font-weight:700; }
 
-        .dash-card-icon {
-            font-size: 2rem;
-            margin-bottom: 6px;
-        }
-
-        .dash-card-value {
-            font-size: 1.4rem;
-            font-weight: 700;
-            color: #222;
-        }
-
-        .dash-card-label {
-            font-size: 0.9rem;
-            color: #555;
-        }
-
-        .icon-blue {
-            color: #0d6efd;
-        }
-
-        .icon-green {
-            color: var(--verde-jaguata, #3c6255);
-        }
-
-        .icon-yellow {
-            color: #ffc107;
-        }
-
-        .icon-red {
-            color: #dc3545;
+        .badge-2masc{
+            background: var(--verde-jaguata, #3c6255);
         }
     </style>
 </head>
 
-<body>
+<body class="page-mis-paseos">
 
-    <!-- Sidebar dueño -->
+    <!-- ✅ Sidebar unificado (incluye topbar mobile + backdrop + JS toggle) -->
     <?php include __DIR__ . '/../../src/Templates/SidebarDueno.php'; ?>
 
-    <!-- Botón hamburguesa para mobile -->
-    <button class="btn btn-outline-secondary d-md-none ms-2 mt-3" id="toggleSidebar">
-        <i class="fas fa-bars"></i>
-    </button>
+    <!-- ✅ IMPORTANTE:
+         - Eliminamos el botón hamburguesa EXTRA (data-toggle="sidebar")
+         - Eliminamos el JS extra de toggleSidebar
+    -->
 
-    <!-- Contenido principal -->
     <main class="main-content">
         <div class="py-2">
 
-            <!-- Header -->
+            <!-- HEADER con VOLVER -->
             <div class="header-box header-paseos mb-2 d-flex justify-content-between align-items-center">
                 <div>
                     <h1 class="fw-bold mb-1">
                         <i class="fas fa-walking me-2"></i>Mis Paseos
                     </h1>
-                    <p class="mb-0">Listado de paseos realizados, pendientes y cancelados 🐾</p>
+                    <p class="mb-0">
+                        Hola, <?= $usuarioNombre; ?>. Listado de paseos realizados, pendientes y cancelados 🐾
+                    </p>
                 </div>
-                <div class="d-none d-md-block">
+
+                <div class="d-none d-md-flex gap-2">
+                    <a href="<?= $baseFeatures; ?>/Dashboard.php" class="btn btn-outline-light btn-sm">
+                        <i class="fas fa-arrow-left me-1"></i> Volver
+                    </a>
+
                     <a href="<?= $baseFeatures; ?>/SolicitarPaseo.php" class="btn btn-outline-light btn-sm">
                         <i class="fas fa-plus me-1"></i> Solicitar Paseo
                     </a>
-
-                    <a href="<?= BASE_URL ?>/public/api/paseos/reporte_mis_paseos_dueno.php?<?= $h(http_build_query($_GET)) ?>"
-                        class="btn btn-outline-light btn-sm ms-2">
-                        <i class="fas fa-file-excel me-1"></i> Excel
-                    </a>
                 </div>
-
             </div>
 
-            <!-- Métricas -->
+            <!-- Botones mobile -->
+            <div class="d-md-none d-flex gap-2 mb-3">
+                <a href="<?= $baseFeatures; ?>/Dashboard.php" class="btn btn-secondary btn-sm w-50">
+                    <i class="fas fa-arrow-left me-1"></i> Volver
+                </a>
+                <a href="<?= $baseFeatures; ?>/SolicitarPaseo.php" class="btn btn-success btn-sm w-50">
+                    <i class="fas fa-plus me-1"></i> Paseo
+                </a>
+            </div>
+
+            <!-- MÉTRICAS -->
             <div class="row g-3 mb-4">
                 <div class="col-md-3">
                     <div class="dash-card">
-                        <i class="fas fa-list dash-card-icon icon-blue"></i>
-                        <div class="dash-card-value"><?= (int)$total; ?></div>
-                        <div class="dash-card-label">Total de paseos</div>
+                        <i class="fas fa-list dash-card-icon text-primary"></i>
+                        <div class="dash-card-value"><?= $total ?></div>
+                        <div class="small text-muted">Total de paseos</div>
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="dash-card">
-                        <i class="fas fa-hourglass-half dash-card-icon icon-yellow"></i>
-                        <div class="dash-card-value"><?= (int)count($pendientes); ?></div>
-                        <div class="dash-card-label">Solicitados / Confirmados</div>
+                        <i class="fas fa-hourglass-half dash-card-icon text-warning"></i>
+                        <div class="dash-card-value"><?= count($pendientes) ?></div>
+                        <div class="small text-muted">Pendientes</div>
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="dash-card">
-                        <i class="fas fa-check-circle dash-card-icon icon-green"></i>
-                        <div class="dash-card-value"><?= (int)count($completos); ?></div>
-                        <div class="dash-card-label">Completados</div>
+                        <i class="fas fa-check-circle dash-card-icon text-success"></i>
+                        <div class="dash-card-value"><?= count($completos) ?></div>
+                        <div class="small text-muted">Completados</div>
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="dash-card">
-                        <i class="fas fa-wallet dash-card-icon icon-red"></i>
-                        <div class="dash-card-value">₲<?= number_format((float)$gastoTotal, 0, ',', '.'); ?></div>
-                        <div class="dash-card-label">Gasto total</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Filtros -->
-            <div class="filtros d-flex flex-wrap align-items-center justify-content-between">
-                <div class="mb-2 mb-md-0">
-                    <strong>Filtrar por estado:</strong>
-                </div>
-                <div class="d-flex align-items-center gap-2">
-                    <label for="filtroEstado" class="mb-0 small text-muted">Estado</label>
-                    <select class="form-select form-select-sm" id="filtroEstado" style="min-width: 180px;" onchange="aplicarFiltro()">
-                        <?php
-                        $opts = [
-                            ''           => 'Todos',
-                            'solicitado' => 'Solicitados',
-                            'confirmado' => 'Confirmados',
-                            'en_curso'   => 'En curso',
-                            'completo'   => 'Completos',
-                            'cancelado'  => 'Cancelados',
-                        ];
-                        ?>
-                        <?php foreach ($opts as $val => $label): ?>
-                            <option value="<?= $h($val); ?>" <?= $estadoFiltro === $val ? 'selected' : ''; ?>>
-                                <?= $label; ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-            </div>
-
-            <!-- Lista -->
-            <?php if (empty($paseos)): ?>
-                <div class="section-card text-center">
-                    <div class="mb-3">
-                        <i class="fas fa-dog fa-3x text-muted"></i>
-                    </div>
-                    <h5 class="text-muted mb-3">
-                        No tenés paseos
-                        <?= $estadoFiltro ? 'en “' . $h($estadoFiltro) . '”' : 'registrados'; ?>.
-                    </h5>
-                    <a href="<?= $baseFeatures; ?>/SolicitarPaseo.php" class="btn-enviar">
-                        <i class="fas fa-plus me-1"></i> Solicitar tu primer paseo
-                    </a>
-                </div>
-            <?php else: ?>
-                <div class="section-card">
-                    <div class="section-header">
-                        <i class="fas fa-list me-2"></i> Lista de Paseos
-                    </div>
-                    <div class="section-body p-0">
-                        <div class="table-responsive">
-                            <table class="table table-hover align-middle mb-0">
-                                <thead>
-                                    <tr>
-                                        <th>Mascota</th>
-                                        <th>Paseador</th>
-                                        <th>Fecha</th>
-                                        <th>Duración</th>
-                                        <th>Estado</th>
-                                        <th>Precio</th>
-                                        <th class="text-center">Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php foreach ($paseos as $p): ?>
-                                        <?php
-                                        // ✅ Fallback: si viene NULL/'' lo tratamos como solicitado
-                                        $estadoRaw = $norm($p['estado'] ?? '');
-                                        $estado    = $estadoRaw !== '' ? $estadoRaw : 'solicitado';
-
-                                        $estadoPago = $norm($p['estado_pago'] ?? '');
-
-                                        $badge = match ($estado) {
-                                            'completo'   => 'success',
-                                            'cancelado'  => 'danger',
-                                            'en_curso'   => 'info',
-                                            'confirmado' => 'primary',
-                                            'solicitado' => 'warning',
-                                            default      => 'secondary',
-                                        };
-                                        ?>
-                                        <tr>
-                                            <td>
-                                                <i class="fas fa-paw text-success me-2"></i>
-                                                <?= $h($p['nombre_mascota'] ?? '-'); ?>
-                                            </td>
-                                            <td>
-                                                <i class="fas fa-user text-secondary me-2"></i>
-                                                <?= $h($p['nombre_paseador'] ?? '-'); ?>
-                                            </td>
-                                            <td>
-                                                <?= !empty($p['inicio'])
-                                                    ? date('d/m/Y H:i', strtotime((string)$p['inicio']))
-                                                    : '-'; ?>
-                                            </td>
-                                            <td><?= (int)($p['duracion'] ?? 0); ?> min</td>
-                                            <td>
-                                                <span class="badge bg-<?= $badge; ?>">
-                                                    <?= $fmtEstado($estado); ?>
-                                                </span>
-                                            </td>
-                                            <td>
-                                                ₲<?= number_format((float)($p['precio_total'] ?? 0), 0, ',', '.'); ?>
-                                            </td>
-                                            <td class="text-center">
-                                                <div class="btn-group">
-                                                    <a href="<?= $baseFeatures; ?>/VerPaseo.php?paseo_id=<?= (int)($p['paseo_id'] ?? 0); ?>"
-                                                        class="btn-ver"
-                                                        title="Ver detalles del paseo">
-                                                        <i class="fas fa-eye"></i> Ver
-                                                    </a>
-
-                                                    <?php if (in_array($estado, ['solicitado', 'confirmado'], true)): ?>
-                                                        <a href="<?= $baseFeatures; ?>/CancelarPaseo.php?id=<?= (int)($p['paseo_id'] ?? 0); ?>"
-                                                            class="btn btn-sm btn-accion btn-rechazar"
-                                                            onclick="return confirm('¿Cancelar este paseo?')"
-                                                            title="Cancelar">
-                                                            <i class="fas fa-times"></i>
-                                                        </a>
-                                                    <?php endif; ?>
-
-                                                    <?php if ($estado === 'en_curso' && $estadoPago !== 'procesado'): ?>
-                                                        <a href="<?= $baseFeatures; ?>/pago_paseo_dueno.php?paseo_id=<?= (int)($p['paseo_id'] ?? 0); ?>"
-                                                            class="btn btn-sm btn-accion btn-activar"
-                                                            title="Pagar paseo">
-                                                            <i class="fas fa-wallet"></i>
-                                                        </a>
-                                                    <?php endif; ?>
-                                                </div>
-                                            </td>
-
-                                        </tr>
-                                    <?php endforeach; ?>
-                                </tbody>
-                            </table>
+                        <i class="fas fa-wallet dash-card-icon text-danger"></i>
+                        <div class="dash-card-value">
+                            ₲<?= number_format($gastoTotal, 0, ',', '.'); ?>
                         </div>
+                        <div class="small text-muted">Gasto total</div>
                     </div>
                 </div>
-            <?php endif; ?>
+            </div>
+
+            <!-- LISTA -->
+            <div class="section-card">
+                <div class="section-header">
+                    <i class="fas fa-list me-2"></i>Lista de Paseos
+                </div>
+
+                <div class="section-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Mascota(s)</th>
+                                    <th>Paseador</th>
+                                    <th>Fecha</th>
+                                    <th>Duración</th>
+                                    <th>Estado</th>
+                                    <th>Precio</th>
+                                    <th class="text-center">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            <?php if (empty($paseos)): ?>
+                                <tr>
+                                    <td colspan="7" class="text-center text-muted py-4">
+                                        No tenés paseos registrados.
+                                    </td>
+                                </tr>
+                            <?php else: ?>
+                                <?php foreach ($paseos as $p): ?>
+                                    <?php
+                                    $mascota1 = $p['mascota_nombre'] ?? $p['nombre_mascota'] ?? '-';
+                                    $mascota2 = $p['mascota_nombre_2'] ?? $p['nombre_mascota_2'] ?? null;
+
+                                    $cantMasc = (int)($p['cantidad_mascotas'] ?? 1);
+                                    $hay2 = $cantMasc === 2 || !empty($p['mascota_id_2']) || !empty($mascota2);
+
+                                    $textoMascotas = ($hay2 && $mascota2)
+                                        ? ($mascota1 . ' + ' . $mascota2)
+                                        : $mascota1;
+
+                                    $estadoRaw = $norm($p['estado'] ?? '');
+                                    $estado    = $estadoRaw !== '' ? $estadoRaw : 'solicitado';
+
+                                    $badge = match ($estado) {
+                                        'completo'   => 'success',
+                                        'cancelado'  => 'danger',
+                                        'en_curso'   => 'info',
+                                        'confirmado' => 'primary',
+                                        'solicitado' => 'warning',
+                                        default      => 'secondary',
+                                    };
+                                    ?>
+                                    <tr>
+                                        <td>
+                                            <i class="fas fa-paw text-success me-2"></i>
+                                            <?= $h($textoMascotas); ?>
+                                            <?php if ($hay2): ?>
+                                                <span class="badge badge-2masc ms-2">2 🐾</span>
+                                            <?php endif; ?>
+                                        </td>
+
+                                        <td><?= $h($p['nombre_paseador'] ?? '-'); ?></td>
+
+                                        <td>
+                                            <?= !empty($p['inicio'])
+                                                ? date('d/m/Y H:i', strtotime((string)$p['inicio']))
+                                                : '-'; ?>
+                                        </td>
+
+                                        <td><?= (int)($p['duracion'] ?? 0); ?> min</td>
+
+                                        <td>
+                                            <span class="badge bg-<?= $badge; ?>">
+                                                <?= $fmtEstado($estado); ?>
+                                            </span>
+                                        </td>
+
+                                        <td>
+                                            ₲<?= number_format((float)($p['precio_total'] ?? 0), 0, ',', '.'); ?>
+                                        </td>
+
+                                        <td class="text-center">
+                                            <a href="<?= $baseFeatures; ?>/VerPaseo.php?paseo_id=<?= (int)($p['paseo_id'] ?? 0); ?>"
+                                               class="btn-ver">
+                                                <i class="fas fa-eye"></i> Ver
+                                            </a>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
 
             <footer class="mt-4 text-center text-muted small">
-                © <?= date('Y'); ?> Jaguata — Panel del Dueño
+                © <?= date('Y') ?> Jaguata — Panel del Dueño
             </footer>
+
         </div>
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        function aplicarFiltro() {
-            const estado = document.getElementById('filtroEstado').value;
-            const url = new URL(window.location.href);
-            if (estado) url.searchParams.set('estado', estado);
-            else url.searchParams.delete('estado');
-            window.location.replace(url.toString());
-        }
-
-        document.getElementById('toggleSidebar')?.addEventListener('click', function() {
-            document.getElementById('sidebar')?.classList.toggle('sidebar-open');
-        });
-    </script>
 </body>
-
 </html>

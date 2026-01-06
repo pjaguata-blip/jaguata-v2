@@ -87,7 +87,7 @@ $telefono   = $usuario['telefono']     ?? '';
 
 $fechaNacAct = $usuario['fecha_nacimiento'] ?? '';
 if (!empty($fechaNacAct) && strlen((string)$fechaNacAct) > 10) {
-    $fechaNacAct = substr((string)$fechaNacAct, 0, 10); // por si viniera con hora
+    $fechaNacAct = substr((string)$fechaNacAct, 0, 10);
 }
 
 $depActual  = $usuario['departamento'] ?? '';
@@ -97,18 +97,10 @@ $calle      = $usuario['calle']        ?? '';
 $zona       = $usuario['zona']         ?? '';
 $direccion  = $usuario['direccion']    ?? '';
 
-/**
- * Barrio guardado en BD (un solo campo):
- * - puede ser uno del select
- * - o un texto cualquiera si antes era input
- */
+/* Barrio guardado en BD */
 $barrioGuardado = $usuario['barrio'] ?? '';
-
-/**
- * Estos son los que usaremos en el form:
- */
-$barrioSelect = $barrioGuardado; // intentamos matchear con lista
-$barrioTexto  = '';              // si no matchea o si es "Otra"
+$barrioSelect = $barrioGuardado;
+$barrioTexto  = '';
 
 $fotoActual = $usuario['foto_perfil'] ?? '';
 
@@ -181,18 +173,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         /* Datos a actualizar */
         $data = [
-            'nombre'          => $nombre,
-            'email'           => $email,
-            'telefono'        => $telefono,
+            'nombre'           => $nombre,
+            'email'            => $email,
+            'telefono'         => $telefono,
             'fecha_nacimiento' => $fechaNacAct !== '' ? $fechaNacAct : null,
 
-            'departamento'    => $depActual !== '' ? $depActual : null,
-            'ciudad'          => $ciudadAct !== '' ? $ciudadAct : null,
+            'departamento'     => $depActual !== '' ? $depActual : null,
+            'ciudad'           => $ciudadAct !== '' ? $ciudadAct : null,
 
-            'barrio'          => $barrioFinal !== '' ? $barrioFinal : null,
-            'calle'           => $calle !== '' ? $calle : null,
-            'zona'            => $zona !== '' ? $zona : null,
-            'direccion'       => $direccion !== '' ? $direccion : null,
+            'barrio'           => $barrioFinal !== '' ? $barrioFinal : null,
+            'calle'            => $calle !== '' ? $calle : null,
+            'zona'             => $zona !== '' ? $zona : null,
+            'direccion'        => $direccion !== '' ? $direccion : null,
         ];
 
         if ($fotoNueva) {
@@ -211,7 +203,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $fechaNacAct = substr((string)$fechaNacAct, 0, 10);
             }
 
-            // refrescar barrio guardado
+            // refrescar barrio
             $barrioGuardado = $usuario['barrio'] ?? '';
             $barrioSelect   = $barrioGuardado;
             $barrioTexto    = '';
@@ -250,15 +242,14 @@ if (!empty($fotoActual)) {
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
-    <link href="<?= ASSETS_URL; ?>/css/jaguata-theme.css" rel="stylesheet">
+
+    <!-- ✅ CSS unificado -->
+    <link href="<?= BASE_URL; ?>/public/assets/css/jaguata-theme.css" rel="stylesheet">
 </head>
 
 <body>
+    <!-- ✅ Sidebar unificado (incluye topbar + backdrop + JS toggle) -->
     <?php include __DIR__ . '/../../src/Templates/SidebarDueno.php'; ?>
-
-    <button class="btn btn-outline-secondary d-md-none ms-2 mt-3" id="toggleSidebar">
-        <i class="fas fa-bars"></i>
-    </button>
 
     <main>
         <div class="py-2">
@@ -420,11 +411,6 @@ if (!empty($fotoActual)) {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        // Sidebar mobile
-        document.getElementById('toggleSidebar')?.addEventListener('click', function() {
-            document.getElementById('sidebar')?.classList.toggle('sidebar-open');
-        });
-
         // Preview foto
         document.getElementById('foto')?.addEventListener('change', function(e) {
             const file = e.target.files?.[0];

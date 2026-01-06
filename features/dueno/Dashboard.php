@@ -28,6 +28,7 @@ if (Session::getUsuarioEstado() !== 'aprobado') {
     header('Location: ' . BASE_URL . '/public/login.php');
     exit;
 }
+
 /* ID del dueño logueado */
 $duenoId = (int)(Session::getUsuarioId() ?? 0);
 
@@ -77,8 +78,8 @@ $paseosRecientes = array_slice($paseos, 0, 5);
 $mascotasRecientes = array_slice($mascotas, 0, 3);
 
 /* Rutas base y nombre usuario para SidebarDueno */
-$baseFeatures   = BASE_URL . "/features/dueno";
-$usuarioNombre  = Session::getUsuarioNombre() ?? 'Dueño/a';
+$baseFeatures  = BASE_URL . "/features/dueno";
+$usuarioNombre = Session::getUsuarioNombre() ?? 'Dueño/a';
 
 /* Helper de escape rápido */
 function h(?string $v): string
@@ -101,27 +102,30 @@ function h(?string $v): string
     <link href="<?= BASE_URL; ?>/public/assets/css/jaguata-theme.css" rel="stylesheet">
 
     <style>
-        html,
-        body {
-            height: 100%;
-        }
+        html, body { height: 100%; }
+        body { background: var(--gris-fondo, #f4f6f9); }
 
-        body {
-            background: var(--gris-fondo, #f4f6f9);
-        }
+       /* =========================
+   Layout principal
+   (IGUAL al Dashboard)
+   ========================= */
 
-        main.main-content {
-            margin-left: 260px;
-            min-height: 100vh;
-            padding: 24px;
-        }
+/* Desktop */
+main.main-content {
+    margin-left: 260px;
+    min-height: 100vh;
+    padding: 24px;
+}
 
-        @media (max-width: 768px) {
-            main.main-content {
-                margin-left: 0;
-                padding: 16px;
-            }
-        }
+/* Mobile */
+@media (max-width: 768px) {
+    main.main-content {
+        margin-left: 0;
+        margin-top: 0 !important; /* 🔥 clave */
+        width: 100% !important;
+        padding: calc(16px + var(--topbar-h)) 16px 16px !important;
+    }
+}
 
         .dash-card {
             background: #ffffff;
@@ -133,12 +137,10 @@ function h(?string $v): string
             flex-direction: column;
             justify-content: center;
             gap: 6px;
+            height: 100%;
         }
 
-        .dash-card-icon {
-            font-size: 2rem;
-            margin-bottom: 6px;
-        }
+        .dash-card-icon { font-size: 2rem; margin-bottom: 6px; }
 
         .dash-card-value {
             font-size: 1.4rem;
@@ -146,46 +148,29 @@ function h(?string $v): string
             color: #222;
         }
 
-        .dash-card-label {
-            font-size: 0.9rem;
-            color: #555;
-        }
+        .dash-card-label { font-size: 0.9rem; color: #555; }
 
-        .icon-blue {
-            color: #0d6efd;
-        }
+        .icon-blue { color: #0d6efd; }
+        .icon-green { color: var(--verde-jaguata, #3c6255); }
+        .icon-yellow { color: #ffc107; }
+        .icon-red { color: #dc3545; }
 
-        .icon-green {
-            color: var(--verde-jaguata, #3c6255);
-        }
-
-        .icon-yellow {
-            color: #ffc107;
-        }
-
-        .icon-red {
-            color: #dc3545;
-        }
-
-        /* (Opcional) que el badge se vea más “Jaguata” */
-        .badge-2masc {
-            background: var(--verde-jaguata, #3c6255);
-        }
+        .badge-2masc { background: var(--verde-jaguata, #3c6255); }
     </style>
 </head>
 
-<body>
+<body class="page-dashboard-dueno">
+
     <!-- Sidebar Dueño unificado -->
     <?php include __DIR__ . '/../../src/Templates/SidebarDueno.php'; ?>
 
-    <!-- Botón hamburguesa para mobile -->
-    <button class="btn btn-outline-secondary d-md-none ms-2 mt-3" id="toggleSidebar">
-        <i class="fas fa-bars"></i>
-    </button>
+    <!-- ✅ IMPORTANTE:
+         - Eliminamos el botón hamburguesa EXTRA (data-toggle="sidebar")
+         - Eliminamos el JS extra del toggleSidebar (SidebarDueno ya lo trae)
+    -->
 
-    <!-- Contenido principal -->
     <main class="main-content">
-        <div class="py-2">
+        <div class="py-0">
 
             <!-- Header -->
             <div class="header-box header-dashboard mb-2">
@@ -254,7 +239,6 @@ function h(?string $v): string
                                         <tbody>
                                             <?php foreach ($paseosRecientes as $p): ?>
                                                 <?php
-                                                // Mascotas (soporta 1 o 2)
                                                 $mascota1 = $p['mascota_nombre'] ?? $p['nombre_mascota'] ?? '-';
                                                 $mascota2 = $p['mascota_nombre_2'] ?? $p['nombre_mascota_2'] ?? null;
 
@@ -265,10 +249,8 @@ function h(?string $v): string
                                                     ? ($mascota1 . ' + ' . $mascota2)
                                                     : $mascota1;
 
-                                                // Paseador
                                                 $paseadorNombre  = $p['paseador_nombre']  ?? $p['nombre_paseador']  ?? '-';
 
-                                                // Estado
                                                 $estado = $normEstado($p['estado'] ?? '-');
                                                 $badgeClass = match ($estado) {
                                                     'pendiente'   => 'bg-warning text-dark',
@@ -279,7 +261,6 @@ function h(?string $v): string
                                                     default       => 'bg-secondary',
                                                 };
 
-                                                // Duración
                                                 $dur = isset($p['duracion'])
                                                     ? (int)$p['duracion']
                                                     : (isset($p['duracion_min']) ? (int)$p['duracion_min'] : 0);
@@ -382,12 +363,6 @@ function h(?string $v): string
 
     <!-- JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        // Toggle sidebar en mobile
-        document.getElementById('toggleSidebar')?.addEventListener('click', function() {
-            document.getElementById('sidebar')?.classList.toggle('sidebar-open');
-        });
-    </script>
 </body>
 
 </html>

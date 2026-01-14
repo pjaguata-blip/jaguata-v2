@@ -228,7 +228,7 @@ function h(?string $v): string
                 <div class="form-pane">
                     <div class="text-center mb-3">
                         <div class="logo-circle">
-                            <img src="<?= AppConfig::getAssetsUrl(); ?>/uploads/perfiles/logojag.png" alt="Jaguata" width="64" height="64">
+                            <img src="<?= AppConfig::getAssetsUrl(); ?>//images/logojag.png" alt="Jaguata" width="64" height="64">
                         </div>
                         <h2>Olvidaste tu contraseña</h2>
                         <p class="text-muted mb-0">Te enviaremos un enlace para restablecerla</p>

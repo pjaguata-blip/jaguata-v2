@@ -2,22 +2,29 @@
 
 declare(strict_types=1);
 
+error_reporting(E_ALL);
+ini_set('display_errors', '1');
+
 require_once __DIR__ . '/../../src/Config/AppConfig.php';
 require_once __DIR__ . '/../../src/Controllers/AuthController.php';
 require_once __DIR__ . '/../../src/Controllers/PaseoController.php';
 require_once __DIR__ . '/../../src/Controllers/NotificacionController.php';
 require_once __DIR__ . '/../../src/Helpers/Session.php';
+require_once __DIR__ . '/../../src/Models/Suscripcion.php';
 
 use Jaguata\Config\AppConfig;
 use Jaguata\Controllers\AuthController;
 use Jaguata\Controllers\PaseoController;
 use Jaguata\Controllers\NotificacionController;
 use Jaguata\Helpers\Session;
+use Jaguata\Models\Suscripcion;
 
 AppConfig::init();
 
+/* 🔒 Auth */
 $authController = new AuthController();
 $authController->checkRole('paseador');
+
 /* 🔒 BLOQUEO POR ESTADO (MUY IMPORTANTE) */
 if (Session::getUsuarioEstado() !== 'aprobado') {
     Session::setError('Tu cuenta aún no fue aprobada.');
@@ -25,56 +32,96 @@ if (Session::getUsuarioEstado() !== 'aprobado') {
     exit;
 }
 
+function h(?string $v): string
+{
+    return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
+}
+
+/* Rutas + sesión */
 $rolMenu       = Session::getUsuarioRol() ?: 'paseador';
 $baseFeatures  = BASE_URL . "/features/{$rolMenu}";
-$paseadorId    = (int) (Session::getUsuarioId() ?? 0);
+$paseadorId    = (int)(Session::getUsuarioId() ?? 0);
 $usuarioNombre = Session::getUsuarioNombre() ?? 'Paseador';
 
+/* Datos */
 $paseoController        = new PaseoController();
 $notificacionController = new NotificacionController();
 
-$paseosAsignados = $paseadorId > 0 ? $paseoController->indexForPaseador($paseadorId) : [];
-$notificaciones = $paseadorId > 0 ? $notificacionController->getRecientes($paseadorId) : [];
+$paseosAsignados = $paseadorId > 0 ? ($paseoController->indexForPaseador($paseadorId) ?: []) : [];
+$notificaciones  = $paseadorId > 0 ? ($notificacionController->getRecientes($paseadorId) ?: []) : [];
+
+/* =========================================================
+   ✅ SUSCRIPCIÓN PRO (50.000 mensual)
+   ========================================================= */
+$tieneProActiva = false;
+$subEstado      = null;
+$subFin         = null;
+$subInicio      = null;
+$subMonto       = 50000;
+
+try {
+    if ($paseadorId > 0) {
+        $subModel = new Suscripcion();
+
+        // opcional: marca vencidas automáticamente
+        if (method_exists($subModel, 'marcarVencidas')) {
+            $subModel->marcarVencidas();
+        }
+
+        $ultima = $subModel->getUltimaPorPaseador($paseadorId);
+
+        if ($ultima) {
+            $subEstado = strtolower((string)($ultima['estado'] ?? ''));
+            $subInicio = $ultima['inicio'] ?? null;
+            $subFin    = $ultima['fin'] ?? null;
+            $subMonto  = (int)($ultima['monto'] ?? 50000);
+
+            $tieneProActiva = ($subEstado === 'activa');
+        }
+    }
+} catch (Throwable $e) {
+    $tieneProActiva = false;
+}
 
 /* ===== Cards ===== */
 $totalPaseos = count($paseosAsignados);
 
 $paseosCompletadosArr = array_filter(
     $paseosAsignados,
-    fn($p) => in_array(strtolower($p['estado'] ?? ''), ['completo', 'finalizado', 'completado'], true)
+    fn($p) => in_array(strtolower((string)($p['estado'] ?? '')), ['completo', 'finalizado', 'completado'], true)
 );
 
 $paseosPendientesArr = array_filter(
     $paseosAsignados,
-    fn($p) => in_array(strtolower($p['estado'] ?? ''), ['pendiente', 'confirmado', 'en_curso'], true)
+    fn($p) => in_array(strtolower((string)($p['estado'] ?? '')), ['pendiente', 'solicitado', 'confirmado', 'en_curso'], true)
 );
 
 $paseosCanceladosArr = array_filter(
     $paseosAsignados,
-    fn($p) => strtolower($p['estado'] ?? '') === 'cancelado'
+    fn($p) => strtolower((string)($p['estado'] ?? '')) === 'cancelado'
 );
 
 $ingresosTotales = array_sum(array_map(fn($p) => (float)($p['precio_total'] ?? 0), $paseosCompletadosArr));
 
 /* ===== Gráficos ===== */
-$porHora = [];
-$porSemana = [];
+$porHora        = [];
+$porSemana      = [];
 $calificaciones = [];
 
 foreach ($paseosAsignados as $p) {
     $inicio = $p['inicio'] ?? null;
 
     if ($inicio) {
-        $ts = strtotime($inicio);
+        $ts   = strtotime((string)$inicio);
         $hora = date('H:00', $ts);
         $porHora[$hora] = ($porHora[$hora] ?? 0) + 1;
     }
 
-    $estado = strtolower((string)($p['estado'] ?? ''));
+    $estado       = strtolower((string)($p['estado'] ?? ''));
     $esCompletado = in_array($estado, ['completo', 'finalizado', 'completado'], true);
 
     if ($inicio && $esCompletado) {
-        $ts   = strtotime($inicio);
+        $ts   = strtotime((string)$inicio);
         $anio = date('o', $ts);
         $sem  = date('W', $ts);
         $key  = "{$anio}-W{$sem}";
@@ -108,13 +155,12 @@ $semanas           = array_keys($porSemana);
 $ingresosPorSemana = array_values($porSemana);
 
 /* Recientes */
-usort($paseosAsignados, fn($a, $b) => strtotime($b['inicio'] ?? '1970-01-01') <=> strtotime($a['inicio'] ?? '1970-01-01'));
+usort(
+    $paseosAsignados,
+    fn($a, $b) => strtotime((string)($b['inicio'] ?? '1970-01-01')) <=> strtotime((string)($a['inicio'] ?? '1970-01-01'))
+);
 $paseosRecientes = array_slice($paseosAsignados, 0, 5);
 
-function h(?string $v): string
-{
-    return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
-}
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -126,319 +172,319 @@ function h(?string $v): string
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
-    <link href="<?= ASSETS_URL; ?>/css/jaguata-theme.css" rel="stylesheet">
+    <link href="<?= BASE_URL; ?>/public/assets/css/jaguata-theme.css" rel="stylesheet">
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-    <!-- ✅ SOLO estilos necesarios para responsive -->
     <style>
-        .layout {
-            display: flex;
-            min-height: 100vh;
-        }
+        /* ✅ evita scroll horizontal y mantiene consistencia */
+        html, body { overflow-x: hidden; width: 100%; }
 
-        /* overlay */
-        .sidebar-backdrop {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, .45);
-            z-index: 998;
-        }
-
-        .sidebar-backdrop.show {
-            display: block;
-        }
-
-        /* topbar mobile */
-        .topbar-mobile {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 56px;
-            background: #1e1e2f;
-            color: #fff;
-            z-index: 999;
-            padding: 0 .9rem;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .topbar-mobile .btn {
-            border: none;
-            background: transparent;
-            color: #fff;
-            font-size: 1.6rem;
-        }
-
-        /* charts */
-        .chart-box {
-            position: relative;
-            height: 320px;
-        }
-
-        .chart-box-lg {
-            position: relative;
-            height: 360px;
-        }
-
-        .chart-wrap {
-            position: relative;
-            height: 260px;
-        }
-
-        @media (max-width: 992px) {
-            .topbar-mobile {
-                display: flex;
-            }
-
-            main {
-                margin-left: 0 !important;
-                margin-top: 70px;
-                padding: 1rem !important;
-            }
-        }
+        /* charts: alto fijo responsive */
+        .chart-box { position: relative; height: 320px; }
+        .chart-box-lg { position: relative; height: 360px; }
+        .chart-wrap { position: relative; height: 260px; }
 
         @media (max-width: 768px) {
-            .chart-box {
-                height: 260px;
-            }
-
-            .chart-box-lg {
-                height: 300px;
-            }
-
-            .chart-wrap {
-                height: 240px;
-            }
+            .chart-box { height: 260px; }
+            .chart-box-lg { height: 300px; }
+            .chart-wrap { height: 240px; }
         }
     </style>
 </head>
 
 <body>
 
-    <div class="layout">
-        <?php include __DIR__ . '/../../src/Templates/SidebarPaseador.php'; ?>
+    <?php include __DIR__ . '/../../src/Templates/SidebarPaseador.php'; ?>
 
-        <main class="main-content">
+    <main>
+        <div class="container-fluid px-3 px-md-2">
 
-
-            <div class="container-fluid py-2">
-
-                <!-- Header -->
-                <div class="header-box header-dashboard mb-1">
-                    <div>
-                        <h1>¡Hola, <?= h($usuarioNombre); ?>! 🐾</h1>
-                        <p>Gestioná tus paseos, disponibilidad, ganancias y estadísticas desde un solo lugar.</p>
-                    </div>
-                    <i class="fas fa-dog fa-3x opacity-75"></i>
+            <!-- ✅ HEADER (mismo estilo que tus pantallas) -->
+            <div class="header-box header-dashboard mb-3">
+                <div>
+                    <h1 class="fw-bold mb-1">¡Hola, <?= h($usuarioNombre); ?>! 🐾</h1>
+                    <p class="mb-0">Gestioná tus paseos, disponibilidad, ganancias y estadísticas desde un solo lugar.</p>
                 </div>
 
-                <!-- Cards -->
-                <div class="row g-3 mb-2">
-                    <div class="col-12 col-sm-6 col-lg-3">
-                        <div class="stat-card">
-                            <i class="fas fa-list text-success"></i>
-                            <h4><?= $totalPaseos ?></h4>
-                            <p>Paseos asignados</p>
-                        </div>
-                    </div>
-                    <div class="col-12 col-sm-6 col-lg-3">
-                        <div class="stat-card">
-                            <i class="fas fa-check-circle text-primary"></i>
-                            <h4><?= count($paseosCompletadosArr) ?></h4>
-                            <p>Completados</p>
-                        </div>
-                    </div>
-                    <div class="col-12 col-sm-6 col-lg-3">
-                        <div class="stat-card">
-                            <i class="fas fa-hourglass-half text-warning"></i>
-                            <h4><?= count($paseosPendientesArr) ?></h4>
-                            <p>Pendientes / En curso</p>
-                        </div>
-                    </div>
-                    <div class="col-12 col-sm-6 col-lg-3">
-                        <div class="stat-card">
-                            <i class="fas fa-wallet text-info"></i>
-                            <h4>₲<?= number_format($ingresosTotales, 0, ',', '.') ?></h4>
-                            <p>Ingresos totales</p>
-                        </div>
-                    </div>
+                <div class="d-flex align-items-center gap-2">
+                    <button class="btn btn-light d-lg-none" id="btnSidebarToggle" type="button">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <i class="fas fa-dog fa-2x opacity-75 d-none d-md-inline"></i>
                 </div>
-
-                <!-- Gráficos -->
-                <div class="row g-4 mb-4">
-                    <div class="col-12 col-lg-6">
-                        <div class="card shadow-sm h-100">
-                            <div class="card-header bg-success text-white fw-semibold">
-                                <i class="fas fa-clock me-2"></i>Paseos por hora
-                            </div>
-                            <div class="card-body">
-                                <div class="chart-box">
-                                    <canvas id="graficoHoras"></canvas>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-12 col-lg-6">
-                        <div class="card shadow-sm h-100">
-                            <div class="card-header bg-warning text-dark fw-semibold d-flex justify-content-between align-items-center flex-wrap gap-2">
-                                <span><i class="fas fa-star me-2"></i>Distribución de calificaciones</span>
-                                <span class="badge bg-dark text-white">
-                                    Promedio: <?= number_format((float)$promedioCalificacion, 1, ',', '.'); ?> ⭐
-                                </span>
-                            </div>
-
-                            <div class="card-body d-flex flex-column">
-                                <?php if ($totalCalifs <= 0): ?>
-                                    <div class="alert alert-light border text-center mb-0">
-                                        <i class="fas fa-circle-info me-2"></i>
-                                        Aún no tenés calificaciones registradas.
-                                    </div>
-                                <?php else: ?>
-                                    <div class="chart-wrap flex-grow-1">
-                                        <canvas id="graficoCalificaciones"></canvas>
-                                    </div>
-
-                                    <div class="mt-3 d-flex flex-wrap gap-2 justify-content-center">
-                                        <?php foreach ([5, 4, 3, 2, 1] as $s): ?>
-                                            <span class="badge bg-light text-dark border">
-                                                <?= $s ?> ⭐: <strong><?= (int)$cantPorEstrella[$s] ?></strong>
-                                            </span>
-                                        <?php endforeach; ?>
-                                    </div>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-12">
-                        <div class="card shadow-sm">
-                            <div class="card-header bg-info text-white fw-semibold">
-                                <i class="fas fa-wallet me-2"></i>Ingresos por semana
-                            </div>
-                            <div class="card-body">
-                                <div class="chart-box-lg">
-                                    <canvas id="graficoIngresos"></canvas>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Tabla + Notificaciones -->
-                <div class="row g-4">
-                    <div class="col-12 col-lg-8">
-                        <div class="card shadow-sm">
-                            <div class="card-header bg-success text-white fw-semibold">
-                                <i class="fas fa-paw me-2"></i>Paseos recientes
-                            </div>
-                            <div class="card-body">
-                                <?php if (empty($paseosRecientes)): ?>
-                                    <p class="text-center text-muted mb-0">No hay paseos recientes.</p>
-                                <?php else: ?>
-                                    <div class="table-responsive">
-                                        <table class="table table-hover align-middle text-center">
-                                            <thead>
-                                                <tr>
-                                                    <th>Dueño</th>
-                                                    <th>Mascota</th>
-                                                    <th>Inicio</th>
-                                                    <th>Duración</th>
-                                                    <th>Precio</th>
-                                                    <th>Estado</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <?php foreach ($paseosRecientes as $p): ?>
-                                                    <tr>
-                                                        <td><?= h($p['dueno_nombre'] ?? '-') ?></td>
-                                                        <td><?= h($p['mascota_nombre'] ?? '-') ?></td>
-                                                        <td><?= !empty($p['inicio']) ? date('d/m/Y H:i', strtotime($p['inicio'])) : '-' ?></td>
-                                                        <td><?= h((string)($p['duracion'] ?? $p['duracion_min'] ?? '-')) ?> min</td>
-                                                        <td>₲<?= number_format((float)($p['precio_total'] ?? 0), 0, ',', '.') ?></td>
-                                                        <td><span class="badge bg-secondary"><?= ucfirst(strtolower($p['estado'] ?? '-')) ?></span></td>
-                                                    </tr>
-                                                <?php endforeach; ?>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-12 col-lg-4">
-                        <div class="card shadow-sm">
-                            <div class="card-header bg-info text-white fw-semibold">
-                                <i class="fas fa-bell me-2"></i>Notificaciones
-                            </div>
-                            <div class="card-body">
-                                <?php if (empty($notificaciones)): ?>
-                                    <p class="text-center text-muted mb-0">No hay notificaciones recientes.</p>
-                                <?php else: ?>
-                                    <?php foreach ($notificaciones as $n): ?>
-                                        <div class="mb-3 border-bottom pb-2">
-                                            <h6 class="fw-bold mb-1"><?= h($n['titulo'] ?? '') ?></h6>
-                                            <p class="mb-1 small"><?= h($n['mensaje'] ?? '') ?></p>
-                                            <small class="text-muted">
-                                                <?php
-                                                $fecha = $n['created_at'] ?? $n['fecha'] ?? null;
-                                                echo $fecha ? date('d/m/Y H:i', strtotime($fecha)) : '';
-                                                ?>
-                                            </small>
-                                        </div>
-                                    <?php endforeach; ?>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <footer class="text-center text-muted small mt-4">
-                    &copy; <?= date('Y'); ?> Jaguata. Todos los derechos reservados.
-                </footer>
             </div>
-        </main>
-    </div>
+
+            <!-- ✅ ALERTA SUSCRIPCIÓN (SI NO ACTIVA) -->
+            <?php if (!$tieneProActiva): ?>
+                <div class="alert alert-warning border d-flex align-items-start gap-3 mb-3">
+                    <i class="fa-solid fa-triangle-exclamation mt-1"></i>
+                    <div class="flex-grow-1">
+                        <div class="fw-bold">Tu Suscripción PRO no está activa</div>
+
+                        <?php if ($subEstado === 'pendiente'): ?>
+                            <div class="small mt-1">
+                                Estado: <span class="badge bg-warning text-dark">PENDIENTE</span>.
+                                Subí tu comprobante para activar el plan (₲<?= number_format((float)$subMonto, 0, ',', '.'); ?> / mes).
+                            </div>
+                        <?php elseif ($subEstado === 'vencida'): ?>
+                            <div class="small mt-1">
+                                Estado: <span class="badge bg-secondary">VENCIDA</span>.
+                                Renová tu plan para seguir aceptando paseos.
+                            </div>
+                        <?php elseif ($subEstado === 'rechazada'): ?>
+                            <div class="small mt-1">
+                                Estado: <span class="badge bg-danger">RECHAZADA</span>.
+                                Subí un comprobante válido o corregí la referencia de pago.
+                            </div>
+                        <?php elseif ($subEstado === 'cancelada'): ?>
+                            <div class="small mt-1">
+                                Estado: <span class="badge bg-dark">CANCELADA</span>.
+                                Podés volver a suscribirte cuando quieras.
+                            </div>
+                        <?php else: ?>
+                            <div class="small mt-1">
+                                Aún no registraste una suscripción PRO. Activala para tener paseos ilimitados.
+                            </div>
+                        <?php endif; ?>
+
+                        <?php if ($subFin): ?>
+                            <div class="small text-muted mt-1">
+                                Vence: <?= date('d/m/Y H:i', strtotime((string)$subFin)); ?>
+                            </div>
+                        <?php endif; ?>
+
+                        <div class="mt-2 d-flex flex-wrap gap-2">
+                            <a href="<?= $baseFeatures; ?>/Suscripcion.php" class="btn btn-warning btn-sm fw-semibold">
+                                <i class="fa-solid fa-crown me-1"></i> Gestionar suscripción
+                            </a>
+                            <a href="<?= $baseFeatures; ?>/Suscripcion.php#subir-comprobante" class="btn btn-outline-dark btn-sm">
+                                <i class="fa-solid fa-upload me-1"></i> Subir comprobante
+                            </a>
+                        </div>
+
+                        <div class="small text-muted mt-2">
+                            * Mientras no esté activa, podés ver tu panel, pero luego vamos a bloquear “Aceptar paseo”.
+                        </div>
+                    </div>
+                </div>
+            <?php endif; ?>
+
+            <!-- ✅ Cards (stat-card como tus dashboards) -->
+            <div class="row g-3 mb-3">
+                <div class="col-12 col-sm-6 col-lg-3">
+                    <div class="stat-card">
+                        <i class="fas fa-list text-success"></i>
+                        <h4><?= (int)$totalPaseos ?></h4>
+                        <p>Paseos asignados</p>
+                    </div>
+                </div>
+
+                <div class="col-12 col-sm-6 col-lg-3">
+                    <div class="stat-card">
+                        <i class="fas fa-check-circle text-primary"></i>
+                        <h4><?= (int)count($paseosCompletadosArr) ?></h4>
+                        <p>Completados</p>
+                    </div>
+                </div>
+
+                <div class="col-12 col-sm-6 col-lg-3">
+                    <div class="stat-card">
+                        <i class="fas fa-hourglass-half text-warning"></i>
+                        <h4><?= (int)count($paseosPendientesArr) ?></h4>
+                        <p>Pendientes / En curso</p>
+                    </div>
+                </div>
+
+                <div class="col-12 col-sm-6 col-lg-3">
+                    <div class="stat-card">
+                        <i class="fas fa-wallet text-info"></i>
+                        <h4>₲<?= number_format((float)$ingresosTotales, 0, ',', '.'); ?></h4>
+                        <p>Ingresos totales</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ✅ Gráficos (section-card igual a Notificaciones) -->
+            <div class="row g-3 mb-3">
+                <div class="col-12 col-lg-6">
+                    <div class="section-card h-100">
+                        <div class="section-header d-flex align-items-center">
+                            <i class="fas fa-clock me-2"></i>
+                            <span>Paseos por hora</span>
+                        </div>
+                        <div class="section-body">
+                            <div class="chart-box">
+                                <canvas id="graficoHoras"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-lg-6">
+                    <div class="section-card h-100">
+                        <div class="section-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-star me-2"></i>
+                                <span>Distribución de calificaciones</span>
+                            </div>
+                            <span class="badge bg-dark text-white">
+                                Promedio: <?= number_format((float)$promedioCalificacion, 1, ',', '.'); ?> ⭐
+                            </span>
+                        </div>
+
+                        <div class="section-body">
+                            <?php if ($totalCalifs <= 0): ?>
+                                <div class="alert alert-light border text-center mb-0">
+                                    <i class="fas fa-circle-info me-2"></i>
+                                    Aún no tenés calificaciones registradas.
+                                </div>
+                            <?php else: ?>
+                                <div class="chart-wrap">
+                                    <canvas id="graficoCalificaciones"></canvas>
+                                </div>
+
+                                <div class="mt-3 d-flex flex-wrap gap-2 justify-content-center">
+                                    <?php foreach ([5, 4, 3, 2, 1] as $s): ?>
+                                        <span class="badge bg-light text-dark border">
+                                            <?= (int)$s ?> ⭐: <strong><?= (int)$cantPorEstrella[$s] ?></strong>
+                                        </span>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12">
+                    <div class="section-card">
+                        <div class="section-header d-flex align-items-center">
+                            <i class="fas fa-wallet me-2"></i>
+                            <span>Ingresos por semana</span>
+                        </div>
+                        <div class="section-body">
+                            <div class="chart-box-lg">
+                                <canvas id="graficoIngresos"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ✅ Tabla + Notificaciones (section-card) -->
+            <div class="row g-3">
+                <div class="col-12 col-lg-8">
+                    <div class="section-card">
+                        <div class="section-header d-flex align-items-center">
+                            <i class="fas fa-paw me-2"></i>
+                            <span>Paseos recientes</span>
+                        </div>
+                        <div class="section-body">
+                            <?php if (empty($paseosRecientes)): ?>
+                                <p class="text-center text-muted mb-0">No hay paseos recientes.</p>
+                            <?php else: ?>
+                                <div class="table-responsive">
+                                    <table class="table table-hover align-middle text-center mb-0">
+                                        <thead>
+                                            <tr>
+                                                <th>Dueño</th>
+                                                <th>Mascota</th>
+                                                <th>Inicio</th>
+                                                <th>Duración</th>
+                                                <th>Precio</th>
+                                                <th>Estado</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <?php foreach ($paseosRecientes as $p): ?>
+                                                <?php
+                                                $estadoRaw = strtolower((string)($p['estado'] ?? ''));
+                                                $badge = match ($estadoRaw) {
+                                                    'confirmado' => 'bg-primary',
+                                                    'en_curso'   => 'bg-info text-dark',
+                                                    'pendiente', 'solicitado' => 'bg-warning text-dark',
+                                                    'completo', 'finalizado', 'completado' => 'bg-success',
+                                                    'cancelado' => 'bg-danger',
+                                                    default     => 'bg-secondary',
+                                                };
+                                                ?>
+                                                <tr>
+                                                    <td><?= h($p['dueno_nombre'] ?? '-') ?></td>
+                                                    <td><?= h($p['mascota_nombre'] ?? '-') ?></td>
+                                                    <td><?= !empty($p['inicio']) ? date('d/m/Y H:i', strtotime((string)$p['inicio'])) : '-' ?></td>
+                                                    <td><?= h((string)($p['duracion'] ?? $p['duracion_min'] ?? '-')) ?> min</td>
+                                                    <td>₲<?= number_format((float)($p['precio_total'] ?? 0), 0, ',', '.'); ?></td>
+                                                    <td><span class="badge <?= $badge ?>"><?= h(ucfirst($estadoRaw ?: '-')) ?></span></td>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-lg-4">
+                    <div class="section-card">
+                        <div class="section-header d-flex align-items-center">
+                            <i class="fas fa-bell me-2"></i>
+                            <span>Notificaciones</span>
+                        </div>
+                        <div class="section-body">
+                            <?php if (empty($notificaciones)): ?>
+                                <p class="text-center text-muted mb-0">No hay notificaciones recientes.</p>
+                            <?php else: ?>
+                                <?php foreach ($notificaciones as $n): ?>
+                                    <div class="mb-3 border-bottom pb-2">
+                                        <h6 class="fw-bold mb-1"><?= h($n['titulo'] ?? '') ?></h6>
+                                        <p class="mb-1 small"><?= h($n['mensaje'] ?? '') ?></p>
+                                        <small class="text-muted">
+                                            <?php
+                                            $fecha = $n['created_at'] ?? $n['fecha'] ?? null;
+                                            echo $fecha ? date('d/m/Y H:i', strtotime((string)$fecha)) : '';
+                                            ?>
+                                        </small>
+                                    </div>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <footer class="mt-3">
+                <small>© <?= date('Y'); ?> Jaguata — Panel Paseador</small>
+            </footer>
+
+        </div>
+    </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        /* ===== Sidebar responsive ===== */
-        const sidebar = document.getElementById('sidebar');
-        const backdrop = document.getElementById('sidebarBackdrop');
-        const btn = document.getElementById('toggleSidebar');
+        /* ✅ Toggle sidebar en mobile (igual que tus pantallas admin) */
+        document.addEventListener('DOMContentLoaded', () => {
+            const sidebar = document.querySelector('.sidebar');
+            const btnToggle = document.getElementById('btnSidebarToggle');
 
-        function openSidebar() {
-            sidebar?.classList.add('sidebar-open');
-            backdrop?.classList.add('show');
-        }
-
-        function closeSidebar() {
-            sidebar?.classList.remove('sidebar-open');
-            backdrop?.classList.remove('show');
-        }
-        btn?.addEventListener('click', () => {
-            if (sidebar?.classList.contains('sidebar-open')) closeSidebar();
-            else openSidebar();
+            if (btnToggle && sidebar) {
+                btnToggle.addEventListener('click', () => {
+                    sidebar.classList.toggle('show');
+                });
+            }
         });
-        backdrop?.addEventListener('click', closeSidebar);
 
-        /* ===== Datos PHP ===== */
-        const horas = <?= json_encode($horas); ?>;
-        const cantidadPorHora = <?= json_encode($cantidadPorHora); ?>;
+        /* ✅ Charts */
+        const horas = <?= json_encode($horas, JSON_UNESCAPED_UNICODE); ?>;
+        const cantidadPorHora = <?= json_encode($cantidadPorHora, JSON_UNESCAPED_UNICODE); ?>;
 
-        const estrellas = <?= json_encode($estrellas); ?>;
-        const cantPorEstrella = <?= json_encode($cantidadesEstrellas); ?>;
+        const estrellas = <?= json_encode($estrellas, JSON_UNESCAPED_UNICODE); ?>;
+        const cantPorEstrella = <?= json_encode($cantidadesEstrellas, JSON_UNESCAPED_UNICODE); ?>;
 
-        const semanas = <?= json_encode($semanas); ?>;
-        const ingresosPorSemana = <?= json_encode($ingresosPorSemana); ?>;
+        const semanas = <?= json_encode($semanas, JSON_UNESCAPED_UNICODE); ?>;
+        const ingresosPorSemana = <?= json_encode($ingresosPorSemana, JSON_UNESCAPED_UNICODE); ?>;
 
-        /* ===== Charts (responsive real) ===== */
         const canvasHoras = document.getElementById('graficoHoras');
         if (canvasHoras) {
             new Chart(canvasHoras, {
@@ -447,17 +493,15 @@ function h(?string $v): string
                     labels: horas,
                     datasets: [{
                         label: 'Cantidad de paseos',
-                        data: cantidadPorHora
+                        data: cantidadPorHora,
+                        borderRadius: 6
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true
-                        }
-                    }
+                    scales: { y: { beginAtZero: true } },
+                    plugins: { legend: { display: false } }
                 }
             });
         }
@@ -468,18 +512,12 @@ function h(?string $v): string
                 type: 'doughnut',
                 data: {
                     labels: estrellas.map(e => e + ' ⭐'),
-                    datasets: [{
-                        data: cantPorEstrella
-                    }]
+                    datasets: [{ data: cantPorEstrella }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom'
-                        }
-                    }
+                    plugins: { legend: { position: 'bottom' } }
                 }
             });
         }
@@ -500,16 +538,12 @@ function h(?string $v): string
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true
-                        }
-                    }
+                    scales: { y: { beginAtZero: true } },
+                    plugins: { legend: { display: false } }
                 }
             });
         }
     </script>
 
 </body>
-
 </html>

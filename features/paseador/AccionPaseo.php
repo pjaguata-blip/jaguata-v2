@@ -7,51 +7,107 @@ require_once __DIR__ . '/../../src/Controllers/AuthController.php';
 require_once __DIR__ . '/../../src/Controllers/PaseoController.php';
 require_once __DIR__ . '/../../src/Helpers/Session.php';
 
+/* ✅ Suscripción */
+require_once __DIR__ . '/../../src/Models/Suscripcion.php';
+
 use Jaguata\Config\AppConfig;
 use Jaguata\Controllers\AuthController;
 use Jaguata\Controllers\PaseoController;
 use Jaguata\Helpers\Session;
+use Jaguata\Models\Suscripcion;
 
 AppConfig::init();
 
-// 🔒 Solo paseador
+/* 🔒 Solo paseador */
 $auth = new AuthController();
 $auth->checkRole('paseador');
 
-function h($v)
+/* 🔒 BLOQUEO POR ESTADO */
+if (Session::getUsuarioEstado() !== 'aprobado') {
+    Session::setError('Tu cuenta aún no fue aprobada.');
+    header('Location: ' . BASE_URL . '/public/login.php');
+    exit;
+}
+
+function h($v): string
 {
     return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
 }
 
-// 📨 Aceptamos tanto POST como GET (porque en MisPaseos tenés ambos tipos)
+/* =========================
+   Helpers redirect seguro
+   ========================= */
+$baseFeatures = BASE_URL . "/features/paseador";
+$defaultBack  = $baseFeatures . '/MisPaseos.php';
+
+$redirectTo = trim((string)($_POST['redirect_to'] ?? $_GET['redirect_to'] ?? ''));
+$allowedRedirects = ['MisPaseos.php', 'Solicitudes.php'];
+
+$redirectUrl = $defaultBack;
+if ($redirectTo !== '' && in_array($redirectTo, $allowedRedirects, true)) {
+    $redirectUrl = $baseFeatures . '/' . $redirectTo;
+}
+
+/* =========================
+   Leer acción (POST o GET)
+   ========================= */
 $method = $_SERVER['REQUEST_METHOD'];
 
 if ($method === 'POST') {
     $paseoId = (int)($_POST['id'] ?? 0);
     $accion  = strtolower(trim((string)($_POST['accion'] ?? '')));
-} else { // GET
+} else {
     $paseoId = (int)($_GET['id'] ?? 0);
     $accion  = strtolower(trim((string)($_GET['accion'] ?? '')));
 }
 
-// URL a donde volver si algo sale mal
-$baseFeatures = BASE_URL . "/features/paseador";
-$redirectUrl  = $baseFeatures . '/MisPaseos.php';
-
-// Validaciones básicas
+/* Validaciones básicas */
 if ($paseoId <= 0 || $accion === '') {
     $_SESSION['error'] = 'Datos de paseo inválidos.';
     header("Location: {$redirectUrl}");
     exit;
 }
 
-$paseadorId     = (int)(Session::getUsuarioId() ?? 0);
+$paseadorId      = (int)(Session::getUsuarioId() ?? 0);
 $paseoController = new PaseoController();
+
+/* =========================
+   ✅ Validar suscripción PRO
+   ========================= */
+$tieneProActiva = false;
+try {
+    if ($paseadorId > 0) {
+        $subModel = new Suscripcion();
+        // opcional: marcar vencidas al vuelo
+        if (method_exists($subModel, 'marcarVencidas')) {
+            $subModel->marcarVencidas();
+        }
+
+        $ultima = method_exists($subModel, 'getUltimaPorPaseador')
+            ? $subModel->getUltimaPorPaseador($paseadorId)
+            : null;
+
+        if ($ultima) {
+            $estado = strtolower(trim((string)($ultima['estado'] ?? '')));
+            $tieneProActiva = ($estado === 'activa');
+        }
+    }
+} catch (Throwable $e) {
+    $tieneProActiva = false;
+}
+
+/* Acciones que requieren PRO activa */
+$accionesRequierenPro = ['confirmar', 'iniciar', 'completar'];
+
+if (in_array($accion, $accionesRequierenPro, true) && !$tieneProActiva) {
+    $_SESSION['error'] = 'Necesitás Suscripción PRO activa para aceptar/iniciar/completar paseos. Subí tu comprobante o renová.';
+    header("Location: {$redirectUrl}");
+    exit;
+}
 
 try {
     switch ($accion) {
         case 'confirmar':
-            // solicitudes solicitadas/pendientes
             $res = $paseoController->confirmarPaseoPaseador($paseoId, $paseadorId);
             if (!empty($res['success'])) {
                 $_SESSION['success'] = $res['mensaje'] ?? 'Paseo confirmado correctamente.';
@@ -61,7 +117,6 @@ try {
             break;
 
         case 'cancelar':
-            // Para solicitudes pendientes (solicitado/pendiente)
             $res = $paseoController->rechazarPaseoPaseador($paseoId, $paseadorId);
             if (!empty($res['success'])) {
                 $_SESSION['success'] = $res['mensaje'] ?? 'Paseo cancelado correctamente.';
@@ -71,7 +126,6 @@ try {
             break;
 
         case 'iniciar':
-            // Confirmado -> en_curso
             $ok = $paseoController->apiIniciar($paseoId);
             if ($ok) {
                 $_SESSION['success'] = 'El paseo fue iniciado correctamente.';
@@ -81,7 +135,6 @@ try {
             break;
 
         case 'completar':
-            // en_curso / confirmado -> completo
             $res = $paseoController->completarPaseo($paseoId);
             if (!empty($res['success'])) {
                 $_SESSION['success'] = 'El paseo fue marcado como completo.';
@@ -99,6 +152,5 @@ try {
     $_SESSION['error'] = 'Ocurrió un error al procesar la acción.';
 }
 
-// Volver siempre a MisPaseos
 header("Location: {$redirectUrl}");
 exit;

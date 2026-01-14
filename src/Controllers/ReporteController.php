@@ -17,6 +17,7 @@ class ReporteController
 
     /**
      * 🔹 Obtiene estadísticas generales del sistema
+     * ✅ ingresos_totales = suma de suscripciones (activa/vencida)
      */
     public function getEstadisticas(): array
     {
@@ -31,7 +32,7 @@ class ReporteController
                 SELECT COUNT(*) FROM paseos
             ")->fetchColumn();
 
-            // Paseos completados (completo / finalizado)
+            // Paseos completados
             $paseosCompletos = (int)$this->db->query("
                 SELECT COUNT(*) 
                 FROM paseos 
@@ -45,12 +46,33 @@ class ReporteController
                 WHERE estado IN ('pendiente', 'solicitado', 'confirmado', 'en_curso')
             ")->fetchColumn();
 
-            // Ingresos totales (suma precio_total de paseos completados)
-            $ingresosTotales = (float)$this->db->query("
+            // ✅ Ingresos por paseos (si querés conservar este dato)
+            $ingresosPaseos = (float)$this->db->query("
                 SELECT COALESCE(SUM(precio_total), 0) 
                 FROM paseos 
                 WHERE estado IN ('completo', 'finalizado')
             ")->fetchColumn();
+
+            // ✅ Ingresos por suscripciones (esto será el “ingresos_totales”)
+            $ingresosSuscripciones = 0.0;
+            $cantSuscripcionesPagas = 0;
+
+            try {
+                $rowSubs = $this->db->query("
+                    SELECT 
+                        COALESCE(SUM(monto), 0) AS total,
+                        COUNT(*) AS cant
+                    FROM suscripciones
+                    WHERE estado IN ('activa','vencida')
+                ")->fetch(PDO::FETCH_ASSOC);
+
+                $ingresosSuscripciones = (float)($rowSubs['total'] ?? 0);
+                $cantSuscripcionesPagas = (int)($rowSubs['cant'] ?? 0);
+            } catch (PDOException $e) {
+                // Si la tabla aún no existe, no rompemos
+                $ingresosSuscripciones = 0.0;
+                $cantSuscripcionesPagas = 0;
+            }
 
             // Usuarios por rol
             $roles = [];
@@ -107,7 +129,7 @@ class ReporteController
                 $paseosPorDia[$diaEs] = (int)$d['total'];
             }
 
-            // Ingresos por mes (últimos 6 meses)
+            // Ingresos por mes (últimos 6 meses) - sigue basado en paseos
             $ingresosPorMes = [];
             $stmtMes = $this->db->query("
                 SELECT 
@@ -126,8 +148,7 @@ class ReporteController
                 $ingresosPorMes[$mesEs] = (float)$m['total'];
             }
 
-            // 💰 Ingresos por paseador (para el nuevo gráfico)
-            // Ajustá "paseador_id" si tu columna tiene otro nombre
+            // Ingresos por paseador (por paseos completados)
             $ingresosPorPaseador = [];
             $stmtPaseadores = $this->db->query("
                 SELECT 
@@ -144,15 +165,23 @@ class ReporteController
             }
 
             return [
-                'usuarios'               => $usuariosTotal,
-                'paseos_total'           => $paseosTotal,
-                'paseos_completos'       => $paseosCompletos,
-                'paseos_pendientes'      => $paseosPendientes,
-                'ingresos_totales'       => $ingresosTotales,
-                'roles'                  => $roles,
-                'paseos_por_dia'         => $paseosPorDia,
-                'ingresos_por_mes'       => $ingresosPorMes,
-                'ingresos_por_paseador'  => $ingresosPorPaseador,
+                'usuarios'                => $usuariosTotal,
+                'paseos_total'            => $paseosTotal,
+                'paseos_completos'        => $paseosCompletos,
+                'paseos_pendientes'       => $paseosPendientes,
+
+                // ✅ ESTE ES EL QUE USÁS EN EL DASHBOARD
+                'ingresos_totales'        => $ingresosSuscripciones,
+
+                // ✅ extras por si querés mostrar ambos
+                'ingresos_suscripciones'  => $ingresosSuscripciones,
+                'suscripciones_pagadas'   => $cantSuscripcionesPagas,
+                'ingresos_paseos'         => $ingresosPaseos,
+
+                'roles'                   => $roles,
+                'paseos_por_dia'          => $paseosPorDia,
+                'ingresos_por_mes'        => $ingresosPorMes,
+                'ingresos_por_paseador'   => $ingresosPorPaseador,
             ];
         } catch (PDOException $e) {
             error_log("❌ Error en ReporteController::getEstadisticas(): " . $e->getMessage());

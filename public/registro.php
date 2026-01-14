@@ -28,8 +28,7 @@ if (!is_dir($uploadDir)) {
 }
 
 /* Helpers */
-function h(?string $v): string
-{
+function h(?string $v): string {
     return htmlspecialchars((string)($v ?? ''), ENT_QUOTES, 'UTF-8');
 }
 
@@ -104,7 +103,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-
     // Base
     $rol      = $_POST['rol'] ?? 'dueno';
     $nombre   = trim($_POST['nombre'] ?? '');
@@ -118,9 +116,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $sexo             = $_POST['sexo'] ?? null;
     $tipoDocumento    = $_POST['tipo_documento'] ?? null;
     $numeroDocumento  = trim($_POST['numero_documento'] ?? '');
-    $descripcion = trim($_POST['descripcion'] ?? '');
-    $experiencia = trim($_POST['experiencia'] ?? '');
-    // Dirección (opcionales)
+    $descripcion      = trim($_POST['descripcion'] ?? '');
+    $experiencia      = trim($_POST['experiencia'] ?? '');
+
+    // Dirección
     $direccion    = trim($_POST['direccion'] ?? '');
     $departamento = $_POST['departamento'] ?? null;
     $ciudad       = $_POST['ciudad'] ?? null;
@@ -132,20 +131,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Validaciones base
     if ($nombre === '' || mb_strlen($nombre) < 3) $errores[] = 'El nombre debe tener al menos 3 caracteres.';
     $emailCheck = Validaciones::validarEmail($email);
-    if (!$emailCheck['valido']) {
-        $errores[] = $emailCheck['mensaje'];
-    }
+    if (!$emailCheck['valido']) $errores[] = $emailCheck['mensaje'];
 
     if ($pass !== $pass2) $errores[] = 'Las contraseñas no coinciden.';
     $passCheck = Validaciones::validarPassword($pass);
-    if (!$passCheck['valido']) {
-        $errores[] = $passCheck['mensaje'];
-    }
+    if (!$passCheck['valido']) $errores[] = $passCheck['mensaje'];
 
     if (!Validaciones::validarTelefono($telefono)) {
         $errores[] = 'Teléfono inválido (ej: 0981-123-456 o solo dígitos).';
     }
-
 
     // Validaciones nuevas
     if (!$fechaNacimiento) $errores[] = 'Fecha de nacimiento obligatoria.';
@@ -163,9 +157,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Archivos requeridos SOLO para paseadores
     if ($rol === 'paseador') {
-        foreach ($files as $f) {
-            validarArchivo($f, $errores);
-        }
+        foreach ($files as $f) validarArchivo($f, $errores);
     }
 
     if (empty($errores)) {
@@ -250,542 +242,586 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 ?>
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Registro - Jaguata</title>
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
 
+    <!-- ✅ tu theme para que se parezca a dashboards -->
+    <link href="<?= AppConfig::getBaseUrl(); ?>/public/assets/css/jaguata-theme.css" rel="stylesheet">
+
     <style>
-        :root {
+        :root{
             --jg-green: #3c6255;
             --jg-mint: #20c997;
-            --jg-ink: #24343a;
         }
 
-        html {
-            font-size: clamp(13.2px, 0.78vw, 14.8px);
-        }
-
-        body {
+        body{
             min-height: 100vh;
-            background: linear-gradient(160deg, var(--jg-green) 0%, var(--jg-mint) 100%);
-            font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-            overflow-x: hidden;
-            margin: 0;
+            background: var(--gris-fondo, #f4f6f9);
         }
 
-        body::before {
-            content: "";
-            position: absolute;
-            inset: 0;
-            background:
-                radial-gradient(circle at 20px 20px, rgba(255, 255, 255, .12) 6px, transparent 7px) 0 0 / 60px 60px,
-                radial-gradient(circle at 50px 40px, rgba(255, 255, 255, .08) 4px, transparent 5px) 0 0 / 60px 60px;
-            mask-image: linear-gradient(to bottom, rgba(0, 0, 0, .25), rgba(0, 0, 0, .6));
-            pointer-events: none;
+        /* “Home/dashboard feel” */
+        .auth-shell{
+            width: min(1100px, 94vw);
+            margin: 22px auto 32px;
         }
 
-        .auth-shell {
-            width: min(860px, 92vw);
+        .auth-topbar{
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            gap:12px;
+            margin-bottom: 14px;
         }
 
-        .auth-card {
-            border: 0;
-            border-radius: 20px;
-            background: rgba(255, 255, 255, .92);
-            backdrop-filter: saturate(140%) blur(8px);
-            box-shadow: 0 18px 60px rgba(0, 0, 0, .18);
-            overflow: hidden;
+        .brand{
+            display:flex;
+            align-items:center;
+            gap:.6rem;
+            text-decoration:none;
+            color:#222;
+            font-weight:900;
+        }
+        .brand img{
+            width:44px; height:44px;
+            border-radius:50%;
+            object-fit:cover;
+            background:#fff;
+            box-shadow: 0 8px 18px rgba(0,0,0,.10);
         }
 
-        .illustration {
-            background:
-                radial-gradient(circle at top left, rgba(255, 255, 255, .18), transparent 55%),
-                linear-gradient(135deg, #3c6255 0%, #20c997 100%);
-            color: #f5fbfa;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
+        /* panel similar section-card */
+        .register-card{
+            border:0;
+            border-radius:18px;
+            overflow:hidden;
+            box-shadow:0 12px 30px rgba(0,0,0,.08);
+            background:#fff;
+        }
+
+        .side-info{
+            background: linear-gradient(135deg, #3c6255 0%, #20c997 100%);
+            color:#f5fbfa;
             padding: 22px;
+            display:flex;
+            flex-direction:column;
+            justify-content:space-between;
+            min-height: 100%;
         }
 
-        .illustration-title {
-            font-size: 1.25rem;
-            font-weight: 800;
-            line-height: 1.25;
+        .side-pill{
+            display:inline-flex;
+            align-items:center;
+            gap:6px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            background: rgba(0,0,0,.20);
+            font-size:.78rem;
+            font-weight:800;
+            letter-spacing:.03em;
+            text-transform:uppercase;
+            width: fit-content;
+        }
+
+        .side-title{
+            font-size: 1.35rem;
+            font-weight: 900;
+            line-height: 1.15;
             margin: 12px 0 8px;
         }
 
-        .illustration-text {
-            font-size: .84rem;
-            opacity: .92;
-            margin: 0 0 10px;
+        .side-text{
+            font-size: .9rem;
+            opacity:.95;
+            margin: 0 0 14px;
         }
 
-        .illustration-list {
-            list-style: none;
-            padding-left: 0;
-            margin: 0 0 10px;
+        .side-list{
+            list-style:none;
+            padding-left:0;
+            margin:0;
+            font-size:.9rem;
         }
-
-        .illustration-list li {
-            display: flex;
-            gap: 8px;
-            align-items: flex-start;
-            font-size: .83rem;
-            margin-bottom: 6px;
+        .side-list li{
+            display:flex;
+            gap:10px;
+            margin-bottom: 8px;
         }
-
-        .illustration-list i {
+        .side-list i{
             margin-top: 2px;
         }
 
-        .form-pane {
+        .form-pane{
             padding: 22px;
         }
 
-        .logo-circle {
-            width: 64px;
-            height: 64px;
-            border-radius: 50%;
-            background: #f4f7f9;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 4px 14px rgba(0, 0, 0, .08);
-            margin: 0 auto 8px;
-        }
-
-        .logo-circle img {
-            width: 56px;
-            height: 56px;
-        }
-
-        h2 {
-            color: var(--jg-green);
-            font-weight: 800;
-            letter-spacing: .2px;
-            font-size: 1.3rem;
-        }
-
-        .text-muted {
-            color: #6b7b83 !important;
-        }
-
-        .form-control,
-        .form-select {
+        .form-control, .form-select{
             border: 2px solid #e7ecef;
-            border-radius: 10px;
+            border-radius: 12px;
             padding: .62rem .82rem;
-            font-size: .88rem;
+            font-size: .92rem;
             transition: border-color .2s, box-shadow .2s;
         }
-
-        .form-control:focus,
-        .form-select:focus {
+        .form-control:focus, .form-select:focus{
             border-color: var(--jg-mint);
             box-shadow: 0 0 0 .2rem rgba(32, 201, 151, .18);
         }
 
-        .btn-jg {
+        .btn-jg{
             background: var(--jg-green);
             border: 0;
-            border-radius: 10px;
-            padding: .65rem 1rem;
-            font-weight: 700;
-            font-size: .9rem;
-            transition: transform .08s ease, filter .2s ease;
-            color: #fff;
+            border-radius: 12px;
+            padding: .7rem 1rem;
+            font-weight: 800;
+            color:#fff;
         }
+        .btn-jg:hover{ filter: brightness(.96); color:#fff; }
 
-        .btn-jg:hover {
-            filter: brightness(.96);
-            color: #fff;
-        }
-
-        .btn-jg:active {
-            transform: translateY(1px);
-        }
-
-        .btn-outline-success {
+        .btn-outline-success{
             border-radius: 999px;
             border-width: 2px;
         }
 
-        .hidden {
-            display: none !important;
-        }
+        .hidden{ display:none !important; }
 
-        .preview-img {
-            border-radius: 10px;
+        .preview-img{
+            border-radius: 12px;
             max-height: 110px;
             object-fit: cover;
         }
 
-        .paw-divider {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            color: #8aa3a9;
+        /* tarjeta de suscripción */
+        .sub-card{
+            border: 0;
+            border-radius: 16px;
+            background: rgba(255,255,255,.92);
+            box-shadow: 0 10px 22px rgba(0,0,0,.10);
         }
-
-        .paw-divider::before,
-        .paw-divider::after {
-            content: "";
-            flex: 1;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, #cfe6e0, transparent);
+        .price{
+            font-size: 1.55rem;
+            font-weight: 900;
+            color: #0f5132;
         }
+        .check-li{
+            display:flex;
+            gap:.55rem;
+            align-items:flex-start;
+            margin-bottom:.35rem;
+        }
+        .check-li i{ margin-top:.2rem; }
 
-        @media (max-width: 992px) {
-            .illustration {
-                display: none;
-            }
-
-            .auth-card {
-                border-radius: 18px;
-            }
-
-            .auth-shell {
-                width: min(520px, 94vw);
-            }
+        @media (max-width: 992px){
+            .side-info{ display:none; }
+            .form-pane{ padding: 18px; }
         }
     </style>
 </head>
 
 <body>
-    <main class="auth-shell">
-        <div class="row g-0 auth-card">
 
-            <div class="col-lg-6 illustration">
-                <div>
-                    <span class="d-inline-flex align-items-center gap-2 px-2 py-1 rounded-pill"
-                        style="background: rgba(0,0,0,.18); font-size:.75rem; letter-spacing:.04em; text-transform:uppercase;">
-                        <i class="fa-solid fa-paw"></i> Registro en Jaguata
-                    </span>
+<div class="auth-shell">
 
-                    <h2 class="illustration-title">Sé parte de la comunidad que cuida a las mascotas</h2>
+    <!-- Topbar simple (como tus pantallas) -->
+    <div class="auth-topbar">
+        <a class="brand" href="<?= AppConfig::getBaseUrl(); ?>/">
+            <img src="<?= AppConfig::getAssetsUrl(); ?>/images/logojag.png" alt="Jaguata">
+            <span>Jaguata</span>
+        </a>
 
-                    <p class="illustration-text">
-                        Creá tu cuenta como dueño o paseador y gestioná los paseos de manera segura y transparente.
-                    </p>
+        <div class="d-flex gap-2 flex-wrap">
+            <a class="btn btn-outline-secondary" href="<?= AppConfig::getBaseUrl(); ?>/login.php">
+                <i class="fa-solid fa-right-to-bracket me-1"></i> Iniciar sesión
+            </a>
+            <a class="btn btn-outline-primary" href="<?= AppConfig::getBaseUrl(); ?>/">
+                <i class="fa-solid fa-house me-1"></i> Volver al Home
+            </a>
+        </div>
+    </div>
 
-                    <ul class="illustration-list">
-                        <li><i class="fa-solid fa-user-shield"></i> <span>Validación documental para paseadores.</span></li>
-                        <li><i class="fa-solid fa-people-group"></i> <span>Conexión por disponibilidad y zona.</span></li>
-                        <li><i class="fa-solid fa-file-shield"></i> <span>Historial y trazabilidad de paseos.</span></li>
-                    </ul>
-                </div>
+    <!-- Header box (estilo dashboard) -->
+    <div class="header-box header-dashboard mb-3">
+        <div>
+            <h1>Crear cuenta 🐾</h1>
+            <p class="mb-0">Registrate como dueño o paseador. Si elegís paseador, vas a subir documentos para verificación.</p>
+        </div>
+        <i class="fa-solid fa-user-plus fa-3x opacity-75"></i>
+    </div>
 
-                <div class="text-white-50" style="font-size:.78rem;">
-                    Seguro • Verificado • Comunitario 🐾
-                </div>
-            </div>
+    <?php if ($error): ?>
+        <div class="alert alert-danger alert-dismissible fade show">
+            <i class="fas fa-exclamation-circle me-2"></i><?= h($error); ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    <?php endif; ?>
 
-            <div class="col-lg-6">
-                <div class="form-pane">
-                    <div class="text-center mb-3">
-                        <div class="logo-circle">
-                            <img src="<?= AppConfig::getAssetsUrl(); ?>/uploads/perfiles/logojag.png" alt="Jaguata">
+    <?php if ($success): ?>
+        <div class="alert alert-success alert-dismissible fade show">
+            <i class="fas fa-check-circle me-2"></i><?= h($success); ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    <?php endif; ?>
+
+    <div class="row g-3">
+        <!-- Form -->
+        <div class="col-lg-8">
+            <div class="register-card">
+                <div class="row g-0">
+                    <div class="col-lg-5 side-info">
+                        <div>
+                            <span class="side-pill"><i class="fa-solid fa-paw"></i> Registro Jaguata</span>
+                            <div class="side-title">Sé parte de la comunidad que cuida a las mascotas</div>
+                            <p class="side-text">Cuentas verificadas, paseos seguros y trazabilidad para dueños y paseadores.</p>
+
+                            <ul class="side-list">
+                                <li><i class="fa-solid fa-user-shield"></i><span>Validación documental para paseadores.</span></li>
+                                <li><i class="fa-solid fa-people-group"></i><span>Conexión por disponibilidad y zona.</span></li>
+                                <li><i class="fa-solid fa-file-shield"></i><span>Historial y trazabilidad de paseos.</span></li>
+                            </ul>
                         </div>
-                        <h2 class="mb-1">Crear cuenta</h2>
-                        <p class="text-muted mb-0">Únete a la comunidad Jaguata</p>
+
+                        <div class="text-white-50" style="font-size:.82rem;">
+                            Seguro • Verificado • Comunitario 🐾
+                        </div>
                     </div>
 
-                    <?php if ($error): ?>
-                        <div class="alert alert-danger alert-dismissible fade show">
-                            <i class="fas fa-exclamation-circle me-2"></i><?= h($error); ?>
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                        </div>
-                    <?php endif; ?>
+                    <div class="col-lg-7">
+                        <div class="form-pane">
+                            <form method="POST" enctype="multipart/form-data" autocomplete="off">
+                                <input type="hidden" name="csrf_token" value="<?= h(Validaciones::generarCSRF()); ?>">
 
-                    <?php if ($success): ?>
-                        <div class="alert alert-success alert-dismissible fade show">
-                            <i class="fas fa-check-circle me-2"></i><?= h($success); ?>
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                        </div>
-                    <?php endif; ?>
+                                <div class="text-center mb-3">
+                                    <label class="form-label fw-bold mb-2">Tipo de cuenta</label><br>
+                                    <input type="radio" class="btn-check" name="rol" id="dueno" value="dueno" checked>
+                                    <label for="dueno" class="btn btn-outline-success me-2">
+                                        <i class="fas fa-paw me-1"></i> Dueño
+                                    </label>
 
-                    <form method="POST" enctype="multipart/form-data" autocomplete="off">
-                        <input type="hidden" name="csrf_token" value="<?= h(Validaciones::generarCSRF()); ?>">
-
-                        <div class="text-center mb-3">
-                            <label class="form-label fw-semibold mb-2">Tipo de cuenta</label><br>
-                            <input type="radio" class="btn-check" name="rol" id="dueno" value="dueno" checked>
-                            <label for="dueno" class="btn btn-outline-success me-2">
-                                <i class="fas fa-paw me-1"></i> Dueño
-                            </label>
-
-                            <input type="radio" class="btn-check" name="rol" id="paseador" value="paseador">
-                            <label for="paseador" class="btn btn-outline-success">
-                                <i class="fas fa-walking me-1"></i> Paseador
-                            </label>
-                        </div>
-
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">Nombre completo</label>
-                                <input type="text" name="nombre" class="form-control" required autocomplete="off">
-
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">Email</label>
-                                <input type="email" name="email" class="form-control" required autocomplete="off">
-
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">Teléfono</label>
-                                <input type="tel" name="telefono" class="form-control" required autocomplete="off" placeholder="0981-123-456">
-
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">Contraseña</label>
-                                <input type="password" name="password" class="form-control" required autocomplete="new-password">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">Confirmar contraseña</label>
-                                <input type="password" name="confirm_password" class="form-control" required autocomplete="new-password">
-                            </div>
-                        </div>
-
-                        <hr class="my-3">
-                        <h6 class="fw-bold text-success mb-2">Datos personales</h6>
-
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">Fecha de nacimiento</label>
-                                <input type="date" name="fecha_nacimiento" class="form-control" required>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">Sexo</label>
-                                <select name="sexo" class="form-select" required>
-                                    <option value="">Seleccionar</option>
-                                    <option value="F">Femenino</option>
-                                    <option value="M">Masculino</option>
-                                    <option value="X">Otro</option>
-                                </select>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">Tipo de documento</label>
-                                <select name="tipo_documento" class="form-select" required>
-                                    <option value="">Seleccionar</option>
-                                    <option value="ci">Cédula</option>
-                                    <option value="pasaporte">Pasaporte</option>
-                                </select>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">Número de documento</label>
-                                <input type="text" name="numero_documento" class="form-control" required>
-                            </div>
-                        </div>
-
-                        <hr class="my-4">
-
-                        <h6 class="fw-bold text-success">Dirección</h6>
-
-                        <div class="row g-3">
-                            <!-- Departamento -->
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">Departamento</label>
-                                <select name="departamento" id="departamento" class="form-select" required>
-                                    <option value="">Seleccionar...</option>
-                                    <option value="Central">Central</option>
-                                    <option value="Asunción">Asunción</option>
-                                    <option value="Alto Paraná">Alto Paraná</option>
-                                    <option value="Itapúa">Itapúa</option>
-                                    <option value="Cordillera">Cordillera</option>
-                                </select>
-                            </div>
-
-                            <!-- Ciudad -->
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">Ciudad</label>
-                                <select name="ciudad" id="ciudad" class="form-select" required disabled>
-                                    <option value="">Seleccionar departamento primero</option>
-                                </select>
-                            </div>
-
-                            <!-- Barrio -->
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">Barrio</label>
-                                <select name="barrio" id="barrio" class="form-select" disabled>
-                                    <option value="">Seleccionar ciudad primero</option>
-                                </select>
-                            </div>
-
-                            <!-- Calle -->
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">Calle</label>
-                                <input type="text" name="calle" class="form-control" placeholder="Ej: Av. España 123">
-                            </div>
-                        </div>
-
-
-                        <div id="paseadorExtra" class="hidden mt-4">
-                            <hr>
-                            <h6 class="fw-bold text-success mb-3">Documentos obligatorios para paseadores</h6>
-
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <label class="form-label">Cédula (frente)</label>
-                                    <input type="file" name="cedula_frente" class="form-control" accept="image/*,.pdf">
-                                    <img id="preview_frente" class="preview-img mt-2 w-100 hidden" alt="preview frente">
+                                    <input type="radio" class="btn-check" name="rol" id="paseador" value="paseador">
+                                    <label for="paseador" class="btn btn-outline-success">
+                                        <i class="fas fa-walking me-1"></i> Paseador
+                                    </label>
                                 </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">Cédula (dorso)</label>
-                                    <input type="file" name="cedula_dorso" class="form-control" accept="image/*,.pdf">
-                                    <img id="preview_dorso" class="preview-img mt-2 w-100 hidden" alt="preview dorso">
+
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold">Nombre completo</label>
+                                        <input type="text" name="nombre" class="form-control" required autocomplete="off">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold">Email</label>
+                                        <input type="email" name="email" class="form-control" required autocomplete="off">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold">Teléfono</label>
+                                        <input type="tel" name="telefono" class="form-control" required autocomplete="off" placeholder="0981-123-456">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold">Contraseña</label>
+                                        <input type="password" name="password" class="form-control" required autocomplete="new-password">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold">Confirmar contraseña</label>
+                                        <input type="password" name="confirm_password" class="form-control" required autocomplete="new-password">
+                                    </div>
                                 </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">Selfie con cédula</label>
-                                    <input type="file" name="selfie" class="form-control" accept="image/*,.pdf">
-                                    <img id="preview_selfie" class="preview-img mt-2 w-100 hidden" alt="preview selfie">
+
+                                <hr class="my-3">
+                                <h6 class="fw-bold text-success mb-2">Datos personales</h6>
+
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold">Fecha de nacimiento</label>
+                                        <input type="date" name="fecha_nacimiento" class="form-control" required>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold">Sexo</label>
+                                        <select name="sexo" class="form-select" required>
+                                            <option value="">Seleccionar</option>
+                                            <option value="F">Femenino</option>
+                                            <option value="M">Masculino</option>
+                                            <option value="X">Otro</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold">Tipo de documento</label>
+                                        <select name="tipo_documento" class="form-select" required>
+                                            <option value="">Seleccionar</option>
+                                            <option value="ci">Cédula</option>
+                                            <option value="pasaporte">Pasaporte</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold">Número de documento</label>
+                                        <input type="text" name="numero_documento" class="form-control" required>
+                                    </div>
                                 </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">Certificado de antecedentes</label>
-                                    <input type="file" name="antecedentes" class="form-control" accept=".pdf,image/*">
+
+                                <hr class="my-4">
+                                <h6 class="fw-bold text-success">Dirección</h6>
+
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold">Departamento</label>
+                                        <select name="departamento" id="departamento" class="form-select" required>
+                                            <option value="">Seleccionar...</option>
+                                            <option value="Central">Central</option>
+                                            <option value="Asunción">Asunción</option>
+                                            <option value="Alto Paraná">Alto Paraná</option>
+                                            <option value="Itapúa">Itapúa</option>
+                                            <option value="Cordillera">Cordillera</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold">Ciudad</label>
+                                        <select name="ciudad" id="ciudad" class="form-select" required disabled>
+                                            <option value="">Seleccionar departamento primero</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold">Barrio</label>
+                                        <select name="barrio" id="barrio" class="form-select" disabled>
+                                            <option value="">Seleccionar ciudad primero</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold">Calle</label>
+                                        <input type="text" name="calle" class="form-control" placeholder="Ej: Av. España 123">
+                                    </div>
                                 </div>
-                                <small class="text-muted mt-1">Máximo 5MB por archivo.</small>
-                            </div>
-                        </div>
 
-                        <div class="form-check mt-4">
-                            <input class="form-check-input" type="checkbox" id="acepta_condiciones" name="acepta_condiciones" required>
-                            <label class="form-check-label" for="acepta_condiciones">
-                                Acepto las
-                                <a href="<?= AppConfig::getBaseUrl(); ?>/bases-y-condiciones.php" target="_blank" class="fw-semibold text-success">
-                                    Bases y Condiciones
-                                </a>
-                                de uso de Jaguata.
-                            </label>
-                        </div>
+                                <!-- ✅ NUEVO: caja suscripción (solo visual cuando es paseador) -->
+                                <div id="suscripcionBox" class="hidden mt-4">
+                                    <div class="sub-card p-3">
+                                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                                            <div class="fw-bold">
+                                                <i class="fa-solid fa-crown text-warning me-2"></i> Suscripción Paseador Pro
+                                            </div>
+                                            <span class="badge bg-success">₲50.000 / mes</span>
+                                        </div>
+                                        <div class="price mt-2">₲50.000 <span class="text-muted fs-6 fw-semibold">mensual</span></div>
+                                        <div class="text-muted small mb-2">
+                                            Pagás una vez al mes y podrás realizar los paseos que quieras (ilimitado).
+                                        </div>
 
-                        <div class="d-grid mt-4">
-                            <button type="submit" class="btn btn-jg">
-                                <i class="fas fa-user-plus me-2"></i> Crear cuenta
-                            </button>
-                        </div>
+                                        <div class="check-li small">
+                                            <i class="fa-solid fa-circle-check text-success"></i>
+                                            <span>Paseos ilimitados</span>
+                                        </div>
+                                        <div class="check-li small">
+                                            <i class="fa-solid fa-circle-check text-success"></i>
+                                            <span>Más visibilidad en búsquedas</span>
+                                        </div>
+                                        <div class="check-li small mb-0">
+                                            <i class="fa-solid fa-circle-check text-success"></i>
+                                            <span>Estadísticas avanzadas</span>
+                                        </div>
 
-                        <div class="my-4 paw-divider">
-                            <i class="fa-solid fa-paw"></i>
-                            <span class="small">Seguro • Verificado • Comunitario</span>
-                            <i class="fa-solid fa-bone"></i>
-                        </div>
+                                        <div class="alert alert-light border small mt-3 mb-0">
+                                            <i class="fa-solid fa-circle-info me-2"></i>
+                                            La suscripción se activa luego de la aprobación del administrador.
+                                        </div>
+                                    </div>
+                                </div>
 
-                        <p class="text-center mt-2 mb-0">
-                            ¿Ya tienes cuenta?
-                            <a href="<?= AppConfig::getBaseUrl(); ?>/login.php" class="fw-bold">Inicia sesión</a>
-                        </p>
-                    </form>
+                                <div id="paseadorExtra" class="hidden mt-4">
+                                    <hr>
+                                    <h6 class="fw-bold text-success mb-3">Documentos obligatorios para paseadores</h6>
+
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label">Cédula (frente)</label>
+                                            <input type="file" name="cedula_frente" class="form-control" accept="image/*,.pdf">
+                                            <img id="preview_frente" class="preview-img mt-2 w-100 hidden" alt="preview frente">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Cédula (dorso)</label>
+                                            <input type="file" name="cedula_dorso" class="form-control" accept="image/*,.pdf">
+                                            <img id="preview_dorso" class="preview-img mt-2 w-100 hidden" alt="preview dorso">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Selfie con cédula</label>
+                                            <input type="file" name="selfie" class="form-control" accept="image/*,.pdf">
+                                            <img id="preview_selfie" class="preview-img mt-2 w-100 hidden" alt="preview selfie">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Certificado de antecedentes</label>
+                                            <input type="file" name="antecedentes" class="form-control" accept=".pdf,image/*">
+                                        </div>
+                                        <small class="text-muted mt-1">Máximo 5MB por archivo.</small>
+                                    </div>
+                                </div>
+
+                                <div class="form-check mt-4">
+                                    <input class="form-check-input" type="checkbox" id="acepta_condiciones" name="acepta_condiciones" required>
+                                    <label class="form-check-label" for="acepta_condiciones">
+                                        Acepto las
+                                        <a href="<?= AppConfig::getBaseUrl(); ?>/bases-y-condiciones.php" target="_blank" class="fw-semibold text-success">
+                                            Bases y Condiciones
+                                        </a>
+                                        de uso de Jaguata.
+                                    </label>
+                                </div>
+
+                                <div class="d-grid mt-4">
+                                    <button type="submit" class="btn btn-jg">
+                                        <i class="fas fa-user-plus me-2"></i> Crear cuenta
+                                    </button>
+                                </div>
+
+                                <p class="text-center mt-3 mb-0">
+                                    ¿Ya tienes cuenta?
+                                    <a href="<?= AppConfig::getBaseUrl(); ?>/login.php" class="fw-bold">Inicia sesión</a>
+                                </p>
+
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tips / Ayuda lateral (tipo cards) -->
+        <div class="col-lg-4">
+            <div class="section-card mb-3">
+                <div class="section-header">
+                    <i class="fa-solid fa-shield-heart me-2"></i>Consejos de seguridad
+                </div>
+                <div class="section-body">
+                    <ul class="mb-0">
+                        <li>Usá un email real para recuperar tu cuenta.</li>
+                        <li>Elegí una contraseña segura.</li>
+                        <li>Si sos paseador, subí documentos claros y legibles.</li>
+                    </ul>
                 </div>
             </div>
 
+            <div class="section-card">
+                <div class="section-header">
+                    <i class="fa-solid fa-circle-question me-2"></i>¿Necesitás ayuda?
+                </div>
+                <div class="section-body">
+                    <p class="text-muted mb-2">Si tenés dudas sobre el registro o documentos, escribinos.</p>
+                    <a href="<?= AppConfig::getBaseUrl(); ?>/contacto.php" class="btn btn-outline-primary w-100">
+                        <i class="fa-solid fa-envelope me-2"></i>Contactar
+                    </a>
+                </div>
+            </div>
         </div>
-    </main>
+    </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        const dueno = document.getElementById('dueno');
-        const paseador = document.getElementById('paseador');
-        const extra = document.getElementById('paseadorExtra');
+</div>
 
-        function toggleDocs() {
-            if (paseador.checked) extra.classList.remove('hidden');
-            else extra.classList.add('hidden');
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    const dueno = document.getElementById('dueno');
+    const paseador = document.getElementById('paseador');
+    const extra = document.getElementById('paseadorExtra');
+    const subBox = document.getElementById('suscripcionBox');
+
+    function toggleDocs() {
+        const isPaseador = paseador.checked;
+        if (isPaseador) {
+            extra.classList.remove('hidden');
+            subBox.classList.remove('hidden'); // ✅ muestra suscripción
+        } else {
+            extra.classList.add('hidden');
+            subBox.classList.add('hidden');
         }
-        dueno.addEventListener('change', toggleDocs);
-        paseador.addEventListener('change', toggleDocs);
-        toggleDocs();
+    }
+    dueno.addEventListener('change', toggleDocs);
+    paseador.addEventListener('change', toggleDocs);
+    toggleDocs();
 
-        function previewFile(input, id) {
-            const file = input.files[0];
-            const preview = document.getElementById(id);
-            if (!preview) return;
+    function previewFile(input, id) {
+        const file = input.files[0];
+        const preview = document.getElementById(id);
+        if (!preview) return;
 
-            if (file && file.type.startsWith('image/')) {
-                const reader = new FileReader();
-                reader.onload = e => {
-                    preview.src = e.target.result;
-                    preview.classList.remove('hidden');
-                };
-                reader.readAsDataURL(file);
-            } else {
-                preview.classList.add('hidden');
-            }
+        if (file && file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = e => {
+                preview.src = e.target.result;
+                preview.classList.remove('hidden');
+            };
+            reader.readAsDataURL(file);
+        } else {
+            preview.classList.add('hidden');
         }
+    }
 
-        document.querySelectorAll('input[type="file"]').forEach(input => {
-            input.addEventListener('change', () => {
-                const key = input.name.split('_')[1] || input.name.split('_')[0];
-                const id = 'preview_' + key;
-                if (document.getElementById(id)) previewFile(input, id);
-            });
+    document.querySelectorAll('input[type="file"]').forEach(input => {
+        input.addEventListener('change', () => {
+            const key = input.name.split('_')[1] || input.name.split('_')[0];
+            const id = 'preview_' + key;
+            if (document.getElementById(id)) previewFile(input, id);
         });
-    </script>
-    <script>
-        const dataUbicacion = {
-            "Central": {
-                "San Lorenzo": ["Centro", "Barcequillo", "Villa Industrial"],
-                "Lambaré": ["Centro", "Valle Apu’a", "Santa Lucía"],
-                "Luque": ["Centro", "Mora Cué", "Itapuamí"]
-            },
-            "Asunción": {
-                "Asunción": ["Villa Morra", "Recoleta", "San Vicente", "Trinidad"]
-            },
-            "Alto Paraná": {
-                "Ciudad del Este": ["Microcentro", "Área 1", "Área 4"],
-                "Hernandarias": ["Centro", "Puerta del Sol"]
-            }
-        };
+    });
+</script>
 
-        const depSelect = document.getElementById('departamento');
-        const ciudadSelect = document.getElementById('ciudad');
-        const barrioSelect = document.getElementById('barrio');
+<script>
+    const dataUbicacion = {
+        "Central": {
+            "San Lorenzo": ["Centro", "Barcequillo", "Villa Industrial"],
+            "Lambaré": ["Centro", "Valle Apu’a", "Santa Lucía"],
+            "Luque": ["Centro", "Mora Cué", "Itapuamí"]
+        },
+        "Asunción": {
+            "Asunción": ["Villa Morra", "Recoleta", "San Vicente", "Trinidad"]
+        },
+        "Alto Paraná": {
+            "Ciudad del Este": ["Microcentro", "Área 1", "Área 4"],
+            "Hernandarias": ["Centro", "Puerta del Sol"]
+        }
+    };
 
-        depSelect.addEventListener('change', () => {
-            ciudadSelect.innerHTML = '<option value="">Seleccionar...</option>';
-            barrioSelect.innerHTML = '<option value="">Seleccionar ciudad primero</option>';
+    const depSelect = document.getElementById('departamento');
+    const ciudadSelect = document.getElementById('ciudad');
+    const barrioSelect = document.getElementById('barrio');
+
+    depSelect.addEventListener('change', () => {
+        ciudadSelect.innerHTML = '<option value="">Seleccionar...</option>';
+        barrioSelect.innerHTML = '<option value="">Seleccionar ciudad primero</option>';
+        barrioSelect.disabled = true;
+
+        const dep = depSelect.value;
+        if (!dataUbicacion[dep]) {
+            ciudadSelect.disabled = true;
+            return;
+        }
+
+        ciudadSelect.disabled = false;
+        Object.keys(dataUbicacion[dep]).forEach(ciudad => {
+            ciudadSelect.innerHTML += `<option value="${ciudad}">${ciudad}</option>`;
+        });
+    });
+
+    ciudadSelect.addEventListener('change', () => {
+        barrioSelect.innerHTML = '<option value="">Seleccionar...</option>';
+        const dep = depSelect.value;
+        const ciudad = ciudadSelect.value;
+
+        if (!dataUbicacion[dep]?.[ciudad]) {
             barrioSelect.disabled = true;
+            return;
+        }
 
-            const dep = depSelect.value;
-            if (!dataUbicacion[dep]) {
-                ciudadSelect.disabled = true;
-                return;
-            }
-
-            ciudadSelect.disabled = false;
-            Object.keys(dataUbicacion[dep]).forEach(ciudad => {
-                ciudadSelect.innerHTML += `<option value="${ciudad}">${ciudad}</option>`;
-            });
+        barrioSelect.disabled = false;
+        dataUbicacion[dep][ciudad].forEach(barrio => {
+            barrioSelect.innerHTML += `<option value="${barrio}">${barrio}</option>`;
         });
-
-        ciudadSelect.addEventListener('change', () => {
-            barrioSelect.innerHTML = '<option value="">Seleccionar...</option>';
-            const dep = depSelect.value;
-            const ciudad = ciudadSelect.value;
-
-            if (!dataUbicacion[dep]?.[ciudad]) {
-                barrioSelect.disabled = true;
-                return;
-            }
-
-            barrioSelect.disabled = false;
-            dataUbicacion[dep][ciudad].forEach(barrio => {
-                barrioSelect.innerHTML += `<option value="${barrio}">${barrio}</option>`;
-            });
-        });
-    </script>
+    });
+</script>
 
 </body>
-
 </html>

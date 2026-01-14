@@ -12,14 +12,23 @@ use Jaguata\Controllers\PaseoController;
 
 AppConfig::init();
 
-// 🔒 Solo admin
+/* 🔒 Solo admin */
 if (!Session::isLoggedIn() || Session::getUsuarioRol() !== 'admin') {
     header('Location: ' . BASE_URL . '/public/login.php?error=unauthorized');
     exit;
 }
 
+/* ✅ baseFeatures para botón volver */
+$baseFeatures = BASE_URL . '/features/admin';
+
+/* Datos */
 $paseoController = new PaseoController();
 $paseos          = $paseoController->index() ?: [];
+
+function h(?string $v): string
+{
+    return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
+}
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -32,6 +41,30 @@ $paseos          = $paseoController->index() ?: [];
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
     <link href="<?= BASE_URL; ?>/public/assets/css/jaguata-theme.css" rel="stylesheet">
+
+    <style>
+        /* ✅ evita scroll horizontal */
+        html, body { overflow-x: hidden; width: 100%; }
+        .table-responsive { overflow-x: auto; }
+        th, td { white-space: nowrap; }
+
+        /* chip de estado tipo "pro" */
+        .estado-chip{
+            display:inline-flex;
+            align-items:center;
+            justify-content:center;
+            min-width:110px;
+            gap:.35rem;
+        }
+        .estado-dot{
+            width:10px;height:10px;border-radius:999px;display:inline-block;
+        }
+        .estado-dot.pendiente{ background:#f0ad4e; }
+        .estado-dot.confirmado{ background:#0d6efd; }
+        .estado-dot.en_curso{ background:#0dcaf0; }
+        .estado-dot.finalizado{ background:#198754; }
+        .estado-dot.cancelado{ background:#dc3545; }
+    </style>
 </head>
 
 <body>
@@ -41,31 +74,32 @@ $paseos          = $paseoController->index() ?: [];
     <main>
         <div class="container-fluid px-3 px-md-2">
 
-            <!-- HEADER -->
-            <div class="header-box header-paseos">
+            <!-- ✅ HEADER (igual estilo) -->
+            <div class="header-box header-paseos mb-3">
                 <div>
                     <h1 class="fw-bold mb-1">Paseos registrados</h1>
                     <p class="mb-0">Listado general de paseos activos, pendientes y completados 🐾</p>
                 </div>
+
                 <div class="d-flex align-items-center gap-2">
-                    <!-- Toggle sidebar en móvil -->
                     <button class="btn btn-light d-lg-none" id="btnSidebarToggle" type="button">
                         <i class="fas fa-bars"></i>
                     </button>
-                    
                 </div>
-                 <a href="<?= $baseFeatures; ?>/Dashboard.php" class="btn btn-outline-light">
+
+                <a href="<?= $baseFeatures; ?>/Dashboard.php" class="btn btn-outline-light">
                     <i class="fas fa-arrow-left me-1"></i> Volver
                 </a>
             </div>
 
             <!-- FILTROS -->
-            <div class="filtros mb-3">
+            <div class="filtros mb-4">
                 <form class="row g-3 align-items-end">
                     <div class="col-md-3">
                         <label class="form-label fw-semibold">Buscar</label>
                         <input type="text" id="searchInput" class="form-control" placeholder="Paseador o cliente...">
                     </div>
+
                     <div class="col-md-3">
                         <label class="form-label fw-semibold">Estado</label>
                         <select id="filterEstado" class="form-select">
@@ -77,10 +111,12 @@ $paseos          = $paseoController->index() ?: [];
                             <option value="cancelado">Cancelado</option>
                         </select>
                     </div>
+
                     <div class="col-md-3">
                         <label class="form-label fw-semibold">Fecha desde</label>
                         <input type="date" id="filterDesde" class="form-control">
                     </div>
+
                     <div class="col-md-3">
                         <label class="form-label fw-semibold">Fecha hasta</label>
                         <input type="date" id="filterHasta" class="form-control">
@@ -90,25 +126,27 @@ $paseos          = $paseoController->index() ?: [];
 
             <!-- EXPORT -->
             <div class="export-buttons mb-3">
-                <a class="btn btn-excel"
-                    href="<?= BASE_URL; ?>/public/api/paseos/exportarPaseos.php">
+                <a class="btn btn-excel" href="<?= BASE_URL; ?>/public/api/paseos/exportarPaseos.php">
                     <i class="fas fa-file-excel"></i> Excel
                 </a>
             </div>
 
-            <!-- CARD + TABLA -->
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Listado de paseos</h5>
+            <!-- ✅ SECTION CARD (igual Notificaciones/Mascotas) -->
+            <div class="section-card mb-3">
+                <div class="section-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-walking me-2"></i>
+                        <span>Listado de paseos</span>
+                    </div>
                     <span class="badge bg-secondary"><?= count($paseos); ?> registro(s)</span>
                 </div>
 
-                <div class="card-body">
+                <div class="section-body">
                     <div class="table-responsive">
                         <table class="table table-hover align-middle" id="tablaPaseos">
                             <thead>
                                 <tr>
-                                    <th>ID</th>
+                                    <th class="text-center">ID</th>
                                     <th>Paseador</th>
                                     <th>Cliente</th>
                                     <th>Fecha</th>
@@ -117,6 +155,7 @@ $paseos          = $paseoController->index() ?: [];
                                     <th class="text-center">Acciones</th>
                                 </tr>
                             </thead>
+
                             <tbody>
                                 <?php if (empty($paseos)): ?>
                                     <tr>
@@ -126,10 +165,10 @@ $paseos          = $paseoController->index() ?: [];
                                     </tr>
                                 <?php else: ?>
                                     <?php foreach ($paseos as $p):
-                                        // Estado tal cual viene de la BD (solicitado, confirmado, en_curso, completo, cancelado)
-                                        $estadoRaw = strtolower($p['estado'] ?? 'solicitado');
 
-                                        // 🔄 Normalizar a cómo queremos mostrar/filtrar en la UI
+                                        $estadoRaw = strtolower((string)($p['estado'] ?? 'solicitado'));
+
+                                        // UI: solicitado -> pendiente, completo -> finalizado
                                         if ($estadoRaw === 'solicitado') {
                                             $estadoUi = 'pendiente';
                                         } elseif ($estadoRaw === 'completo') {
@@ -138,45 +177,60 @@ $paseos          = $paseoController->index() ?: [];
                                             $estadoUi = $estadoRaw;
                                         }
 
-                                        $estadoData  = $estadoUi;          // lo que usa data-estado para filtros
-                                        $estadoLabel = ucfirst($estadoUi); // texto visible en el badge
-
-                                        $badge  = match ($estadoUi) {
-                                            'pendiente'   => 'bg-warning text-dark',
-                                            'confirmado'  => 'bg-primary',
-                                            'en_curso'    => 'bg-info text-dark',
-                                            'finalizado'  => 'bg-success',
-                                            'cancelado'   => 'bg-danger',
-                                            default       => 'bg-secondary'
+                                        $estadoData  = $estadoUi;
+                                        $estadoLabel = match ($estadoUi) {
+                                            'pendiente'  => 'Pendiente',
+                                            'confirmado' => 'Confirmado',
+                                            'en_curso'   => 'En curso',
+                                            'finalizado' => 'Finalizado',
+                                            'cancelado'  => 'Cancelado',
+                                            default      => ucfirst($estadoUi),
                                         };
 
-                                        // Fecha formateada y data-fecha para filtros
+                                        // ✅ badge-estado (como el resto)
+                                        $badgeEstado = match ($estadoUi) {
+                                            'pendiente'  => 'estado-pendiente',
+                                            'confirmado' => 'estado-activo',     // o creás estado-confirmado si querés
+                                            'en_curso'   => 'estado-en-curso',   // si no existe, cae por CSS; igual dejamos
+                                            'finalizado' => 'estado-aprobado',
+                                            'cancelado'  => 'estado-rechazado',
+                                            default      => 'estado-pendiente'
+                                        };
+
                                         $inicio    = $p['inicio'] ?? null;
                                         $fechaShow = '-';
                                         $fechaData = '';
 
                                         if ($inicio) {
-                                            $ts        = strtotime($inicio);
-                                            $fechaShow = date('d/m/Y H:i', $ts);
-                                            $fechaData = date('Y-m-d', $ts);
+                                            $ts        = strtotime((string)$inicio);
+                                            if ($ts !== false) {
+                                                $fechaShow = date('d/m/Y H:i', $ts);
+                                                $fechaData = date('Y-m-d', $ts);
+                                            }
                                         }
                                     ?>
                                         <tr class="fade-in-row"
-                                            data-estado="<?= htmlspecialchars($estadoData, ENT_QUOTES, 'UTF-8'); ?>"
-                                            data-fecha="<?= htmlspecialchars($fechaData, ENT_QUOTES, 'UTF-8'); ?>">
+                                            data-estado="<?= h($estadoData); ?>"
+                                            data-fecha="<?= h($fechaData); ?>">
 
-                                            <!-- ID uniforme: # + negrita centrado -->
                                             <td class="text-center">
-                                                <strong>#<?= htmlspecialchars((string)$p['paseo_id']) ?></strong>
+                                                <strong>#<?= h((string)($p['paseo_id'] ?? '')); ?></strong>
                                             </td>
 
-                                            <td><?= htmlspecialchars($p['nombre_paseador'] ?? '-') ?></td>
-                                            <td><?= htmlspecialchars($p['nombre_dueno'] ?? '-') ?></td>
-                                            <td><?= $fechaShow; ?></td>
-                                            <td><?= (int)($p['duracion'] ?? 0) ?> min</td>
-                                            <td><span class="badge <?= $badge ?>"><?= $estadoLabel ?></span></td>
+                                            <td><?= h($p['nombre_paseador'] ?? '-'); ?></td>
+                                            <td><?= h($p['nombre_dueno'] ?? '-'); ?></td>
+                                            <td><?= h($fechaShow); ?></td>
+                                            <td><?= (int)($p['duracion'] ?? 0); ?> min</td>
+
+                                            <td>
+                                                <span class="badge-estado <?= h($badgeEstado); ?> estado-chip">
+                                                    <span class="estado-dot <?= h($estadoData); ?>"></span>
+                                                    <?= h($estadoLabel); ?>
+                                                </span>
+                                            </td>
+
                                             <td class="text-center">
-                                                <a href="VerPaseo.php?id=<?= urlencode((string)$p['paseo_id']); ?>" class="btn-ver">
+                                                <a href="VerPaseo.php?id=<?= urlencode((string)($p['paseo_id'] ?? '')); ?>" class="btn-ver">
                                                     <i class="fas fa-eye"></i> Ver
                                                 </a>
                                             </td>
@@ -184,7 +238,6 @@ $paseos          = $paseoController->index() ?: [];
                                     <?php endforeach; ?>
                                 <?php endif; ?>
                             </tbody>
-
                         </table>
                     </div>
 
@@ -197,30 +250,25 @@ $paseos          = $paseoController->index() ?: [];
             <footer class="mt-3">
                 <small>© <?= date('Y') ?> Jaguata — Panel de Administración</small>
             </footer>
-        </div><!-- /.container-fluid -->
+
+        </div>
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        // === Toggle sidebar en mobile ===
+        // ✅ Toggle sidebar en mobile (igual)
         document.addEventListener('DOMContentLoaded', () => {
             const sidebar = document.querySelector('.sidebar');
             const btnToggle = document.getElementById('btnSidebarToggle');
-
-            if (btnToggle && sidebar) {
-                btnToggle.addEventListener('click', () => {
-                    sidebar.classList.toggle('show');
-                });
-            }
+            if (btnToggle && sidebar) btnToggle.addEventListener('click', () => sidebar.classList.toggle('show'));
         });
 
-        // === FILTROS ===
+        // ✅ FILTROS
         const search = document.getElementById('searchInput');
         const estado = document.getElementById('filterEstado');
         const desde = document.getElementById('filterDesde');
         const hasta = document.getElementById('filterHasta');
-        // Solo filas reales de paseos
         const rows = document.querySelectorAll('#tablaPaseos tbody tr[data-estado]');
 
         function aplicarFiltros() {
@@ -232,19 +280,15 @@ $paseos          = $paseoController->index() ?: [];
             rows.forEach(row => {
                 const rowEstado = (row.dataset.estado || '').toLowerCase();
                 const rowTexto = row.textContent.toLowerCase();
-                const fechaStr = row.dataset.fecha || ''; // YYYY-MM-DD
+                const fechaStr = row.dataset.fecha || '';
                 const fechaRow = fechaStr ? new Date(fechaStr) : null;
 
                 const coincideTexto = !texto || rowTexto.includes(texto);
                 const coincideEstado = !estadoVal || rowEstado === estadoVal;
 
                 let coincideFecha = true;
-                if (fDesde && fechaRow) {
-                    coincideFecha = coincideFecha && (fechaRow >= fDesde);
-                }
-                if (fHasta && fechaRow) {
-                    coincideFecha = coincideFecha && (fechaRow <= fHasta);
-                }
+                if (fDesde && fechaRow) coincideFecha = coincideFecha && (fechaRow >= fDesde);
+                if (fHasta && fechaRow) coincideFecha = coincideFecha && (fechaRow <= fHasta);
 
                 row.style.display = (coincideTexto && coincideEstado && coincideFecha) ? '' : 'none';
             });
@@ -258,5 +302,4 @@ $paseos          = $paseoController->index() ?: [];
     </script>
 
 </body>
-
 </html>

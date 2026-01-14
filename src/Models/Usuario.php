@@ -12,7 +12,8 @@ use PDOException;
 class Usuario extends BaseModel
 {
     protected string $table      = 'usuarios';
-    protected string $primaryKey = 'usu_id';
+    protected string $primaryKey = 'id';
+
 
     public function __construct()
     {
@@ -25,7 +26,7 @@ class Usuario extends BaseModel
     private function baseSelectFields(): string
     {
         return "
-            usu_id,
+            id,
             nombre,
             email,
             pass,
@@ -141,7 +142,7 @@ class Usuario extends BaseModel
      */
     public function actualizarPassword(int $id, string $hashPassword): bool
     {
-        $sql = "UPDATE usuarios SET pass = :pass WHERE usu_id = :id";
+       $sql = "UPDATE usuarios SET pass = :pass WHERE id = :id";
         $stmt = $this->db->prepare($sql);
         $stmt->bindValue(':pass', $hashPassword, PDO::PARAM_STR);
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);

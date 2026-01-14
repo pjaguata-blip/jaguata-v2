@@ -14,7 +14,7 @@ use Jaguata\Controllers\PagoController;
 
 AppConfig::init();
 
-// 🔒 Solo admin
+/* 🔒 Solo admin */
 if (!Session::isLoggedIn()) {
     header('Location: ' . BASE_URL . '/public/login.php');
     exit;
@@ -22,9 +22,17 @@ if (!Session::isLoggedIn()) {
 $auth = new AuthController();
 $auth->checkRole('admin');
 
-// Cargamos TODOS los pagos
+/* ✅ baseFeatures para botón volver */
+$baseFeatures = BASE_URL . '/features/admin';
+
+/* Datos */
 $pagoController = new PagoController();
 $pagos          = $pagoController->index() ?: [];
+
+function h(?string $v): string
+{
+    return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
+}
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -37,6 +45,28 @@ $pagos          = $pagoController->index() ?: [];
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
     <link href="<?= BASE_URL; ?>/public/assets/css/jaguata-theme.css" rel="stylesheet">
+
+    <style>
+        /* ✅ evita scroll horizontal */
+        html, body { overflow-x: hidden; width: 100%; }
+        .table-responsive { overflow-x: auto; }
+        th, td { white-space: nowrap; }
+
+        /* ✅ chip de estado pro (igual Mascotas) */
+        .estado-chip{
+            display:inline-flex;
+            align-items:center;
+            gap:.35rem;
+            justify-content:center;
+            min-width:120px;
+        }
+        .estado-dot{
+            width:10px;height:10px;border-radius:999px;display:inline-block;
+        }
+        .estado-dot.pendiente{ background:#f0ad4e; }
+        .estado-dot.pagado{ background:#198754; }
+        .estado-dot.cancelado{ background:#dc3545; }
+    </style>
 </head>
 
 <body>
@@ -46,27 +76,26 @@ $pagos          = $pagoController->index() ?: [];
     <main>
         <div class="container-fluid px-3 px-md-2">
 
-            <!-- Encabezado -->
-            <div class="header-box header-paseos">
+            <!-- ✅ HEADER (igual estilo) -->
+            <div class="header-box header-paseos mb-3">
                 <div>
                     <h1 class="fw-bold mb-1">Gestión de Pagos</h1>
                     <p class="mb-0">Pagos pendientes, pagados y detalles individuales 💸</p>
                 </div>
 
                 <div class="d-flex align-items-center gap-2">
-                    <!-- Botón toggle sidebar SOLO en móvil -->
                     <button class="btn btn-light d-lg-none" id="btnSidebarToggle" type="button">
                         <i class="fas fa-bars"></i>
                     </button>
-                  
                 </div>
+
                 <a href="<?= $baseFeatures; ?>/Dashboard.php" class="btn btn-outline-light">
                     <i class="fas fa-arrow-left me-1"></i> Volver
                 </a>
             </div>
 
-            <!-- Filtros -->
-            <div class="filtros mb-3">
+            <!-- FILTROS -->
+            <div class="filtros mb-4">
                 <form class="row g-3 align-items-end">
                     <div class="col-md-3">
                         <label class="form-label fw-semibold">Buscar</label>
@@ -105,27 +134,29 @@ $pagos          = $pagoController->index() ?: [];
                 </form>
             </div>
 
-            <!-- Botón export -->
+            <!-- EXPORT -->
             <div class="export-buttons mb-3">
-                <a class="btn btn-excel"
-                    href="<?= BASE_URL; ?>/public/api/pagos/exportPagos.php">
+                <a class="btn btn-excel" href="<?= BASE_URL; ?>/public/api/pagos/exportPagos.php">
                     <i class="fas fa-file-excel"></i> Excel
                 </a>
             </div>
 
-            <!-- Tabla principal -->
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Listado de pagos</h5>
+            <!-- ✅ SECTION CARD (igual las otras) -->
+            <div class="section-card mb-3">
+                <div class="section-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-money-bill-wave me-2"></i>
+                        <span>Listado de pagos</span>
+                    </div>
                     <span class="badge bg-secondary"><?= count($pagos); ?> registro(s)</span>
                 </div>
 
-                <div class="card-body">
+                <div class="section-body">
                     <div class="table-responsive">
                         <table class="table table-hover align-middle" id="tablaPagos">
                             <thead>
                                 <tr>
-                                    <th>ID</th>
+                                    <th class="text-center">ID</th>
                                     <th>Usuario</th>
                                     <th>Monto</th>
                                     <th>Método</th>
@@ -135,6 +166,7 @@ $pagos          = $pagoController->index() ?: [];
                                     <th class="text-center">Acciones</th>
                                 </tr>
                             </thead>
+
                             <tbody>
                                 <?php if (empty($pagos)): ?>
                                     <tr>
@@ -145,59 +177,73 @@ $pagos          = $pagoController->index() ?: [];
                                 <?php else: ?>
                                     <?php foreach ($pagos as $pago): ?>
                                         <?php
-                                        $id          = (int)($pago['id'] ?? 0);
-                                        $usuario     = $pago['usuario'] ?? '-';
-                                        $monto       = (float)($pago['monto'] ?? 0);
-                                        $metodo      = $pago['metodo'] ?? '-';
-                                        $banco       = $pago['banco'] ?? '';
-                                        $cuenta      = $pago['cuenta'] ?? '';
-                                        $fecha       = $pago['fecha'] ?? '';
-                                        $fechaCorta  = substr($fecha, 0, 10); // YYYY-MM-DD
-                                        $estadoRaw   = strtolower((string)($pago['estado'] ?? ''));
-                                        $estadoPago  = $estadoRaw ?: 'nd';
-                                        $estadoLabel = ucfirst($estadoPago);
+                                        $id         = (int)($pago['id'] ?? 0);
+                                        $usuario    = (string)($pago['usuario'] ?? '-');
+                                        $monto      = (float)($pago['monto'] ?? 0);
+                                        $metodo     = (string)($pago['metodo'] ?? '-');
+                                        $banco      = (string)($pago['banco'] ?? '');
+                                        $cuenta     = (string)($pago['cuenta'] ?? '');
+                                        $fecha      = (string)($pago['fecha'] ?? '');
+                                        $fechaCorta = $fecha ? substr($fecha, 0, 10) : ''; // YYYY-MM-DD
 
-                                        $badgeClass = match ($estadoPago) {
-                                            'pendiente' => 'bg-warning text-dark',
-                                            'pagado'    => 'bg-success',
-                                            'cancelado' => 'bg-danger',
-                                            default     => 'bg-secondary'
+                                        $estadoPago = strtolower(trim((string)($pago['estado'] ?? '')));
+                                        if (!in_array($estadoPago, ['pendiente', 'pagado', 'cancelado'], true)) {
+                                            $estadoPago = 'pendiente';
+                                        }
+
+                                        $estadoLabel = match ($estadoPago) {
+                                            'pendiente' => 'Pendiente',
+                                            'pagado'    => 'Pagado',
+                                            'cancelado' => 'Cancelado',
+                                            default     => ucfirst($estadoPago),
                                         };
+
+                                        // ✅ badge-estado (como tu sistema)
+                                        $badgeEstado = match ($estadoPago) {
+                                            'pendiente' => 'estado-pendiente',
+                                            'pagado'    => 'estado-aprobado',   // o estado-activo si preferís
+                                            'cancelado' => 'estado-rechazado',
+                                            default     => 'estado-pendiente'
+                                        };
+
+                                        $bancoCuenta = trim($banco . ' ' . $cuenta);
                                         ?>
-                                        <tr data-estado="<?= htmlspecialchars($estadoPago); ?>"
-                                            data-metodo="<?= htmlspecialchars(strtolower($metodo)); ?>"
-                                            data-fecha="<?= htmlspecialchars($fechaCorta); ?>">
+                                        <tr class="fade-in-row"
+                                            data-estado="<?= h($estadoPago); ?>"
+                                            data-metodo="<?= h(strtolower($metodo)); ?>"
+                                            data-fecha="<?= h($fechaCorta); ?>">
 
-                                            <!-- ID uniforme: # + negrita centrado -->
                                             <td class="text-center">
-                                                <strong>#<?= $id; ?></strong>
+                                                <strong>#<?= (int)$id; ?></strong>
                                             </td>
 
-                                            <td><?= htmlspecialchars($usuario); ?></td>
+                                            <td><?= h($usuario); ?></td>
                                             <td><?= number_format($monto, 0, ',', '.'); ?> Gs</td>
-                                            <td><?= htmlspecialchars($metodo); ?></td>
-                                            <td><?= htmlspecialchars(trim("$banco $cuenta") ?: '-'); ?></td>
-                                            <td><?= htmlspecialchars($fecha); ?></td>
+                                            <td><?= h($metodo); ?></td>
+                                            <td><?= h($bancoCuenta !== '' ? $bancoCuenta : '-'); ?></td>
+                                            <td><?= h($fecha !== '' ? $fecha : '-'); ?></td>
+
                                             <td>
-                                                <span class="badge <?= $badgeClass ?>"><?= $estadoLabel ?></span>
+                                                <span class="badge-estado <?= h($badgeEstado); ?> estado-chip">
+                                                    <span class="estado-dot <?= h($estadoPago); ?>"></span>
+                                                    <?= h($estadoLabel); ?>
+                                                </span>
                                             </td>
 
                                             <td class="text-center">
-                                                <a href="DetallePago.php?id=<?= $id; ?>" class="btn-ver">
+                                                <a href="DetallePago.php?id=<?= (int)$id; ?>" class="btn-ver">
                                                     <i class="fas fa-eye"></i> Ver
                                                 </a>
                                             </td>
-
                                         </tr>
                                     <?php endforeach; ?>
                                 <?php endif; ?>
-
                             </tbody>
                         </table>
                     </div>
 
-                    <p class="text-muted small mt-2">
-                        Tip: combiná la búsqueda con los filtros de estado, método y fechas para encontrar pagos específicos.
+                    <p class="text-muted small mt-2 mb-0">
+                        Tip: combiná búsqueda con filtros de estado, método y fechas para encontrar pagos específicos.
                     </p>
                 </div>
             </div>
@@ -205,49 +251,43 @@ $pagos          = $pagoController->index() ?: [];
             <footer class="mt-3">
                 <small>© <?= date('Y'); ?> Jaguata — Panel de Administración</small>
             </footer>
+
         </div>
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        // === Toggle sidebar en mobile ===
+        // ✅ Toggle sidebar en mobile (igual)
         document.addEventListener('DOMContentLoaded', () => {
             const sidebar = document.querySelector('.sidebar');
             const btnToggle = document.getElementById('btnSidebarToggle');
-
-            if (btnToggle && sidebar) {
-                btnToggle.addEventListener('click', () => {
-                    sidebar.classList.toggle('show');
-                });
-            }
+            if (btnToggle && sidebar) btnToggle.addEventListener('click', () => sidebar.classList.toggle('show'));
         });
 
-        // === Filtros pagos ===
-        const searchInput = document.getElementById('searchInput');
+        // ✅ Filtros pagos
+        const searchInput  = document.getElementById('searchInput');
         const filterEstado = document.getElementById('filterEstado');
         const filterMetodo = document.getElementById('filterMetodo');
-        const filterDesde = document.getElementById('filterDesde');
-        const filterHasta = document.getElementById('filterHasta');
-        const rows = document.querySelectorAll('#tablaPagos tbody tr');
+        const filterDesde  = document.getElementById('filterDesde');
+        const filterHasta  = document.getElementById('filterHasta');
+        const rows         = document.querySelectorAll('#tablaPagos tbody tr[data-estado]');
 
         function aplicarFiltros() {
-            const texto = (searchInput.value || '').toLowerCase();
+            const texto     = (searchInput.value || '').toLowerCase();
             const estadoVal = (filterEstado.value || '').toLowerCase();
             const metodoVal = (filterMetodo.value || '').toLowerCase();
-            const fDesde = filterDesde.value ? new Date(filterDesde.value) : null;
-            const fHasta = filterHasta.value ? new Date(filterHasta.value) : null;
+            const fDesde    = filterDesde.value ? new Date(filterDesde.value) : null;
+            const fHasta    = filterHasta.value ? new Date(filterHasta.value) : null;
 
             rows.forEach(row => {
-                if (!row.dataset) return;
-
-                const rowTexto = row.textContent.toLowerCase();
+                const rowTexto  = row.textContent.toLowerCase();
                 const rowEstado = (row.dataset.estado || '').toLowerCase();
                 const rowMetodo = (row.dataset.metodo || '').toLowerCase();
-                const fechaStr = row.dataset.fecha || '';
-                const fechaRow = fechaStr ? new Date(fechaStr) : null;
+                const fechaStr  = row.dataset.fecha || '';
+                const fechaRow  = fechaStr ? new Date(fechaStr) : null;
 
-                const coincideTexto = rowTexto.includes(texto);
+                const coincideTexto  = !texto || rowTexto.includes(texto);
                 const coincideEstado = !estadoVal || rowEstado === estadoVal;
                 const coincideMetodo = !metodoVal || rowMetodo === metodoVal;
 
@@ -255,9 +295,7 @@ $pagos          = $pagoController->index() ?: [];
                 if (fDesde && fechaRow) coincideFecha = coincideFecha && (fechaRow >= fDesde);
                 if (fHasta && fechaRow) coincideFecha = coincideFecha && (fechaRow <= fHasta);
 
-                row.style.display = (coincideTexto && coincideEstado && coincideMetodo && coincideFecha) ?
-                    '' :
-                    'none';
+                row.style.display = (coincideTexto && coincideEstado && coincideMetodo && coincideFecha) ? '' : 'none';
             });
         }
 
@@ -267,6 +305,6 @@ $pagos          = $pagoController->index() ?: [];
             el.addEventListener('change', aplicarFiltros);
         });
     </script>
-</body>
 
+</body>
 </html>

@@ -151,7 +151,8 @@ function h(?string $v): string
                     <div class="section-card">
                         <div class="section-header">
                             <i class="fas fa-user me-2"></i>
-                            Usuario #<?= h((string)$usuario['usu_id']); ?> — <?= h($usuario['nombre'] ?? ''); ?>
+                           Usuario #<?= $userId; ?> — <?= h($usuario['nombre'] ?? ''); ?>
+
                         </div>
                         <div class="section-body">
                             <form method="POST">

@@ -417,7 +417,7 @@ $email = $_COOKIE['remember_email'] ?? '';
                 <div class="form-pane">
                     <div class="text-center mb-3">
                         <div class="logo-circle">
-                            <img src="<?= ASSETS_URL; ?>/uploads/perfiles/logojag.png" alt="Jaguata" width="64" height="64">
+                            <img src="<?= AppConfig::getAssetsUrl(); ?>/images/logojag.png" alt="Jaguata" alt="Jaguata" width="64" height="64">
                         </div>
                         <h2>Bienvenido a Jaguata <span aria-hidden="true">🐾</span></h2>
                         <p class="text-muted mb-0">Inicia sesión para continuar</p>

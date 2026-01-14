@@ -58,12 +58,11 @@ $calificacionModel = new Calificacion();
                     <p class="mb-0">Administrá usuarios, roles y estados 👥</p>
                 </div>
                 <div class="d-flex align-items-center gap-2">
-                    <button class="btn btn-light d-lg-none" id="btnSidebarToggle" type="button">
-                        <i class="fas fa-bars"></i>
-                    </button>
-                    <i class="fas fa-user-gear fa-3x opacity-75 d-none d-lg-block"></i>
+                 
                 </div>
-
+                <a href="<?= $baseFeatures; ?>/Dashboard.php" class="btn btn-outline-light">
+                    <i class="fas fa-arrow-left me-1"></i> Volver
+                </a>
             </div>
 
             <!-- FILTROS -->
@@ -296,7 +295,7 @@ $calificacionModel = new Calificacion();
                 </div>
 
                 <div class="modal-body">
-                    <div id="opinionesLoading" class="text-center py-4 d-none">
+                    <div id="opinionesLoading" class="text-center py-2 d-none">
                         <div class="spinner-border" role="status"></div>
                         <div class="text-muted mt-2">Cargando opiniones...</div>
                     </div>

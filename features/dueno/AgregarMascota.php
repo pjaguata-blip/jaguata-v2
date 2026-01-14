@@ -98,7 +98,7 @@ $usuarioNombre = htmlspecialchars(Session::getUsuarioNombre() ?? 'Dueño/a', ENT
     <?php include __DIR__ . '/../../src/Templates/SidebarDueno.php'; ?>
 
     <main>
-        <div class="py-4">
+        <div class="py-2">
 
             <div class="header-box header-mascotas mb-3 d-flex justify-content-between">
                 <div>

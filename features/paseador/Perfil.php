@@ -233,9 +233,6 @@ $repTotal     = isset($stats['total']) ? (int)$stats['total'] : 0;
 <body>
     <?php include __DIR__ . '/../../src/Templates/SidebarPaseador.php'; ?>
 
-    <button class="btn btn-outline-secondary d-md-none ms-2 mt-3" id="toggleSidebar">
-        <i class="fas fa-bars"></i>
-    </button>
 
     <main>
         <div class="py-2">

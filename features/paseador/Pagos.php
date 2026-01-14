@@ -107,10 +107,7 @@ $totalPaseos    = count($pagos);
 </head>
 
 <body>
-    <!-- Botón hamburguesa mobile -->
-    <button class="btn btn-outline-secondary d-md-none ms-2 mt-3" type="button" data-toggle="sidebar">
-  <i class="fas fa-bars"></i>
-</button>
+  
 
     <div class="layout">
         <!-- Sidebar paseador -->
@@ -118,7 +115,7 @@ $totalPaseos    = count($pagos);
 
         <!-- Contenido principal -->
         <main class="content bg-light">
-            <div class="container-fluid py-1">
+            <div class="container-fluid py-2">
 
                 <!-- Header -->
                 <div class="header-box header-dashboard mb-1">

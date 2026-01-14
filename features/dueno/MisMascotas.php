@@ -194,7 +194,7 @@ $urlNueva    = $baseFeatures . '/MisMascotas.php?vista=nueva';
     -->
 
     <main class="main-content">
-        <div class="container-fluid py-0">
+        <div class="container-fluid py-2">
 
             <!-- Header -->
             <div class="header-box header-mascotas mb-3 d-flex justify-content-between align-items-center">

@@ -58,8 +58,11 @@ $pagos          = $pagoController->index() ?: [];
                     <button class="btn btn-light d-lg-none" id="btnSidebarToggle" type="button">
                         <i class="fas fa-bars"></i>
                     </button>
-                    <i class="fas fa-wallet fa-3x opacity-75 d-none d-lg-block"></i>
+                  
                 </div>
+                <a href="<?= $baseFeatures; ?>/Dashboard.php" class="btn btn-outline-light">
+                    <i class="fas fa-arrow-left me-1"></i> Volver
+                </a>
             </div>
 
             <!-- Filtros -->

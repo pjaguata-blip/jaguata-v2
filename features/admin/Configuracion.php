@@ -229,7 +229,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <h1>Configuración del Sistema</h1>
                 <p>Personalizá los parámetros globales, roles y permisos ⚙️</p>
             </div>
-            <i class="fas fa-sliders-h fa-3x opacity-75"></i>
+            <a href="<?= $baseFeatures; ?>/Dashboard.php" class="btn btn-outline-light">
+                    <i class="fas fa-arrow-left me-1"></i> Volver
+                </a>
         </div>
 
         <?php if (!empty($mensajeConfig)): ?>

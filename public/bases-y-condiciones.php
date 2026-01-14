@@ -291,7 +291,7 @@ if (Session::isLoggedIn()) {
         </div>
     </section>
 
-    <footer class="py-3 mt-4">
+    <footer class="py-2 mt-4">
         <div class="container text-center small text-muted">
             <p>© <?= date('Y'); ?> Jaguata. Todos los derechos reservados.</p>
         </div>

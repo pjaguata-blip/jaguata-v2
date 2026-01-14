@@ -52,10 +52,7 @@ function h($v): string
 </head>
 
 <body>
-    <!-- Botón hamburguesa mobile -->
-    <button class="btn btn-outline-secondary d-md-none ms-2 mt-2" id="toggleSidebar">
-        <i class="fas fa-bars"></i>
-    </button>
+  
 
     <div class="layout">
         <!-- Sidebar unificado -->
@@ -63,7 +60,7 @@ function h($v): string
 
         <!-- Contenido -->
         <main class="content bg-light">
-            <div class="container-fluid py-1">
+            <div class="container-fluid py-2">
 
                 <!-- Header usando estilos globales -->
                 <div class="header-box header-dashboard mb-2">

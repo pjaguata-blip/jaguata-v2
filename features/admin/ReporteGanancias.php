@@ -331,9 +331,7 @@ if ($exportCsv) {
 
     <?php include dirname(__DIR__, 2) . '/src/Templates/SidebarAdmin.php'; ?>
 
-    <button class="btn btn-outline-secondary d-md-none ms-2 mt-3" id="toggleSidebar">
-        <i class="fas fa-bars"></i>
-    </button>
+ 
 
     <main class="main-content">
 
@@ -342,7 +340,9 @@ if ($exportCsv) {
                 <h1 class="fw-bold">Reporte de Ganancias</h1>
                 <p class="mb-0">Resumen financiero de la aplicación 💸</p>
             </div>
-            <i class="fas fa-chart-line fa-3x opacity-75 d-none d-md-block"></i>
+            <a href="<?= $baseFeatures; ?>/Dashboard.php" class="btn btn-outline-light">
+                    <i class="fas fa-arrow-left me-1"></i> Volver
+                </a>
         </div>
 
         <?php if ($debug): ?>

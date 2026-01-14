@@ -15,7 +15,9 @@ $currentFile   = basename($_SERVER['PHP_SELF']);
     <div class="d-flex align-items-center gap-2 fw-semibold">
         <i class="fas fa-paw"></i> Jaguata
     </div>
-    <button id="toggleSidebar" aria-label="Abrir menú">
+
+    <!-- ✅ SIN ID: unificado -->
+    <button type="button" data-toggle="sidebar" aria-label="Abrir menú">
         <i class="fas fa-bars"></i>
     </button>
 </div>
@@ -34,7 +36,7 @@ $currentFile   = basename($_SERVER['PHP_SELF']);
                 class="rounded-circle border border-light p-1 mb-2">
 
             <h6 class="text-white fw-semibold mb-0">
-                Hola, <?= htmlspecialchars($usuarioNombre); ?> 👋
+                Hola, <?= htmlspecialchars($usuarioNombre, ENT_QUOTES, 'UTF-8'); ?> 👋
             </h6>
             <small class="text-light-50">Administrador General</small>
 
@@ -121,37 +123,49 @@ $currentFile   = basename($_SERVER['PHP_SELF']);
     </div>
 </aside>
 
-<!-- ✅ JS Sidebar UNIFICADO -->
+<!-- ✅ JS Sidebar UNIFICADO (igual al de Paseador/Dueño) -->
 <script>
-    (function() {
-        const sidebar = document.getElementById('sidebar');
-        const backdrop = document.getElementById('sidebarBackdrop');
-        const btn = document.getElementById('toggleSidebar');
+(function () {
+    const sidebar   = document.getElementById('sidebar');
+    const backdrop  = document.getElementById('sidebarBackdrop');
+    const toggles   = document.querySelectorAll('[data-toggle="sidebar"]');
 
-        if (!sidebar || !backdrop || !btn) return;
+    if (!sidebar || !backdrop || !toggles.length) {
+        console.log('Sidebar init: faltan nodos', {sidebar: !!sidebar, backdrop: !!backdrop, toggles: toggles.length});
+        return;
+    }
 
-        const open = () => {
-            sidebar.classList.add('sidebar-open');
-            backdrop.classList.add('show');
-            document.body.style.overflow = 'hidden';
-        };
+    const isMobile = () => window.matchMedia('(max-width: 992px)').matches;
 
-        const close = () => {
-            sidebar.classList.remove('sidebar-open');
-            backdrop.classList.remove('show');
-            document.body.style.overflow = '';
-        };
+    const open = () => {
+        sidebar.classList.add('sidebar-open');
+        backdrop.classList.add('show');
+        document.body.style.overflow = 'hidden';
+    };
 
-        btn.addEventListener('click', () => {
-            sidebar.classList.contains('sidebar-open') ? close() : open();
-        });
+    const close = () => {
+        sidebar.classList.remove('sidebar-open');
+        backdrop.classList.remove('show');
+        document.body.style.overflow = '';
+    };
 
-        backdrop.addEventListener('click', close);
+    const toggle = () => sidebar.classList.contains('sidebar-open') ? close() : open();
 
-        sidebar.addEventListener('click', (e) => {
-            const a = e.target.closest('a.nav-link');
-            if (!a) return;
-            if (window.matchMedia('(max-width: 992px)').matches) close();
-        });
-    })();
+    toggles.forEach(btn => btn.addEventListener('click', toggle));
+    backdrop.addEventListener('click', close);
+
+    sidebar.addEventListener('click', (e) => {
+        const a = e.target.closest('a.nav-link');
+        if (!a) return;
+        if (isMobile()) close();
+    });
+
+    window.addEventListener('resize', () => {
+        if (!isMobile()) close();
+    });
+
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') close();
+    });
+})();
 </script>

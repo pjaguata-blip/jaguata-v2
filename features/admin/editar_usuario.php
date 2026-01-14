@@ -121,7 +121,7 @@ function h(?string $v): string
     </button>
 
     <main>
-        <div class="py-4 container-fluid">
+        <div class="py-2 container-fluid">
 
             <!-- Header igual estilo que otros módulos admin -->
             <div class="header-box header-dashboard mb-2 d-flex flex-wrap justify-content-between align-items-center">
@@ -282,7 +282,7 @@ function h(?string $v): string
             <footer class="mt-4 text-center text-muted small">
                 © <?= date('Y'); ?> Jaguata — Panel de Administración
             </footer>
-        </div><!-- py-4 -->
+        </div><!-- py-2 -->
     </main>
 
     <!-- JS -->

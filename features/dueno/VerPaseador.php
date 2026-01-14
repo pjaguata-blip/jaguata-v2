@@ -286,7 +286,7 @@ if ($u) {
     <?php include __DIR__ . '/../../src/Templates/SidebarDueno.php'; ?>
 
     <main class="main-content">
-        <div class="py-0">
+        <div class="py-2">
 
             <!-- Header -->
             <div class="header-box header-paseos mb-3 d-flex justify-content-between align-items-center">

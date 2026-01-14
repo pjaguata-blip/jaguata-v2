@@ -63,15 +63,13 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
 </head>
 
 <body>
-   <button class="btn btn-outline-secondary d-md-none ms-2 mt-3" type="button" data-toggle="sidebar">
-  <i class="fas fa-bars"></i>
-</button>
+
 
     <div class="layout">
         <?php include __DIR__ . '/../../src/Templates/SidebarPaseador.php'; ?>
 
         <main class="content bg-light">
-            <div class="container-fluid py-0">
+            <div class="container-fluid py-2">
 
                 <div class="header-box header-dashboard mb-2">
                     <div>

@@ -120,9 +120,7 @@ $estadisticas['promedio_duenos']     = $promedioDuenos;
 
 <body>
     <?php include __DIR__ . '/../../src/Templates/SidebarAdmin.php'; ?>
-    <button class="btn btn-outline-secondary d-md-none ms-2 mt-3" id="toggleSidebar">
-        <i class="fas fa-bars"></i>
-    </button>
+    
 
     <main>
         <!-- HEADER PRINCIPAL -->

@@ -114,7 +114,7 @@ $duenoNombre    = $data['dueno_nombre'] ?? 'Dueño';
             <?php include __DIR__ . '/../../src/Templates/SidebarPaseador.php'; ?>
 
             <!-- Contenido -->
-            <main class="col py-3">
+            <main class="col py-2">
                 <div class="page-header">
                     <h1 class="h5 mb-0">
                         <i class="fas fa-receipt me-2"></i> Comprobante de pago recibido

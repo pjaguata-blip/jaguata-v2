@@ -595,7 +595,7 @@ if (Session::isLoggedIn()) {
             </section>
         </main>
 
-        <footer class="py-3 mt-4">
+        <footer class="py-2 mt-4">
             <div class="container small text-muted text-center">
                 © <?= date('Y') ?> Jaguata
                 <?php if ($panelUrl): ?>

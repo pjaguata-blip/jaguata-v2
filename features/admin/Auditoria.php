@@ -48,7 +48,9 @@ $sinDatos  = empty($registros);
                 <h1>Auditoría del Sistema</h1>
                 <p>Registro detallado de acciones realizadas por usuarios 🕵️‍♂️</p>
             </div>
-            <i class="fas fa-shield-halved fa-3x opacity-75"></i>
+            <a href="<?= $baseFeatures; ?>/Dashboard.php" class="btn btn-outline-light">
+                    <i class="fas fa-arrow-left me-1"></i> Volver
+                </a>
         </div>
 
         <!-- Filtros -->

@@ -264,12 +264,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
     <?php include __DIR__ . '/../../src/Templates/SidebarPaseador.php'; ?>
 
-   <button class="btn btn-outline-secondary d-md-none ms-2 mt-3" type="button" data-toggle="sidebar">
-  <i class="fas fa-bars"></i>
-</button>
 
     <main>
-        <div class="py-1">
+        <div class="py-2">
 
             <div class="header-box header-dashboard mb-2 d-flex justify-content-between align-items-center">
                 <div>
@@ -282,9 +279,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <a href="Perfil.php" class="btn btn-outline-light btn-sm">
                         <i class="fas fa-user me-1"></i> Mi perfil
                     </a>
-                    <a href="Dashboard.php" class="btn btn-light btn-sm text-success">
-                        <i class="fas fa-home me-1"></i> Panel
-                    </a>
+                     <a href="<?= $baseFeatures; ?>/Dashboard.php" class="btn btn-outline-light">
+                    <i class="fas fa-arrow-left me-1"></i> Volver
+                </a>
                 </div>
             </div>
 

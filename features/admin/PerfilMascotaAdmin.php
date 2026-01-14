@@ -191,7 +191,7 @@ $btnEstadoText  = ($estadoMascota === 'activo') ? 'Inactivar' : 'Activar';
     </button>
 
     <main>
-        <div class="py-0">
+        <div class="py-2">
 
             <!-- HEADER -->
             <div class="header-box header-dashboard mb-2">

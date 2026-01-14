@@ -167,11 +167,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <!-- Sidebar dueño unificado -->
     <?php include __DIR__ . '/../../src/Templates/SidebarDueno.php'; ?>
 
-    <!-- Botón hamburguesa (mismo comportamiento que otras pantallas) -->
-    <button class="btn btn-outline-secondary d-md-none ms-2 mt-3" type="button" data-toggle="sidebar">
-  <i class="fas fa-bars"></i>
-</button>
-
+ 
 
     <main class="main-content bg-light">
 

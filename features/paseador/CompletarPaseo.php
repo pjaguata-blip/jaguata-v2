@@ -80,10 +80,7 @@ $monto    = number_format((float)($paseo['precio_total'] ?? 0), 0, ',', '.');
 </head>
 
 <body>
-    <!-- Botón hamburguesa mobile -->
-    <button class="btn btn-outline-secondary d-md-none ms-2 mt-3" type="button" data-toggle="sidebar">
-  <i class="fas fa-bars"></i>
-</button>
+ 
 
     <div class="layout">
         <!-- Sidebar unificado -->

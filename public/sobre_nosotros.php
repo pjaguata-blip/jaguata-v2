@@ -12,7 +12,7 @@ function h($v): string {
     return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
 }
 
-$titulo = 'Home - Jaguata';
+$titulo      = 'Home - Jaguata';
 $descripcion = 'Jaguata conecta dueños con paseadores verificados en Paraguay.';
 
 $logueado = Session::isLoggedIn();
@@ -56,7 +56,7 @@ $beneficiosPlan = [
     'Soporte prioritario'
 ];
 
-/* Link “Pagar suscripción” (ajustá cuando tengas pantalla real) */
+/* Links */
 $urlSuscripcion = BASE_URL . '/features/paseador/Suscripcion.php'; // creás después
 $urlRegistro    = BASE_URL . '/registro.php';
 $urlLogin       = BASE_URL . '/login.php';
@@ -88,7 +88,6 @@ $urlContacto    = BASE_URL . '/contacto.php';
             padding: 24px;
             width: 100%;
         }
-
         body.no-sidebar main.main-content{ margin-left: 0 !important; }
 
         @media (max-width: 768px){
@@ -100,6 +99,7 @@ $urlContacto    = BASE_URL . '/contacto.php';
             }
         }
 
+        /* Cards mini */
         .dash-card{
             background:#ffffff;
             border-radius:18px;
@@ -121,19 +121,7 @@ $urlContacto    = BASE_URL . '/contacto.php';
         .icon-yellow{ color:#ffc107; }
         .icon-red{ color:#dc3545; }
 
-        .home-video{
-            border-radius: 18px;
-            overflow: hidden;
-            box-shadow: 0 12px 30px rgba(0,0,0,.08);
-            background:#fff;
-        }
-        .home-video video{
-            width:100%;
-            height:100%;
-            object-fit:cover;
-            display:block;
-        }
-
+        /* Pills */
         .pill{
             display:inline-flex;
             align-items:center;
@@ -146,7 +134,15 @@ $urlContacto    = BASE_URL . '/contacto.php';
             border: 1px solid rgba(60, 98, 85, .18);
             font-weight:700;
         }
+        .role-chip{
+            font-size:.78rem;
+            border-radius: 999px;
+            padding:.2rem .6rem;
+            border:1px solid rgba(0,0,0,.08);
+            background:#fff;
+        }
 
+        /* Mini cards */
         .mini-card{
             border-radius: 16px;
             border: 0;
@@ -167,12 +163,53 @@ $urlContacto    = BASE_URL . '/contacto.php';
         }
         .check-li i{ margin-top:.2rem; }
 
-        .role-chip{
-            font-size:.78rem;
-            border-radius: 999px;
-            padding:.2rem .6rem;
-            border:1px solid rgba(0,0,0,.08);
-            background:#fff;
+        /* ✅ HERO (video + texto) para que se vea lindo */
+        .hero-home{
+            display:grid;
+            grid-template-columns: 300px 1fr;
+            gap: 18px;
+            align-items:center;
+        }
+        @media (max-width: 992px){
+            .hero-home{
+                grid-template-columns: 1fr;
+                text-align:center;
+            }
+            .hero-actions{
+                justify-content:center !important;
+            }
+        }
+
+        .home-video{
+            width: 300px;
+            height: 300px;
+            border-radius: 20px;
+            overflow: hidden;
+            background: #fff;
+            box-shadow: 0 16px 40px rgba(0,0,0,.10);
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            margin: 0 auto;
+        }
+        .home-video video{
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display:block;
+        }
+
+        .intro-text{
+            max-width: 620px;
+            font-size: .98rem;
+            line-height: 1.65;
+        }
+
+        @media (max-width: 576px){
+            .home-video{
+                width: 240px;
+                height: 240px;
+            }
         }
     </style>
 </head>
@@ -191,14 +228,7 @@ $urlContacto    = BASE_URL . '/contacto.php';
             <!-- Header (igual dashboard) -->
             <div class="header-box header-dashboard mb-2">
                 <div>
-                    <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
-                        <span class="pill"><i class="fa-solid fa-paw"></i> Jaguata</span>
-                        <?php if ($rol): ?>
-                            <span class="role-chip">
-                                <i class="fa-solid fa-user-shield me-1"></i> Rol: <b><?= h($rol) ?></b>
-                            </span>
-                        <?php endif; ?>
-                    </div>
+                    
 
                     <h1 class="mb-1">
                         <?= $logueado ? ('¡Hola, ' . h($usuarioNombre) . '! 🐾') : 'Jaguata 🐾' ?>
@@ -258,55 +288,65 @@ $urlContacto    = BASE_URL . '/contacto.php';
 
                 <!-- Principal -->
                 <div class="col-lg-8">
+
                     <div class="section-card">
                         <div class="section-header">
                             <i class="fas fa-home me-2"></i>Bienvenido a Jaguata
                         </div>
                         <div class="section-body">
 
-                            <div class="home-video mb-3">
-                                <video
-                                    src="<?= h($videoUrl) ?>"
-                                    preload="metadata"
-                                    autoplay muted loop playsinline
-                                    controlslist="nodownload">
-                                    Tu navegador no soporta videos HTML5.
-                                </video>
+                            <!-- ✅ HERO lindo (video al lado del texto) -->
+                            <div class="hero-home">
+
+                                <div class="home-video">
+                                    <video
+                                        src="<?= h($videoUrl) ?>"
+                                        preload="metadata"
+                                        autoplay
+                                        muted
+                                        loop
+                                        playsinline
+                                        controlslist="nodownload">
+                                        Tu navegador no soporta videos HTML5.
+                                    </video>
+                                </div>
+
+                                <div>
+                                    <p class="text-muted mb-3 intro-text">
+                                        Jaguata nace para ayudar a dueños con poco tiempo y a paseadores responsables que buscan
+                                        ingresos extra, promoviendo bienestar y felicidad animal en cada paseo.
+                                    </p>
+
+                                    <div class="d-flex flex-wrap gap-2 hero-actions">
+                                        <?php if (!$logueado): ?>
+                                            <a href="<?= h($urlRegistro) ?>" class="btn btn-success px-4">
+                                                <i class="fas fa-user-plus me-2"></i>Crear cuenta
+                                            </a>
+                                            <a href="<?= h($urlLogin) ?>" class="btn btn-outline-secondary px-4">
+                                                <i class="fas fa-right-to-bracket me-2"></i>Iniciar sesión
+                                            </a>
+                                            <a href="<?= h($urlContacto) ?>" class="btn btn-outline-primary px-4">
+                                                <i class="fas fa-envelope me-2"></i>Contacto
+                                            </a>
+                                        <?php else: ?>
+                                            <?php if ($panelUrl): ?>
+                                                <a href="<?= h($panelUrl) ?>" class="btn btn-success px-4">
+                                                    <i class="fas fa-gauge-high me-2"></i>Ir a mi panel
+                                                </a>
+                                            <?php endif; ?>
+                                            <?php if ($baseFeatures): ?>
+                                                <a href="<?= h($baseFeatures) ?>" class="btn btn-outline-primary px-4">
+                                                    <i class="fas fa-layer-group me-2"></i>Mis funciones
+                                                </a>
+                                            <?php endif; ?>
+                                            <a href="<?= h($urlContacto) ?>" class="btn btn-outline-secondary px-4">
+                                                <i class="fas fa-envelope me-2"></i>Contacto
+                                            </a>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+
                             </div>
-
-                            <p class="text-muted mb-3">
-                                Jaguata nace para ayudar a dueños con poco tiempo y a paseadores responsables que buscan
-                                ingresos extra, promoviendo bienestar y felicidad animal en cada paseo.
-                            </p>
-
-                            <div class="d-flex flex-wrap gap-2">
-                                <?php if (!$logueado): ?>
-                                    <a href="<?= h($urlRegistro) ?>" class="btn btn-success">
-                                        <i class="fas fa-user-plus me-2"></i>Crear cuenta
-                                    </a>
-                                    <a href="<?= h($urlLogin) ?>" class="btn btn-outline-secondary">
-                                        <i class="fas fa-right-to-bracket me-2"></i>Iniciar sesión
-                                    </a>
-                                    <a href="<?= h($urlContacto) ?>" class="btn btn-outline-primary">
-                                        <i class="fas fa-envelope me-2"></i>Contacto
-                                    </a>
-                                <?php else: ?>
-                                    <?php if ($panelUrl): ?>
-                                        <a href="<?= h($panelUrl) ?>" class="btn btn-success">
-                                            <i class="fas fa-gauge-high me-2"></i>Ir a mi panel
-                                        </a>
-                                    <?php endif; ?>
-                                    <?php if ($baseFeatures): ?>
-                                        <a href="<?= h($baseFeatures) ?>" class="btn btn-outline-primary">
-                                            <i class="fas fa-layer-group me-2"></i>Mis funciones
-                                        </a>
-                                    <?php endif; ?>
-                                    <a href="<?= h($urlContacto) ?>" class="btn btn-outline-secondary">
-                                        <i class="fas fa-envelope me-2"></i>Contacto
-                                    </a>
-                                <?php endif; ?>
-                            </div>
-
                         </div>
                     </div>
 
@@ -344,13 +384,149 @@ $urlContacto    = BASE_URL . '/contacto.php';
                             </div>
                         </div>
                     </div>
+<!-- ✅ NUEVO: Qué podés hacer en Jaguata -->
+<div class="section-card mt-3">
+  <div class="section-header">
+    <i class="fa-solid fa-bolt me-2"></i>¿Qué podés hacer en Jaguata?
+  </div>
+  <div class="section-body">
+    <div class="row g-3">
+      <div class="col-md-6">
+        <div class="dash-card text-start">
+          <div class="d-flex align-items-center gap-2 mb-2">
+            <i class="fa-solid fa-magnifying-glass icon-green"></i>
+            <b>Buscar y elegir paseador</b>
+          </div>
+          <div class="dash-card-label">Filtrá por reputación, disponibilidad y zona.</div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="dash-card text-start">
+          <div class="d-flex align-items-center gap-2 mb-2">
+            <i class="fa-solid fa-calendar-check icon-blue"></i>
+            <b>Solicitar paseos en minutos</b>
+          </div>
+          <div class="dash-card-label">Seleccioná mascota(s), ubicación y horario.</div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="dash-card text-start">
+          <div class="d-flex align-items-center gap-2 mb-2">
+            <i class="fa-solid fa-receipt icon-yellow"></i>
+            <b>Pagos y comprobantes</b>
+          </div>
+          <div class="dash-card-label">Historial de pagos + comprobantes por paseo.</div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="dash-card text-start">
+          <div class="d-flex align-items-center gap-2 mb-2">
+            <i class="fa-solid fa-star icon-red"></i>
+            <b>Calificar y generar reputación</b>
+          </div>
+          <div class="dash-card-label">Las reseñas mejoran la confianza en la comunidad.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ✅ NUEVO: Seguridad y confianza -->
+<div class="section-card mt-3">
+  <div class="section-header">
+    <i class="fa-solid fa-shield-heart me-2"></i>Seguridad y confianza
+  </div>
+  <div class="section-body">
+    <div class="row g-3">
+      <div class="col-md-4">
+        <div class="card mini-card">
+          <div class="card-body">
+            <h6 class="fw-bold mb-2"><i class="fa-solid fa-id-card me-2 text-success"></i>Verificación</h6>
+            <p class="text-muted mb-0 small">Los paseadores pueden cargar documentos y el admin aprueba cuentas.</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card mini-card">
+          <div class="card-body">
+            <h6 class="fw-bold mb-2"><i class="fa-solid fa-bell me-2 text-primary"></i>Notificaciones</h6>
+            <p class="text-muted mb-0 small">Te avisamos cambios de estado, confirmaciones y novedades del paseo.</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card mini-card">
+          <div class="card-body">
+            <h6 class="fw-bold mb-2"><i class="fa-solid fa-star me-2 text-warning"></i>Reputación</h6>
+            <p class="text-muted mb-0 small">Calificaciones reales para elegir con más seguridad.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ✅ NUEVO: Cobertura -->
+<div class="section-card mt-3">
+  <div class="section-header">
+    <i class="fa-solid fa-location-dot me-2"></i>Zonas de cobertura
+  </div>
+  <div class="section-body">
+    <p class="text-muted mb-2">
+      Jaguata está pensado para operar por zonas, facilitando encontrar paseadores cercanos al punto de retiro.
+    </p>
+    <div class="d-flex flex-wrap gap-2">
+      <span class="badge text-bg-light border">San Lorenzo</span>
+      <span class="badge text-bg-light border">Asunción</span>
+      <span class="badge text-bg-light border">Luque</span>
+      <span class="badge text-bg-light border">Fernando de la Mora</span>
+      <span class="badge text-bg-light border">Lambaré</span>
+      <span class="badge text-bg-light border">Otros (según disponibilidad)</span>
+    </div>
+  </div>
+</div>
+
+<!-- ✅ NUEVO: Mini testimonios -->
+<div class="section-card mt-3">
+  <div class="section-header">
+    <i class="fa-solid fa-comments me-2"></i>Opiniones de la comunidad
+  </div>
+  <div class="section-body">
+    <div class="row g-3">
+      <div class="col-md-4">
+        <div class="card mini-card">
+          <div class="card-body">
+            <p class="mb-2">“Ahora reservo paseos en minutos y veo el historial de todo.”</p>
+            <div class="text-muted small">— Dueña</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card mini-card">
+          <div class="card-body">
+            <p class="mb-2">“Me ayudó a conseguir clientes y organizar mis horarios.”</p>
+            <div class="text-muted small">— Paseador</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card mini-card">
+          <div class="card-body">
+            <p class="mb-2">“La reputación y las calificaciones hacen que confíe más.”</p>
+            <div class="text-muted small">— Dueña</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
                 </div>
 
                 <!-- Lateral -->
                 <div class="col-lg-4">
 
-                    <!-- ✅ NUEVO: Suscripción Paseador -->
+                    <!-- ✅ Suscripción Paseador -->
                     <div class="section-card mb-3">
                         <div class="section-header">
                             <i class="fa-solid fa-crown me-2"></i>Suscripción <?= h($planNombre) ?>
@@ -434,8 +610,8 @@ $urlContacto    = BASE_URL . '/contacto.php';
 
                 </div>
             </div>
-
-            <!-- ✅ NUEVO: Cómo funciona (pasos) -->
+<div class="home-narrow">
+            <!-- Cómo funciona -->
             <div class="section-card mt-3">
                 <div class="section-header">
                     <i class="fas fa-list-check me-2"></i>¿Cómo funciona Jaguata?
@@ -505,7 +681,7 @@ $urlContacto    = BASE_URL . '/contacto.php';
                     </div>
                 </div>
             </div>
-
+</div>
             <footer class="mt-4 text-center text-muted small">
                 © <?= date('Y'); ?> Jaguata — Home
             </footer>

@@ -157,6 +157,24 @@ $currentFile   = basename($_SERVER['PHP_SELF']);
                         </a>
                     </div>
                 </li>
+                <?php $filesPuntos = ['MisPuntos.php', 'Recompensas.php']; ?>
+<li class="nav-item">
+    <button class="nav-link w-100 text-start d-flex justify-content-between align-items-center <?= in_array($currentFile, $filesPuntos, true) ? 'active' : '' ?>"
+        data-bs-toggle="collapse" data-bs-target="#menuPuntos"
+        aria-expanded="<?= in_array($currentFile, $filesPuntos, true) ? 'true' : 'false' ?>"
+        type="button">
+        <span><i class="fas fa-star me-2"></i>Puntos & Recompensas</span>
+        <i class="fas fa-chevron-down small"></i>
+    </button>
+
+    <div class="collapse <?= in_array($currentFile, $filesPuntos, true) ? 'show' : '' ?>" id="menuPuntos" data-bs-parent="#sidebarMenu">
+        <a class="nav-link ps-5 <?= ($currentFile === 'MisPuntos.php') ? 'active' : '' ?>"
+            href="<?= $baseFeatures; ?>/MisPuntos.php">
+            Mis Puntos
+        </a>
+    </div>
+</li>
+
 
                 <li class="nav-item">
                     <a href="<?= $baseFeatures; ?>/Configuracion.php"

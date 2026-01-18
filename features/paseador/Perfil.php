@@ -7,7 +7,6 @@ require_once __DIR__ . '/../../src/Controllers/AuthController.php';
 require_once __DIR__ . '/../../src/Controllers/DisponibilidadController.php';
 require_once __DIR__ . '/../../src/Models/Usuario.php';
 require_once __DIR__ . '/../../src/Models/Paseador.php';
-require_once __DIR__ . '/../../src/Models/DatosPago.php';
 require_once __DIR__ . '/../../src/Helpers/Session.php';
 require_once __DIR__ . '/../../src/Services/CalificacionService.php';
 require_once __DIR__ . '/../../vendor/autoload.php';
@@ -17,7 +16,6 @@ use Jaguata\Controllers\AuthController;
 use Jaguata\Controllers\DisponibilidadController;
 use Jaguata\Models\Usuario;
 use Jaguata\Models\Paseador;
-use Jaguata\Models\DatosPago;
 use Jaguata\Helpers\Session;
 use Jaguata\Services\CalificacionService;
 
@@ -28,7 +26,7 @@ $auth = new AuthController();
 $auth->checkRole('paseador');
 
 $usuarioModel = new Usuario();
-$usuarioId    = (int) Session::getUsuarioId();
+$usuarioId    = (int)(Session::getUsuarioId() ?? 0);
 $usuario      = $usuarioModel->find($usuarioId);
 
 if (!$usuario) {
@@ -71,8 +69,8 @@ function esUrlAbsoluta(string $p): bool
 
 /* ===== Foto ===== */
 $foto = $usuario['foto_perfil'] ?? ($usuario['perfil_foto'] ?? '');
-if ($foto && !esUrlAbsoluta($foto)) {
-    $foto = rtrim(BASE_URL, '/') . $foto;
+if ($foto && !esUrlAbsoluta((string)$foto)) {
+    $foto = rtrim(BASE_URL, '/') . (string)$foto;
 }
 if (!$foto) {
     $foto = ASSETS_URL . '/images/user-placeholder.png';
@@ -91,17 +89,10 @@ if (!empty($usuario['zona'])) {
     }
 }
 
-/* ✅ Datos de pago (tabla datos_pago) */
-$ctaBanco = $ctaAlias = $ctaCuenta = '';
-try {
-    $datosPagoModel = new DatosPago();
-    $cta = $datosPagoModel->getByUsuarioId($usuarioId) ?: [];
-    $ctaBanco  = (string)($cta['banco']  ?? '');
-    $ctaAlias  = (string)($cta['alias']  ?? '');
-    $ctaCuenta = (string)($cta['cuenta'] ?? '');
-} catch (\Throwable $e) {
-    // no rompemos la vista si falla
-}
+/* ✅ Datos para transferencias: vienen de USUARIOS */
+$ctaBanco  = (string)($usuario['banco_nombre']  ?? '');
+$ctaAlias  = (string)($usuario['alias_cuenta']  ?? '');
+$ctaCuenta = (string)($usuario['cuenta_numero'] ?? '');
 
 /* Disponibilidad */
 $diasSemana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
@@ -233,7 +224,6 @@ $repTotal     = isset($stats['total']) ? (int)$stats['total'] : 0;
 <body>
     <?php include __DIR__ . '/../../src/Templates/SidebarPaseador.php'; ?>
 
-
     <main>
         <div class="py-2">
 
@@ -300,7 +290,7 @@ $repTotal     = isset($stats['total']) ? (int)$stats['total'] : 0;
                                 <i class="fa-solid fa-cake-candles me-2"></i>
                                 <strong>Cumpleaños:</strong>
                                 <?php if (!empty($usuario['fecha_nacimiento'])): ?>
-                                    <?= fechaLatina($usuario['fecha_nacimiento']) ?>
+                                    <?= fechaLatina((string)$usuario['fecha_nacimiento']) ?>
                                     <?php if ($edad !== null): ?>
                                         <span class="text-muted">(<?= $edad ?> años)</span>
                                     <?php endif; ?>
@@ -387,7 +377,6 @@ $repTotal     = isset($stats['total']) ? (int)$stats['total'] : 0;
                             </div>
                         </div>
 
-                        <!-- ✅ NUEVO: Datos para recibir transferencias -->
                         <!-- ✅ Datos para recibir transferencias (SOLO LECTURA) -->
                         <div class="col-12">
                             <div class="section-card">
@@ -423,7 +412,6 @@ $repTotal     = isset($stats['total']) ? (int)$stats['total'] : 0;
                                 </div>
                             </div>
                         </div>
-
 
                         <!-- ✅ Experiencia -->
                         <div class="col-12">
@@ -511,7 +499,6 @@ $repTotal     = isset($stats['total']) ? (int)$stats['total'] : 0;
 
         const alerta = document.getElementById('alerta');
         const formDisp = document.getElementById('formDisponibilidad');
-        const formCuenta = document.getElementById('formCuenta');
         const PASEADOR_ID = <?= (int)$usuarioId ?>;
 
         function mostrarAlerta(ok, mensaje) {
@@ -596,46 +583,6 @@ $repTotal     = isset($stats['total']) ? (int)$stats['total'] : 0;
             } catch (err) {
                 console.error(err);
                 mostrarAlerta(false, 'Error al guardar la disponibilidad.');
-            }
-        });
-
-        // ✅ CUENTA PAGO (TRANSFERENCIAS)
-        formCuenta?.addEventListener('submit', async (e) => {
-            e.preventDefault();
-
-            const formData = new FormData(formCuenta);
-            const payload = {
-                banco: (formData.get('banco') || '').toString().trim(),
-                alias: (formData.get('alias') || '').toString().trim(),
-                cuenta: (formData.get('cuenta') || '').toString().trim()
-            };
-
-            try {
-                const resp = await fetch('<?= BASE_URL ?>/public/api/paseador/guardarCuentaPago.php', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(payload)
-                });
-
-                const raw = await resp.text();
-                let data;
-                try {
-                    data = JSON.parse(raw);
-                } catch {
-                    console.log("STATUS:", resp.status);
-                    console.log("RAW:", raw);
-                    mostrarAlerta(false, 'Respuesta inválida del servidor (mirá consola).');
-                    return;
-                }
-
-                mostrarAlerta(!!data.ok, data.mensaje || 'Error al guardar los datos de cuenta.');
-                if (data.ok) location.reload(); // para refrescar y mostrar lo guardado arriba
-
-            } catch (err) {
-                console.error(err);
-                mostrarAlerta(false, 'Error al guardar los datos de cuenta.');
             }
         });
     </script>

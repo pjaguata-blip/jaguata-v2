@@ -19,7 +19,7 @@ abstract class BaseModel
 
     // Cada modelo debe definir estos:
     protected string $table;
-    protected string $primaryKey = 'id';
+    protected string $primaryKey = 'usu_id';
 
     public function __construct()
     {

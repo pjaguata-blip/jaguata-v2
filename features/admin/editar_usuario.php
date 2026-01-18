@@ -135,7 +135,7 @@ function h(?string $v): string
                 </div>
                 <div class="text-end mt-3 mt-md-0">
                     <a href="<?= BASE_URL; ?>/features/admin/Usuarios.php" class="btn btn-outline-light btn-sm">
-                        <i class="fas fa-arrow-left me-1"></i> Volver al listado
+                        <i class="fas fa-arrow-left me-1"></i> Volver
                     </a>
                 </div>
             </div>
@@ -151,7 +151,7 @@ function h(?string $v): string
                     <div class="section-card">
                         <div class="section-header">
                             <i class="fas fa-user me-2"></i>
-                           Usuario #<?= $userId; ?> — <?= h($usuario['nombre'] ?? ''); ?>
+                          Usuario #<?= (int)($usuario['usu_id'] ?? 0); ?> — <?= h($usuario['nombre'] ?? ''); ?>
 
                         </div>
                         <div class="section-body">

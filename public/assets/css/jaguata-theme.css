@@ -836,3 +836,36 @@ footer{
   }
 }
 
+.home-narrow{
+  max-width: 980px;   /* probá 900-1050 */
+  margin: 0 auto;     /* centra */
+}
+/* ✅ centra y achica la sección final */
+.home-narrow{
+  max-width: 980px;
+  margin: 0 auto;
+}
+
+/* ✅ hace más compactas las tarjetas de “Cómo funciona” */
+.home-narrow .dash-card{
+  padding: 12px 12px;
+  border-radius: 16px;
+}
+.home-narrow .dash-card-icon{
+  font-size: 1.5rem;
+  margin-bottom: 2px;
+}
+.home-narrow .dash-card-value{
+  font-size: .98rem;
+}
+.home-narrow .dash-card-label{
+  font-size: .85rem;
+}
+
+/* ✅ en mobile quedan 2 por fila (no 4 apretadas) */
+@media (max-width: 768px){
+  .home-narrow .col-md-3{
+    flex: 0 0 50%;
+    max-width: 50%;
+  }
+}

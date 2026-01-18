@@ -1,39 +1,37 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Jaguata\Controllers;
 
 use Jaguata\Models\Punto;
-use Jaguata\Helpers\Session;
-
 
 class PuntoController
 {
-    private Punto $puntoModel;
+    private Punto $model;
 
     public function __construct()
     {
-        $this->puntoModel = new Punto();
+        $this->model = new Punto();
     }
 
-    // Vista de puntos del usuario actual
-    public function misPuntos(): array
+    public function listarPorUsuario(int $usuarioId): array
     {
-        if (!Session::isLoggedIn()) {
-            header("Location: /jaguata/public/login.php");
-            exit;
-        }
-
-        $usuarioId = Session::get('usuario_id');
-        return [
-            'historial' => $this->puntoModel->getByUsuario($usuarioId),
-            'total' => $this->puntoModel->getTotal($usuarioId)
-        ];
+        return $this->model->getByUsuario($usuarioId);
     }
 
-    // API para agregar puntos (ejemplo: tras reservar un paseo)
-    public function apiAgregar(int $usuarioId, string $descripcion, int $puntos): array
+    public function totalUsuario(int $usuarioId): int
     {
-        $id = $this->puntoModel->add($usuarioId, $descripcion, $puntos);
-        return ['success' => true, 'id' => $id];
+        return $this->model->getTotal($usuarioId);
+    }
+
+    public function totalMesActual(int $usuarioId): int
+    {
+        return $this->model->getTotalMesActual($usuarioId);
+    }
+
+    public function agregar(int $usuarioId, string $descripcion, int $puntos): int
+    {
+        return $this->model->add($usuarioId, $descripcion, $puntos);
     }
 }

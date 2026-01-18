@@ -1,66 +1,62 @@
 <?php
-
 declare(strict_types=1);
 
 namespace Jaguata\Config;
 
 use Jaguata\Services\DatabaseService;
 
-class AppConfig
+final class AppConfig
 {
     // 👉 AJUSTÁ este BASE_URL según tu carpeta en XAMPP
-    // Ej: http://localhost/jaguata  (si el proyecto está en htdocs/jaguata)
     private const BASE_URL = 'http://localhost/jaguata';
+
+    private static bool $booted = false;
 
     /**
      * Inicializa:
      * - session
-     * - autoload de composer
      * - constante BASE_URL
+     * - (opcional) ASSETS_URL si no existe
      */
     public static function init(): void
     {
+        if (self::$booted) {
+            return;
+        }
+        self::$booted = true;
+
         // Sesión
-        if (session_status() === PHP_SESSION_NONE) {
-            \session_name(defined('SESSION_NAME') ? SESSION_NAME : 'JAGUATA_SESSION');
+        if (\session_status() === PHP_SESSION_NONE) {
+            \session_name(\defined('SESSION_NAME') ? SESSION_NAME : 'JAGUATA_SESSION');
             \session_start();
         }
 
-        // Autoload de composer (si lo usás)
-        $rootPath  = dirname(__DIR__, 2); // desde src/Config → raíz del proyecto
-        $autoload  = $rootPath . '/vendor/autoload.php';
-        if (file_exists($autoload)) {
-            require_once $autoload;
+        // BASE_URL global
+        if (!\defined('BASE_URL')) {
+            \define('BASE_URL', self::BASE_URL);
         }
 
-        // Definir BASE_URL global si aún no existe
-        if (!defined('BASE_URL')) {
-            define('BASE_URL', self::BASE_URL);
+        // ASSETS_URL (si tu Constantes.php no lo define)
+        if (!\defined('ASSETS_URL')) {
+            \define('ASSETS_URL', BASE_URL . '/public/assets');
         }
     }
 
-    /**
-     * Atajo para obtener el PDO directo
-     */
     public static function db(): \PDO
     {
+        self::init();
         return DatabaseService::getInstance()->getConnection();
     }
+
     public static function getBaseUrl(): string
     {
-        // Nos aseguramos de que la config esté cargada
         self::init();
-        return defined('BASE_URL') ? BASE_URL : '';
+        return BASE_URL;
     }
 
     public static function getAssetsUrl(): string
     {
         self::init();
-        if (defined('ASSETS_URL')) {
-            return ASSETS_URL;
-        }
-
-        // Fallback por si acaso
-        return (defined('BASE_URL') ? BASE_URL : '') . '/assets';
+        return ASSETS_URL;
     }
 }

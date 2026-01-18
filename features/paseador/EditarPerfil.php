@@ -6,14 +6,12 @@ require_once __DIR__ . '/../../src/Config/AppConfig.php';
 require_once __DIR__ . '/../../src/Controllers/AuthController.php';
 require_once __DIR__ . '/../../src/Models/Usuario.php';
 require_once __DIR__ . '/../../src/Models/Paseador.php';
-require_once __DIR__ . '/../../src/Models/DatosPago.php';
 require_once __DIR__ . '/../../src/Helpers/Session.php';
 
 use Jaguata\Config\AppConfig;
 use Jaguata\Controllers\AuthController;
 use Jaguata\Models\Usuario;
 use Jaguata\Models\Paseador;
-use Jaguata\Models\DatosPago;
 use Jaguata\Helpers\Session;
 
 AppConfig::init();
@@ -22,9 +20,12 @@ AppConfig::init();
 $authController = new AuthController();
 $authController->checkRole('paseador');
 
-$usuarioModel   = new Usuario();
-$paseadorModel  = new Paseador();
-$datosPagoModel = new DatosPago();
+/* Base para enlaces */
+$rolMenu      = Session::getUsuarioRol() ?: 'paseador';
+$baseFeatures = BASE_URL . "/features/{$rolMenu}";
+
+$usuarioModel  = new Usuario();
+$paseadorModel = new Paseador();
 
 $usuarioId = (int)(Session::getUsuarioId() ?? 0);
 if ($usuarioId <= 0) {
@@ -39,8 +40,8 @@ if (!$usuario) {
     exit;
 }
 
-$paseadorRow       = $paseadorModel->find($usuarioId) ?: [];
-$precioHoraActual  = (float)($paseadorRow['precio_hora'] ?? 0);
+$paseadorRow      = $paseadorModel->find($usuarioId) ?: [];
+$precioHoraActual = (float)($paseadorRow['precio_hora'] ?? 0);
 
 $mensaje = '';
 $error   = '';
@@ -77,6 +78,11 @@ $expAct      = (string)($usuario['experiencia'] ?? '');
 $fotoActual  = (string)($usuario['foto_perfil'] ?? ($usuario['perfil_foto'] ?? ''));
 $fechaNacAct = (string)($usuario['fecha_nacimiento'] ?? '');
 
+/* ✅ Datos transferencia desde USUARIOS */
+$ctaBanco  = (string)($usuario['banco_nombre'] ?? '');
+$ctaAlias  = (string)($usuario['alias_cuenta'] ?? '');
+$ctaCuenta = (string)($usuario['cuenta_numero'] ?? '');
+
 $zonasActuales = [];
 if (!empty($usuario['zona'])) {
     $z = (string)$usuario['zona'];
@@ -85,20 +91,14 @@ if (!empty($usuario['zona'])) {
     $zonasActuales = array_values(array_filter(array_map('trim', $zonasActuales)));
 }
 
-/* ✅ Datos de transferencia actuales (tabla datos_pago) */
-$dp = $datosPagoModel->getByUsuarioId($usuarioId) ?: [];
-$ctaBanco  = (string)($dp['banco']  ?? '');
-$ctaAlias  = (string)($dp['alias']  ?? '');
-$ctaCuenta = (string)($dp['cuenta'] ?? '');
-
 /* ===== Guardar ===== */
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    $nombre       = trim($_POST['nombre'] ?? '');
-    $email        = trim($_POST['email'] ?? '');
-    $telefono     = trim($_POST['telefono'] ?? '');
-    $experiencia  = trim($_POST['experiencia'] ?? '');
-    $fechaNac     = trim($_POST['fecha_nacimiento'] ?? '');
+    $nombre      = trim($_POST['nombre'] ?? '');
+    $email       = trim($_POST['email'] ?? '');
+    $telefono    = trim($_POST['telefono'] ?? '');
+    $experiencia = trim($_POST['experiencia'] ?? '');
+    $fechaNac    = trim($_POST['fecha_nacimiento'] ?? '');
 
     $departamento = trim($_POST['departamento'] ?? '');
     $ciudad       = trim($_POST['ciudad'] ?? '');
@@ -112,7 +112,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $zonasTrabajo = json_decode($zonaJsonPost, true);
     if (!is_array($zonasTrabajo)) $zonasTrabajo = [];
 
-    /* ✅ Datos transferencia POST */
+    /* ✅ Datos transferencia POST -> se guardan en USUARIOS */
     $ctaBancoPost  = trim($_POST['banco'] ?? '');
     $ctaAliasPost  = trim($_POST['alias'] ?? '');
     $ctaCuentaPost = trim($_POST['cuenta'] ?? '');
@@ -180,6 +180,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'barrio'           => $barrio,
                 'calle'            => $calle,
                 'zona'             => json_encode($zonasTrabajo, JSON_UNESCAPED_UNICODE),
+
+                /* ✅ Transferencias -> USUARIOS */
+                'banco_nombre'     => ($ctaBancoPost !== '' ? $ctaBancoPost : null),
+                'alias_cuenta'     => ($ctaAliasPost !== '' ? $ctaAliasPost : null),
+                'cuenta_numero'    => ($ctaCuentaPost !== '' ? $ctaCuentaPost : null),
             ];
 
             if ($rutaFotoNueva) {
@@ -193,21 +198,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $okUsuario = $usuarioModel->update($usuarioId, $dataUsuario);
 
-            /* ✅ 3) Guarda DATOS TRANSFERENCIA en datos_pago */
-            // Permitimos guardar aunque estén vacíos, pero si querés exigir banco+alias, avisame.
-            $okDatosPago = $datosPagoModel->upsert(
-                $usuarioId,
-                $ctaBancoPost !== '' ? $ctaBancoPost : null,
-                $ctaAliasPost !== '' ? $ctaAliasPost : null,
-                $ctaCuentaPost !== '' ? $ctaCuentaPost : null
-            );
-
-            if ($okUsuario && $okPaseador && $okDatosPago) {
+            if ($okUsuario && $okPaseador) {
                 $mensaje = "Perfil actualizado correctamente.";
 
                 // refrescar
                 $usuario     = $usuarioModel->find($usuarioId) ?: $usuario;
                 $paseadorRow = $paseadorModel->find($usuarioId) ?: $paseadorRow;
+
                 $precioHoraActual = (float)($paseadorRow['precio_hora'] ?? $precioHora);
 
                 $depActual   = (string)($usuario['departamento'] ?? '');
@@ -219,18 +216,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $fotoActual  = (string)($usuario['foto_perfil'] ?? ($usuario['perfil_foto'] ?? ''));
                 $fechaNacAct = (string)($usuario['fecha_nacimiento'] ?? '');
 
+                $ctaBanco  = (string)($usuario['banco_nombre'] ?? '');
+                $ctaAlias  = (string)($usuario['alias_cuenta'] ?? '');
+                $ctaCuenta = (string)($usuario['cuenta_numero'] ?? '');
+
                 $z = (string)($usuario['zona'] ?? '[]');
                 $decoded = json_decode($z, true);
                 $zonasActuales = json_last_error() === JSON_ERROR_NONE ? (array)$decoded : explode(',', $z);
                 $zonasActuales = array_values(array_filter(array_map('trim', $zonasActuales)));
-
-                // refrescar datos pago
-                $dp = $datosPagoModel->getByUsuarioId($usuarioId) ?: [];
-                $ctaBanco  = (string)($dp['banco']  ?? '');
-                $ctaAlias  = (string)($dp['alias']  ?? '');
-                $ctaCuenta = (string)($dp['cuenta'] ?? '');
             } else {
-                $error = "Error al guardar los cambios (usuario, paseador o datos de pago).";
+                $error = "Error al guardar los cambios (usuario o paseador).";
             }
         }
     }
@@ -264,7 +259,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
     <?php include __DIR__ . '/../../src/Templates/SidebarPaseador.php'; ?>
 
-
     <main>
         <div class="py-2">
 
@@ -279,9 +273,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <a href="Perfil.php" class="btn btn-outline-light btn-sm">
                         <i class="fas fa-user me-1"></i> Mi perfil
                     </a>
-                     <a href="<?= $baseFeatures; ?>/Dashboard.php" class="btn btn-outline-light">
-                    <i class="fas fa-arrow-left me-1"></i> Volver
-                </a>
+                    <a href="<?= $baseFeatures; ?>/Dashboard.php" class="btn btn-outline-light">
+                        <i class="fas fa-arrow-left me-1"></i> Volver
+                    </a>
                 </div>
             </div>
 
@@ -458,7 +452,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 </div>
                             </div>
 
-                            <!-- ✅ Transferencias (GUARDA en datos_pago) -->
+                            <!-- ✅ Transferencias (GUARDA en USUARIOS) -->
                             <div class="col-12">
                                 <div class="section-card">
                                     <div class="section-header">
@@ -472,23 +466,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                         <div class="row g-3">
                                             <div class="col-md-4">
                                                 <label class="form-label">Banco</label>
-                                                <input type="text" name="banco" class="form-control" maxlength="100"
+                                                <input type="text" name="banco" class="form-control" maxlength="80"
                                                     value="<?= htmlspecialchars($ctaBanco, ENT_QUOTES, 'UTF-8') ?>">
                                             </div>
                                             <div class="col-md-4">
                                                 <label class="form-label">Alias</label>
-                                                <input type="text" name="alias" class="form-control" maxlength="100"
+                                                <input type="text" name="alias" class="form-control" maxlength="120"
                                                     value="<?= htmlspecialchars($ctaAlias, ENT_QUOTES, 'UTF-8') ?>">
                                             </div>
                                             <div class="col-md-4">
                                                 <label class="form-label">Número de cuenta (opcional)</label>
-                                                <input type="text" name="cuenta" class="form-control" maxlength="100"
+                                                <input type="text" name="cuenta" class="form-control" maxlength="120"
                                                     value="<?= htmlspecialchars($ctaCuenta, ENT_QUOTES, 'UTF-8') ?>">
                                             </div>
                                         </div>
 
                                         <small class="text-muted d-block mt-2">
-                                            Se guarda en <code>datos_pago</code> por tu <code>usuario_id</code>.
+                                            Se guarda en <code>usuarios</code>:
+                                            <code>banco_nombre</code>, <code>alias_cuenta</code>, <code>cuenta_numero</code>.
                                         </small>
                                     </div>
                                 </div>

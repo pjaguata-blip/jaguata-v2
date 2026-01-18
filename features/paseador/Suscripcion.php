@@ -286,7 +286,9 @@ $MONTO_TRANSF   = 50000;
                         Pagá ₲<?= number_format($MONTO_TRANSF, 0, ',', '.'); ?>/mes y accedé a paseos ilimitados como paseador.
                     </p>
                 </div>
-                <i class="fas fa-crown fa-3x opacity-75"></i>
+                 <a href="<?= $baseFeatures; ?>/Dashboard.php" class="btn btn-outline-light">
+                        <i class="fas fa-arrow-left me-1"></i> Volver
+                    </a>
             </div>
 
             <?php if ($error): ?>

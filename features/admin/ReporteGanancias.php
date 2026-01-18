@@ -1,5 +1,4 @@
 <?php
-
 declare(strict_types=1);
 
 error_reporting(E_ALL);
@@ -8,236 +7,248 @@ ini_set('display_startup_errors', '1');
 
 require_once dirname(__DIR__, 2) . '/src/Config/AppConfig.php';
 require_once dirname(__DIR__, 2) . '/src/Helpers/Session.php';
-require_once dirname(__DIR__, 2) . '/src/Controllers/AuthController.php';
-require_once dirname(__DIR__, 2) . '/src/Controllers/ConfiguracionController.php';
 require_once dirname(__DIR__, 2) . '/src/Services/DatabaseService.php';
 
 use Jaguata\Config\AppConfig;
 use Jaguata\Helpers\Session;
-use Jaguata\Controllers\ConfiguracionController;
 use Jaguata\Services\DatabaseService;
 
 AppConfig::init();
 
-/* 🔒 Solo admin */
+/* 🔒 Seguridad */
 if (!Session::isLoggedIn() || Session::getUsuarioRol() !== 'admin') {
     header('Location: ' . BASE_URL . '/public/login.php?error=unauthorized');
     exit;
 }
 
-/* Helper */
-function h(?string $v): string
-{
-    return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
-}
-function formato_guarani(float $m): string
-{
-    return number_format($m, 0, ',', '.');
-}
+/* Helpers */
+function h(?string $v): string { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
+function formato_guarani(float $m): string { return number_format($m, 0, ',', '.'); }
+
+/* ✅ baseFeatures */
+$baseFeatures = BASE_URL . '/features/admin';
 
 /* ============================
-   CONFIGURACIÓN FINANCIERA
-   ============================ */
-$configCtrl = new ConfiguracionController();
-$configDB   = $configCtrl->getAll() ?: [];
-
-$comisionPorc = (float)($configDB['comision_porcentaje'] ?? 0);
-$tarifaBase   = (float)($configDB['tarifa_base'] ?? 0);
-
-/* ============================
-   FILTROS
+   FILTROS + TAB
    ============================ */
 $desde     = $_GET['desde'] ?? '';
 $hasta     = $_GET['hasta'] ?? '';
+$tab       = $_GET['tab'] ?? 'sus';   // sus | paseos
 $exportCsv = (($_GET['export'] ?? '') === 'csv');
 $debug     = (($_GET['debug'] ?? '') === '1');
 
 $db = DatabaseService::getInstance()->getConnection();
 
 /* ============================
-   CONSULTA PRINCIPAL (ROBUSTA)
+   1) INGRESOS APP = SUSCRIPCIONES
    ============================ */
+$whereS  = "WHERE 1=1";
+$paramsS = [];
 
-/**
- * Estado: no dependas solo de 'pagado'.
- * Ajusté a varios estados comunes. Si querés, después lo refinamos según tu BD.
- */
-$where  = "WHERE TRIM(LOWER(pg.estado)) = 'confirmado_por_dueno'";
-$params = [];
+if ($desde !== '') { $whereS .= " AND DATE(s.created_at) >= :desdeS"; $paramsS[':desdeS'] = $desde; }
+if ($hasta !== '') { $whereS .= " AND DATE(s.created_at) <= :hastaS"; $paramsS[':hastaS'] = $hasta; }
 
-
-if ($desde !== '') {
-    $where .= " AND DATE(pg.created_at) >= :desde";
-    $params[':desde'] = $desde;
-}
-if ($hasta !== '') {
-    $where .= " AND DATE(pg.created_at) <= :hasta";
-    $params[':hasta'] = $hasta;
-}
-
-
-$registros = [];
-
-/**
- * 1) Intento A: dueño sale de p.dueno_id (si tu tabla paseos tiene esa columna)
- */
-$sqlA = "
+$sqlSus = "
     SELECT
-        p.paseo_id,
-        p.inicio,
-        p.duracion AS duracion_min,
-        p.precio_total,
-
-        pg.id AS pago_id,
-        COALESCE(pg.monto, p.precio_total, 0) AS monto_pagado,
-        pg.created_at AS pagado_en,
-
-        dueno.nombre    AS dueno_nombre,
-        paseador.nombre AS paseador_nombre
-    FROM paseos p
-    INNER JOIN pagos pg          ON pg.paseo_id = p.paseo_id
-    INNER JOIN usuarios dueno    ON dueno.usu_id = p.dueno_id
-    INNER JOIN usuarios paseador ON paseador.usu_id = p.paseador_id
-    $where
-    ORDER BY pg.created_at DESC
+        s.id,
+        s.paseador_id,
+        u.nombre AS paseador_nombre,
+        s.plan,
+        s.monto,
+        s.estado,
+        s.created_at AS pagado_en,
+        s.inicio,
+        s.fin,
+        s.referencia
+    FROM suscripciones s
+    INNER JOIN usuarios u ON u.usu_id = s.paseador_id
+    $whereS
+    ORDER BY s.created_at DESC
 ";
+$stmtS = $db->prepare($sqlSus);
+$stmtS->execute($paramsS);
+$suscripciones = $stmtS->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
-/**
- * 2) Fallback B: dueño sale de mascotas.dueno_id (tu query original)
- */
-$sqlB = "
-    SELECT
-        p.paseo_id,
-        p.inicio,
-        p.duracion AS duracion_min,
-        p.precio_total,
-
-        pg.id AS pago_id,
-        COALESCE(pg.monto, p.precio_total, 0) AS monto_pagado,
-
-        pg.created_at AS pagado_en,
-
-        dueno.nombre    AS dueno_nombre,
-        paseador.nombre AS paseador_nombre
-    FROM paseos p
-    INNER JOIN pagos pg          ON pg.paseo_id = p.paseo_id
-    INNER JOIN mascotas m        ON m.mascota_id = p.mascota_id
-    INNER JOIN usuarios dueno    ON dueno.usu_id = m.dueno_id
-    INNER JOIN usuarios paseador ON paseador.usu_id = p.paseador_id
-    $where
-    ORDER BY pg.created_at DESC
-";
-
-try {
-    $stmt = $db->prepare($sqlA);
-    $stmt->execute($params);
-    $registros = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
-} catch (Throwable $e) {
-    // si falla por columna dueno_id inexistente, probamos B
-    $stmt = $db->prepare($sqlB);
-    $stmt->execute($params);
-    $registros = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
-}
-
-/* ============================
-   CÁLCULOS
-   ============================ */
-$totales = [
-    'total_cobrado'       => 0,
-    'ganancia_app'        => 0,
-    'ganancia_paseadores' => 0,
-    'gasto_duenos'        => 0,
+$totSus = [
+    'total_ingreso_app' => 0,
+    'cant_activas'      => 0,
+    'cant_pendientes'   => 0,
+    'cant_vencidas'     => 0,
+    'cant_rechazadas'   => 0,
+    'cant_canceladas'   => 0,
+    'cant_total'        => 0,
 ];
 
-foreach ($registros as &$r) {
-    $monto = (float)($r['monto_pagado'] ?? 0);
+foreach ($suscripciones as $s) {
+    $totSus['cant_total']++;
+    $estado = strtolower(trim((string)($s['estado'] ?? '')));
 
-    $comision = $monto * ($comisionPorc / 100);
-    $paseador = $monto - $comision;
-
-    $r['comision_app']      = $comision;
-    $r['ganancia_paseador'] = $paseador;
-    $r['gasto_dueno']       = $monto;
-
-    $totales['total_cobrado']       += $monto;
-    $totales['ganancia_app']        += $comision;
-    $totales['ganancia_paseadores'] += $paseador;
-    $totales['gasto_duenos']        += $monto;
+    if ($estado === 'activa') {
+        $totSus['total_ingreso_app'] += (float)($s['monto'] ?? 0);
+        $totSus['cant_activas']++;
+    } elseif ($estado === 'pendiente') {
+        $totSus['cant_pendientes']++;
+    } elseif ($estado === 'vencida') {
+        $totSus['cant_vencidas']++;
+    } elseif ($estado === 'rechazada') {
+        $totSus['cant_rechazadas']++;
+    } elseif ($estado === 'cancelada') {
+        $totSus['cant_canceladas']++;
+    }
 }
-unset($r);
 
 /* ============================
-   DEBUG (solo si ?debug=1)
+   2) PAGOS DE PASEOS (DUEÑO -> PASEADOR)
    ============================ */
-$debugEstados = [];
-$debugCountPagos = null;
+$whereP  = "WHERE 1=1";
+$paramsP = [];
+
+if ($desde !== '') { $whereP .= " AND DATE(pg.created_at) >= :desdeP"; $paramsP[':desdeP'] = $desde; }
+if ($hasta !== '') { $whereP .= " AND DATE(pg.created_at) <= :hastaP"; $paramsP[':hastaP'] = $hasta; }
+
+$sqlPagos = "
+    SELECT
+        pg.id AS pago_id,
+        pg.paseo_id,
+        pg.usuario_id AS dueno_id,
+        dueno.nombre AS dueno_nombre,
+        p.paseador_id,
+        paseador.nombre AS paseador_nombre,
+        pg.metodo,
+        pg.monto,
+        pg.estado,
+        pg.created_at AS pagado_en
+    FROM pagos pg
+    INNER JOIN paseos p          ON p.paseo_id = pg.paseo_id
+    INNER JOIN usuarios dueno    ON dueno.usu_id = pg.usuario_id
+    INNER JOIN usuarios paseador ON paseador.usu_id = p.paseador_id
+    $whereP
+    ORDER BY pg.created_at DESC
+";
+$stmtP = $db->prepare($sqlPagos);
+$stmtP->execute($paramsP);
+$pagosPaseos = $stmtP->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+function es_pago_confirmado(?string $estado): bool {
+    $e = strtolower(trim((string)$estado));
+    return in_array($e, ['confirmado_por_dueno','confirmado','pagado','completado','aprobado'], true);
+}
+
+$totPag = [
+    'total_cobrado_duenos' => 0,
+    'total_paseadores'     => 0,
+    'monto_pendiente'      => 0,
+    'cant_confirmados'     => 0,
+    'cant_pendientes'      => 0,
+    'cant_total'           => 0,
+];
+
+foreach ($pagosPaseos as $r) {
+    $totPag['cant_total']++;
+    $m = (float)($r['monto'] ?? 0);
+
+    if (es_pago_confirmado($r['estado'] ?? '')) {
+        $totPag['total_cobrado_duenos'] += $m;
+        $totPag['total_paseadores']     += $m;
+        $totPag['cant_confirmados']++;
+    } else {
+        $totPag['monto_pendiente'] += $m;
+        $totPag['cant_pendientes']++;
+    }
+}
+
+/* ============================
+   DEBUG
+   ============================ */
+$debugEstadosPagos = [];
+$debugEstadosSus   = [];
 if ($debug) {
     try {
         $q1 = $db->query("SELECT LOWER(TRIM(estado)) AS estado, COUNT(*) AS c FROM pagos GROUP BY LOWER(TRIM(estado)) ORDER BY c DESC");
-        $debugEstados = $q1 ? ($q1->fetchAll(PDO::FETCH_ASSOC) ?: []) : [];
-    } catch (Throwable $e) {
-        $debugEstados = [['estado' => '(no se pudo leer pagos.estado)', 'c' => 0]];
-    }
+        $debugEstadosPagos = $q1 ? ($q1->fetchAll(PDO::FETCH_ASSOC) ?: []) : [];
+    } catch (Throwable $e) { $debugEstadosPagos = []; }
+
     try {
-        $q2 = $db->query("SELECT COUNT(*) AS c FROM pagos");
-        $debugCountPagos = $q2 ? (int)($q2->fetch(PDO::FETCH_ASSOC)['c'] ?? 0) : 0;
-    } catch (Throwable $e) {
-        $debugCountPagos = null;
-    }
+        $q2 = $db->query("SELECT estado, COUNT(*) AS c FROM suscripciones GROUP BY estado ORDER BY c DESC");
+        $debugEstadosSus = $q2 ? ($q2->fetchAll(PDO::FETCH_ASSOC) ?: []) : [];
+    } catch (Throwable $e) { $debugEstadosSus = []; }
 }
 
 /* ============================
-   EXPORTAR CSV
+   EXPORT CSV
    ============================ */
 if ($exportCsv) {
     header('Content-Type: text/csv; charset=UTF-8');
-    header('Content-Disposition: attachment; filename="reporte_ganancias_jaguata_' . date('Ymd_His') . '.csv"');
-
+    header('Content-Disposition: attachment; filename="reporte_ganancias_' . date('Ymd_His') . '.csv"');
     $out = fopen('php://output', 'w');
-    fprintf($out, chr(0xEF) . chr(0xBB) . chr(0xBF)); // BOM UTF-8
+    fprintf($out, chr(0xEF) . chr(0xBB) . chr(0xBF));
 
-    fputcsv($out, [
-        'ID Pago',
-        'ID Paseo',
-        'Fecha pago',
-        'Dueño',
-        'Paseador',
-        'Monto pagado',
-        'Ganancia APP (comisión)',
-        'Ganancia Paseador',
-        'Gasto Dueño'
-    ]);
-
-    foreach ($registros as $row) {
+    fputcsv($out, ['REPORTE INGRESOS APP (SUSCRIPCIONES)']);
+    fputcsv($out, ['ID','Fecha','Paseador','Plan','Monto','Estado','Inicio','Fin','Referencia']);
+    foreach ($suscripciones as $s) {
         fputcsv($out, [
-            $row['pago_id'] ?? '',
-            $row['paseo_id'] ?? '',
-            $row['pagado_en'] ?? '',
-            $row['dueno_nombre'] ?? '',
-            $row['paseador_nombre'] ?? '',
-            $row['monto_pagado'] ?? 0,
-            $row['comision_app'] ?? 0,
-            $row['ganancia_paseador'] ?? 0,
-            $row['gasto_dueno'] ?? 0,
+            $s['id'] ?? '',
+            $s['pagado_en'] ?? '',
+            $s['paseador_nombre'] ?? '',
+            $s['plan'] ?? '',
+            $s['monto'] ?? 0,
+            $s['estado'] ?? '',
+            $s['inicio'] ?? '',
+            $s['fin'] ?? '',
+            $s['referencia'] ?? '',
         ]);
     }
 
     fputcsv($out, []);
-    fputcsv($out, ['RESUMEN POR ROL']);
-    fputcsv($out, ['APP (Administración)', '₲' . formato_guarani($totales['ganancia_app'])]);
-    fputcsv($out, ['Paseadores', '₲' . formato_guarani($totales['ganancia_paseadores'])]);
-    fputcsv($out, ['Dueños (gasto)', '₲' . formato_guarani($totales['gasto_duenos'])]);
+    fputcsv($out, ['TOTAL INGRESO APP (solo activas)', '₲' . formato_guarani((float)$totSus['total_ingreso_app'])]);
 
+    fputcsv($out, []);
+    fputcsv($out, []);
+    fputcsv($out, ['REPORTE PAGOS DE PASEOS (DUEÑO -> PASEADOR)']);
+    fputcsv($out, ['ID Pago','ID Paseo','Fecha','Dueño','Paseador','Método','Monto','Estado']);
+    foreach ($pagosPaseos as $p) {
+        fputcsv($out, [
+            $p['pago_id'] ?? '',
+            $p['paseo_id'] ?? '',
+            $p['pagado_en'] ?? '',
+            $p['dueno_nombre'] ?? '',
+            $p['paseador_nombre'] ?? '',
+            $p['metodo'] ?? '',
+            $p['monto'] ?? 0,
+            $p['estado'] ?? '',
+        ]);
+    }
     fclose($out);
     exit;
+}
+
+/* ============================
+   UI helpers (badges)
+   ============================ */
+function badgeSus(?string $estado): array {
+    $e = strtolower(trim((string)$estado));
+    return match ($e) {
+        'activa'    => ['bg-success', 'ACTIVA', 'fa-circle-check'],
+        'pendiente' => ['bg-warning text-dark', 'PEND.', 'fa-clock'],
+        'vencida'   => ['bg-secondary', 'VENC.', 'fa-hourglass-end'],
+        'rechazada' => ['bg-danger', 'RECH.', 'fa-circle-xmark'],
+        'cancelada' => ['bg-dark', 'CANC.', 'fa-ban'],
+        default     => ['bg-light text-dark border', '—', 'fa-circle'],
+    };
+}
+function badgePago(?string $estado): array {
+    $e = strtolower(trim((string)$estado));
+    if (es_pago_confirmado($e)) return ['bg-success', 'CONF.', 'fa-circle-check'];
+    if ($e === 'pendiente')     return ['bg-warning text-dark', 'PEND.', 'fa-clock'];
+    if ($e === 'rechazado')     return ['bg-danger', 'RECH.', 'fa-circle-xmark'];
+    return ['bg-secondary', strtoupper(substr($e ?: 'N/D', 0, 5)), 'fa-circle'];
 }
 ?>
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
     <meta charset="UTF-8">
-    <title>Reporte de Ganancias - Jaguata</title>
+    <title>ReporteGanancias - Jaguata</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -245,292 +256,355 @@ if ($exportCsv) {
     <link href="<?= BASE_URL; ?>/public/assets/css/jaguata-theme.css" rel="stylesheet">
 
     <style>
-        html,
-        body {
-            height: 100%;
-        }
+        /* ✅ evita scroll horizontal */
+        html, body { overflow-x: hidden; width: 100%; }
+        .table-responsive { overflow-x: auto; }
+        th, td { white-space: nowrap; }
 
-        body {
-            background: var(--gris-fondo, #f4f6f9);
-        }
-
-        main.main-content {
-            margin-left: 260px;
-            min-height: 100vh;
-            padding: 24px;
-        }
-
-        @media (max-width: 768px) {
-            main.main-content {
-                margin-left: 0;
-                padding: 16px;
-            }
-        }
-
-        .dash-card {
-            background: #fff;
-            border-radius: 18px;
-            padding: 18px 20px;
-            box-shadow: 0 12px 30px rgba(0, 0, 0, .06);
-            text-align: center;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            gap: 6px;
-            height: 100%;
-        }
-
-        .dash-card-icon {
-            font-size: 2rem;
-            margin-bottom: 6px;
-        }
-
-        .dash-card-value {
-            font-size: 1.4rem;
-            font-weight: 700;
-            color: #222;
-        }
-
-        .dash-card-label {
-            font-size: .9rem;
-            color: #555;
-        }
-
-        .icon-blue {
-            color: #0d6efd;
-        }
-
-        .icon-green {
-            color: var(--verde-jaguata, #3c6255);
-        }
-
-        .icon-yellow {
-            color: #ffc107;
-        }
-
-        .icon-red {
-            color: #dc3545;
-        }
-
-        .table-responsive {
-            overflow-x: auto;
-        }
-
-        table.detalle-pagos {
-            min-width: 1200px;
-        }
-
-        table.detalle-pagos th,
-        table.detalle-pagos td {
-            white-space: nowrap;
+        /* Badges */
+        .badge-soft{
+            display:inline-flex; align-items:center; gap:6px;
+            padding:8px 12px; border-radius:999px;
+            font-weight:800; font-size:.82rem;
         }
     </style>
 </head>
-
 <body>
 
-    <?php include dirname(__DIR__, 2) . '/src/Templates/SidebarAdmin.php'; ?>
+<?php include __DIR__ . '/../../src/Templates/SidebarAdmin.php'; ?>
 
- 
+<main>
+  <div class="container-fluid px-3 px-md-2">
 
-    <main class="main-content">
-
-        <div class="header-box header-pagos mb-4 d-flex justify-content-between align-items-center">
-            <div>
-                <h1 class="fw-bold">Reporte de Ganancias</h1>
-                <p class="mb-0">Resumen financiero de la aplicación 💸</p>
-            </div>
-            <a href="<?= $baseFeatures; ?>/Dashboard.php" class="btn btn-outline-light">
-                    <i class="fas fa-arrow-left me-1"></i> Volver
-                </a>
+    <!-- ✅ HEADER (IGUAL a tus pantallas: Notificaciones / Usuarios) -->
+    <div class="header-box header-usuarios mb-3">
+        <div>
+            <h1 class="fw-bold mb-1">ReporteGanancias</h1>
+            <p class="mb-0">Ingresos APP por Suscripciones + Flujo Dueño → Paseador 💸</p>
         </div>
 
-        <?php if ($debug): ?>
-            <div class="alert alert-warning">
-                <div><strong>DEBUG</strong></div>
-                <div>Total pagos en tabla <code>pagos</code>: <?= $debugCountPagos ?? 'N/D' ?></div>
-                <div class="mt-2"><strong>Estados en pagos.estado:</strong></div>
-                <ul class="mb-0">
-                    <?php foreach ($debugEstados as $e): ?>
-                        <li><?= h($e['estado'] ?? '') ?> (<?= (int)($e['c'] ?? 0) ?>)</li>
-                    <?php endforeach; ?>
-                </ul>
-                <div class="mt-2"><strong>Registros en el reporte:</strong> <?= count($registros) ?></div>
-            </div>
-        <?php endif; ?>
-
-        <div class="row g-3 mb-4 align-items-stretch">
-            <div class="col-md-3 d-flex">
-                <div class="dash-card w-100">
-                    <i class="fas fa-money-bill-wave dash-card-icon icon-blue"></i>
-                    <div class="dash-card-value">₲<?= formato_guarani($totales['total_cobrado']); ?></div>
-                    <div class="dash-card-label">Total cobrado (dueños)</div>
-                </div>
-            </div>
-
-            <div class="col-md-3 d-flex">
-                <div class="dash-card w-100">
-                    <i class="fas fa-building dash-card-icon icon-green"></i>
-                    <div class="dash-card-value">₲<?= formato_guarani($totales['ganancia_app']); ?></div>
-                    <div class="dash-card-label">Ganancia de la aplicación</div>
-                    <small class="text-muted">Comisión actual: <?= (float)$comisionPorc; ?>%</small>
-                </div>
-            </div>
-
-            <div class="col-md-3 d-flex">
-                <div class="dash-card w-100">
-                    <i class="fas fa-user-tie dash-card-icon icon-yellow"></i>
-                    <div class="dash-card-value">₲<?= formato_guarani($totales['ganancia_paseadores']); ?></div>
-                    <div class="dash-card-label">Ganancia de paseadores</div>
-                </div>
-            </div>
-
-            <div class="col-md-3 d-flex">
-                <div class="dash-card w-100">
-                    <i class="fas fa-user dash-card-icon icon-red"></i>
-                    <div class="dash-card-value">₲<?= formato_guarani($totales['gasto_duenos']); ?></div>
-                    <div class="dash-card-label">Gastos de dueños</div>
-                </div>
-            </div>
+        <div class="d-flex align-items-center gap-2">
+            <button class="btn btn-light d-lg-none" id="btnSidebarToggle" type="button">
+                <i class="fas fa-bars"></i>
+            </button>
         </div>
 
-        <div class="section-card mb-4">
-            <div class="section-header">
-                <i class="fas fa-users me-2"></i>Resumen por rol
-            </div>
-            <div class="section-body">
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
-                        <thead>
-                            <tr>
-                                <th>Rol</th>
-                                <th>Descripción</th>
-                                <th class="text-end">Monto (₲)</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td><strong>APP / Administración</strong></td>
-                                <td>Ingresos por comisión de cada paseo.</td>
-                                <td class="text-end fw-bold text-success">₲<?= formato_guarani($totales['ganancia_app']); ?></td>
-                            </tr>
-                            <tr>
-                                <td><strong>Paseadores</strong></td>
-                                <td>Monto total destinado a los paseadores.</td>
-                                <td class="text-end fw-bold">₲<?= formato_guarani($totales['ganancia_paseadores']); ?></td>
-                            </tr>
-                            <tr>
-                                <td><strong>Dueños</strong></td>
-                                <td>Gasto total realizado por los dueños en paseos.</td>
-                                <td class="text-end fw-bold text-danger">₲<?= formato_guarani($totales['gasto_duenos']); ?></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+        <a href="<?= $baseFeatures; ?>/Dashboard.php" class="btn btn-outline-light">
+            <i class="fas fa-arrow-left me-1"></i> Volver
+        </a>
+    </div>
 
-                <?php if (empty($registros)): ?>
-                    <div class="alert alert-info mt-3 mb-0">
-                        No hay registros para calcular totales. Probá abrir con <code>?debug=1</code> para ver los estados existentes en <code>pagos</code>.
-                    </div>
+    <?php if ($debug): ?>
+      <div class="alert alert-warning">
+          <div><strong>DEBUG</strong></div>
+
+          <div class="mt-2"><strong>Estados en pagos.estado:</strong></div>
+          <ul class="mb-0">
+              <?php foreach ($debugEstadosPagos as $e): ?>
+                  <li><?= h($e['estado'] ?? '') ?> (<?= (int)($e['c'] ?? 0) ?>)</li>
+              <?php endforeach; ?>
+          </ul>
+
+          <div class="mt-3"><strong>Estados en suscripciones.estado:</strong></div>
+          <ul class="mb-0">
+              <?php foreach ($debugEstadosSus as $e): ?>
+                  <li><?= h($e['estado'] ?? '') ?> (<?= (int)($e['c'] ?? 0) ?>)</li>
+              <?php endforeach; ?>
+          </ul>
+      </div>
+    <?php endif; ?>
+
+    <!-- FILTROS (misma estructura que Usuarios) -->
+    <div class="filtros mb-3">
+      <form method="get" class="row g-3 align-items-end">
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Buscar</label>
+          <input id="searchInput" type="text" class="form-control" placeholder="Buscar (nombre, estado, monto...)">
+        </div>
+
+        <div class="col-md-3">
+          <label class="form-label fw-semibold">Sección</label>
+          <select id="filterTab" name="tab" class="form-select">
+            <option value="sus" <?= ($tab === 'sus') ? 'selected' : '' ?>>Suscripciones (Ingreso APP)</option>
+            <option value="paseos" <?= ($tab === 'paseos') ? 'selected' : '' ?>>Pagos de Paseos</option>
+          </select>
+        </div>
+
+        <div class="col-md-2">
+          <label class="form-label fw-semibold">Desde</label>
+          <input type="date" name="desde" class="form-control" value="<?= h($desde) ?>">
+        </div>
+
+        <div class="col-md-2">
+          <label class="form-label fw-semibold">Hasta</label>
+          <input type="date" name="hasta" class="form-control" value="<?= h($hasta) ?>">
+        </div>
+
+        <div class="col-md-1">
+          <button class="btn btn-success w-100" title="Aplicar filtros">
+            <i class="fas fa-filter"></i>
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- EXPORT + DEBUG abajo del filtro (igual a Usuarios) -->
+    <div class="export-buttons mb-3 d-flex gap-2 flex-wrap">
+        <a class="btn btn-excel"
+           href="?export=csv&tab=<?= urlencode($tab) ?>&desde=<?= urlencode($desde) ?>&hasta=<?= urlencode($hasta) ?>">
+            <i class="fas fa-file-csv"></i> CSV
+        </a>
+
+        <a class="btn btn-outline-warning"
+           href="?debug=1&tab=<?= urlencode($tab) ?>&desde=<?= urlencode($desde) ?>&hasta=<?= urlencode($hasta) ?>">
+            <i class="fas fa-bug"></i> Debug
+        </a>
+    </div>
+
+    <!-- =========================
+         SECCIÓN SUSCRIPCIONES
+         ========================= -->
+    <?php if ($tab === 'sus'): ?>
+      <div class="section-card mb-3">
+        <div class="section-header d-flex align-items-center justify-content-between">
+          <div class="d-flex align-items-center">
+            <i class="fas fa-crown me-2"></i>
+            <span>Ingresos de la APP (Suscripciones)</span>
+          </div>
+          <span class="badge bg-secondary"><?= (int)$totSus['cant_total'] ?> registro(s)</span>
+        </div>
+
+        <div class="section-body">
+          <div class="row g-3 mb-3">
+            <div class="col-md-4">
+              <div class="stat-card">
+                <i class="fas fa-sack-dollar text-success fa-2x mb-2"></i>
+                <h5>₲<?= formato_guarani((float)$totSus['total_ingreso_app']); ?></h5>
+                <p>Ingreso total APP (solo activas)</p>
+              </div>
+            </div>
+
+            <div class="col-md-4">
+              <div class="stat-card">
+                <i class="fas fa-circle-check text-primary fa-2x mb-2"></i>
+                <h5><?= (int)$totSus['cant_activas']; ?></h5>
+                <p>Suscripciones activas</p>
+              </div>
+            </div>
+
+            <div class="col-md-4">
+              <div class="stat-card">
+                <i class="fas fa-hourglass-half text-warning fa-2x mb-2"></i>
+                <h5><?= (int)$totSus['cant_pendientes']; ?></h5>
+                <p>Suscripciones pendientes</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table text-center align-middle table-hover" id="tablaSuscripciones">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Fecha</th>
+                  <th>Paseador</th>
+                  <th>Plan</th>
+                  <th>Monto</th>
+                  <th>Estado</th>
+                  <th>Inicio</th>
+                  <th>Fin</th>
+                  <th>Referencia</th>
+                </tr>
+              </thead>
+              <tbody>
+                <?php if (empty($suscripciones)): ?>
+                  <tr><td colspan="9" class="text-muted py-3">Sin registros</td></tr>
+                <?php else: ?>
+                  <?php foreach ($suscripciones as $s): ?>
+                    <?php [$cls,$txt,$ico] = badgeSus($s['estado'] ?? ''); ?>
+                    <tr>
+                      <td><strong>#<?= (int)($s['id'] ?? 0) ?></strong></td>
+                      <td><?= !empty($s['pagado_en']) ? date('d/m/Y H:i', strtotime((string)$s['pagado_en'])) : '-' ?></td>
+                      <td><?= h($s['paseador_nombre'] ?? '-') ?></td>
+                      <td><?= h($s['plan'] ?? '-') ?></td>
+                      <td><strong>₲<?= formato_guarani((float)($s['monto'] ?? 0)) ?></strong></td>
+                      <td>
+                        <span class="badge <?= h($cls) ?> badge-soft">
+                          <i class="fa-solid <?= h($ico) ?>"></i> <?= h($txt) ?>
+                        </span>
+                      </td>
+                      <td><?= !empty($s['inicio']) ? date('d/m/Y', strtotime((string)$s['inicio'])) : '-' ?></td>
+                      <td><?= !empty($s['fin']) ? date('d/m/Y', strtotime((string)$s['fin'])) : '-' ?></td>
+                      <td><?= h($s['referencia'] ?? '-') ?></td>
+                    </tr>
+                  <?php endforeach; ?>
                 <?php endif; ?>
-            </div>
+              </tbody>
+            </table>
+          </div>
+
+          <p class="text-muted small mt-2 mb-0">
+            Otros estados: vencidas (<?= (int)$totSus['cant_vencidas'] ?>),
+            rechazadas (<?= (int)$totSus['cant_rechazadas'] ?>),
+            canceladas (<?= (int)$totSus['cant_canceladas'] ?>).
+          </p>
+        </div>
+      </div>
+    <?php endif; ?>
+
+    <!-- =========================
+         SECCIÓN PAGOS DE PASEOS
+         ========================= -->
+    <?php if ($tab === 'paseos'): ?>
+      <div class="section-card mb-3">
+        <div class="section-header d-flex align-items-center justify-content-between">
+          <div class="d-flex align-items-center">
+            <i class="fas fa-dog me-2"></i>
+            <span>Pagos de paseos (Dueño → Paseador)</span>
+          </div>
+          <span class="badge bg-secondary"><?= (int)$totPag['cant_total'] ?> registro(s)</span>
         </div>
 
-        <div class="section-card mb-4">
-            <div class="section-header">
-                <i class="fas fa-wallet me-2"></i>Configuración financiera
+        <div class="section-body">
+          <div class="row g-3 mb-3">
+            <div class="col-md-4">
+              <div class="stat-card">
+                <i class="fas fa-money-bill-wave text-primary fa-2x mb-2"></i>
+                <h5>₲<?= formato_guarani((float)$totPag['total_cobrado_duenos']); ?></h5>
+                <p>Total cobrado a dueños (confirmados)</p>
+              </div>
             </div>
-            <div class="row g-3">
-                <div class="col-md-6">
-                    <p>Comisión del sistema:</p>
-                    <span class="badge bg-success fs-6"><?= (float)$comisionPorc ?>%</span>
-                </div>
-                <div class="col-md-6">
-                    <p>Tarifa base por paseo:</p>
-                    <span class="badge bg-primary fs-6">₲<?= formato_guarani($tarifaBase) ?></span>
-                </div>
+
+            <div class="col-md-4">
+              <div class="stat-card">
+                <i class="fas fa-user-tie text-success fa-2x mb-2"></i>
+                <h5>₲<?= formato_guarani((float)$totPag['total_paseadores']); ?></h5>
+                <p>Total destinado a paseadores</p>
+              </div>
             </div>
+
+            <div class="col-md-4">
+              <div class="stat-card">
+                <i class="fas fa-triangle-exclamation text-danger fa-2x mb-2"></i>
+                <h5>₲<?= formato_guarani((float)$totPag['monto_pendiente']); ?></h5>
+                <p>Monto pendiente (no confirmado)</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table text-center align-middle table-hover" id="tablaPagos">
+              <thead>
+                <tr>
+                  <th>ID Pago</th>
+                  <th>ID Paseo</th>
+                  <th>Fecha</th>
+                  <th>Dueño</th>
+                  <th>Paseador</th>
+                  <th>Método</th>
+                  <th>Monto</th>
+                  <th>Estado</th>
+                  <th>Confirmado</th>
+                </tr>
+              </thead>
+              <tbody>
+                <?php if (empty($pagosPaseos)): ?>
+                  <tr><td colspan="9" class="text-muted py-3">Sin registros</td></tr>
+                <?php else: ?>
+                  <?php foreach ($pagosPaseos as $p): ?>
+                    <?php
+                      $ok = es_pago_confirmado($p['estado'] ?? '');
+                      [$cls,$txt,$ico] = badgePago($p['estado'] ?? '');
+                    ?>
+                    <tr>
+                      <td><strong>#<?= (int)($p['pago_id'] ?? 0) ?></strong></td>
+                      <td>#<?= (int)($p['paseo_id'] ?? 0) ?></td>
+                      <td><?= !empty($p['pagado_en']) ? date('d/m/Y H:i', strtotime((string)$p['pagado_en'])) : '-' ?></td>
+                      <td><?= h($p['dueno_nombre'] ?? '-') ?></td>
+                      <td><?= h($p['paseador_nombre'] ?? '-') ?></td>
+                      <td><?= h($p['metodo'] ?? '-') ?></td>
+                      <td><strong>₲<?= formato_guarani((float)($p['monto'] ?? 0)) ?></strong></td>
+                      <td>
+                        <span class="badge <?= h($cls) ?> badge-soft">
+                          <i class="fa-solid <?= h($ico) ?>"></i> <?= h($txt) ?>
+                        </span>
+                      </td>
+                      <td>
+                        <?php if ($ok): ?>
+                          <span class="badge bg-success">Sí</span>
+                        <?php else: ?>
+                          <span class="badge bg-secondary">No</span>
+                        <?php endif; ?>
+                      </td>
+                    </tr>
+                  <?php endforeach; ?>
+                <?php endif; ?>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="alert alert-info mt-3 mb-0">
+            <b>Nota:</b> Los pagos de paseos son flujo <b>Dueño → Paseador</b>.
+            Los ingresos de la aplicación provienen de <b>Suscripciones</b>.
+          </div>
         </div>
+      </div>
+    <?php endif; ?>
 
-        <div class="filtros mb-4">
-            <form method="get" class="row g-3 align-items-end">
-                <div class="col-md-4">
-                    <label class="form-label fw-semibold">Desde</label>
-                    <input type="date" name="desde" class="form-control" value="<?= h($desde) ?>">
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label fw-semibold">Hasta</label>
-                    <input type="date" name="hasta" class="form-control" value="<?= h($hasta) ?>">
-                </div>
-                <div class="col-md-4 text-md-end">
-                    <button class="btn btn-success mt-3 mt-md-0">
-                        <i class="fas fa-filter me-1"></i>Aplicar filtros
-                    </button>
-                    <a class="btn btn-outline-secondary mt-3 mt-md-0"
-                        href="?export=csv&desde=<?= urlencode($desde) ?>&hasta=<?= urlencode($hasta) ?>">
-                        <i class="fas fa-file-csv me-1"></i>CSV
-                    </a>
-                </div>
-            </form>
-        </div>
+    <footer class="mt-3">
+      <small>© <?= date('Y') ?> Jaguata — Panel de Administración</small>
+    </footer>
 
-        <div class="card shadow-sm mb-4">
-            <div class="card-header d-flex justify-content-between">
-                <h5 class="mb-0"><i class="fas fa-list me-2"></i>Detalle de pagos</h5>
-                <span class="badge bg-secondary"><?= count($registros) ?> registro(s)</span>
-            </div>
+  </div>
+</main>
 
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle detalle-pagos">
-                        <thead>
-                            <tr>
-                                <th>#Paseo</th>
-                                <th>Fecha pago</th>
-                                <th>Dueño</th>
-                                <th>Paseador</th>
-                                <th>Monto pagado</th>
-                                <th>Comisión (APP)</th>
-                                <th>Paseador</th>
-                                <th>Dueño (gasto)</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php if (empty($registros)): ?>
-                                <tr>
-                                    <td colspan="8" class="text-center text-muted">Sin registros</td>
-                                </tr>
-                            <?php else: ?>
-                                <?php foreach ($registros as $r): ?>
-                                    <tr>
-                                        <td>#<?= (int)($r['paseo_id'] ?? 0) ?></td>
-                                        <td><?= !empty($r['pagado_en']) ? date('d/m/Y H:i', strtotime((string)$r['pagado_en'])) : '-' ?></td>
-                                        <td><?= h($r['dueno_nombre'] ?? '-') ?></td>
-                                        <td><?= h($r['paseador_nombre'] ?? '-') ?></td>
-                                        <td>₲<?= formato_guarani((float)($r['monto_pagado'] ?? 0)) ?></td>
-                                        <td>₲<?= formato_guarani((float)($r['comision_app'] ?? 0)) ?></td>
-                                        <td>₲<?= formato_guarani((float)($r['ganancia_paseador'] ?? 0)) ?></td>
-                                        <td>₲<?= formato_guarani((float)($r['gasto_dueno'] ?? 0)) ?></td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            <?php endif; ?>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
-        <footer class="text-center text-muted small mb-4">
-            © <?= date('Y') ?> Jaguata — Panel de Administración
-        </footer>
+<script>
+  /* ✅ Toggle sidebar en mobile (IGUAL a Notificaciones / Usuarios) */
+  document.addEventListener('DOMContentLoaded', () => {
+    const sidebar = document.querySelector('.sidebar');
+    const btnToggle = document.getElementById('btnSidebarToggle');
 
-    </main>
+    if (btnToggle && sidebar) {
+      btnToggle.addEventListener('click', () => {
+        sidebar.classList.toggle('show');
+      });
+    }
+  });
 
-    <script>
-        document.getElementById('toggleSidebar')?.addEventListener('click', () => {
-            document.getElementById('sidebar')?.classList.toggle('sidebar-open');
-        });
-    </script>
+  /* Tab: al cambiar sección, submit para refrescar tablas */
+  const filterTab = document.getElementById('filterTab');
+  if (filterTab) {
+    filterTab.addEventListener('change', () => {
+      filterTab.closest('form')?.submit();
+    });
+  }
+
+  /* Buscar: filtra la tabla visible */
+  const searchInput = document.getElementById('searchInput');
+
+  function getActiveTable() {
+    const current = (filterTab?.value || 'sus');
+    return document.getElementById(current === 'paseos' ? 'tablaPagos' : 'tablaSuscripciones');
+  }
+
+  function aplicarBusqueda() {
+    const q = (searchInput?.value || '').toLowerCase().trim();
+    const table = getActiveTable();
+    if (!table) return;
+
+    const rows = table.querySelectorAll('tbody tr');
+    rows.forEach(r => {
+      const text = r.textContent.toLowerCase();
+      r.style.display = (!q || text.includes(q)) ? '' : 'none';
+    });
+  }
+
+  if (searchInput) {
+    searchInput.addEventListener('input', aplicarBusqueda);
+  }
+</script>
+
 </body>
-
 </html>

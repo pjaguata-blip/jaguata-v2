@@ -1,0 +1,809 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Manual de Usuario — Jaguata</title>
+
+  <!-- Fuente -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="manual-jaguata-v2.css" />
+</head>
+
+<body>
+  <!-- Barra superior (solo pantalla) -->
+  <div class="screenbar">
+    <div class="screenbar-inner">
+      <div class="sb-left">
+        <span class="sb-badge">Jaguata</span>
+        <span class="sb-title">Manual de Usuario</span>
+      </div>
+      <div class="sb-actions">
+        <a class="sb-link" href="#indice">Índice</a>
+        <button class="sb-btn" onclick="window.print()">Imprimir / Guardar PDF</button>
+      </div>
+    </div>
+  </div>
+
+  <main class="doc">
+
+    <!-- PORTADA -->
+    <section class="page cover">
+      <div class="cover-hero">
+        
+
+        <div class="cover-title">
+          <h1>Manual de Usuario</h1>
+          <p>
+            Guía práctica para Administradores, Dueños y Paseadores: navegación, módulos,
+            flujos principales, reservas, pagos, notificaciones y uso de dashboards.
+          </p>
+
+          <div class="cover-chips">
+            <span class="chip">Admin</span>
+            <span class="chip">Dueño</span>
+            <span class="chip">Paseador</span>
+            <span class="chip">Reservas • Pagos • Notificaciones • Reputación</span>
+          </div>
+        </div>
+
+        <div class="cover-meta">
+          <div class="meta-card">
+            <div class="meta-row"><span class="k">Universidad</span><span class="v">Universidad Columbia del Paraguay</span></div>
+            <div class="meta-row"><span class="k">Carrera</span><span class="v">Ingeniería en Informática</span></div>
+            <div class="meta-row"><span class="k">Autor/a</span><span class="v">Evelyn Camila Ayala Rojas</span></div>
+            <div class="meta-row"><span class="k">Tutora</span><span class="v">Prof. Dra. Mirtha Villagra</span></div>
+            <div class="meta-row"><span class="k">Lugar</span><span class="v">San Lorenzo – Paraguay</span></div>
+            <div class="meta-row"><span class="k">Año</span><span class="v">2026</span></div>
+          </div>
+
+          <div class="logo-card">
+            <img class="logojag" src="img/logojag.png" alt="Logo Jaguata">
+          </div>
+        </div>
+      </div>
+
+      <div class="cover-footer">
+        <span class="muted small">Versión 2.0</span>
+        <span class="muted small">© 2025 Jaguata</span>
+      </div>
+    </section>
+
+    <!-- ÍNDICE -->
+    <section class="page" id="indice">
+      <div class="page-head">
+        <h2>Índice</h2>
+        <p class="muted">Estructura del manual por módulos y roles.</p>
+      </div>
+
+      <div class="toc-grid">
+        <div class="toc-card">
+          <div class="toc-title">General</div>
+          <a class="toc-item" href="#intro"><span>1. Introducción</span><span class="dots"></span></a>
+          <a class="toc-item" href="#alcance"><span>2. Alcance y roles</span><span class="dots"></span></a>
+          <a class="toc-item" href="#requisitos"><span>3. Requisitos del sistema</span><span class="dots"></span></a>
+          <a class="toc-item" href="#acceso"><span>4. Acceso y registro</span><span class="dots"></span></a>
+          <a class="toc-item" href="#navegacion"><span>5. Navegación general</span><span class="dots"></span></a>
+          <a class="toc-item" href="#dashboards"><span>6. Dashboards (capturas)</span><span class="dots"></span></a>
+        </div>
+
+        <div class="toc-card">
+          <div class="toc-title">Por rol</div>
+          <a class="toc-item" href="#admin"><span>7. Administrador</span><span class="dots"></span></a>
+          <a class="toc-item" href="#dueno"><span>8. Dueño</span><span class="dots"></span></a>
+          <a class="toc-item" href="#paseador"><span>9. Paseador</span><span class="dots"></span></a>
+          <a class="toc-item" href="#faq"><span>10. Preguntas frecuentes</span><span class="dots"></span></a>
+          <a class="toc-item" href="#soporte"><span>11. Soporte y buenas prácticas</span><span class="dots"></span></a>
+        </div>
+      </div>
+
+      
+    </section>
+
+    <!-- 1 INTRO -->
+    <section class="page" id="intro">
+      <div class="page-head">
+        <h2>1. Introducción</h2>
+        <p class="muted">
+          Jaguata es una plataforma web que conecta dueños de mascotas con paseadores verificados,
+          permitiendo reservar paseos, gestionar solicitudes, registrar pagos, generar comprobantes,
+          recibir notificaciones y administrar perfiles según el rol.
+        </p>
+      </div>
+    </section>
+
+    <!-- 2 ALCANCE -->
+    <section class="page" id="alcance">
+      <div class="page-head">
+        <h2>2. Alcance y roles</h2>
+        <p class="muted">El sistema se divide en 3 roles con permisos y menús distintos.</p>
+      </div>
+
+      <h3 style="margin:10px 0 6px;">Roles</h3>
+      <ul style="margin:0; padding-left:18px; line-height:1.65;">
+        <li><b>Administrador:</b> gestiona usuarios, pagos, auditoría, reportes y configuraciones del sistema.</li>
+        <li><b>Dueño:</b> registra mascotas, busca paseadores, solicita paseos, realiza pagos y califica.</li>
+        <li><b>Paseador:</b> gestiona solicitudes, disponibilidad, paseos, cobros/remuneraciones y suscripción.</li>
+      </ul>
+
+      <div class="note info compact">
+        <b>Acceso por rol:</b> al iniciar sesión, cada usuario ingresa a su panel correspondiente y
+        solo ve los módulos habilitados para su perfil.
+      </div>
+    </section>
+
+    <!-- 3 REQUISITOS -->
+    <section class="page" id="requisitos">
+      <div class="page-head">
+        <h2>3. Requisitos del sistema</h2>
+        <p class="muted">Requisitos mínimos para usar Jaguata correctamente.</p>
+      </div>
+
+      <h3 style="margin:10px 0 6px;">Para usuarios finales</h3>
+      <ul style="margin:0; padding-left:18px; line-height:1.65;">
+        <li>Navegador actualizado: Chrome, Edge o Firefox.</li>
+        <li>Conexión a internet estable.</li>
+        <li>Permitir ubicación (recomendado) para seleccionar el punto de retiro y detectar ciudad.</li>
+      </ul>
+    </section>
+    
+<!-- 4 PANTALLAS PÚBLICAS + ACCESO -->
+<section class="page" id="acceso">
+  <div class="page-head">
+    <h2>4. Pantallas públicas, acceso y registro</h2>
+    <p class="muted">
+      Esta sección describe el recorrido completo: primero el sitio público (sin iniciar sesión) y,
+      luego, el ingreso al sistema (login/registro/recuperación de contraseña).
+    </p>
+  </div>
+
+  <!-- 4.1 Public -->
+  <h3 style="margin:10px 0 6px;">4.1 Pantallas públicas (antes de iniciar sesión)</h3>
+
+  <div class="note info compact">
+    <b>Pantalla principal del sistema (sitio público):</b>
+    el acceso inicial se realiza desde <b>public/sobre_nosotros.php</b>.
+    Desde esta pantalla se presenta Jaguata y se ofrecen accesos a <b>Registro</b>, <b>Login</b> y otras secciones.
+    <div class="muted small" style="margin-top:6px;">
+      <b>Acceso en localhost:</b> <code>http://localhost/jaguata/public/sobre_nosotros.php</code>
+    </div>
+  </div>
+
+  <ul style="margin:0; padding-left:18px; line-height:1.65;">
+    <li><b>Home / Landing:</b> explica qué es Jaguata y muestra botones de acceso (registro/login).</li>
+    <li><b>Contacto:</b> permite enviar un mensaje (nombre, email y contenido).</li>
+    <li><b>Bases y condiciones:</b> muestra términos de uso y responsabilidades.</li>
+  </ul>
+
+  <div class="note tip compact">
+    <b>Tip:</b> si el usuario ya está logueado, el sistema puede mostrar acceso directo al
+    <b>Dashboard</b> según su rol.
+  </div>
+
+  <!-- 4.2 Login -->
+  <h3 style="margin:14px 0 6px;">4.2 Iniciar sesión (Login)</h3>
+  <ol style="margin:0; padding-left:18px; line-height:1.75;">
+    <li>Ingresá a la pantalla <b>Login</b>.</li>
+    <li>Escribí tu <b>email</b> y <b>contraseña</b>.</li>
+    <li>Presioná <b>Ingresar</b>.</li>
+    <li>Si la cuenta está habilitada, el sistema redirige a tu <b>Dashboard</b> según rol.</li>
+  </ol>
+
+  <div class="note warn compact">
+    <b>Estado de cuenta:</b> si tu usuario está <b>pendiente</b>, <b>rechazado</b>, <b>suspendido</b> o <b>inactivo</b>,
+    el sistema puede bloquear el acceso total o parcial hasta que el administrador lo habilite.
+  </div>
+
+  <!-- 4.3 Registro -->
+  <h3 style="margin:14px 0 6px;">4.3 Registro de usuario</h3>
+  <ol style="margin:0; padding-left:18px; line-height:1.75;">
+    <li>Entrá a <b>Registro</b>.</li>
+    <li>Completá tus datos personales.</li>
+    <li>Elegí el rol correspondiente: <b>Dueño</b> o <b>Paseador</b>.</li>
+    <li>Confirmá el registro. La cuenta queda en estado <b>pendiente</b> hasta revisión/aprobación.</li>
+  </ol>
+
+  <!-- 4.4 Recuperación -->
+  <h3 style="margin:14px 0 6px;">4.4 Recuperación de contraseña</h3>
+  <ul style="margin:0; padding-left:18px; line-height:1.65;">
+    <li>En Login, seleccioná <b>“Recuperar contraseña”</b>.</li>
+    <li>Ingresá tu <b>email</b> y seguí las instrucciones del sistema.</li>
+    <li>Definí una nueva contraseña segura (recomendado: mínimo 8 caracteres con letras y números).</li>
+  </ul>
+
+  <div class="note warn compact">
+    <b>Recomendación:</b> no compartas tu contraseña y cerrá sesión si usás equipos públicos.
+  </div>
+
+  <!-- 4.5 Contacto / Bases -->
+  <h3 style="margin:14px 0 6px;">4.5 Contacto y bases</h3>
+  <ul style="margin:0; padding-left:18px; line-height:1.65;">
+    <li><b>Contacto:</b> completá nombre, email y mensaje para enviar una consulta o problema.</li>
+    <li><b>Bases y condiciones:</b> revisá los términos de uso antes de operar en la plataforma.</li>
+  </ul>
+
+  <div class="note tip compact">
+    <b>Tip para soporte:</b> al reportar un problema, indicá la pantalla/módulo y adjuntá una captura si es posible.
+  </div>
+
+  <!-- CAPTURAS -->
+  <h3 style="margin:18px 0 6px;">4.6 Capturas de pantallas (Público y Acceso)</h3>
+  <p class="muted" style="margin-top:0;">
+    Guardá tus capturas en <code>docs/manual/img/</code> y usá los nombres sugeridos.
+  </p>
+
+  <div class="shotgrid">
+    <figure class="shot">
+      <div class="shot-tag">Public</div>
+      <img src="img/public-home.jpg" alt="Página principal (Home)">
+      <figcaption>Figura G1. Pantalla principal del sistema (public/sobre_nosotros.php).</figcaption>
+    </figure>
+
+    <figure class="shot">
+      <div class="shot-tag">Public</div>
+      <img src="img/public-login.jpg" alt="Login">
+      <figcaption>Figura G2. Iniciar sesión (Login).</figcaption>
+    </figure>
+
+    <figure class="shot">
+      <div class="shot-tag">Public</div>
+      <img src="img/public-registro.jpg" alt="Registro">
+      <figcaption>Figura G3. Registro de usuario (Dueño / Paseador).</figcaption>
+    </figure>
+
+    <figure class="shot">
+      <div class="shot-tag">Public</div>
+      <img src="img/public-recuperar-password.jpg" alt="Recuperar contraseña">
+      <figcaption>Figura G4. Recuperación de contraseña.</figcaption>
+    </figure>
+
+    <figure class="shot">
+      <div class="shot-tag">Public</div>
+      <img src="img/public-contacto.jpg" alt="Contacto">
+      <figcaption>Figura G5. Soporte a usuarios .</figcaption>
+    </figure>
+
+    <figure class="shot">
+      <div class="shot-tag">Public</div>
+      <img src="img/public-bases-condiciones.jpg" alt="Bases y condiciones">
+      <figcaption>Figura G6. Bases y condiciones.</figcaption>
+    </figure>
+  </div>
+</section>
+
+    <!-- 5 NAVEGACION -->
+    <section class="page" id="navegacion">
+      <div class="page-head">
+        <h2>5. Navegación general</h2>
+        <p class="muted">Estructura común de los paneles: sidebar + contenido + módulos.</p>
+      </div>
+
+      <ul style="margin:0; padding-left:18px; line-height:1.75;">
+        <li><b>Sidebar (menú lateral):</b> muestra los módulos disponibles según el rol.</li>
+        <li><b>Contenido principal:</b> tarjetas, tablas y formularios (altas, bajas, edición).</li>
+        <li><b>Notificaciones:</b> lista de avisos importantes (eventos del sistema).</li>
+        <li><b>Cerrar sesión:</b> finaliza la sesión y vuelve al login.</li>
+      </ul>
+    </section>
+
+    <!-- 6 DASHBOARDS -->
+    <section class="page" id="dashboards">
+      <div class="page-head">
+        <h2>6. Dashboards por rol</h2>
+        <p class="muted">Capturas reales de los paneles principales del sistema.</p>
+      </div>
+
+      <div class="shotgrid">
+        <figure class="shot">
+          <div class="shot-tag">Administrador</div>
+          <img src="img/dashboard-admin.jpeg" alt="Dashboard Administrador">
+          <figcaption>Figura 1. Dashboard del Administrador.</figcaption>
+        </figure>
+
+        <figure class="shot">
+          <div class="shot-tag">Paseador</div>
+          <img src="img/dashboard-paseador.jpeg" alt="Dashboard Paseador">
+          <figcaption>Figura 2. Dashboard del Paseador.</figcaption>
+        </figure>
+
+        <figure class="shot">
+          <div class="shot-tag">Dueño</div>
+          <img src="img/dashboard-dueno.jpeg" alt="Dashboard Dueño">
+          <figcaption>Figura 3. Dashboard del Dueño.</figcaption>
+        </figure>
+      </div>
+    </section>
+    <!-- 7 ADMIN -->
+    <section class="page" id="admin">
+      <div class="page-head">
+        <h2>7. Rol Administrador</h2>
+        <p class="muted">
+          El Administrador es responsable de la operación del sistema: gestión de usuarios, control de pagos,
+          auditoría, reportes y parámetros globales.
+        </p>
+      </div>
+
+      <div class="note info compact">
+        <b>Módulos disponibles (menú Admin):</b>
+        Dashboard, Usuarios, Reportes/Estadísticas, Notificaciones, Pagos (efectuados/pendientes),
+        Auditoría, Configuraciones Generales, Roles y Permisos.
+      </div>
+
+      <h3 style="margin:14px 0 6px;">7.1 Usuarios</h3>
+      <ol style="margin:0; padding-left:18px; line-height:1.75;">
+        <li>Ingresá a <b>Usuarios</b> para visualizar la lista de cuentas registradas.</li>
+        <li>Utilizá filtros o búsqueda para localizar un usuario específico.</li>
+        <li>Accedé a <b>Editar</b> para modificar datos básicos y el <b>estado</b> del usuario.</li>
+      </ol>
+
+      <div class="note warn compact">
+        <b>Estados del usuario:</b> pendiente, aprobado, rechazado, suspendido o inactivo.
+        El estado determina el acceso del usuario a los módulos del sistema.
+      </div>
+
+      <h3 style="margin:14px 0 6px;">7.2 Pagos</h3>
+      <ul style="margin:0; padding-left:18px; line-height:1.65;">
+        <li><b>Pagos pendientes:</b> revisión de transacciones aún no confirmadas.</li>
+        <li><b>Pagos efectuados:</b> historial de pagos confirmados en el sistema.</li>
+        <li><b>Detalle de pago:</b> visualización de información completa del pago y comprobantes.</li>
+      </ul>
+
+      <h3 style="margin:14px 0 6px;">7.3 Auditoría</h3>
+      <p class="muted" style="margin-top:0;">
+        El módulo de auditoría registra todas las acciones relevantes realizadas en el sistema
+        para garantizar trazabilidad y control.
+      </p>
+      <ul style="margin:0; padding-left:18px; line-height:1.65;">
+        <li>Consulta de eventos por fecha, módulo o tipo de acción.</li>
+        <li>Registro de acciones como crear, editar, eliminar, login y cambios de configuración.</li>
+      </ul>
+
+      <h3 style="margin:14px 0 6px;">7.4 Configuraciones</h3>
+      <ul style="margin:0; padding-left:18px; line-height:1.65;">
+        <li><b>Configuraciones generales:</b> parámetros globales del sistema.</li>
+        <li><b>Roles y permisos:</b> definición de accesos a módulos según rol.</li>
+      </ul>
+
+      <h3 style="margin:14px 0 6px;">7.5 Reportes y estadísticas</h3>
+      <ul style="margin:0; padding-left:18px; line-height:1.65;">
+        <li>Visualización de métricas generales del sistema.</li>
+        <li>Estadísticas de usuarios, paseos, pagos y actividad.</li>
+      </ul>
+
+      <!-- =========================
+           7.6 CAPTURAS ADMIN
+           ========================= -->
+      <h3 style="margin:18px 0 6px;">7.6 Capturas de pantallas (Administrador)</h3>
+      <p class="muted" style="margin-top:0;">
+        A continuación se muestran las principales pantallas del rol Administrador.
+      </p>
+
+      <div class="shotgrid">
+        <figure class="shot">
+          <div class="shot-tag">Admin</div>
+          <img src="img/dashboard-admin.jpeg" alt="Dashboard Administrador">
+          <figcaption>Figura A1. Dashboard del Administrador.</figcaption>
+        </figure>
+
+        <figure class="shot">
+          <div class="shot-tag">Admin</div>
+          <img src="img/admin-usuarios.jpg" alt="Admin - Usuarios">
+          <figcaption>Figura A2. Gestión de Usuarios.</figcaption>
+        </figure>
+
+        <figure class="shot">
+          <div class="shot-tag">Admin</div>
+          <img src="img/admin-editar-usuario.jpg" alt="Admin - Editar usuario">
+          <figcaption>Figura A3. Edición y detalle de usuario.</figcaption>
+        </figure>
+
+        <figure class="shot">
+          <div class="shot-tag">Admin</div>
+          <img src="img/admin-pagos.jpg" alt="Admin - Pagos">
+          <figcaption>Figura A4. Gestión de pagos.</figcaption>
+        </figure>
+
+        <figure class="shot">
+          <div class="shot-tag">Admin</div>
+          <img src="img/admin-auditoria.jpg" alt="Admin - Auditoría">
+          <figcaption>Figura A5. Auditoría del sistema.</figcaption>
+        </figure>
+
+        <figure class="shot">
+          <div class="shot-tag">Admin</div>
+          <img src="img/admin-configuracion.jpg" alt="Admin - Configuraciones">
+          <figcaption>Figura A6. Configuraciones generales.</figcaption>
+        </figure>
+
+        <figure class="shot">
+          <div class="shot-tag">Admin</div>
+          <img src="img/admin-roles-permisos.jpg" alt="Admin - Roles y permisos">
+          <figcaption>Figura A7. Roles y permisos.</figcaption>
+        </figure>
+
+        <figure class="shot">
+          <div class="shot-tag">Admin</div>
+          <img src="img/admin-reportes.jpg" alt="Admin - Reportes">
+          <figcaption>Figura A8. Reportes y estadísticas.</figcaption>
+        </figure>
+      </div>
+    </section>
+    <!-- 8 DUEÑO -->
+    <section class="page" id="dueno">
+      <div class="page-head">
+        <h2>8. Rol Dueño</h2>
+        <p class="muted">
+          El Dueño gestiona sus mascotas, busca paseadores, solicita paseos, realiza pagos,
+          visualiza historial y califica al paseador.
+        </p>
+      </div>
+
+      <div class="note info compact">
+        <b>Módulos disponibles (menú Dueño):</b>
+        Dashboard, Reserva (Solicitar Paseo / Mis Paseos), Seguimiento, Buscar Paseadores,
+        Pagos (Gastos Totales / Pagos / Comprobantes), Notificaciones,
+        Mascotas (Mis Mascotas / Agregar / Editar), Perfil (Mi Perfil / Editar), Mis Puntos.
+      </div>
+
+      <h3 style="margin:14px 0 6px;">8.1 Gestión de Mascotas</h3>
+      <ol style="margin:0; padding-left:18px; line-height:1.75;">
+        <li>Ingresá a <b>Mis Mascotas</b> para ver el listado.</li>
+        <li>Seleccioná <b>Nueva Mascota</b> para registrar los datos y una foto.</li>
+        <li>Desde cada mascota podés <b>Ver Perfil</b> o <b>Editar</b>.</li>
+      </ol>
+
+      <div class="note warn compact">
+        <b>Requisito:</b> para solicitar un paseo necesitás al menos <b>1 mascota registrada</b>.
+      </div>
+
+      <h3 style="margin:14px 0 6px;">8.2 Buscar paseadores</h3>
+      <ul style="margin:0; padding-left:18px; line-height:1.65;">
+        <li>Ingresá a <b>Buscar Paseadores</b>.</li>
+        <li>Revisá el perfil del paseador y su reputación.</li>
+        <li>Si corresponde, desde allí podés ir a <b>Solicitar Paseo</b>.</li>
+      </ul>
+
+      <h3 style="margin:14px 0 6px;">8.3 Solicitar Paseo (Reserva)</h3>
+      <p class="muted" style="margin-top:0;">
+        La solicitud guía al dueño por pasos: selección de mascota(s), ubicación en el mapa,
+        fecha/hora y confirmación del total.
+      </p>
+
+      <ol style="margin:0; padding-left:18px; line-height:1.75;">
+        <li>Seleccioná <b>Mascota 1</b> (obligatorio).</li>
+        <li><b>Opcional:</b> seleccioná <b>Mascota 2</b> (máximo 2, sin repetir).</li>
+        <li>Definí la <b>ubicación</b> mediante el mapa (pin) o ubicación del navegador.</li>
+        <li>Elegí fecha/hora, duración y confirmá el <b>total</b>.</li>
+        <li>Presioná <b>Solicitar Paseo</b>.</li>
+      </ol>
+
+      <div class="note tip compact">
+        <b>Reglas automáticas:</b>
+        <ul style="margin:6px 0 0; padding-left:18px; line-height:1.65;">
+          <li>Se permite seleccionar <b>hasta 2 mascotas</b>.</li>
+          <li>No se puede repetir la misma mascota en Mascota 1 y Mascota 2.</li>
+          <li>Si son 2 mascotas, el sistema aplica <b>30% de descuento</b> automáticamente.</li>
+        </ul>
+      </div>
+
+      <h3 style="margin:14px 0 6px;">8.4 Mis Paseos y seguimiento</h3>
+      <ul style="margin:0; padding-left:18px; line-height:1.65;">
+        <li><b>Mis Paseos:</b> lista general de solicitudes y paseos.</li>
+        <li><b>Pendientes:</b> solicitudes por confirmar o en proceso.</li>
+        <li><b>Completos:</b> paseos finalizados (habilita calificación y comprobantes).</li>
+        <li><b>Cancelados:</b> historial de cancelaciones.</li>
+      </ul>
+
+      <h3 style="margin:14px 0 6px;">8.5 Pagos y comprobantes</h3>
+      <ul style="margin:0; padding-left:18px; line-height:1.65;">
+        <li><b>Gastos Totales:</b> resumen de gastos.</li>
+        <li><b>Pagos:</b> historial de pagos realizados.</li>
+        <li><b>Comprobantes:</b> vista/descarga de comprobantes asociados.</li>
+      </ul>
+
+      <h3 style="margin:14px 0 6px;">8.6 Notificaciones</h3>
+      <ul style="margin:0; padding-left:18px; line-height:1.65;">
+        <li>Visualización de eventos del sistema: solicitudes, cambios de estado y confirmaciones.</li>
+      </ul>
+
+      <h3 style="margin:14px 0 6px;">8.7 Calificar Paseador</h3>
+      <ul style="margin:0; padding-left:18px; line-height:1.65;">
+        <li>Luego de un paseo completado, ingresá a <b>Calificar Paseador</b>.</li>
+        <li>Seleccioná estrellas (1 a 5) y dejá un comentario (opcional).</li>
+      </ul>
+
+      <h3 style="margin:14px 0 6px;">8.8 Perfil y puntos</h3>
+      <ul style="margin:0; padding-left:18px; line-height:1.65;">
+        <li><b>Mi Perfil / Editar Perfil:</b> actualización de datos personales.</li>
+        <li><b>Mis Puntos:</b> consulta del saldo acumulado.</li>
+      </ul>
+
+      <!-- =========================
+           8.9 CAPTURAS DUEÑO
+           ========================= -->
+      <h3 style="margin:18px 0 6px;">8.9 Capturas de pantallas (Dueño)</h3>
+      <p class="muted" style="margin-top:0;">A continuación se presentan las pantallas principales del rol Dueño.</p>
+
+      <div class="shotgrid">
+        <figure class="shot">
+          <div class="shot-tag">Dueño</div>
+          <img src="img/dueno-dashboard.jpg" alt="Dueño - Dashboard">
+          <figcaption>Figura D1. Dashboard del Dueño.</figcaption>
+        </figure>
+
+        <figure class="shot">
+          <div class="shot-tag">Dueño</div>
+          <img src="img/dueno-mis-mascotas.jpg" alt="Dueño - Mis Mascotas">
+          <figcaption>Figura D2. Mis Mascotas (listado).</figcaption>
+        </figure>
+
+        <figure class="shot">
+          <div class="shot-tag">Dueño</div>
+          <img src="img/dueno-agregar-mascota.jpg" alt="Dueño - Agregar Mascota">
+          <figcaption>Figura D3. Agregar Mascota (formulario).</figcaption>
+        </figure>
+
+        <figure class="shot">
+          <div class="shot-tag">Dueño</div>
+          <img src="img/dueno-buscar-paseadores.jpg" alt="Dueño - Buscar Paseadores">
+          <figcaption>Figura D4. Buscar Paseadores.</figcaption>
+        </figure>
+
+        <figure class="shot">
+          <div class="shot-tag">Dueño</div>
+          <img src="img/dueno-solicitar-paseo.jpg" alt="Dueño - Solicitar Paseo">
+          <figcaption>Figura D5. Solicitar Paseo (mascotas + mapa).</figcaption>
+        </figure>
+
+        <figure class="shot">
+          <div class="shot-tag">Dueño</div>
+          <img src="img/dueno-mis-paseos.jpg" alt="Dueño - Mis Paseos">
+          <figcaption>Figura D6. Mis Paseos y seguimiento.</figcaption>
+        </figure>
+
+        <figure class="shot">
+          <div class="shot-tag">Dueño</div>
+          <img src="img/dueno-pagos.jpg" alt="Dueño - Pagos">
+          <figcaption>Figura D7. Pagos del Dueño.</figcaption>
+        </figure>
+
+        <figure class="shot">
+          <div class="shot-tag">Dueño</div>
+          <img src="img/dueno-comprobante.jpg" alt="Dueño - Comprobante">
+          <figcaption>Figura D8. Comprobante de pago.</figcaption>
+        </figure>
+
+        <figure class="shot">
+          <div class="shot-tag">Dueño</div>
+          <img src="img/dueno-notificaciones.jpg" alt="Dueño - Notificaciones">
+          <figcaption>Figura D9. Notificaciones.</figcaption>
+        </figure>
+
+        <figure class="shot">
+          <div class="shot-tag">Dueño</div>
+          <img src="img/dueno-editar-perfil.jpg" alt="Dueño - Editar Perfil">
+          <figcaption>Figura D10. Editar Perfil.</figcaption>
+        </figure>
+
+        <figure class="shot">
+          <div class="shot-tag">Dueño</div>
+          <img src="img/dueno-puntos.jpg" alt="Dueño - Mis Puntos">
+          <figcaption>Figura D11. Mis Puntos.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+
+    <!-- 9 PASEADOR -->
+    <section class="page" id="paseador">
+      <div class="page-head">
+        <h2>9. Rol Paseador</h2>
+        <p class="muted">
+          El Paseador recibe solicitudes, confirma o rechaza, gestiona la ejecución del paseo,
+          administra su disponibilidad, visualiza remuneraciones y gestiona su perfil/suscripción (si aplica).
+        </p>
+      </div>
+
+      <div class="note info compact">
+        <b>Módulos disponibles (menú Paseador):</b>
+        Dashboard, Estadísticas, Solicitudes, Mis Paseos, Pagos (remuneraciones),
+        Notificaciones, Perfil (Mi Perfil / Editar Perfil), Disponibilidad, Configuraciones.
+      </div>
+
+      <h3 style="margin:14px 0 6px;">9.1 Solicitudes (entrantes)</h3>
+      <ol style="margin:0; padding-left:18px; line-height:1.75;">
+        <li>Ingresá a <b>Solicitudes</b> para ver pedidos pendientes.</li>
+        <li>Revisá detalle: dueño, mascota(s), ubicación, fecha/hora y duración.</li>
+        <li>Elegí una acción: <b>Aceptar</b> o <b>Rechazar</b> según corresponda.</li>
+      </ol>
+
+      <div class="note warn compact">
+        <b>Bloqueo por estado/suscripción:</b> si la cuenta no está aprobada o si la suscripción está vencida (si aplica),
+        algunas acciones pueden quedar restringidas.
+      </div>
+
+      <h3 style="margin:14px 0 6px;">9.2 Mis Paseos (gestión operativa)</h3>
+      <ul style="margin:0; padding-left:18px; line-height:1.65;">
+        <li>Visualización de paseos activos, pendientes y completados.</li>
+        <li>Acceso a <b>Detalle</b> del paseo.</li>
+        <li>Acciones típicas: iniciar, completar o cancelar (según reglas del sistema).</li>
+      </ul>
+
+      <h3 style="margin:14px 0 6px;">9.3 Pagos y remuneraciones</h3>
+      <ul style="margin:0; padding-left:18px; line-height:1.65;">
+        <li>Resumen de ganancias por período.</li>
+        <li>Detalle por paseo completado (si está habilitado).</li>
+      </ul>
+
+      <h3 style="margin:14px 0 6px;">9.4 Disponibilidad</h3>
+      <ol style="margin:0; padding-left:18px; line-height:1.75;">
+        <li>Ingresá a <b>Disponibilidad</b>.</li>
+        <li>Marcá días activos y horarios (inicio/fin).</li>
+        <li>Guardá cambios para que el sistema te muestre como disponible.</li>
+      </ol>
+
+      <h3 style="margin:14px 0 6px;">9.5 Perfil</h3>
+      <ul style="margin:0; padding-left:18px; line-height:1.65;">
+        <li><b>Mi Perfil:</b> consulta de datos y estado.</li>
+        <li><b>Editar Perfil:</b> actualización de información personal y datos de pago (si aplica).</li>
+      </ul>
+
+      <h3 style="margin:14px 0 6px;">9.6 Notificaciones</h3>
+      <ul style="margin:0; padding-left:18px; line-height:1.65;">
+        <li>Eventos: nuevas solicitudes, cambios de estado, confirmaciones y avisos del sistema.</li>
+      </ul>
+
+      <h3 style="margin:14px 0 6px;">9.7 Suscripción (si aplica)</h3>
+      <ul style="margin:0; padding-left:18px; line-height:1.65;">
+        <li>Estado: activa / vencida / pendiente.</li>
+        <li>Cuando está activa, puede habilitar funcionalidades según configuración del sistema.</li>
+      </ul>
+
+      <!-- =========================
+           9.8 CAPTURAS PASEADOR
+           ========================= -->
+      <h3 style="margin:18px 0 6px;">9.8 Capturas de pantallas (Paseador)</h3>
+      <p class="muted" style="margin-top:0;">A continuación se presentan las pantallas principales del rol Paseador.</p>
+
+      <div class="shotgrid">
+        <figure class="shot">
+          <div class="shot-tag">Paseador</div>
+          <img src="img/paseador-dashboard.jpg" alt="Paseador - Dashboard">
+          <figcaption>Figura P1. Dashboard del Paseador.</figcaption>
+        </figure>
+
+        <figure class="shot">
+          <div class="shot-tag">Paseador</div>
+          <img src="img/paseador-solicitudes.jpg" alt="Paseador - Solicitudes">
+          <figcaption>Figura P3. Solicitudes entrantes.</figcaption>
+        </figure>
+
+        <figure class="shot">
+          <div class="shot-tag">Paseador</div>
+          <img src="img/paseador-mis-paseos.jpg" alt="Paseador - Mis Paseos">
+          <figcaption>Figura P4. Mis Paseos (listado).</figcaption>
+        </figure>
+
+        <figure class="shot">
+          <div class="shot-tag">Paseador</div>
+          <img src="img/paseador-detalle-paseo.jpg" alt="Paseador - Detalle Paseo">
+          <figcaption>Figura P5. Detalle del paseo.</figcaption>
+        </figure>
+
+        <figure class="shot">
+          <div class="shot-tag">Paseador</div>
+          <img src="img/paseador-pagos.jpg" alt="Paseador - Pagos">
+          <figcaption>Figura P6. Pagos y remuneraciones.</figcaption>
+        </figure>
+
+        <figure class="shot">
+          <div class="shot-tag">Paseador</div>
+          <img src="img/paseador-notificaciones.jpg" alt="Paseador - Notificaciones">
+          <figcaption>Figura P7. Notificaciones.</figcaption>
+        </figure>
+
+        <figure class="shot">
+          <div class="shot-tag">Paseador</div>
+          <img src="img/paseador-perfil.jpg" alt="Paseador - Perfil">
+          <figcaption>Figura P8. Mi Perfil.</figcaption>
+        </figure>
+
+        <figure class="shot">
+          <div class="shot-tag">Paseador</div>
+          <img src="img/paseador-editar-perfil.jpg" alt="Paseador - Editar Perfil">
+          <figcaption>Figura P9. Editar Perfil.</figcaption>
+        </figure>
+
+        <figure class="shot">
+          <div class="shot-tag">Paseador</div>
+          <img src="img/paseador-disponibilidad.jpg" alt="Paseador - Disponibilidad">
+          <figcaption>Figura P10. Disponibilidad.</figcaption>
+        </figure>
+
+        <figure class="shot">
+          <div class="shot-tag">Paseador</div>
+          <img src="img/paseador-suscripcion.jpg" alt="Paseador - Suscripción">
+          <figcaption>Figura P11. Suscripción.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+
+    <!-- 10 FAQ -->
+    <section class="page" id="faq">
+      <div class="page-head">
+        <h2>10. Preguntas frecuentes</h2>
+        <p class="muted">Respuestas rápidas a problemas comunes.</p>
+      </div>
+
+      <h3 style="margin:10px 0 6px;">No puedo solicitar un paseo</h3>
+      <ul style="margin:0; padding-left:18px; line-height:1.65;">
+        <li>Verificá que tu cuenta esté <b>aprobada</b>.</li>
+        <li>Confirmá que tenés al menos <b>1 mascota registrada</b>.</li>
+        <li>Probá seleccionar ubicación en el mapa para cargar paseadores cercanos.</li>
+      </ul>
+
+      <h3 style="margin:14px 0 6px;">No me aparecen paseadores disponibles</h3>
+      <ul style="margin:0; padding-left:18px; line-height:1.65;">
+        <li>Definí una ubicación válida (pin en el mapa).</li>
+        <li>Probá mover el pin o permitir ubicación del navegador.</li>
+        <li>Verificá fecha/hora y duración según disponibilidad.</li>
+      </ul>
+
+      <h3 style="margin:14px 0 6px;">¿Puedo elegir 2 mascotas?</h3>
+      <p class="muted" style="margin-top:0;">
+        Sí. El sistema permite <b>hasta 2 mascotas</b>, no repetidas. Si son 2, aplica <b>30% de descuento</b>.
+      </p>
+
+      <h3 style="margin:14px 0 6px;">No puedo ingresar al panel</h3>
+      <ul style="margin:0; padding-left:18px; line-height:1.65;">
+        <li>Revisá credenciales (email/contraseña).</li>
+        <li>Si está pendiente/suspendida/inactiva, contactá al administrador.</li>
+        <li>Si olvidaste la contraseña, usá recuperación.</li>
+      </ul>
+    </section>
+
+
+    <!-- 11 SOPORTE -->
+    <section class="page" id="soporte">
+      <div class="page-head">
+        <h2>11. Soporte y buenas prácticas</h2>
+        <p class="muted">Recomendaciones para un uso seguro y ordenado del sistema.</p>
+      </div>
+
+      <h3 style="margin:10px 0 6px;">Buenas prácticas</h3>
+      <ul style="margin:0; padding-left:18px; line-height:1.65;">
+        <li>Usá contraseñas seguras y no las compartas.</li>
+        <li>Verificá la información del paseo antes de confirmar (fecha, ubicación, mascotas).</li>
+        <li>Subí comprobantes claros (si se solicita) para evitar rechazos.</li>
+        <li>Calificá con responsabilidad: las calificaciones ayudan a la reputación del sistema.</li>
+      </ul>
+
+      <h3 style="margin:14px 0 6px;">Contacto soporte</h3>
+      <ul style="margin:0; padding-left:18px; line-height:1.65;">
+        <li><b>Email:</b> soporte@jaguata.com (o el correo definido en configuración del sistema)</li>
+        <li><b>Horario:</b> 08:00 a 18:00 (referencial)</li>
+      </ul>
+
+      <div class="note info compact">
+        <b>Para anexos de tesis:</b> podés agregar capturas de: Solicitar Paseo (mapa),
+        Pagos/Comprobantes, Usuarios (Admin), Auditoría, Suscripción del Paseador.
+      </div>
+    </section>
+
+    <!-- FIN -->
+    <section class="page">
+      <div class="end">
+        <div class="line"></div>
+        <div class="muted small">Fin del Manual de Usuario — Jaguata</div>
+        <div class="muted small">© 2025</div>
+      </div>
+    </section>
+
+  </main>
+</body>
+</html>

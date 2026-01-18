@@ -1,6 +1,7 @@
 <?php
 
 namespace Jaguata\Controllers;
+require_once __DIR__ . '/../Services/DatabaseService.php'; // ✅ AÑADIR ESTO
 
 use Jaguata\Services\DatabaseService;
 use PDO;

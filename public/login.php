@@ -1,5 +1,4 @@
 <?php
-
 declare(strict_types=1);
 
 require_once __DIR__ . '/../src/Config/AppConfig.php';
@@ -14,534 +13,369 @@ use Jaguata\Helpers\Validaciones;
 
 AppConfig::init();
 
-// Título por defecto
+function h($v): string {
+    return htmlspecialchars((string)($v ?? ''), ENT_QUOTES, 'UTF-8');
+}
+
 $titulo = 'Iniciar sesión - Jaguata';
 
-// Controlador de autenticación
+/* ========= Estado / rol / sidebar (IGUAL HOME) ========= */
+$logueado = Session::isLoggedIn();
+
+$rol = null;
+if ($logueado) {
+    $rolTmp = method_exists(Session::class, 'getUsuarioRolSeguro')
+        ? Session::getUsuarioRolSeguro()
+        : (Session::get('rol') ?? null);
+
+    $rolTmp = strtolower(trim((string)$rolTmp));
+    if (in_array($rolTmp, ['admin','dueno','paseador'], true)) {
+        $rol = $rolTmp;
+    }
+}
+
+$usuarioNombre = $logueado ? (Session::getUsuarioNombre() ?? 'Usuario') : 'Invitado/a';
+
+$panelUrl   = $rol ? (BASE_URL . "/features/{$rol}/Dashboard.php") : null;
+$urlVolver  = BASE_URL . '/public/index.php'; // o sobre-nosotros.php si querés
+
+/* Sidebar según rol */
+$sidebarPath = null;
+if ($rol === 'dueno')    $sidebarPath = __DIR__ . '/../src/Templates/SidebarDueno.php';
+if ($rol === 'paseador') $sidebarPath = __DIR__ . '/../src/Templates/SidebarPaseador.php';
+if ($rol === 'admin')    $sidebarPath = __DIR__ . '/../src/Templates/SidebarAdmin.php';
+
+/* ========= Auth ========= */
 $auth = new AuthController();
 
-// Si envían el formulario (POST) → intentamos loguear
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $auth->login();
     exit;
 }
 
-// Si es GET: mostramos el formulario
 $error   = Session::getError();
 $success = Session::getSuccess() ?? null;
 
-// Para rellenar el campo email SOLO si existe cookie (recordarme)
-// (no usamos $_POST para que al recargar quede limpio)
 $email = $_COOKIE['remember_email'] ?? '';
-?>
-<!doctype html>
-<html lang="es">
 
+/* Assets */
+$logoUrl = AppConfig::getAssetsUrl() . '/images/logojag.png';
+
+/* Links */
+$urlRegistro  = BASE_URL . '/registro.php';
+$urlRecuperar = BASE_URL . '/recuperar_password.php';
+?>
+<!DOCTYPE html>
+<html lang="es">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title><?= htmlspecialchars($titulo) ?></title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title><?= h($titulo) ?></title>
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
 
+    <!-- ✅ tu theme (mismo que dashboards) -->
+    <link href="<?= BASE_URL; ?>/public/assets/css/jaguata-theme.css" rel="stylesheet">
+
     <style>
-        :root {
-            --jg-green: #3c6255;
-            --jg-mint: #20c997;
-            --jg-ink: #24343a;
-            --jg-card: #ffffff;
-        }
+        html, body { height: 100%; }
+        body { background: var(--gris-fondo, #f4f6f9); }
 
-        body {
+        .layout{ display:flex; min-height:100vh; }
+
+        main.main-content{
+            margin-left: 260px;
             min-height: 100vh;
-            background: linear-gradient(160deg, var(--jg-green) 0%, var(--jg-mint) 100%);
-            font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", "Apple Color Emoji", "Segoe UI Emoji";
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-            overflow-x: hidden;
-        }
-
-        body::before {
-            content: "";
-            position: absolute;
-            inset: 0;
-            background:
-                radial-gradient(circle at 20px 20px, rgba(255, 255, 255, .12) 6px, transparent 7px) 0 0 / 60px 60px,
-                radial-gradient(circle at 50px 40px, rgba(255, 255, 255, .08) 4px, transparent 5px) 0 0 / 60px 60px;
-            mask-image: linear-gradient(to bottom, rgba(0, 0, 0, .25), rgba(0, 0, 0, .6));
-            pointer-events: none;
-        }
-
-        .auth-shell {
-            width: min(1100px, 92vw);
-            margin-inline: auto;
-        }
-
-        .auth-card {
-            border: 0;
-            border-radius: 22px;
-            background: rgba(255, 255, 255, .85);
-            backdrop-filter: saturate(140%) blur(8px);
-            box-shadow: 0 18px 60px rgba(0, 0, 0, .18);
-            overflow: hidden;
-        }
-
-        .illustration {
-            background: radial-gradient(circle at top left, rgba(255, 255, 255, .18), transparent 55%),
-                linear-gradient(135deg, #3c6255 0%, #20c997 100%);
-            color: #f5fbfa;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            padding: clamp(18px, 4vw, 30px);
-        }
-
-        .illustration-inner {
-            max-width: 360px;
-        }
-
-        .illustration-pill {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 4px 10px;
-            border-radius: 999px;
-            background: rgba(0, 0, 0, .18);
-            font-size: .78rem;
-            letter-spacing: .04em;
-            text-transform: uppercase;
-        }
-
-        .illustration-title {
-            font-size: 1.6rem;
-            font-weight: 800;
-            line-height: 1.25;
-            margin-top: 14px;
-            margin-bottom: 8px;
-        }
-
-        .illustration-text {
-            font-size: .92rem;
-            opacity: .9;
-            margin-bottom: 14px;
-        }
-
-        .illustration-list {
-            list-style: none;
-            padding-left: 0;
-            margin: 0 0 16px 0;
-        }
-
-        .illustration-list li {
-            display: flex;
-            align-items: flex-start;
-            gap: 8px;
-            font-size: .9rem;
-            margin-bottom: 6px;
-        }
-
-        .illustration-list i {
-            font-size: .95rem;
-            margin-top: 2px;
-        }
-
-        .illustration-metrics {
-            display: flex;
-            gap: 18px;
-            flex-wrap: wrap;
-            margin-top: 8px;
-        }
-
-        .illustration-metrics-item strong {
-            display: block;
-            font-size: 1.1rem;
-            line-height: 1.1;
-        }
-
-        .illustration-metrics-item small {
-            font-size: .75rem;
-            opacity: .85;
-        }
-
-        .illustration-graphic {
-            display: flex;
-            justify-content: center;
-            margin-top: 18px;
-        }
-
-        .dog-svg {
-            max-width: 420px;
+            padding: 24px;
             width: 100%;
-            height: auto;
-            filter: drop-shadow(0 10px 22px rgba(0, 0, 0, .22));
+        }
+        body.no-sidebar main.main-content{ margin-left: 0 !important; }
+
+        @media (max-width: 768px){
+            main.main-content{
+                margin-left: 0;
+                margin-top: 0 !important;
+                width: 100% !important;
+                padding: calc(16px + var(--topbar-h)) 16px 16px !important;
+            }
         }
 
-        .form-pane {
-            padding: clamp(18px, 4vw, 36px);
-            background: rgba(255, 255, 255, .96);
+        /* ✅ CARD del login (misma vibra que tus cards) */
+        .login-wrap{
+            max-width: 980px;
+            margin: 0 auto;
         }
 
-        .logo-circle {
-            width: 84px;
-            height: 84px;
+        .login-grid{
+            display:grid;
+            grid-template-columns: 1.05fr .95fr;
+            gap: 18px;
+            align-items: stretch;
+        }
+        @media (max-width: 992px){
+            .login-grid{ grid-template-columns: 1fr; }
+        }
+
+        .login-hero{
+            border-radius: 18px;
+            padding: 18px 20px;
+            box-shadow: 0 12px 30px rgba(0,0,0,.06);
+            background: linear-gradient(135deg, rgba(60,98,85,.10), rgba(32,201,151,.10));
+            border: 1px solid rgba(0,0,0,.06);
+            height: 100%;
+        }
+        .hero-pill{
+            display:inline-flex;
+            align-items:center;
+            gap:.4rem;
+            padding:.25rem .65rem;
+            border-radius:999px;
+            font-size:.78rem;
+            background: rgba(60, 98, 85, .10);
+            color: var(--verde-jaguata, #3c6255);
+            border: 1px solid rgba(60, 98, 85, .18);
+            font-weight:700;
+        }
+        .hero-title{
+            font-weight: 900;
+            margin: 10px 0 6px;
+            color: #222;
+        }
+        .hero-text{
+            color:#555;
+            margin-bottom: 12px;
+            line-height: 1.6;
+        }
+        .hero-list{
+            padding-left: 0;
+            list-style: none;
+            margin: 0;
+        }
+        .hero-list li{
+            display:flex;
+            gap:.55rem;
+            align-items:flex-start;
+            margin-bottom:.45rem;
+            color:#444;
+        }
+        .hero-list i{ margin-top:.2rem; color: var(--verde-jaguata, #3c6255); }
+
+        .logo-circle{
+            width: 86px;
+            height: 86px;
             border-radius: 50%;
-            background: #f4f7f9;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 4px 14px rgba(0, 0, 0, .08);
-            margin: 0 auto 12px;
+            background: #fff;
+            box-shadow: 0 10px 22px rgba(0,0,0,.06);
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            margin: 0 auto 10px;
         }
 
-        h2 {
-            color: var(--jg-green);
+        .form-control{ border-radius: 14px; }
+        .btn-big{
+            border-radius: 14px;
             font-weight: 800;
-            letter-spacing: .2px;
-        }
-
-        .text-muted {
-            color: #6b7b83 !important;
-        }
-
-        .form-control {
-            border: 2px solid #e7ecef;
-            border-radius: 12px;
             padding: .9rem 1rem;
-            transition: border-color .2s, box-shadow .2s;
+        }
+        .btn-eye{
+            border-radius: 14px;
         }
 
-        .form-control:focus {
-            border-color: var(--jg-mint);
-            box-shadow: 0 0 0 .2rem rgba(32, 201, 151, .2);
-        }
-
-        .input-group .btn {
-            border-radius: 12px;
-            border: 2px solid #e7ecef;
-        }
-
-        .btn-jg {
-            background: var(--jg-green);
-            border: 0;
-            border-radius: 12px;
-            padding: .9rem 1rem;
+        .mini-links a{
+            text-decoration:none;
             font-weight: 700;
-            transition: transform .08s ease, filter .2s ease, box-shadow .2s ease;
-            box-shadow: 0 8px 18px rgba(0, 0, 0, .18);
-        }
-
-        .btn-jg:hover {
-            filter: brightness(.95);
-        }
-
-        .btn-jg:active {
-            transform: translateY(1px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, .22);
-        }
-
-        .btn-outline-light {
-            border-width: 2px;
-        }
-
-        .feature-badges i {
-            color: var(--jg-green);
-        }
-
-        .feature-badges small {
-            color: #516169;
-        }
-
-        .paw-divider {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            color: #8aa3a9;
-        }
-
-        .paw-divider::before,
-        .paw-divider::after {
-            content: "";
-            flex: 1;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, #cfe6e0, transparent);
-        }
-
-        @media (max-width: 992px) {
-            body {
-                align-items: flex-start;
-                justify-content: center;
-                padding: 18px 0;
-            }
-
-            .illustration {
-                display: none;
-            }
-
-            .auth-card {
-                border-radius: 18px;
-                box-shadow: 0 14px 40px rgba(0, 0, 0, .22);
-            }
-
-            .auth-shell {
-                width: 100%;
-                max-width: 500px;
-                padding-inline: 12px;
-            }
-        }
-
-        @media (max-width: 768px) {
-            body {
-                padding: 16px 0;
-            }
-
-            .form-pane {
-                padding: 20px 18px 24px;
-            }
-
-            h2 {
-                font-size: 1.6rem;
-            }
-
-            .logo-circle {
-                width: 76px;
-                height: 76px;
-            }
-
-            .feature-badges .col-4 {
-                flex: 0 0 33.3333%;
-                max-width: 33.3333%;
-            }
-        }
-
-        @media (max-width: 576px) {
-            body {
-                padding: 12px 0;
-            }
-
-            .auth-shell {
-                padding-inline: 10px;
-            }
-
-            .form-pane {
-                padding: 18px 14px 22px;
-            }
-
-            h2 {
-                font-size: 1.5rem;
-            }
-
-            .feature-badges i {
-                font-size: 1.4rem;
-            }
         }
     </style>
 </head>
 
-<body>
+<body class="<?= $rol ? '' : 'no-sidebar' ?>">
 
-    <main class="auth-shell">
-        <div class="row g-0 auth-card">
-            <!-- Columna ilustración / beneficios -->
-            <div class="col-lg-6 illustration">
-                <div class="illustration-inner">
-                    <span class="illustration-pill">
-                        <i class="fa-solid fa-paw"></i>
-                        Plataforma para paseos caninos
+<div class="layout">
+
+    <?php if ($rol && $sidebarPath && file_exists($sidebarPath)): ?>
+        <?php include $sidebarPath; ?>
+    <?php endif; ?>
+
+    <main class="main-content">
+        <div class="py-2 login-wrap">
+
+            <!-- Header (igual dashboard) -->
+            <div class="header-box header-dashboard mb-3">
+                <div>
+                    <h1 class="mb-1">Iniciar sesión</h1>
+                    <p class="mb-0">
+                        Accedé a Jaguata para gestionar paseos, calificaciones y seguridad.
+                    </p>
+                </div>
+
+                <div class="d-flex gap-2 align-items-center">
+                    <?php if ($panelUrl): ?>
+                        <a href="<?= h($panelUrl) ?>" class="btn btn-outline-light border">
+                            <i class="fa-solid fa-gauge-high me-2"></i>Panel
+                        </a>
+                    <?php endif; ?>
+
+                    <a href="<?= h($urlVolver) ?>" class="btn btn-outline-light">
+                        <i class="fas fa-arrow-left me-1"></i> Volver
+                    </a>
+                </div>
+            </div>
+
+            <?php if ($error): ?>
+                <div class="alert alert-danger border d-flex align-items-center gap-2 mb-3">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    <div><?= h($error) ?></div>
+                </div>
+            <?php endif; ?>
+
+            <?php if ($success): ?>
+                <div class="alert alert-success border d-flex align-items-center gap-2 mb-3">
+                    <i class="fa-solid fa-circle-check"></i>
+                    <div><?= h($success) ?></div>
+                </div>
+            <?php endif; ?>
+
+            <div class="login-grid">
+
+                <!-- Izquierda: beneficios (como tu home, cards y texto) -->
+                <div class="login-hero">
+                    <span class="hero-pill">
+                        <i class="fa-solid fa-paw"></i> Jaguata
                     </span>
 
-                    <h2 class="illustration-title">
-                        Organiza tus paseos en un solo lugar
-                    </h2>
-
-                    <p class="illustration-text">
-                        Jaguata conecta dueños de mascotas con paseadores verificados en Asunción y Gran Asunción.
-                        Reservá turnos, gestioná perfiles y mantené todo el historial de paseos desde una única plataforma.
+                    <h3 class="hero-title">¡Hola, <?= h($usuarioNombre) ?>! 🐾</h3>
+                    <p class="hero-text">
+                        Iniciá sesión para acceder a tu panel y gestionar tus actividades:
+                        paseos, estados, comprobantes, notificaciones y reputación.
                     </p>
 
-                    <ul class="illustration-list">
-                        <li>
-                            <i class="fa-solid fa-shield-dog"></i>
-                            <span>Perfiles de paseadores con datos verificados y reseñas.</span>
-                        </li>
-                        <li>
-                            <i class="fa-solid fa-calendar-check"></i>
-                            <span>Reservas por horario y zona, con confirmación en línea.</span>
-                        </li>
-                        <li>
-                            <i class="fa-solid fa-map-location-dot"></i>
-                            <span>Registro de ubicaciones para facilitar el encuentro y el servicio.</span>
-                        </li>
+                    <ul class="hero-list">
+                        <li><i class="fa-solid fa-shield-dog"></i><span>Paseadores verificados y cuentas aprobadas por el administrador.</span></li>
+                        <li><i class="fa-solid fa-calendar-check"></i><span>Solicitudes y confirmaciones con estados en tiempo real.</span></li>
+                        <li><i class="fa-solid fa-star"></i><span>Calificaciones reales para mayor confianza en la comunidad.</span></li>
                     </ul>
 
-                    <div class="illustration-metrics">
-                        <div class="illustration-metrics-item">
-                            <strong>24/7</strong>
-                            <small>Reservas desde la web</small>
-                        </div>
-                        <div class="illustration-metrics-item">
-                            <strong>+incluyente</strong>
-                            <small>Oportunidades laborales formales</small>
-                        </div>
-                        <div class="illustration-metrics-item">
-                            <strong>0%</strong>
-                            <small>Comisiones a paseadores</small>
-                        </div>
+                    <div class="mt-3 text-muted small">
+                        ¿No tenés cuenta? <a href="<?= h($urlRegistro) ?>" class="fw-bold text-success text-decoration-none">Crear cuenta</a>
                     </div>
                 </div>
 
-                <div class="illustration-graphic" aria-hidden="true">
-                    <svg class="dog-svg" viewBox="0 0 640 480" xmlns="http://www.w3.org/2000/svg">
-                        <defs>
-                            <linearGradient id="leash" x1="0" x2="1">
-                                <stop offset="0" stop-color="#20c997" />
-                                <stop offset="1" stop-color="#3c6255" />
-                            </linearGradient>
-                        </defs>
-                        <rect x="80" y="40" width="120" height="200" rx="20" fill="#eaf0f2" />
-                        <rect x="110" y="220" width="80" height="18" rx="9" fill="#cdd8dd" />
-                        <path d="M220,260 C260,250 320,250 360,260 380,265 420,260 440,270 460,280 470,305 450,312 430,319 410,300 395,305 380,310 365,332 340,332 315,332 300,312 285,305 270,298 245,310 228,300 212,291 208,270 220,260Z" fill="#1e2426" />
-                        <circle cx="445" cy="275" r="12" fill="#1e2426" />
-                        <circle cx="448" cy="273" r="4" fill="#fff" />
-                        <path d="M360,260 Q370,240 390,235" stroke="url(#leash)" stroke-width="6" fill="none" />
-                        <circle cx="360" cy="260" r="10" fill="#20c997" />
-                        <ellipse cx="320" cy="360" rx="220" ry="26" fill="rgba(0,0,0,.18)" />
-                    </svg>
-                </div>
-            </div>
-
-            <!-- Columna formulario -->
-            <div class="col-lg-6">
-                <div class="form-pane">
-                    <div class="text-center mb-3">
-                        <div class="logo-circle">
-                            <img src="<?= AppConfig::getAssetsUrl(); ?>/images/logojag.png" alt="Jaguata" alt="Jaguata" width="64" height="64">
-                        </div>
-                        <h2>Bienvenido a Jaguata <span aria-hidden="true">🐾</span></h2>
-                        <p class="text-muted mb-0">Inicia sesión para continuar</p>
+                <!-- Derecha: Formulario (en section-card como tus pantallas) -->
+                <div class="section-card">
+                    <div class="section-header">
+                        <i class="fa-solid fa-right-to-bracket me-2"></i>Acceso a la plataforma
                     </div>
+                    <div class="section-body">
 
-                    <?php if ($error): ?>
-                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                            <i class="fas fa-exclamation-circle me-2"></i><?= htmlspecialchars($error); ?>
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
-                        </div>
-                    <?php endif; ?>
-
-                    <?php if ($success): ?>
-                        <div class="alert alert-success alert-dismissible fade show" role="alert">
-                            <i class="fas fa-check-circle me-2"></i><?= htmlspecialchars($success); ?>
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
-                        </div>
-                    <?php endif; ?>
-
-                    <form method="POST" action="" autocomplete="off" novalidate>
-                        <input type="hidden" name="csrf_token"
-                            value="<?= htmlspecialchars(Validaciones::generarCSRF(), ENT_QUOTES, 'UTF-8'); ?>">
-
-                        <div class="mb-3">
-                            <label for="email" class="form-label">
-                                <i class="fas fa-envelope me-1" aria-hidden="true"></i>Email
-                            </label>
-                            <input
-                                type="email"
-                                class="form-control"
-                                id="email"
-                                name="email"
-                                value="<?= htmlspecialchars($email, ENT_QUOTES, 'UTF-8') ?>"
-                                placeholder="tu@email.com"
-                                autocomplete="off">
+                        <div class="text-center mb-3">
+                            <div class="logo-circle">
+                                <img src="<?= h($logoUrl) ?>" alt="Jaguata" width="64" height="64">
+                            </div>
+                            <div class="fw-bold" style="font-size:1.15rem;">Bienvenido a Jaguata</div>
+                            <div class="text-muted small">Ingresá con tu email y contraseña</div>
                         </div>
 
-                        <div class="mb-3">
-                            <label for="password" class="form-label">
-                                <i class="fas fa-lock me-1" aria-hidden="true"></i>Contraseña
-                            </label>
-                            <div class="input-group">
+                        <form method="POST" action="" autocomplete="off" novalidate>
+                            <input type="hidden" name="csrf_token"
+                                value="<?= h(Validaciones::generarCSRF()); ?>">
+
+                            <div class="mb-3">
+                                <label for="email" class="form-label fw-semibold">
+                                    <i class="fa-solid fa-envelope me-2"></i>Email
+                                </label>
                                 <input
-                                    type="password"
+                                    type="email"
                                     class="form-control"
-                                    id="password"
-                                    name="password"
-                                    placeholder="Tu contraseña"
-                                    required
-                                    autocomplete="off"
-                                    aria-describedby="togglePassword">
-                                <button
-                                    class="btn btn-outline-Black"
-                                    type="button"
-                                    id="togglePassword"
-                                    aria-label="Mostrar/ocultar contraseña">
-                                    <i class="fas fa-eye"></i>
+                                    id="email"
+                                    name="email"
+                                    value="<?= h($email) ?>"
+                                    placeholder="tu@email.com"
+                                    autocomplete="off">
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="password" class="form-label fw-semibold">
+                                    <i class="fa-solid fa-lock me-2"></i>Contraseña
+                                </label>
+                                <div class="input-group">
+                                    <input
+                                        type="password"
+                                        class="form-control"
+                                        id="password"
+                                        name="password"
+                                        placeholder="Tu contraseña"
+                                        required
+                                        autocomplete="off"
+                                        aria-describedby="togglePassword">
+                                    <button
+                                        class="btn btn-outline-secondary btn-eye"
+                                        type="button"
+                                        id="togglePassword"
+                                        aria-label="Mostrar/ocultar contraseña">
+                                        <i class="fa-solid fa-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                                <div class="form-check">
+                                    <input
+                                        type="checkbox"
+                                        class="form-check-input"
+                                        id="remember_me"
+                                        name="remember_me"
+                                        <?= !empty($_COOKIE['remember_email']) ? 'checked' : '' ?>>
+                                    <label class="form-check-label" for="remember_me">Recordar mi sesión</label>
+                                </div>
+
+                                <a class="small fw-semibold" href="<?= h($urlRecuperar) ?>">
+                                    ¿Olvidaste tu contraseña?
+                                </a>
+                            </div>
+
+                            <div class="d-grid mb-2">
+                                <button type="submit" class="btn btn-success btn-big">
+                                    <i class="fa-solid fa-paw me-2"></i> Iniciar sesión
                                 </button>
                             </div>
-                        </div>
 
-                        <div class="form-check mb-3">
-                            <input
-                                type="checkbox"
-                                class="form-check-input"
-                                id="remember_me"
-                                name="remember_me"
-                                <?= !empty($_COOKIE['remember_email']) ? 'checked' : '' ?>>
-                            <label class="form-check-label" for="remember_me">Recordar mi sesión</label>
-                        </div>
+                            <div class="mini-links d-flex justify-content-between flex-wrap gap-2 mt-3">
+                                <a href="<?= h($urlRegistro) ?>">
+                                    <i class="fa-solid fa-user-plus me-2"></i>Crear cuenta
+                                </a>
+                                <a href="<?= h(BASE_URL . '/contacto.php') ?>">
+                                    <i class="fa-solid fa-headset me-2"></i>Soporte
+                                </a>
+                            </div>
+                        </form>
 
-                        <div class="d-grid mb-2">
-                            <button type="submit" class="btn btn-jg btn-lg">
-                                <i class="fas fa-paw me-2" aria-hidden="true"></i> Iniciar Sesión
-                            </button>
-                        </div>
-
-                        <div class="d-flex justify-content-between">
-                            <a href="<?= BASE_URL ?>/recuperar_password.php">¿Olvidaste tu contraseña?</a>
-                            <a href="<?= BASE_URL ?>/registro.php" class="fw-semibold">Crear cuenta</a>
-                        </div>
-                    </form>
-
-                    <div class="my-4 paw-divider">
-                        <i class="fa-solid fa-paw"></i>
-                        <span class="small">Seguro • Rápido • Confiable</span>
-                        <i class="fa-solid fa-bone"></i>
                     </div>
-
-                    <div class="text-center feature-badges">
-                        <div class="row g-3 justify-content-center">
-                            <div class="col-4">
-                                <i class="fas fa-shield-dog fa-2x mb-1"></i>
-                                <small class="d-block">Protección</small>
-                            </div>
-                            <div class="col-4">
-                                <i class="fas fa-clock fa-2x mb-1"></i>
-                                <small class="d-block">24/7</small>
-                            </div>
-                            <div class="col-4">
-                                <i class="fas fa-star fa-2x mb-1"></i>
-                                <small class="d-block">Verificados</small>
-                            </div>
-                        </div>
-                    </div>
-
                 </div>
+
             </div>
+
+            <footer class="mt-4 text-center text-muted small">
+                © <?= date('Y'); ?> Jaguata — Login
+            </footer>
+
         </div>
     </main>
+</div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        // Toggle de contraseña
-        document.getElementById('togglePassword').addEventListener('click', function() {
-            const input = document.getElementById('password');
-            const icon = this.querySelector('i');
-            const type = input.type === 'password' ? 'text' : 'password';
-            input.type = type;
-            icon.classList.toggle('fa-eye');
-            icon.classList.toggle('fa-eye-slash');
-            input.focus();
-        });
-    </script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  // Toggle contraseña
+  document.getElementById('togglePassword')?.addEventListener('click', function () {
+    const input = document.getElementById('password');
+    const icon  = this.querySelector('i');
+    const isPass = input.type === 'password';
+    input.type = isPass ? 'text' : 'password';
+    icon.classList.toggle('fa-eye', !isPass);
+    icon.classList.toggle('fa-eye-slash', isPass);
+    input.focus();
+  });
+</script>
 </body>
-
 </html>

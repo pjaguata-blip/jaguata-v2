@@ -1,12 +1,17 @@
 <?php
 declare(strict_types=1);
 
-require_once dirname(__DIR__, 3) . '/src/Config/AppConfig.php';
+ob_start(); // ✅ captura cualquier salida accidental ANTES de headers/init
+
+set_error_handler(function ($severity, $message, $file, $line) {
+    if (!(error_reporting() & $severity)) return false;
+    throw new ErrorException($message, 0, $severity, $file, $line);
+});
+
+require_once dirname(__DIR__, 3) . '/vendor/autoload.php';
+require_once __DIR__ . '/../../../src/Config/AppConfig.php';
 
 use Jaguata\Config\AppConfig;
-
-AppConfig::init();
-header('Content-Type: application/json; charset=utf-8');
 
 function diaSemanaEs(DateTime $dt): string
 {
@@ -24,19 +29,25 @@ function diaSemanaEs(DateTime $dt): string
 }
 
 try {
+    AppConfig::init();
+
+    header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+
     $lat      = isset($_GET['lat']) ? (float)$_GET['lat'] : 0.0;
     $lng      = isset($_GET['lng']) ? (float)$_GET['lng'] : 0.0;
     $inicio   = trim((string)($_GET['inicio'] ?? '')); // "YYYY-MM-DDTHH:MM"
     $duracion = (int)($_GET['duracion'] ?? 0);
     $radioKm  = isset($_GET['radio_km']) ? (float)$_GET['radio_km'] : 10.0;
-    $limit    = isset($_GET['limit']) ? max(1, (int)$_GET['limit']) : 30;
+    $limit    = isset($_GET['limit']) ? (int)$_GET['limit'] : 30;
+    $limit    = max(1, min(100, $limit)); // ✅ seguro
 
     if ($lat === 0.0 || $lng === 0.0 || $inicio === '' || $duracion <= 0) {
-        echo json_encode(['ok' => false, 'error' => 'Faltan parámetros (lat, lng, inicio, duracion)']);
+        ob_end_clean();
+        echo json_encode(['ok' => false, 'error' => 'Faltan parámetros (lat, lng, inicio, duracion)'], JSON_UNESCAPED_UNICODE);
         exit;
     }
 
-    // "2026-01-06T14:30" -> "2026-01-06 14:30:00"
     $inicioSql = str_replace('T', ' ', $inicio) . ':00';
     $inicioObj = new DateTime($inicioSql);
     $finObj    = (clone $inicioObj)->modify("+{$duracion} minutes");
@@ -48,6 +59,7 @@ try {
 
     $pdo = AppConfig::db();
 
+    // ✅ SQL sin repetir placeholders (para evitar HY093)
     $sql = "
         SELECT
             w.paseador_id,
@@ -61,9 +73,9 @@ try {
             w.longitud,
             (
                 6371 * ACOS(
-                    COS(RADIANS(:lat)) * COS(RADIANS(w.latitud)) *
-                    COS(RADIANS(w.longitud) - RADIANS(:lng)) +
-                    SIN(RADIANS(:lat)) * SIN(RADIANS(w.latitud))
+                    COS(RADIANS(:ulatA1)) * COS(RADIANS(w.latitud)) *
+                    COS(RADIANS(w.longitud) - RADIANS(:ulngA1)) +
+                    SIN(RADIANS(:ulatA2)) * SIN(RADIANS(w.latitud))
                 )
             ) AS distancia_km
         FROM paseadores w
@@ -77,13 +89,12 @@ try {
           AND w.latitud IS NOT NULL AND w.longitud IS NOT NULL
           AND (
                 6371 * ACOS(
-                    COS(RADIANS(:lat2)) * COS(RADIANS(w.latitud)) *
-                    COS(RADIANS(w.longitud) - RADIANS(:lng2)) +
-                    SIN(RADIANS(:lat2)) * SIN(RADIANS(w.latitud))
+                    COS(RADIANS(:ulatB1)) * COS(RADIANS(w.latitud)) *
+                    COS(RADIANS(w.longitud) - RADIANS(:ulngB1)) +
+                    SIN(RADIANS(:ulatB2)) * SIN(RADIANS(w.latitud))
                 )
           ) <= :radioKm
 
-          /* ✅ NO permitir cruce con paseos existentes */
           AND NOT EXISTS (
             SELECT 1
             FROM paseos p
@@ -97,20 +108,29 @@ try {
         LIMIT {$limit}
     ";
 
+    $params = [
+        'ulatA1' => $lat,
+        'ulatA2' => $lat,
+        'ulngA1' => $lng,
+
+        'ulatB1' => $lat,
+        'ulatB2' => $lat,
+        'ulngB1' => $lng,
+
+        'radioKm' => $radioKm,
+        'dia' => $dia,
+        'horaInicio' => $horaInicio,
+        'horaFin' => $horaFin,
+        'nuevo_inicio' => $inicioSql,
+        'nuevo_fin'    => $finSql,
+    ];
+
     $st = $pdo->prepare($sql);
-    $st->execute([
-        ':lat' => $lat, ':lng' => $lng,
-        ':lat2' => $lat, ':lng2' => $lng,
-        ':radioKm' => $radioKm,
-        ':dia' => $dia,
-        ':horaInicio' => $horaInicio,
-        ':horaFin' => $horaFin,
-        ':nuevo_inicio' => $inicioSql,
-        ':nuevo_fin'    => $finSql,
-    ]);
+    $st->execute($params);
 
     $rows = $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
+    ob_end_clean();
     echo json_encode([
         'ok' => true,
         'dia' => $dia,
@@ -118,7 +138,11 @@ try {
         'fin' => $finSql,
         'count' => count($rows),
         'data' => $rows
-    ]);
+    ], JSON_UNESCAPED_UNICODE);
+
 } catch (Throwable $e) {
-    echo json_encode(['ok' => false, 'error' => $e->getMessage()]);
+    ob_end_clean();
+    echo json_encode(['ok' => false, 'error' => $e->getMessage()], JSON_UNESCAPED_UNICODE);
+} finally {
+    restore_error_handler();
 }

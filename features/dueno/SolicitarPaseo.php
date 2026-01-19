@@ -461,7 +461,10 @@ unset($_SESSION['success'], $_SESSION['error']);
         try {
             const url = '<?= BASE_URL; ?>/public/api/reverse_geocode.php?lat=' + lat + '&lng=' + lng;
             const res = await fetch(url);
-            const data = await res.json();
+
+            const text = await res.text();
+            let data = null;
+            try { data = JSON.parse(text); } catch { return; }
 
             if (!data?.error) {
                 const address = data.address || {};
@@ -478,10 +481,13 @@ unset($_SESSION['success'], $_SESSION['error']);
         }
     }
 
+    // ✅ CORREGIDO: ruta singular /api/paseador/rangos.php
     async function sugerirRangos(dia) {
         try {
-            const r = await fetch(`<?= BASE_URL; ?>/public/api/paseadores/rangos.php?dia=${encodeURIComponent(dia)}`);
-            const j = await r.json();
+            const r = await fetch(`<?= BASE_URL; ?>/public/api/paseador/rangos.php?dia=${encodeURIComponent(dia)}`);
+            const text = await r.text();
+            const j = JSON.parse(text);
+
             if (!j.ok || !j.data?.length) return '';
 
             const txt = j.data
@@ -573,10 +579,12 @@ unset($_SESSION['success'], $_SESSION['error']);
         msg.textContent = '';
 
         try {
-            const url = `<?= BASE_URL; ?>/public/api/paseadores/disponibles.php?lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}&inicio=${encodeURIComponent(inicio)}&duracion=${encodeURIComponent(duracion)}&radio_km=10&limit=30`;
+            // ✅ CORREGIDO: ruta singular /api/paseador/disponibles.php
+            const url = `<?= BASE_URL; ?>/public/api/paseador/disponibles.php?lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}&inicio=${encodeURIComponent(inicio)}&duracion=${encodeURIComponent(duracion)}&radio_km=10&limit=30`;
+
             const res = await fetch(url);
 
-            // ✅ Si el servidor devuelve HTML (error), evitamos el crash de JSON
+            // Si el servidor devuelve HTML (error), evitamos crash
             const text = await res.text();
             let data = null;
             try {
@@ -584,7 +592,7 @@ unset($_SESSION['success'], $_SESSION['error']);
             } catch {
                 console.error('Respuesta NO JSON:', text);
                 sel.innerHTML = `<option value="">Error del servidor (respuesta no JSON)</option>`;
-                msg.textContent = 'Revisá la consola (F12) y el archivo disponibles.php.';
+                msg.textContent = 'Revisá la consola (F12) y la ruta del endpoint.';
                 recalcularTotal();
                 return;
             }
@@ -644,6 +652,7 @@ unset($_SESSION['success'], $_SESSION['error']);
         const now = new Date();
         now.setHours(now.getHours() + 2);
         const formatted = now.toISOString().slice(0, 16);
+
         const inicio = document.getElementById('inicio');
         inicio.min = formatted;
         inicio.value = formatted;
@@ -665,6 +674,7 @@ unset($_SESSION['success'], $_SESSION['error']);
         cargarPaseadoresCercanos();
     });
 </script>
+
 
 </body>
 </html>

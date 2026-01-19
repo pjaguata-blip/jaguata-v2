@@ -1,4 +1,8 @@
 <?php
+/* =========================================================
+   C:\xampp\htdocs\jaguata\public\guardar_password.php
+   Backend: valida token + actualiza contraseña + marca used
+========================================================= */
 
 declare(strict_types=1);
 
@@ -8,17 +12,18 @@ use Jaguata\Config\AppConfig;
 use Jaguata\Helpers\Session;
 use Jaguata\Helpers\Validaciones;
 use Jaguata\Services\DatabaseService;
+use PDO;
 
 AppConfig::init();
 
-$RUTA_RECUPERAR = AppConfig::getBaseUrl() . '/public/recuperar_password.php';
+$RUTA_RECUPERAR = BASE_URL . '/public/recuperar_password.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Location: ' . $RUTA_RECUPERAR);
     exit;
 }
 
-// CSRF
+/* CSRF */
 $csrfPost = $_POST['csrf_token'] ?? '';
 if (!Validaciones::verificarCSRF($csrfPost)) {
     Session::setError('Token inválido. Recargá la página e intentá de nuevo.');
@@ -27,7 +32,7 @@ if (!Validaciones::verificarCSRF($csrfPost)) {
 }
 
 $rid   = (int)($_POST['rid'] ?? 0);
-$token = trim($_POST['token'] ?? '');
+$token = trim((string)($_POST['token'] ?? ''));
 $pass  = (string)($_POST['password'] ?? '');
 $pass2 = (string)($_POST['confirm_password'] ?? '');
 
@@ -37,23 +42,25 @@ if ($rid <= 0 || $token === '') {
     exit;
 }
 
+$backToForm = BASE_URL . '/public/restablecer_password.php?rid=' . urlencode((string)$rid) . '&token=' . urlencode($token);
+
 if ($pass !== $pass2) {
     Session::setError('Las contraseñas no coinciden.');
-    header('Location: ' . AppConfig::getBaseUrl() . '/public/restablecer_password.php?rid=' . urlencode((string)$rid) . '&token=' . urlencode($token));
+    header('Location: ' . $backToForm);
     exit;
 }
 
 $passCheck = Validaciones::validarPassword($pass);
 if (!$passCheck['valido']) {
     Session::setError($passCheck['mensaje']);
-    header('Location: ' . AppConfig::getBaseUrl() . '/public/restablecer_password.php?rid=' . urlencode((string)$rid) . '&token=' . urlencode($token));
+    header('Location: ' . $backToForm);
     exit;
 }
 
 try {
     $db = DatabaseService::getInstance()->getConnection();
 
-    // Traer reset por ID
+    /* Traer reset por ID */
     $stmt = $db->prepare("
         SELECT id, usuario_id, token_hash, expires_at, used_at
         FROM password_resets
@@ -88,24 +95,29 @@ try {
         exit;
     }
 
-    $usuarioId = (int)$reset['usuario_id'];
+    $usuarioId = (int)($reset['usuario_id'] ?? 0);
+    if ($usuarioId <= 0) {
+        Session::setError('El enlace es inválido.');
+        header('Location: ' . $RUTA_RECUPERAR);
+        exit;
+    }
 
-    // ✅ Actualizar contraseña (columna correcta: pass)
+    /* Actualizar contraseña (columna correcta: pass, PK: usu_id) */
     $hashPass = password_hash($pass, PASSWORD_DEFAULT);
     $up = $db->prepare("UPDATE usuarios SET pass = :p WHERE usu_id = :id");
-
     $up->execute([
         ':p'  => $hashPass,
         ':id' => $usuarioId,
     ]);
 
-    // Marcar reset como usado
+    /* Marcar reset como usado */
     $db->prepare("UPDATE password_resets SET used_at = NOW() WHERE id = :id")
         ->execute([':id' => $rid]);
 
     Session::setSuccess('Contraseña actualizada ✅ Ya podés iniciar sesión.');
-    header('Location: ' . AppConfig::getBaseUrl() . '/login.php');
+    header('Location: ' . BASE_URL . '/login.php');
     exit;
+
 } catch (Throwable $e) {
     error_log('Guardar password error: ' . $e->getMessage());
     Session::setError('Ocurrió un error. Intentá de nuevo.');

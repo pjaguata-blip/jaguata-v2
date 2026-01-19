@@ -123,7 +123,9 @@ $comprobantesBaseUrl = BASE_URL . '/uploads/suscripciones/';
                     <h1 class="h4 mb-1">Suscripciones pendientes 🧾</h1>
                     <p class="mb-0 text-white-50">Revisá comprobantes y aprobá o rechazá la suscripción de ₲50.000/mes.</p>
                 </div>
-                <i class="fas fa-file-invoice-dollar fa-3x opacity-75"></i>
+                <a href="<?= $baseFeatures; ?>/Dashboard.php" class="btn btn-outline-light">
+                <i class="fas fa-arrow-left me-1"></i> Volver
+            </a>
             </div>
 
             <?php if ($error): ?>
@@ -273,12 +275,16 @@ $comprobantesBaseUrl = BASE_URL . '/uploads/suscripciones/';
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        const modal = document.getElementById('rechazarModal');
-        modal?.addEventListener('show.bs.modal', (event) => {
-            const button = event.relatedTarget;
-            const id = button?.getAttribute('data-id') || '0';
-            document.getElementById('rechazarId').value = id;
-        });
-    </script>
+  const modalEl = document.getElementById('rechazarModal');
+
+  modalEl?.addEventListener('show.bs.modal', function (event) {
+    const trigger = event.relatedTarget; // botón que abrió el modal
+    const id = trigger?.getAttribute('data-id') || '0';
+
+    const input = modalEl.querySelector('#rechazarId');
+    if (input) input.value = id;
+  });
+</script>
+
 </body>
 </html>

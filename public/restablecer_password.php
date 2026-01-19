@@ -1,4 +1,8 @@
 <?php
+/* =========================================================
+   C:\xampp\htdocs\jaguata\public\restablecer_password.php
+   Pantalla: nueva contraseña (estilo dashboards)
+========================================================= */
 
 declare(strict_types=1);
 
@@ -10,293 +14,308 @@ use Jaguata\Helpers\Validaciones;
 
 AppConfig::init();
 
-$rid   = (int)($_GET['rid'] ?? 0);
-$token = trim($_GET['token'] ?? '');
-
-$error = Session::getError();
-$success = Session::getSuccess();
-
-function h(?string $v): string
-{
+function h($v): string {
     return htmlspecialchars((string)($v ?? ''), ENT_QUOTES, 'UTF-8');
 }
-?>
-<!doctype html>
-<html lang="es">
 
+/* ========= Estado / rol / sidebar (IGUAL HOME/LOGIN) ========= */
+$logueado = Session::isLoggedIn();
+
+$rol = null;
+if ($logueado) {
+    $rolTmp = method_exists(Session::class, 'getUsuarioRolSeguro')
+        ? Session::getUsuarioRolSeguro()
+        : (Session::get('rol') ?? null);
+
+    $rolTmp = strtolower(trim((string)$rolTmp));
+    if (in_array($rolTmp, ['admin','dueno','paseador'], true)) {
+        $rol = $rolTmp;
+    }
+}
+
+$usuarioNombre = $logueado ? (Session::getUsuarioNombre() ?? 'Usuario') : 'Invitado/a';
+$panelUrl      = $rol ? (BASE_URL . "/features/{$rol}/Dashboard.php") : null;
+$urlVolver     = BASE_URL . '/public/login.php';
+
+$sidebarPath = null;
+if ($rol === 'dueno')    $sidebarPath = __DIR__ . '/../src/Templates/SidebarDueno.php';
+if ($rol === 'paseador') $sidebarPath = __DIR__ . '/../src/Templates/SidebarPaseador.php';
+if ($rol === 'admin')    $sidebarPath = __DIR__ . '/../src/Templates/SidebarAdmin.php';
+
+/* Link data */
+$rid   = (int)($_GET['rid'] ?? 0);
+$token = trim((string)($_GET['token'] ?? ''));
+
+$error   = Session::getError();
+$success = Session::getSuccess();
+
+$logoUrl    = AppConfig::getAssetsUrl() . '/images/logojag.png';
+$actionSave = BASE_URL . '/public/guardar_password.php';
+$urlRecup   = BASE_URL . '/public/recuperar_password.php';
+?>
+<!DOCTYPE html>
+<html lang="es">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Restablecer contraseña - Jaguata</title>
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <link href="<?= BASE_URL; ?>/public/assets/css/jaguata-theme.css" rel="stylesheet">
 
     <style>
-        /* ✅ Mismo estilo que recuperar_password.php (idéntico) */
-        :root {
-            --jg-green: #3c6255;
-            --jg-mint: #20c997;
-            --jg-ink: #24343a;
-            --jg-card: #ffffff;
+        html, body { height: 100%; }
+        body { background: var(--gris-fondo, #f4f6f9); }
+
+        .layout{ display:flex; min-height:100vh; }
+
+        main.main-content{
+            margin-left: 260px;
+            min-height: 100vh;
+            padding: 24px;
+            width: 100%;
+        }
+        body.no-sidebar main.main-content{ margin-left: 0 !important; }
+
+        @media (max-width: 768px){
+            main.main-content{
+                margin-left: 0;
+                width: 100% !important;
+                padding: calc(16px + var(--topbar-h)) 16px 16px !important;
+            }
         }
 
-        body {
-            min-height: 100vh;
-            background: linear-gradient(160deg, var(--jg-green) 0%, var(--jg-mint) 100%);
-            font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-            overflow-x: hidden;
+        .wrap{
+            max-width: 980px;
+            margin: 0 auto;
+        }
+
+        .grid{
+            display:grid;
+            grid-template-columns: 1.05fr .95fr;
+            gap: 18px;
+            align-items: stretch;
+        }
+        @media (max-width: 992px){
+            .grid{ grid-template-columns: 1fr; }
+        }
+
+        .hero{
+            border-radius: 18px;
+            padding: 18px 20px;
+            box-shadow: 0 12px 30px rgba(0,0,0,.06);
+            background: linear-gradient(135deg, rgba(60,98,85,.10), rgba(32,201,151,.10));
+            border: 1px solid rgba(0,0,0,.06);
+            height: 100%;
+        }
+        .pill{
+            display:inline-flex;
+            align-items:center;
+            gap:.4rem;
+            padding:.25rem .65rem;
+            border-radius:999px;
+            font-size:.78rem;
+            background: rgba(60, 98, 85, .10);
+            color: var(--verde-jaguata, #3c6255);
+            border: 1px solid rgba(60, 98, 85, .18);
+            font-weight:700;
+        }
+        .hero-title{ font-weight: 900; margin: 10px 0 6px; color: #222; }
+        .hero-text{ color:#555; margin-bottom: 12px; line-height: 1.6; }
+
+        .hero-list{
+            padding-left: 0;
+            list-style: none;
             margin: 0;
         }
-
-        body::before {
-            content: "";
-            position: absolute;
-            inset: 0;
-            background: radial-gradient(circle at 20px 20px, rgba(255, 255, 255, .12) 6px, transparent 7px) 0 0 / 60px 60px, radial-gradient(circle at 50px 40px, rgba(255, 255, 255, .08) 4px, transparent 5px) 0 0 / 60px 60px;
-            mask-image: linear-gradient(to bottom, rgba(0, 0, 0, .25), rgba(0, 0, 0, .6));
-            pointer-events: none;
+        .hero-list li{
+            display:flex;
+            gap:.55rem;
+            align-items:flex-start;
+            margin-bottom:.45rem;
+            color:#444;
         }
+        .hero-list i{ margin-top:.2rem; color: var(--verde-jaguata, #3c6255); }
 
-        .auth-shell {
-            width: min(920px, 92vw);
-            margin-inline: auto;
-        }
-
-        .auth-card {
-            border: 0;
-            border-radius: 22px;
-            background: rgba(255, 255, 255, .85);
-            backdrop-filter: saturate(140%) blur(8px);
-            box-shadow: 0 18px 60px rgba(0, 0, 0, .18);
-            overflow: hidden;
-        }
-
-        .illustration {
-            background: radial-gradient(circle at top left, rgba(255, 255, 255, .18), transparent 55%), linear-gradient(135deg, #3c6255 0%, #20c997 100%);
-            color: #f5fbfa;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            padding: clamp(18px, 4vw, 30px);
-        }
-
-        .illustration-pill {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 4px 10px;
-            border-radius: 999px;
-            background: rgba(0, 0, 0, .18);
-            font-size: .78rem;
-            letter-spacing: .04em;
-            text-transform: uppercase;
-        }
-
-        .illustration-title {
-            font-size: 1.5rem;
-            font-weight: 800;
-            line-height: 1.25;
-            margin: 14px 0 8px;
-        }
-
-        .illustration-text {
-            font-size: .92rem;
-            opacity: .9;
-            margin: 0 0 14px;
-        }
-
-        .form-pane {
-            padding: clamp(18px, 4vw, 36px);
-            background: rgba(255, 255, 255, .96);
-        }
-
-        .logo-circle {
-            width: 84px;
-            height: 84px;
+        .logo-circle{
+            width: 86px;
+            height: 86px;
             border-radius: 50%;
-            background: #f4f7f9;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 4px 14px rgba(0, 0, 0, .08);
-            margin: 0 auto 12px;
+            background: #fff;
+            box-shadow: 0 10px 22px rgba(0,0,0,.06);
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            margin: 0 auto 10px;
         }
 
-        h2 {
-            color: var(--jg-green);
+        .form-control{ border-radius: 14px; }
+        .btn-big{
+            border-radius: 14px;
             font-weight: 800;
-            letter-spacing: .2px;
-        }
-
-        .text-muted {
-            color: #6b7b83 !important;
-        }
-
-        .form-control {
-            border: 2px solid #e7ecef;
-            border-radius: 12px;
             padding: .9rem 1rem;
-            transition: border-color .2s, box-shadow .2s;
         }
-
-        .form-control:focus {
-            border-color: var(--jg-mint);
-            box-shadow: 0 0 0 .2rem rgba(32, 201, 151, .2);
-        }
-
-        .btn-jg {
-            background: var(--jg-green);
-            border: 0;
-            border-radius: 12px;
-            padding: .9rem 1rem;
-            font-weight: 700;
-            box-shadow: 0 8px 18px rgba(0, 0, 0, .18);
-            transition: transform .08s ease, filter .2s ease, box-shadow .2s ease;
-            color: #fff;
-        }
-
-        .btn-jg:hover {
-            filter: brightness(.95);
-            color: #fff;
-        }
-
-        .btn-jg:active {
-            transform: translateY(1px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, .22);
-        }
-
-        .paw-divider {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            color: #8aa3a9;
-        }
-
-        .paw-divider::before,
-        .paw-divider::after {
-            content: "";
-            flex: 1;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, #cfe6e0, transparent);
-        }
-
-        @media (max-width: 992px) {
-            body {
-                align-items: flex-start;
-                padding: 18px 0;
-            }
-
-            .illustration {
-                display: none;
-            }
-
-            .auth-shell {
-                width: 100%;
-                max-width: 520px;
-                padding-inline: 12px;
-            }
-
-            .auth-card {
-                border-radius: 18px;
-                box-shadow: 0 14px 40px rgba(0, 0, 0, .22);
-            }
-        }
+        .btn-eye{ border-radius: 14px; }
     </style>
 </head>
 
-<body>
-    <main class="auth-shell">
-        <div class="row g-0 auth-card">
+<body class="<?= $rol ? '' : 'no-sidebar' ?>">
 
-            <div class="col-lg-6 illustration">
+<div class="layout">
+    <?php if ($rol && $sidebarPath && file_exists($sidebarPath)): ?>
+        <?php include $sidebarPath; ?>
+    <?php endif; ?>
+
+    <main class="main-content">
+        <div class="py-2 wrap">
+
+            <div class="header-box header-dashboard mb-3">
                 <div>
-                    <span class="illustration-pill"><i class="fa-solid fa-shield-dog"></i> Seguridad</span>
-                    <h2 class="illustration-title">Creá una nueva contraseña</h2>
-                    <p class="illustration-text">
-                        Elegí una contraseña fuerte para mantener tu cuenta protegida.
-                    </p>
+                    <h1 class="mb-1">Restablecer contraseña</h1>
+                    <p class="mb-0">Elegí una nueva contraseña para tu cuenta.</p>
                 </div>
-                <div class="text-white-50" style="font-size:.78rem;">Seguro • Rápido • Confiable 🐾</div>
+
+                <div class="d-flex gap-2 align-items-center">
+                    <?php if ($panelUrl): ?>
+                        <a href="<?= h($panelUrl) ?>" class="btn btn-outline-light border">
+                            <i class="fa-solid fa-gauge-high me-2"></i>Panel
+                        </a>
+                    <?php endif; ?>
+
+                    <a href="<?= h($urlVolver) ?>" class="btn btn-outline-light">
+                        <i class="fas fa-arrow-left me-1"></i> Volver
+                    </a>
+                </div>
             </div>
 
-            <div class="col-lg-6">
-                <div class="form-pane">
-                    <div class="text-center mb-3">
-                        <div class="logo-circle">
-                            <img src="<?= AppConfig::getAssetsUrl(); ?>/uploads/perfiles/logojag.png" alt="Jaguata" width="64" height="64">
-                        </div>
-                        <h2>Restablecer contraseña</h2>
-                        <p class="text-muted mb-0">Ingresá tu nueva contraseña</p>
+            <?php if ($success): ?>
+                <div class="alert alert-success border d-flex align-items-center gap-2 mb-3">
+                    <i class="fa-solid fa-circle-check"></i>
+                    <div><?= h($success) ?></div>
+                </div>
+            <?php endif; ?>
+
+            <?php if ($error): ?>
+                <div class="alert alert-danger border d-flex align-items-center gap-2 mb-3">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    <div><?= h($error) ?></div>
+                </div>
+            <?php endif; ?>
+
+            <div class="grid">
+
+                <div class="hero">
+                    <span class="pill">
+                        <i class="fa-solid fa-lock"></i> Seguridad
+                    </span>
+
+                    <h3 class="hero-title">Creá una nueva contraseña 🔐</h3>
+                    <p class="hero-text">
+                        Para mantener tu cuenta protegida, elegí una contraseña fuerte.
+                        Este enlace es único y tiene vencimiento.
+                    </p>
+
+                    <ul class="hero-list">
+                        <li><i class="fa-solid fa-key"></i><span>Mínimo 8 caracteres.</span></li>
+                        <li><i class="fa-solid fa-shield-heart"></i><span>No compartas tu contraseña con nadie.</span></li>
+                        <li><i class="fa-solid fa-clock"></i><span>Si el enlace expiró, solicitá uno nuevo.</span></li>
+                    </ul>
+
+                    <div class="mt-3 text-muted small">
+                        ¿No te llegó el correo? <a href="<?= h($urlRecup) ?>" class="fw-bold text-success text-decoration-none">Volver a solicitar</a>
+                    </div>
+                </div>
+
+                <div class="section-card">
+                    <div class="section-header">
+                        <i class="fa-solid fa-user-lock me-2"></i>Actualizar contraseña
                     </div>
 
-                    <?php if ($success): ?>
-                        <div class="alert alert-success alert-dismissible fade show" role="alert">
-                            <i class="fas fa-check-circle me-2"></i><?= h($success); ?>
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                        </div>
-                    <?php endif; ?>
+                    <div class="section-body">
 
-                    <?php if ($error): ?>
-                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                            <i class="fas fa-exclamation-circle me-2"></i><?= h($error); ?>
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                        </div>
-                    <?php endif; ?>
-
-                    <?php if ($rid <= 0 || $token === ''): ?>
-                        <div class="alert alert-warning">
-                            Enlace inválido. Volvé a solicitar la recuperación.
-                        </div>
-                        <div class="text-center">
-                            <a href="<?= AppConfig::getBaseUrl(); ?>/public/recuperar_password.php">Ir a recuperar contraseña</a>
-                        </div>
-                    <?php else: ?>
-
-                        <form method="POST" action="<?= AppConfig::getBaseUrl(); ?>/public/guardar_password.php" autocomplete="off">
-                            <input type="hidden" name="csrf_token" value="<?= h(Validaciones::generarCSRF()); ?>">
-                            <input type="hidden" name="rid" value="<?= (int)$rid; ?>">
-                            <input type="hidden" name="token" value="<?= h($token); ?>">
-
-                            <div class="mb-3">
-                                <label class="form-label fw-semibold"><i class="fas fa-lock me-1"></i>Nueva contraseña</label>
-                                <input type="password" name="password" class="form-control" required autocomplete="new-password">
+                        <div class="text-center mb-3">
+                            <div class="logo-circle">
+                                <img src="<?= h($logoUrl) ?>" alt="Jaguata" width="64" height="64">
                             </div>
+                            <div class="fw-bold" style="font-size:1.15rem;">Nueva contraseña</div>
+                            <div class="text-muted small">Completá los campos</div>
+                        </div>
 
-                            <div class="mb-3">
-                                <label class="form-label fw-semibold"><i class="fas fa-lock me-1"></i>Confirmar contraseña</label>
-                                <input type="password" name="confirm_password" class="form-control" required autocomplete="new-password">
+                        <?php if ($rid <= 0 || $token === ''): ?>
+                            <div class="alert alert-warning border d-flex align-items-center gap-2">
+                                <i class="fa-solid fa-triangle-exclamation"></i>
+                                <div>Enlace inválido. Volvé a solicitar la recuperación.</div>
                             </div>
-
-                            <div class="d-grid">
-                                <button type="submit" class="btn btn-jg btn-lg">
-                                    <i class="fas fa-check me-2"></i> Guardar
-                                </button>
-                            </div>
-
-                            <div class="my-4 paw-divider">
-                                <i class="fa-solid fa-paw"></i>
-                                <span class="small">Seguro • Rápido • Confiable</span>
-                                <i class="fa-solid fa-bone"></i>
-                            </div>
-
                             <div class="text-center">
-                                <a href="<?= AppConfig::getBaseUrl(); ?>/login.php">Volver al login</a>
+                                <a href="<?= h($urlRecup) ?>">Ir a recuperar contraseña</a>
                             </div>
-                        </form>
+                        <?php else: ?>
 
-                    <?php endif; ?>
+                            <form method="POST" action="<?= h($actionSave) ?>" autocomplete="off" novalidate>
+                                <input type="hidden" name="csrf_token" value="<?= h(Validaciones::generarCSRF()); ?>">
+                                <input type="hidden" name="rid" value="<?= (int)$rid; ?>">
+                                <input type="hidden" name="token" value="<?= h($token); ?>">
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">
+                                        <i class="fa-solid fa-lock me-2"></i>Nueva contraseña
+                                    </label>
+                                    <div class="input-group">
+                                        <input type="password" name="password" id="password" class="form-control"
+                                               required autocomplete="new-password" placeholder="Tu nueva contraseña">
+                                        <button class="btn btn-outline-secondary btn-eye" type="button" id="togglePassword">
+                                            <i class="fa-solid fa-eye"></i>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">
+                                        <i class="fa-solid fa-lock me-2"></i>Confirmar contraseña
+                                    </label>
+                                    <input type="password" name="confirm_password" class="form-control"
+                                           required autocomplete="new-password" placeholder="Repetí tu contraseña">
+                                </div>
+
+                                <div class="d-grid">
+                                    <button type="submit" class="btn btn-success btn-big">
+                                        <i class="fa-solid fa-check me-2"></i> Guardar
+                                    </button>
+                                </div>
+
+                                <div class="text-center text-muted small mt-3">
+                                    Al guardar, este enlace quedará marcado como usado.
+                                </div>
+                            </form>
+
+                        <?php endif; ?>
+                    </div>
                 </div>
+
             </div>
+
+            <footer class="mt-4 text-center text-muted small">
+                © <?= date('Y'); ?> Jaguata — Restablecer
+            </footer>
 
         </div>
     </main>
+</div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  // Toggle contraseña
+  document.getElementById('togglePassword')?.addEventListener('click', function () {
+    const input = document.getElementById('password');
+    const icon  = this.querySelector('i');
+    if (!input) return;
+    const isPass = input.type === 'password';
+    input.type = isPass ? 'text' : 'password';
+    icon.classList.toggle('fa-eye', !isPass);
+    icon.classList.toggle('fa-eye-slash', isPass);
+    input.focus();
+  });
+</script>
 </body>
-
 </html>

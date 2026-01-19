@@ -146,23 +146,24 @@ class Suscripcion
         }
     }
 
-    public function rechazar(int $suscripcionId, ?string $motivo = null): bool
-    {
-        $motivo = $motivo !== null ? trim($motivo) : null;
-        if ($motivo === '') $motivo = null;
-        if ($motivo !== null && mb_strlen($motivo) > 255) $motivo = mb_substr($motivo, 0, 255);
+    public function rechazar(int $id, string $motivo): bool
+{
+    $sql = "UPDATE suscripciones
+            SET estado = :estado,
+                motivo_rechazo = :motivo,
+                updated_at = NOW()
+            WHERE id = :id";
 
-        $sql = "UPDATE suscripciones
-                SET estado='rechazada',
-                    nota = CASE
-                        WHEN :motivo IS NOT NULL AND :motivo <> '' THEN :motivo
-                        ELSE nota
-                    END,
-                    updated_at=NOW()
-                WHERE id=:id";
-        $st = $this->db->prepare($sql);
-        return $st->execute([':id' => $suscripcionId, ':motivo' => $motivo]);
-    }
+    $st = $this->db->prepare($sql);
+
+    return $st->execute([
+        ':estado' => 'rechazada',
+        ':motivo' => $motivo,
+        ':id'     => $id,
+    ]);
+}
+
+
 
     public function marcarVencidas(): int
     {

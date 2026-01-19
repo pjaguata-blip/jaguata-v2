@@ -14,5 +14,6 @@ if (Session::isLoggedIn()) {
 }
 
 // Si no está logueado, mostrar la página "Sobre Nosotros" como inicio
-header('Location: ' . BASE_URL . '/sobre_nosotros.php');
+header('Location: ' . BASE_URL . '/public/sobre_nosotros.php');
 exit;
+

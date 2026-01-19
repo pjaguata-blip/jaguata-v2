@@ -39,7 +39,8 @@ $estadoUsuario = $logueado ? (Session::getUsuarioEstado() ?? '') : '';
 $panelUrl = $rol ? (BASE_URL . "/features/{$rol}/Dashboard.php") : null;
 
 /* ✅ VOLVER: siempre a /jaguata/sobre_nosotros.php (tu ruta real) */
-$urlVolver = BASE_URL . '/sobre_nosotros.php';
+$urlVolver  = BASE_URL . '/public/sobre_nosotros.php';
+
 
 /* Sidebar según rol */
 $sidebarPath = null;

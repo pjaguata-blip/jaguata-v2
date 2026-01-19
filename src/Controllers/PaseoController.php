@@ -501,10 +501,10 @@ class PaseoController
         try {
             $puntosCtrl = new PuntoController();
             $puntosOtorgados = (int)$puntosCtrl->otorgarPorPaseo($paseoId);
-        } catch (\Throwable $e) {
-            error_log("Error otorgando puntos por paseo #{$paseoId}: " . $e->getMessage());
-            // No rompemos el flujo del completar por puntos
-        }
+       } catch (\Throwable $e) {
+    return ['success' => false, 'error' => 'Error puntos: ' . $e->getMessage()];
+}
+
 
         return [
             'success'          => true,

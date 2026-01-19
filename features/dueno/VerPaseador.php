@@ -30,6 +30,76 @@ function h(?string $v): string
 }
 
 /**
+ * ✅ Convierte la zona a texto lindo:
+ * - Si es texto normal => lo muestra normal
+ * - Si viene como JSON mal guardado / doble o triple escapado => lo arregla y muestra "A, B, C"
+ */
+function zonaToText(?string $raw): string
+{
+    $raw = trim((string)$raw);
+    if ($raw === '') return 'Sin zona';
+
+    // Si no parece JSON, devolvemos limpio
+    $looksJson = str_starts_with($raw, '[') || str_starts_with($raw, '{') || str_contains($raw, '\\"') || str_contains($raw, '["');
+    if (!$looksJson) {
+        $clean = preg_replace('/\s+/', ' ', $raw);
+        $clean = trim((string)$clean, " ,");
+        return $clean !== '' ? $clean : 'Sin zona';
+    }
+
+    // Intentamos decodificar hasta 5 veces (por doble/triple encode)
+    $try = $raw;
+    for ($i = 0; $i < 5; $i++) {
+        $decoded = json_decode($try, true);
+
+        if (json_last_error() === JSON_ERROR_NONE) {
+            // Si vuelve a ser string (doble encode), seguimos
+            if (is_string($decoded)) {
+                $try = $decoded;
+                continue;
+            }
+
+            // Si es array, lo aplanamos
+            if (is_array($decoded)) {
+                $flat = [];
+
+                $stack = [$decoded];
+                while ($stack) {
+                    $item = array_pop($stack);
+
+                    if (is_array($item)) {
+                        foreach ($item as $v) $stack[] = $v;
+                    } else {
+                        $v = trim((string)$item);
+                        $v = stripslashes($v);
+                        $v = trim($v, "\"' \t\n\r\0\x0B");
+                        if ($v !== '') $flat[] = $v;
+                    }
+                }
+
+                $flat = array_values(array_unique($flat));
+                $flat = array_filter($flat, fn($x) => trim((string)$x) !== '');
+
+                if (!empty($flat)) return implode(', ', $flat);
+            }
+
+            break;
+        }
+
+        // No fue JSON: limpiamos un poco y reintentamos
+        $try = stripslashes($try);
+        $try = trim($try, "\"'");
+    }
+
+    // Último plan: limpiar basura visual
+    $clean = stripslashes($raw);
+    $clean = preg_replace('/\s+/', ' ', $clean);
+    $clean = str_replace(['[',']','\\"','"'], ['', '', '', ''], (string)$clean);
+    $clean = trim((string)$clean, " ,");
+    return $clean !== '' ? $clean : 'Sin zona';
+}
+
+/**
  * ✅ Normaliza la foto para que SIEMPRE funcione con tu BD:
  * - /assets/uploads/perfiles/xxx.jpg
  * - assets/uploads/perfiles/xxx.jpg
@@ -246,7 +316,6 @@ if ($u) {
             min-height: 190px;
         }
 
-        /* ✅ avatar SIN ícono, siempre imagen */
         .walker-avatar{
             width: 92px;
             height: 92px;
@@ -290,203 +359,195 @@ if ($u) {
 
 <body class="page-dashboard-dueno">
 
-    <?php include __DIR__ . '/../../src/Templates/SidebarDueno.php'; ?>
+<?php include __DIR__ . '/../../src/Templates/SidebarDueno.php'; ?>
 
-    <main class="main-content">
-        <div class="py-2">
+<main class="main-content">
+    <div class="py-2">
 
-            <div class="header-box header-paseos mb-3 d-flex justify-content-between align-items-center">
-                <div>
-                    <h1 class="fw-bold mb-1">
-                        <i class="fas fa-user-check me-2"></i>Detalle del Paseador
-                    </h1>
-                    <p class="mb-0">Revisá perfil, calificación, precio y zona antes de solicitar 🐾</p>
-                </div>
+        <div class="header-box header-paseos mb-3 d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="fw-bold mb-1">
+                    <i class="fas fa-user-check me-2"></i>Detalle del Paseador
+                </h1>
+                <p class="mb-0">Revisá perfil, calificación, precio y zona antes de solicitar 🐾</p>
+            </div>
 
-                <div class="d-flex gap-2 align-items-center">
-                    <a href="<?= h($volverUrl) ?>" class="btn btn-outline-light btn-sm">
-                        <i class="fas fa-arrow-left me-1"></i> Volver
-                    </a>
+            <div class="d-flex gap-2 align-items-center">
+                <a href="<?= h($volverUrl) ?>" class="btn btn-outline-light btn-sm">
+                    <i class="fas fa-arrow-left me-1"></i> Volver
+                </a>
+            </div>
+        </div>
+
+        <?php if (!$u): ?>
+            <div class="alert alert-warning shadow-sm">
+                <i class="fas fa-triangle-exclamation me-2"></i>Paseador no encontrado.
+            </div>
+        <?php else: ?>
+
+            <?php
+            $heroClass = ($foto !== $DEFAULT_AVATAR) ? 'walker-hero has-photo' : 'walker-hero';
+            $heroStyle = ($foto !== $DEFAULT_AVATAR) ? "style=\"--hero-photo:url('" . h($foto) . "');\"" : '';
+            ?>
+            <div class="<?= $heroClass; ?> mb-3" <?= $heroStyle; ?>>
+                <div class="walker-hero-inner flex-wrap">
+                    <div class="d-flex gap-3 align-items-end flex-wrap">
+
+                        <img
+                            src="<?= h($foto) ?>"
+                            alt="Foto de <?= h($nombre) ?>"
+                            class="walker-avatar"
+                            loading="lazy"
+                            onerror="this.onerror=null; this.src='<?= $DEFAULT_AVATAR ?>';">
+
+                        <div>
+                            <h3 class="mb-1 fw-bold"><?= h($nombre); ?></h3>
+
+                            <!-- ✅ ZONA ARREGLADA -->
+                            <div class="opacity-75 mb-2">
+                                <i class="fas fa-location-dot me-1"></i>
+                                <?= h(zonaToText($zona)); ?>
+                            </div>
+
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                <span class="chip">
+                                    <span class="me-1"><?= renderStars($rate); ?></span>
+                                    <strong><?= number_format($rate, 1); ?></strong>
+                                    <span class="text-muted">(<?= (int)$rateCnt; ?>)</span>
+                                </span>
+
+                                <span class="chip">
+                                    <i class="fas fa-money-bill-wave"></i>
+                                    ₲<?= number_format($precio, 0, ',', '.'); ?>/hora
+                                </span>
+
+                                <span class="chip">
+                                    <i class="fas fa-walking"></i>
+                                    Paseos: <?= (int)$paseos; ?>
+                                </span>
+
+                                <?php if (trim($ciudad . $barrio) !== ''): ?>
+                                    <span class="chip">
+                                        <i class="fas fa-city"></i>
+                                        <?= h(trim($ciudad . ' ' . $barrio)); ?>
+                                    </span>
+                                <?php endif; ?>
+
+                                <?php if ($tel !== ''): ?>
+                                    <span class="chip">
+                                        <i class="fas fa-phone"></i>
+                                        <?= h($tel); ?>
+                                    </span>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2 align-items-center mt-2">
+                        <a class="btn btn-light btn-sm fw-semibold" href="<?= h($solicitarUrl) ?>">
+                            <i class="fas fa-calendar-plus me-1"></i> Solicitar paseo
+                        </a>
+                    </div>
                 </div>
             </div>
 
-            <?php if (!$u): ?>
-                <div class="alert alert-warning shadow-sm">
-                    <i class="fas fa-triangle-exclamation me-2"></i>Paseador no encontrado.
-                </div>
-            <?php else: ?>
-
-                <!-- HERO -->
-                <?php
-                // Solo ponemos hero con foto si NO es el default
-                $heroClass = ($foto !== $DEFAULT_AVATAR) ? 'walker-hero has-photo' : 'walker-hero';
-                $heroStyle = ($foto !== $DEFAULT_AVATAR) ? "style=\"--hero-photo:url('" . h($foto) . "');\"" : '';
-                ?>
-                <div class="<?= $heroClass; ?> mb-3" <?= $heroStyle; ?>>
-                    <div class="walker-hero-inner flex-wrap">
-                        <div class="d-flex gap-3 align-items-end flex-wrap">
-
-                            <!-- ✅ SIEMPRE imagen (real o default) -->
-                            <img
-                                src="<?= h($foto) ?>"
-                                alt="Foto de <?= h($nombre) ?>"
-                                class="walker-avatar"
-                                loading="lazy"
-                                onerror="this.onerror=null; this.src='<?= $DEFAULT_AVATAR ?>';">
-
-                            <div>
-                                <h3 class="mb-1 fw-bold"><?= h($nombre); ?></h3>
-                                <div class="opacity-75 mb-2">
-                                    <i class="fas fa-location-dot me-1"></i>
-                                    <?= h($zona !== '' ? $zona : 'Sin zona'); ?>
-                                </div>
-
-                                <div class="d-flex align-items-center gap-2 flex-wrap">
-                                    <span class="chip">
-                                        <span class="me-1"><?= renderStars($rate); ?></span>
-                                        <strong><?= number_format($rate, 1); ?></strong>
-                                        <span class="text-muted">(<?= (int)$rateCnt; ?>)</span>
-                                    </span>
-
-                                    <span class="chip">
-                                        <i class="fas fa-money-bill-wave"></i>
-                                        ₲<?= number_format($precio, 0, ',', '.'); ?>/hora
-                                    </span>
-
-                                    <span class="chip">
-                                        <i class="fas fa-walking"></i>
-                                        Paseos: <?= (int)$paseos; ?>
-                                    </span>
-
-                                    <?php if (trim($ciudad . $barrio) !== ''): ?>
-                                        <span class="chip">
-                                            <i class="fas fa-city"></i>
-                                            <?= h(trim($ciudad . ' ' . $barrio)); ?>
-                                        </span>
-                                    <?php endif; ?>
-
-                                    <?php if ($tel !== ''): ?>
-                                        <span class="chip">
-                                            <i class="fas fa-phone"></i>
-                                            <?= h($tel); ?>
-                                        </span>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
+            <div class="row g-3">
+                <div class="col-lg-8">
+                    <div class="section-card mb-3">
+                        <div class="section-header">
+                            <i class="fas fa-circle-info me-2"></i>Sobre mí
                         </div>
-
-                        <div class="d-flex gap-2 align-items-center mt-2">
-                            
-
-                            <a class="btn btn-light btn-sm fw-semibold" href="<?= h($solicitarUrl) ?>">
-                                <i class="fas fa-calendar-plus me-1"></i> Solicitar paseo
-                            </a>
+                        <div class="section-body">
+                            <?php if (trim($desc) !== ''): ?>
+                                <div class="desc-box"><?= h($desc); ?></div>
+                            <?php else: ?>
+                                <div class="desc-box text-muted">Este paseador aún no cargó una descripción.</div>
+                            <?php endif; ?>
                         </div>
                     </div>
-                </div>
 
-                <div class="row g-3">
-                    <!-- Sobre mí -->
-                    <div class="col-lg-8">
-                        <div class="section-card mb-3">
-                            <div class="section-header">
-                                <i class="fas fa-circle-info me-2"></i>Sobre mí
-                            </div>
-                            <div class="section-body">
-                                <?php if (trim($desc) !== ''): ?>
-                                    <div class="desc-box"><?= h($desc); ?></div>
-                                <?php else: ?>
-                                    <div class="desc-box text-muted">Este paseador aún no cargó una descripción.</div>
-                                <?php endif; ?>
-                            </div>
+                    <div class="section-card">
+                        <div class="section-header">
+                            <i class="fas fa-comments me-2"></i>Opiniones de dueños
                         </div>
-
-                        <!-- ✅ Reseñas -->
-                        <div class="section-card">
-                            <div class="section-header">
-                                <i class="fas fa-comments me-2"></i>Opiniones de dueños
-                            </div>
-                            <div class="section-body">
-                                <?php if (empty($reseñas)): ?>
-                                    <p class="text-center text-muted mb-0">Todavía no hay reseñas para este paseador.</p>
-                                <?php else: ?>
-                                    <div class="d-flex flex-column gap-2">
-                                        <?php foreach ($reseñas as $r): ?>
-                                            <?php
-                                            $rRate = (float)($r['calificacion'] ?? 0);
-                                            $autor = (string)($r['autor'] ?? 'Dueño/a');
-                                            $com   = (string)($r['comentario'] ?? '');
-                                            $fec   = (string)($r['created_at'] ?? '');
-                                            ?>
-                                            <div class="review-item">
-                                                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                                                    <div class="fw-semibold">
-                                                        <i class="fas fa-user me-1 text-muted"></i><?= h($autor); ?>
-                                                    </div>
-                                                    <div class="small">
-                                                        <?= renderStars($rRate); ?>
-                                                        <span class="ms-1 fw-semibold"><?= number_format($rRate, 1); ?></span>
-                                                    </div>
+                        <div class="section-body">
+                            <?php if (empty($reseñas)): ?>
+                                <p class="text-center text-muted mb-0">Todavía no hay reseñas para este paseador.</p>
+                            <?php else: ?>
+                                <div class="d-flex flex-column gap-2">
+                                    <?php foreach ($reseñas as $r): ?>
+                                        <?php
+                                        $rRate = (float)($r['calificacion'] ?? 0);
+                                        $autor = (string)($r['autor'] ?? 'Dueño/a');
+                                        $com   = (string)($r['comentario'] ?? '');
+                                        $fec   = (string)($r['created_at'] ?? '');
+                                        ?>
+                                        <div class="review-item">
+                                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                                <div class="fw-semibold">
+                                                    <i class="fas fa-user me-1 text-muted"></i><?= h($autor); ?>
                                                 </div>
-
-                                                <?php if ($com !== ''): ?>
-                                                    <div class="mt-2"><?= h($com); ?></div>
-                                                <?php else: ?>
-                                                    <div class="mt-2 text-muted">Sin comentario.</div>
-                                                <?php endif; ?>
-
-                                                <?php if ($fec !== ''): ?>
-                                                    <div class="mt-2 small text-muted">
-                                                        <i class="far fa-clock me-1"></i><?= date('d/m/Y H:i', strtotime($fec)); ?>
-                                                    </div>
-                                                <?php endif; ?>
+                                                <div class="small">
+                                                    <?= renderStars($rRate); ?>
+                                                    <span class="ms-1 fw-semibold"><?= number_format($rRate, 1); ?></span>
+                                                </div>
                                             </div>
-                                        <?php endforeach; ?>
-                                    </div>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-                    </div>
 
-                    <!-- Acciones -->
-                    <div class="col-lg-4">
-                        <div class="section-card">
-                            <div class="section-header">
-                                <i class="fas fa-bolt me-2"></i>Acciones
-                            </div>
-                            <div class="section-body">
-                                <div class="d-grid gap-2">
-                                    <a class="btn btn-enviar" href="<?= h($solicitarUrl) ?>">
-                                        <i class="fas fa-calendar-check me-1"></i> Solicitar paseo
-                                    </a>
+                                            <?php if ($com !== ''): ?>
+                                                <div class="mt-2"><?= h($com); ?></div>
+                                            <?php else: ?>
+                                                <div class="mt-2 text-muted">Sin comentario.</div>
+                                            <?php endif; ?>
 
-                                   
-
-                                    <a class="btn btn-secondary" href="<?= h($volverUrl) ?>">
-                                        <i class="fas fa-arrow-left me-1"></i> Volver a buscar
-                                    </a>
+                                            <?php if ($fec !== ''): ?>
+                                                <div class="mt-2 small text-muted">
+                                                    <i class="far fa-clock me-1"></i><?= date('d/m/Y H:i', strtotime($fec)); ?>
+                                                </div>
+                                            <?php endif; ?>
+                                        </div>
+                                    <?php endforeach; ?>
                                 </div>
-
-                                <hr>
-
-                                <div class="small text-muted">
-                                    <div class="mb-1"><i class="fas fa-shield-dog me-2"></i>Elegí paseadores verificados.</div>
-                                    <div><i class="fas fa-paw me-2"></i>Solicitá paseos según tu zona y horario.</div>
-                                </div>
-                            </div>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
 
-            <?php endif; ?>
+                <div class="col-lg-4">
+                    <div class="section-card">
+                        <div class="section-header">
+                            <i class="fas fa-bolt me-2"></i>Acciones
+                        </div>
+                        <div class="section-body">
+                            <div class="d-grid gap-2">
+                                <a class="btn btn-enviar" href="<?= h($solicitarUrl) ?>">
+                                    <i class="fas fa-calendar-check me-1"></i> Solicitar paseo
+                                </a>
 
-            <footer class="mt-4 text-center text-muted small">
-                © <?= date('Y') ?> Jaguata — Panel del Dueño
-            </footer>
+                                <a class="btn btn-secondary" href="<?= h($volverUrl) ?>">
+                                    <i class="fas fa-arrow-left me-1"></i> Volver a buscar
+                                </a>
+                            </div>
 
-        </div>
-    </main>
+                            <hr>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+                            <div class="small text-muted">
+                                <div class="mb-1"><i class="fas fa-shield-dog me-2"></i>Elegí paseadores verificados.</div>
+                                <div><i class="fas fa-paw me-2"></i>Solicitá paseos según tu zona y horario.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        <?php endif; ?>
+
+        <footer class="mt-4 text-center text-muted small">
+            © <?= date('Y') ?> Jaguata — Panel del Dueño
+        </footer>
+
+    </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

@@ -4,17 +4,25 @@ declare(strict_types=1);
 error_reporting(E_ALL);
 ini_set('display_errors', '1');
 
-require_once dirname(__DIR__, 2) . '/src/Config/AppConfig.php';
-require_once dirname(__DIR__, 2) . '/src/Controllers/AuthController.php';
-require_once dirname(__DIR__, 2) . '/src/Helpers/Session.php';
-require_once dirname(__DIR__, 2) . '/src/Controllers/PuntoController.php';
-require_once dirname(__DIR__, 2) . '/src/Models/Punto.php';
-require_once dirname(__DIR__, 2) . '/src/Services/DatabaseService.php';
+/* ✅ ROOT fijo, sin realpath (no falla nunca) */
+$ROOT = __DIR__ . '/../../'; // features/dueno -> jaguata
+
+require_once $ROOT . 'src/Config/AppConfig.php';
+require_once $ROOT . 'src/Helpers/Session.php';
+require_once $ROOT . 'src/Controllers/AuthController.php';
+require_once $ROOT . 'src/Services/DatabaseService.php';
+
+require_once $ROOT . 'src/Models/Punto.php';
+require_once $ROOT . 'src/Controllers/PuntoController.php';
+
+require_once $ROOT . 'src/Models/Recompensa.php';
+require_once $ROOT . 'src/Controllers/CanjeController.php';
 
 use Jaguata\Config\AppConfig;
 use Jaguata\Controllers\AuthController;
 use Jaguata\Controllers\PuntoController;
 use Jaguata\Helpers\Session;
+use Jaguata\Models\Recompensa;
 
 AppConfig::init();
 
@@ -39,8 +47,14 @@ $baseFeatures  = BASE_URL . "/features/dueno";
 $usuarioNombre = Session::getUsuarioNombre() ?? 'Dueño/a';
 $duenoId       = (int)(Session::getUsuarioId() ?? 0);
 
+/* CSRF simple */
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(16));
+}
+$csrfToken = $_SESSION['csrf_token'];
+
 /* =========================
-   ✅ Datos de puntos (vía Controller)
+   Datos de puntos
    ========================= */
 $puntoCtrl   = new PuntoController();
 $saldoPuntos = 0;
@@ -58,19 +72,18 @@ try {
         $puntosMes   = $puntoCtrl->totalMesActual($duenoId);
     }
 } catch (Throwable $e) {
-    $movimientos = [];
-    $totalMovs   = 0;
-    $saldoPuntos = 0;
-    $puntosMes   = 0;
-    $ultimoMov   = null;
+    die("ERROR PUNTOS: " . $e->getMessage());
 }
 
-/* 🎁 Recompensas (mock visual) */
-$recompensas = [
-    ['icon'=>'fa-ticket','iconClass'=>'icon-blue','titulo'=>'10% de descuento','desc'=>'Aplicable en tu próximo paseo','costo'=>50],
-    ['icon'=>'fa-dog','iconClass'=>'icon-green','titulo'=>'20% OFF en paseo','desc'=>'Cualquier duración, 1 mascota','costo'=>80],
-    ['icon'=>'fa-crown','iconClass'=>'icon-yellow','titulo'=>'Paseo GRATIS','desc'=>'Para una mascota (promo)','costo'=>150],
-];
+/* =========================
+   Recompensas reales (DB)
+   ========================= */
+$recompensas = [];
+try {
+    $recompensas = (new Recompensa())->getActivas();
+} catch (Throwable $e) {
+    $recompensas = [];
+}
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -209,7 +222,7 @@ $recompensas = [
                     <div class="row g-3">
                         <div class="col-md-4">
                             <label class="form-label fw-semibold">Buscar</label>
-                            <input type="text" id="searchInput" class="form-control" placeholder="Ej: paseo, bono...">
+                            <input type="text" id="searchInput" class="form-control" placeholder="Ej: paseo, canje...">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-semibold">Desde</label>
@@ -229,14 +242,14 @@ $recompensas = [
 
                     <div class="section-body">
                         <?php if (empty($movimientos)): ?>
-                            <p class="text-center text-muted mb-0">Aún no tenés puntos registrados.</p>
+                            <p class="text-center text-muted mb-0">Aún no tenés movimientos de puntos.</p>
                         <?php else: ?>
                             <div class="table-responsive">
                                 <table class="table table-hover align-middle text-center mb-0" id="tablaPuntos">
                                     <thead>
                                     <tr>
                                         <th>Fecha</th>
-                                        <th class="text-start">¿Dónde se ganaron?</th>
+                                        <th class="text-start">Detalle</th>
                                         <th>Puntos</th>
                                     </tr>
                                     </thead>
@@ -265,7 +278,6 @@ $recompensas = [
                                     </tbody>
                                 </table>
                             </div>
-
                             <p class="text-muted small mt-2 mb-0">
                                 Tip: combiná búsqueda + rango de fechas para encontrar un movimiento específico.
                             </p>
@@ -282,43 +294,59 @@ $recompensas = [
 
                     <div class="section-body">
                         <p class="text-muted small mb-3">
-                            Canjeá tus puntos por beneficios. (Por ahora visual; luego lo hacemos real con canje.)
+                            Canjeá tus puntos por beneficios. Al canjear se descuenta el saldo y se registra el movimiento.
                         </p>
 
-                        <div class="row g-3">
-                            <?php foreach ($recompensas as $r): ?>
-                                <div class="col-12">
-                                    <div class="dash-card text-start">
-                                        <div class="d-flex align-items-start justify-content-between">
-                                            <div class="d-flex gap-3">
-                                                <i class="fa-solid <?= h($r['icon']) ?> dash-card-icon <?= h($r['iconClass']) ?>"></i>
-                                                <div>
-                                                    <div class="fw-bold"><?= h($r['titulo']) ?></div>
-                                                    <div class="dash-card-label"><?= h($r['desc']) ?></div>
+                        <?php if (empty($recompensas)): ?>
+                            <p class="text-muted mb-0">No hay recompensas activas.</p>
+                        <?php else: ?>
+                            <div class="row g-3">
+                                <?php foreach ($recompensas as $r):
+                                    $rid = (int)$r['recompensa_id'];
+                                    $costo = (int)$r['costo_puntos'];
+                                    ?>
+                                    <div class="col-12">
+                                        <div class="dash-card text-start">
+                                            <div class="d-flex align-items-start justify-content-between">
+                                                <div class="d-flex gap-3">
+                                                    <i class="fa-solid fa-gift dash-card-icon icon-green"></i>
+                                                    <div>
+                                                        <div class="fw-bold"><?= h((string)$r['titulo']) ?></div>
+                                                        <div class="dash-card-label"><?= h((string)($r['descripcion'] ?? '')) ?></div>
+                                                    </div>
                                                 </div>
+
+                                                <span class="badge bg-secondary" style="height:fit-content;">
+                                                    <?= $costo ?> pts
+                                                </span>
                                             </div>
 
-                                            <span class="badge bg-secondary" style="height:fit-content;">
-                                                <?= (int)$r['costo'] ?> pts
-                                            </span>
-                                        </div>
-
-                                        <div class="mt-2">
-                                            <?php if ($saldoPuntos >= (int)$r['costo']): ?>
-                                                <button class="btn-canjear w-100" type="button">Canjear</button>
-                                            <?php else: ?>
-                                                <button class="btn btn-outline-secondary w-100" type="button" disabled>
-                                                    Puntos insuficientes
-                                                </button>
-                                            <?php endif; ?>
+                                            <div class="mt-2">
+                                                <?php if ($saldoPuntos >= $costo): ?>
+                                                    <button
+                                                        class="btn-canjear w-100 js-canjear"
+                                                        type="button"
+                                                        data-id="<?= $rid ?>"
+                                                        data-titulo="<?= h((string)$r['titulo']) ?>"
+                                                        data-costo="<?= $costo ?>"
+                                                        data-csrf="<?= h($csrfToken) ?>"
+                                                    >
+                                                        Canjear
+                                                    </button>
+                                                <?php else: ?>
+                                                    <button class="btn btn-outline-secondary w-100" type="button" disabled>
+                                                        Puntos insuficientes
+                                                    </button>
+                                                <?php endif; ?>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            <?php endforeach; ?>
-                        </div>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
 
                         <div class="text-muted small mt-3">
-                            * Las recompensas se pueden aplicar al confirmar un paseo (cuando activemos el canje real).
+                            * Luego podés aplicar el canje al confirmar un paseo (si querés, lo conectamos a la pantalla de pago).
                         </div>
                     </div>
                 </div>
@@ -354,6 +382,46 @@ function filtrar(){
     });
 }
 [search, desde, hasta].forEach(el => el?.addEventListener('input', filtrar));
+</script>
+
+<script>
+document.querySelectorAll('.js-canjear').forEach(btn => {
+    btn.addEventListener('click', async () => {
+        const id = btn.dataset.id;
+        const titulo = btn.dataset.titulo || 'recompensa';
+        const costo = btn.dataset.costo || '?';
+        const csrf = btn.dataset.csrf || '';
+
+        if (!confirm(`¿Confirmás canjear "${titulo}" por ${costo} puntos?`)) return;
+
+        btn.disabled = true;
+
+        try {
+            const form = new URLSearchParams();
+            form.append('recompensa_id', id);
+            form.append('csrf', csrf);
+
+            const res = await fetch('canjear.php', {
+                method: 'POST',
+                headers: {'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},
+                body: form.toString()
+            });
+
+            const data = await res.json();
+
+            if (data.success) {
+                alert(data.mensaje || 'Canje realizado.');
+                location.reload();
+            } else {
+                alert(data.error || 'Error al canjear.');
+                btn.disabled = false;
+            }
+        } catch (e) {
+            alert('Error de red al canjear.');
+            btn.disabled = false;
+        }
+    });
+});
 </script>
 
 </body>

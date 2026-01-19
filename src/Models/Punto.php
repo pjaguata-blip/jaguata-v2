@@ -137,27 +137,27 @@ class Punto
 
     // 3) Doble candado por si acaso (historial)
     $ya = $this->db->fetchOne(
-        "SELECT id
-         FROM puntos
-         WHERE usuario_id = :uid AND descripcion = :d
-         LIMIT 1",
-        [':uid' => $duenoId, ':d' => $desc]
-    );
-    if ($ya) return 0;
+    "SELECT id FROM puntos WHERE paseo_id = :pid LIMIT 1",
+    [':pid' => $paseoId]
+);
+if ($ya) return 0;
+
 
     // 4) Transacción
     $this->db->beginTransaction();
 
     try {
         // Insert historial
-        $this->db->prepare(
-            "INSERT INTO puntos (usuario_id, descripcion, puntos, fecha)
-             VALUES (:uid, :desc, :pts, NOW())"
-        )->execute([
-            ':uid'  => $duenoId,
-            ':desc' => $desc,
-            ':pts'  => $puntosGanados
-        ]);
+       $this->db->prepare(
+    "INSERT INTO puntos (usuario_id, descripcion, puntos, fecha, paseo_id)
+     VALUES (:uid, :desc, :pts, NOW(), :pid)"
+)->execute([
+    ':uid'  => $duenoId,
+    ':desc' => $desc,
+    ':pts'  => $puntosGanados,
+    ':pid'  => $paseoId
+]);
+
 
         // Sumar saldo (usuarios.usu_id)
         $this->db->prepare(

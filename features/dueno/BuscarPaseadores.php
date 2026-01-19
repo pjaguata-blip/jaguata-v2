@@ -60,6 +60,95 @@ function resolveFotoUrl(?string $foto): string
 
     return BASE_URL . '/assets/uploads/perfiles/' . $fotoNorm;
 }
+function zonaToText(?string $raw): string
+{
+    $raw = trim((string)$raw);
+    if ($raw === '') return 'Sin zona';
+
+    // Normaliza espacios
+    $raw = preg_replace('/\s+/', ' ', $raw);
+
+    // Intenta decodificar varias veces (doble/triple encode)
+    $try = $raw;
+
+    for ($i = 0; $i < 8; $i++) {
+        $decoded = json_decode($try, true);
+
+        if (json_last_error() === JSON_ERROR_NONE) {
+
+            // Caso: quedó como string (doble encode)
+            if (is_string($decoded)) {
+                $try = $decoded;
+                continue;
+            }
+
+            // Caso: array
+            if (is_array($decoded)) {
+
+                // ✅ Caso especial: viene como ["[\"[\\\"...","\"\\\"..."] (pedazos)
+                // Unimos todo y reintentamos decode
+                $onlyStrings = true;
+                foreach ($decoded as $x) {
+                    if (!is_string($x)) { $onlyStrings = false; break; }
+                }
+
+                if ($onlyStrings) {
+                    $joined = implode('', $decoded);
+                    $joined = stripslashes($joined);
+                    $joined = trim($joined);
+
+                    // Si el join parece JSON, lo volvemos a intentar
+                    if ($joined !== '' && (str_starts_with($joined, '[') || str_starts_with($joined, '{') || str_starts_with($joined, '"'))) {
+                        $try = $joined;
+                        continue;
+                    }
+                }
+
+                // Aplanar + limpiar
+                $flat = [];
+                $stack = [$decoded];
+
+                while ($stack) {
+                    $item = array_pop($stack);
+
+                    if (is_array($item)) {
+                        foreach ($item as $v) $stack[] = $v;
+                        continue;
+                    }
+
+                    $v = trim((string)$item);
+                    $v = stripslashes($v);
+                    $v = preg_replace('/\s+/', ' ', $v);
+
+                    // Limpieza de basura típica
+                    $v = str_replace(['\\"', '"', '[', ']', '\\\\'], ['', '', '', '', '\\'], $v);
+                    $v = trim($v, " \t\n\r\0\x0B,");
+                    if ($v !== '') $flat[] = $v;
+                }
+
+                $flat = array_values(array_unique($flat));
+                if (!empty($flat)) return implode(', ', $flat);
+
+                return 'Sin zona';
+            }
+
+            break;
+        }
+
+        // No era JSON: sacamos escapes y probamos otra vez
+        $try = stripslashes($try);
+        $try = trim($try, "\"'");
+    }
+
+    // Fallback final: limpiar y mostrar “legible”
+    $clean = stripslashes($raw);
+    $clean = preg_replace('/\s+/', ' ', $clean);
+    $clean = str_replace(['\\"', '"', '[', ']'], ['', '', '', ''], $clean);
+    $clean = trim($clean, " ,");
+
+    return $clean !== '' ? $clean : 'Sin zona';
+}
+
 
 /* ===== Filtros ===== */
 $q        = trim($_GET['q'] ?? '');
@@ -81,37 +170,43 @@ $minPriceF = ($minPrice === '' ? null : max(0, (float)$minPrice));
 $maxPriceF = ($maxPrice === '' ? null : max(0, (float)$maxPrice));
 $dispF     = ($disp === '' ? null : (int)$disp);
 
-/* ===== WHERE ===== */
+/* ===== WHERE dinámico (se concatena con AND) ===== */
 $where = [];
 $args  = [];
 
-/* Filtros sobre columnas reales (p.*) */
+/* Filtro texto */
 if ($q !== '') {
-    $where[]    = '(p.nombre LIKE :q OR p.descripcion LIKE :q OR p.zona LIKE :q)';
+    $where[] = '(u.nombre LIKE :q
+            OR COALESCE(p.descripcion,u.descripcion,"") LIKE :q
+            OR COALESCE(p.zona,u.zona,"") LIKE :q
+            OR COALESCE(u.ciudad,"") LIKE :q
+            OR COALESCE(u.barrio,"") LIKE :q)';
     $args[':q'] = "%$q%";
 }
 
+/* Zona */
 if ($zona !== '') {
-    $where[]       = 'p.zona = :zona';
+    $where[]       = 'COALESCE(p.zona,u.zona,"") = :zona';
     $args[':zona'] = $zona;
 }
 
+/* Precio min/max */
 if ($minPriceF !== null) {
-    $where[]           = 'p.precio_hora >= :minPrice';
+    $where[]           = 'COALESCE(p.precio_hora,0) >= :minPrice';
     $args[':minPrice'] = $minPriceF;
 }
-
 if ($maxPriceF !== null) {
-    $where[]           = 'p.precio_hora <= :maxPrice';
+    $where[]           = 'COALESCE(p.precio_hora,0) <= :maxPrice';
     $args[':maxPrice'] = $maxPriceF;
 }
 
+/* Disponible */
 if ($dispF !== null) {
-    $where[]       = 'p.disponible = :disp';
+    $where[]       = 'COALESCE(p.disponible,1) = :disp';
     $args[':disp'] = $dispF;
 }
 
-/* ✅ filtros por calificación */
+/* Rating */
 if ($minRateF !== null) {
     $where[]          = 'COALESCE(r.promedio,0) >= :minRate';
     $args[':minRate'] = $minRateF;
@@ -121,15 +216,15 @@ if ($maxRateF !== null) {
     $args[':maxRate'] = $maxRateF;
 }
 
-$whereSql = $where ? ('WHERE ' . implode(' AND ', $where)) : '';
+$whereSql = $where ? (' AND ' . implode(' AND ', $where)) : '';
 
-/* ===== ORDER BY ===== */
+/* ===== ORDER BY (compatible con LEFT JOIN) ===== */
 $orderBy = match ($sort) {
-    'precio_asc'  => 'p.precio_hora ASC',
-    'precio_desc' => 'p.precio_hora DESC',
-    'nombre'      => 'p.nombre ASC',
-    'recientes'   => 'p.created_at DESC',
-    default       => 'COALESCE(r.promedio,0) DESC, COALESCE(r.total,0) DESC, p.total_paseos DESC, p.created_at DESC'
+    'precio_asc'  => 'COALESCE(p.precio_hora,0) ASC',
+    'precio_desc' => 'COALESCE(p.precio_hora,0) DESC',
+    'nombre'      => 'u.nombre ASC',
+    'recientes'   => 'COALESCE(p.created_at, u.created_at) DESC',
+    default       => 'COALESCE(r.promedio,0) DESC, COALESCE(r.total,0) DESC, COALESCE(p.total_paseos,0) DESC, COALESCE(p.created_at, u.created_at) DESC'
 };
 
 /* ===== DB ===== */
@@ -138,8 +233,8 @@ $pdo = AppConfig::db();
 /* ===== COUNT ===== */
 $sqlCount = "
     SELECT COUNT(*)
-    FROM paseadores p
-    INNER JOIN usuarios u ON u.usu_id = p.paseador_id
+    FROM usuarios u
+    LEFT JOIN paseadores p ON p.paseador_id = u.usu_id
     LEFT JOIN (
         SELECT rated_id,
                ROUND(AVG(calificacion), 1) AS promedio,
@@ -147,10 +242,10 @@ $sqlCount = "
         FROM calificaciones
         WHERE tipo = 'paseador'
         GROUP BY rated_id
-    ) r ON r.rated_id = p.paseador_id
+    ) r ON r.rated_id = u.usu_id
+    WHERE u.rol = 'paseador' AND u.estado = 'aprobado'
     $whereSql
 ";
-
 $stc = $pdo->prepare($sqlCount);
 bindUsedParams($stc, $sqlCount, $args);
 $stc->execute();
@@ -158,18 +253,19 @@ $total      = (int)$stc->fetchColumn();
 $totalPages = max(1, (int)ceil($total / $perPage));
 
 /* ===== LISTADO ===== */
-/* ⚠️ Si tu foto está en usuarios.foto_perfil (como en tu tabla), usamos u.foto_perfil AS foto_url */
 $sql = "
-    SELECT 
-        p.paseador_id AS id,
-        p.nombre      AS nombre_paseador,
-        p.zona,
-        p.descripcion,
-        u.foto_perfil AS foto_url,
-        p.precio_hora,
-        p.total_paseos,
-        p.disponible,
-        p.created_at,
+    SELECT
+        u.usu_id AS id,
+        u.nombre AS nombre_paseador,
+
+        COALESCE(p.zona, u.zona, '') AS zona,
+        COALESCE(p.descripcion, u.descripcion, '') AS descripcion,
+
+        COALESCE(p.foto_url, u.foto_perfil, '') AS foto_url,
+
+        COALESCE(p.precio_hora, 0) AS precio_hora,
+        COALESCE(p.total_paseos, 0) AS total_paseos,
+        COALESCE(p.disponible, 1) AS disponible,
 
         u.telefono,
         u.ciudad,
@@ -178,9 +274,8 @@ $sql = "
         COALESCE(r.promedio, 0) AS calificacion,
         COALESCE(r.total, 0)    AS total_calificaciones
 
-    FROM paseadores p
-    INNER JOIN usuarios u ON u.usu_id = p.paseador_id
-
+    FROM usuarios u
+    LEFT JOIN paseadores p ON p.paseador_id = u.usu_id
     LEFT JOIN (
         SELECT rated_id,
                ROUND(AVG(calificacion), 1) AS promedio,
@@ -188,13 +283,13 @@ $sql = "
         FROM calificaciones
         WHERE tipo = 'paseador'
         GROUP BY rated_id
-    ) r ON r.rated_id = p.paseador_id
+    ) r ON r.rated_id = u.usu_id
 
+    WHERE u.rol = 'paseador' AND u.estado = 'aprobado'
     $whereSql
     ORDER BY $orderBy
     LIMIT :limit OFFSET :offset
 ";
-
 $st = $pdo->prepare($sql);
 bindUsedParams($st, $sql, $args);
 $st->bindValue(':limit', $perPage, PDO::PARAM_INT);
@@ -202,7 +297,7 @@ $st->bindValue(':offset', $offset, PDO::PARAM_INT);
 $st->execute();
 $paseadores = $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
-/* Helper para querystring */
+/* Helper querystring */
 function qs(array $overrides = []): string
 {
     $params = array_merge($_GET, $overrides);
@@ -220,7 +315,6 @@ $DEFAULT_AVATAR = BASE_URL . '/public/assets/images/user-default.png';
 ?>
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -239,32 +333,30 @@ $DEFAULT_AVATAR = BASE_URL . '/public/assets/images/user-default.png';
             min-height: 100vh;
             padding: 24px;
         }
-
         @media (max-width: 768px) {
             main.main-content { margin-left: 0; padding: 16px; }
         }
 
-        .paseador-card {
+        .paseador-card{
             border: 0;
             border-radius: 18px;
             overflow: hidden;
-            box-shadow: 0 12px 30px rgba(0, 0, 0, .06);
+            box-shadow: 0 12px 30px rgba(0,0,0,.06);
             background: #fff;
         }
 
-        .paseador-cover {
+        .paseador-cover{
             position: relative;
             width: 100%;
             height: 280px;
             background: #eef2f5;
             overflow: hidden;
         }
-
         @media (min-width: 992px) {
             .paseador-cover { height: 320px; }
         }
 
-        .paseador-cover img {
+        .paseador-cover img{
             width: 100%;
             height: 100%;
             object-fit: cover;
@@ -272,7 +364,7 @@ $DEFAULT_AVATAR = BASE_URL . '/public/assets/images/user-default.png';
             display: block;
         }
 
-        .paseador-cover .badge-disponible {
+        .paseador-cover .badge-disponible{
             position: absolute;
             top: 12px;
             right: 12px;
@@ -281,74 +373,58 @@ $DEFAULT_AVATAR = BASE_URL . '/public/assets/images/user-default.png';
             font-size: .80rem;
         }
 
-        .paseador-title {
-            display: flex;
-            justify-content: space-between;
-            gap: 10px;
-            align-items: start;
+        .paseador-title{
+            display:flex;
+            justify-content:space-between;
+            gap:10px;
+            align-items:start;
+        }
+        .paseador-title h5{ margin:0; font-weight:900; }
+
+        .paseador-sub{
+            color:#6c757d;
+            font-size:.90rem;
+            display:grid;
+            gap:4px;
         }
 
-        .paseador-title h5 { margin: 0; font-weight: 900; }
-
-        .paseador-sub {
-            color: #6c757d;
-            font-size: .90rem;
-            display: grid;
-            gap: 4px;
+        .paseador-badges{
+            display:flex;
+            flex-wrap:wrap;
+            gap:8px;
+            margin-top:10px;
+            margin-bottom:10px;
         }
 
-        .paseador-badges {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-top: 10px;
-            margin-bottom: 10px;
+        .paseador-actions{
+            display:flex;
+            gap:10px;
+            margin-top:auto;
         }
+        .paseador-actions .btn{ flex:1; }
 
-        .paseador-actions {
-            display: flex;
-            gap: 10px;
-            margin-top: auto;
+        /* ✅ botón ver perfil con avatar real */
+        .btn-avatar{
+            display:inline-flex;
+            align-items:center;
+            gap:10px;
+            padding:6px 12px 6px 6px;
+            border-radius:999px;
+            font-weight:600;
         }
-
-        .paseador-actions .btn { flex: 1; }
-
-        /* ✅ Botón ver perfil con avatar */
-        .btn-avatar {
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            padding: 6px 12px 6px 6px;
-            border-radius: 999px;
-            font-weight: 600;
+        .btn-avatar .avatar{
+            width:34px;
+            height:34px;
+            border-radius:50%;
+            overflow:hidden;
+            flex-shrink:0;
+            border:2px solid #3c6255;
+            background:#fff;
         }
-
-        .btn-avatar .avatar {
-            width: 34px;
-            height: 34px;
-            border-radius: 50%;
-            overflow: hidden;
-            flex-shrink: 0;
-            border: 2px solid #3c6255;
-            background: #fff;
-        }
-
-        .btn-avatar .avatar img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .mp-foto {
-            width: 200px;
-            height: 200px;
-            object-fit: cover;
-            object-position: center;
-            background: #f4f6f9;
-        }
-
-        @media (max-width: 576px) {
-            .mp-foto { width: 100%; height: 220px; }
+        .btn-avatar .avatar img{
+            width:100%;
+            height:100%;
+            object-fit:cover;
         }
     </style>
 </head>
@@ -459,40 +535,40 @@ $DEFAULT_AVATAR = BASE_URL . '/public/assets/images/user-default.png';
 
             <div class="d-flex justify-content-between align-items-center mb-2">
                 <span class="text-muted small">
-                    Mostrando <?= count($paseadores) ?> de <?= $total ?> resultados
+                    Mostrando <?= count($paseadores) ?> de <?= (int)$total ?> resultados
                 </span>
             </div>
 
             <div class="row g-4">
                 <?php foreach ($paseadores as $p): ?>
                     <?php
-                    $id        = (int)($p['id'] ?? 0);
-                    $nombre    = (string)($p['nombre_paseador'] ?? 'Paseador');
-                    $zonaTxt   = trim((string)($p['zona'] ?? ''));
-                    $ciuTxt    = trim((string)($p['ciudad'] ?? ''));
-                    $barTxt    = trim((string)($p['barrio'] ?? ''));
-                    $ubiTxt    = trim($ciuTxt . ' ' . $barTxt);
+                    $id         = (int)($p['id'] ?? 0);
+                    $nombre     = (string)($p['nombre_paseador'] ?? 'Paseador');
+                    $zonaTxt    = trim((string)($p['zona'] ?? ''));
+                    $ciuTxt     = trim((string)($p['ciudad'] ?? ''));
+                    $barTxt     = trim((string)($p['barrio'] ?? ''));
+                    $ubiTxt     = trim($ciuTxt . ' ' . $barTxt);
 
-                    $telefono  = trim((string)($p['telefono'] ?? ''));
-                    $precio    = (float)($p['precio_hora'] ?? 0);
-                    $rate      = (float)($p['calificacion'] ?? 0);
-                    $rateCnt   = (int)($p['total_calificaciones'] ?? 0);
-                    $paseos    = (int)($p['total_paseos'] ?? 0);
+                    $telefono   = trim((string)($p['telefono'] ?? ''));
+                    $precio     = (float)($p['precio_hora'] ?? 0);
+                    $rate       = (float)($p['calificacion'] ?? 0);
+                    $rateCnt    = (int)($p['total_calificaciones'] ?? 0);
+                    $paseos     = (int)($p['total_paseos'] ?? 0);
                     $disponible = (int)($p['disponible'] ?? 0) === 1;
 
-                    $fotoReal = resolveFotoUrl((string)($p['foto_url'] ?? ''));
-                    $fotoMostrar = $fotoReal !== '' ? $fotoReal : $DEFAULT_AVATAR;
+                    $fotoReal    = resolveFotoUrl((string)($p['foto_url'] ?? ''));
+                    $fotoMostrar = ($fotoReal !== '') ? $fotoReal : $DEFAULT_AVATAR;
                     ?>
+
                     <div class="col-sm-6 col-lg-4">
                         <div class="card paseador-card h-100">
 
-                            <!-- ✅ COVER SIEMPRE CON FOTO (REAL O DEFAULT) -->
                             <div class="paseador-cover">
                                 <img
                                     src="<?= h($fotoMostrar) ?>"
                                     alt="Foto de <?= h($nombre) ?>"
                                     loading="lazy"
-                                    onerror="this.onerror=null; this.src='<?= $DEFAULT_AVATAR ?>';">
+                                    onerror="this.onerror=null; this.src='<?= h($DEFAULT_AVATAR) ?>';">
 
                                 <span class="badge badge-disponible <?= $disponible ? 'bg-success' : 'bg-dark' ?>">
                                     <?= $disponible ? 'Disponible' : 'No disponible' ?>
@@ -511,9 +587,63 @@ $DEFAULT_AVATAR = BASE_URL . '/public/assets/images/user-default.png';
                                         <?= h($ubiTxt !== '' ? $ubiTxt : 'Sin ubicación') ?>
                                     </div>
                                     <div>
-                                        <i class="fas fa-location-dot me-1"></i>
-                                        Zona: <?= h($zonaTxt !== '' ? $zonaTxt : 'Sin zona') ?>
-                                    </div>
+  <i class="fas fa-location-dot me-1"></i>
+  
+  <?php
+    $zRaw = trim((string)$zonaTxt);
+
+    $zonaOut = 'Sin zona';
+
+    if ($zRaw !== '') {
+        // 1) Intento: JSON (aunque venga escapado mil veces)
+        $try = $zRaw;
+        for ($i = 0; $i < 4; $i++) {
+            $decoded = json_decode($try, true);
+            if (json_last_error() === JSON_ERROR_NONE) {
+                // si quedó como string otra vez (doble encode), seguimos
+                if (is_string($decoded)) {
+                    $try = $decoded;
+                    continue;
+                }
+                // si quedó array, lo formateamos
+                if (is_array($decoded)) {
+                    $flat = [];
+                    $it = new RecursiveIteratorIterator(new RecursiveArrayIterator($decoded));
+                    foreach ($it as $v) {
+                        $v = trim((string)$v);
+                        $v = trim($v, "\"' \t\n\r\0\x0B");
+                        if ($v !== '') $flat[] = $v;
+                    }
+                    $flat = array_values(array_unique($flat));
+                    if (!empty($flat)) {
+                        $zonaOut = implode(', ', $flat);
+                    }
+                }
+                break;
+            }
+            // si no es JSON, probamos quitando slashes y comillas raras
+            $try = stripslashes($try);
+            $try = trim($try, "\"'");
+        }
+
+        // 2) Si no era JSON (o quedó vacío), mostramos el texto tal cual (limpiando basura)
+        if ($zonaOut === 'Sin zona') {
+            $clean = stripslashes($zRaw);
+            $clean = trim($clean);
+            $clean = preg_replace('/\s+/', ' ', $clean);
+
+            // si parece algo tipo ["..."] pero roto, le sacamos corchetes y comillas
+            $clean = str_replace(['[',']','\\"','"'], ['', '', '', ''], $clean);
+            $clean = trim($clean, " ,");
+
+            if ($clean !== '') $zonaOut = $clean;
+        }
+    }
+
+    echo h($zonaOut);
+  ?>
+</div>
+
                                     <div>
                                         <i class="fas fa-phone me-1"></i>
                                         <?= h($telefono !== '' ? $telefono : 'Sin teléfono') ?>
@@ -521,9 +651,9 @@ $DEFAULT_AVATAR = BASE_URL . '/public/assets/images/user-default.png';
                                 </div>
 
                                 <div class="paseador-badges">
-                                    <span class="badge bg-light text-dark">Opiniones: <?= $rateCnt ?></span>
+                                    <span class="badge bg-light text-dark">Opiniones: <?= (int)$rateCnt ?></span>
                                     <span class="badge bg-secondary">₲<?= number_format($precio, 0, ',', '.') ?>/h</span>
-                                    <span class="badge bg-light text-dark">Paseos: <?= $paseos ?></span>
+                                    <span class="badge bg-light text-dark">Paseos: <?= (int)$paseos ?></span>
                                 </div>
 
                                 <p class="text-muted small mb-0">
@@ -531,15 +661,13 @@ $DEFAULT_AVATAR = BASE_URL . '/public/assets/images/user-default.png';
                                 </p>
 
                                 <div class="paseador-actions mt-3">
-
-                                    <!-- ✅ BOTÓN VER PERFIL CON AVATAR REAL -->
                                     <a class="btn btn-outline-success btn-avatar"
                                        href="<?= $baseFeatures; ?>/VerPaseador.php?id=<?= (int)$id ?>">
                                         <span class="avatar">
                                             <img
                                                 src="<?= h($fotoMostrar) ?>"
                                                 alt="Avatar"
-                                                onerror="this.onerror=null; this.src='<?= $DEFAULT_AVATAR ?>';">
+                                                onerror="this.onerror=null; this.src='<?= h($DEFAULT_AVATAR) ?>';">
                                         </span>
                                         Ver perfil
                                     </a>
@@ -550,8 +678,10 @@ $DEFAULT_AVATAR = BASE_URL . '/public/assets/images/user-default.png';
                                     </a>
                                 </div>
                             </div>
+
                         </div>
                     </div>
+
                 <?php endforeach; ?>
             </div>
 
@@ -565,7 +695,7 @@ $DEFAULT_AVATAR = BASE_URL . '/public/assets/images/user-default.png';
                             <a class="page-link" href="?<?= qs(['page' => $page - 1]) ?>">‹</a>
                         </li>
                         <li class="page-item disabled">
-                            <span class="page-link">Página <?= $page ?>/<?= $totalPages ?></span>
+                            <span class="page-link">Página <?= (int)$page ?>/<?= (int)$totalPages ?></span>
                         </li>
                         <li class="page-item <?= $page >= $totalPages ? 'disabled' : '' ?>">
                             <a class="page-link" href="?<?= qs(['page' => $page + 1]) ?>">›</a>
@@ -579,124 +709,13 @@ $DEFAULT_AVATAR = BASE_URL . '/public/assets/images/user-default.png';
 
         <?php endif; ?>
 
-        <!-- ✅ MODAL PERFIL (sin ícono, con default) -->
-        <div class="modal fade" id="modalPerfilPaseador" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-lg modal-dialog-centered">
-                <div class="modal-content modal-jaguata">
-                    <div class="modal-header">
-                        <h5 class="modal-title">
-                            <i class="fas fa-user me-2"></i> Perfil del Paseador
-                        </h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-                    </div>
-
-                    <div class="modal-body">
-                        <div class="d-flex gap-3 align-items-start flex-wrap">
-                            <div style="min-width:200px;">
-                                <img id="mp-foto" alt="Foto" class="rounded-4 border mp-foto"
-                                     src="<?= $DEFAULT_AVATAR ?>"
-                                     onerror="this.onerror=null; this.src='<?= $DEFAULT_AVATAR ?>';">
-                            </div>
-
-                            <div class="flex-grow-1">
-                                <h4 id="mp-nombre" class="mb-1"></h4>
-
-                                <div class="text-muted small mb-2">
-                                    <i class="fas fa-location-dot me-1"></i>
-                                    <span id="mp-ubicacion"></span>
-                                    <span class="mx-2">•</span>
-                                    <i class="fas fa-map-marker-alt me-1"></i>
-                                    Zona: <span id="mp-zona"></span>
-                                </div>
-
-                                <div class="d-flex flex-wrap gap-2 mb-3">
-                                    <span class="badge bg-success">⭐ <span id="mp-rate"></span></span>
-                                    <span class="badge bg-light text-dark">Opiniones: <span id="mp-ratecount"></span></span>
-                                    <span class="badge bg-secondary">₲<span id="mp-precio"></span>/h</span>
-                                    <span class="badge bg-light text-dark">Paseos: <span id="mp-paseos"></span></span>
-                                </div>
-
-                                <div class="text-muted small">
-                                    <i class="fas fa-phone me-1"></i> <span id="mp-telefono"></span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <hr>
-
-                        <h6 class="fw-semibold mb-2"><i class="fas fa-circle-info me-2"></i>Descripción</h6>
-                        <div class="mensaje-box" id="mp-desc"></div>
-                    </div>
-
-                    <div class="modal-footer">
-                        <a id="mp-solicitar" href="#" class="btn btn-gradient">
-                            <i class="fas fa-paw me-1"></i> Solicitar paseo
-                        </a>
-                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
-                            Cerrar
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <footer class="mt-4 text-center text-muted small">
             © <?= date('Y') ?> Jaguata — Panel del Dueño
         </footer>
+
     </div>
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
-<!-- ✅ JS modal perfil -->
-<script>
-(function() {
-    const modal = document.getElementById('modalPerfilPaseador');
-    if (!modal) return;
-
-    const DEFAULT_AVATAR = "<?= $DEFAULT_AVATAR ?>";
-
-    modal.addEventListener('show.bs.modal', function(event) {
-        const btn = event.relatedTarget;
-        if (!btn) return;
-
-        const id   = btn.getAttribute('data-id') || '';
-        const nom  = btn.getAttribute('data-nombre') || '';
-        const zona = btn.getAttribute('data-zona') || '';
-        const ciu  = btn.getAttribute('data-ciudad') || '';
-        const bar  = btn.getAttribute('data-barrio') || '';
-        const tel  = btn.getAttribute('data-telefono') || 'Sin teléfono';
-        const des  = btn.getAttribute('data-desc') || 'Sin descripción.';
-        const pre  = btn.getAttribute('data-precio') || '0';
-        const rat  = btn.getAttribute('data-rate') || '0.0';
-        const rc   = btn.getAttribute('data-ratecount') || '0';
-        const pas  = btn.getAttribute('data-paseos') || '0';
-        const foto = btn.getAttribute('data-foto') || '';
-
-        document.getElementById('mp-nombre').textContent = nom;
-        document.getElementById('mp-zona').textContent = zona || 'Sin zona';
-        document.getElementById('mp-ubicacion').textContent = (ciu + ' ' + bar).trim() || 'Sin ubicación';
-        document.getElementById('mp-telefono').textContent = tel;
-        document.getElementById('mp-desc').textContent = des;
-        document.getElementById('mp-precio').textContent = pre;
-        document.getElementById('mp-rate').textContent = rat;
-        document.getElementById('mp-ratecount').textContent = rc;
-        document.getElementById('mp-paseos').textContent = pas;
-
-        const img = document.getElementById('mp-foto');
-        const ok = foto && foto.trim() !== '' && foto !== '0';
-
-        img.src = ok ? foto : DEFAULT_AVATAR;
-        img.onerror = () => {
-            img.onerror = null;
-            img.src = DEFAULT_AVATAR;
-        };
-
-        document.getElementById('mp-solicitar').href =
-            "<?= $baseFeatures; ?>/SolicitarPaseo.php?paseador_id=" + encodeURIComponent(id);
-    });
-})();
-</script>
-
 </body>
 </html>

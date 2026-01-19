@@ -611,76 +611,7 @@ $urlContacto    = BASE_URL . '/contacto.php';
                 </div>
             </div>
 <div class="home-narrow">
-            <!-- Cómo funciona -->
-            <div class="section-card mt-3">
-                <div class="section-header">
-                    <i class="fas fa-list-check me-2"></i>¿Cómo funciona Jaguata?
-                </div>
-                <div class="section-body">
-                    <div class="row g-3">
-                        <div class="col-md-3">
-                            <div class="dash-card">
-                                <i class="fa-solid fa-user-plus dash-card-icon icon-blue"></i>
-                                <div class="dash-card-value">1) Registro</div>
-                                <div class="dash-card-label">Creás tu cuenta</div>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="dash-card">
-                                <i class="fa-solid fa-magnifying-glass dash-card-icon icon-green"></i>
-                                <div class="dash-card-value">2) Elegí</div>
-                                <div class="dash-card-label">Paseador y horario</div>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="dash-card">
-                                <i class="fa-solid fa-calendar-check dash-card-icon icon-yellow"></i>
-                                <div class="dash-card-value">3) Confirmá</div>
-                                <div class="dash-card-label">Se agenda el paseo</div>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="dash-card">
-                                <i class="fa-solid fa-star dash-card-icon icon-red"></i>
-                                <div class="dash-card-value">4) Calificá</div>
-                                <div class="dash-card-label">Dejá tu reseña</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- CTA final -->
-            <div class="section-card mt-3">
-                <div class="section-header">
-                    <i class="fa-solid fa-paw me-2"></i>¿Listo para empezar?
-                </div>
-                <div class="section-body d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between gap-3">
-                    <div>
-                        <h5 class="mb-1 fw-bold text-success">Unite a la comunidad Jaguata</h5>
-                        <p class="mb-0 text-muted">Creá tu cuenta y empezá a disfrutar paseos más simples y seguros.</p>
-                    </div>
-                    <div class="d-flex flex-wrap gap-2">
-                        <?php if (!$logueado): ?>
-                            <a href="<?= h($urlRegistro) ?>" class="btn btn-success">
-                                <i class="fa-solid fa-user-plus me-2"></i>Crear cuenta
-                            </a>
-                            <a href="<?= h($urlLogin) ?>" class="btn btn-outline-secondary">
-                                <i class="fa-solid fa-right-to-bracket me-2"></i>Ingresar
-                            </a>
-                        <?php else: ?>
-                            <?php if ($panelUrl): ?>
-                                <a href="<?= h($panelUrl) ?>" class="btn btn-success">
-                                    <i class="fa-solid fa-gauge-high me-2"></i>Ir a mi panel
-                                </a>
-                            <?php endif; ?>
-                            <a href="<?= h($urlContacto) ?>" class="btn btn-outline-secondary">
-                                <i class="fa-regular fa-message me-2"></i>Hablar ahora
-                            </a>
-                        <?php endif; ?>
-                    </div>
-                </div>
-            </div>
+            
 </div>
             <footer class="mt-4 text-center text-muted small">
                 © <?= date('Y'); ?> Jaguata — Home

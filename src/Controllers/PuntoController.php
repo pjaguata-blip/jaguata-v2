@@ -2,6 +2,8 @@
 declare(strict_types=1);
 
 namespace Jaguata\Controllers;
+require_once __DIR__ . '/../Models/Punto.php';
+require_once __DIR__ . '/../Services/DatabaseService.php';
 
 use Jaguata\Models\Punto;
 

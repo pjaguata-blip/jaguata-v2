@@ -22,18 +22,18 @@ class Recompensa
      */
     public function getActivas(): array
     {
-        // Preferimos 'activo'
         try {
             return $this->db->fetchAll("
-                SELECT recompensa_id, titulo, descripcion, costo_puntos, activo, created_at
+                SELECT recompensa_id, titulo, descripcion, costo_puntos, activo, created_at,
+                       tipo_descuento, valor_descuento
                 FROM recompensas
                 WHERE activo = 1
                 ORDER BY costo_puntos ASC
             ");
         } catch (\Throwable $e) {
-            // Fallback: si el entorno usa 'activa'
             return $this->db->fetchAll("
-                SELECT recompensa_id, titulo, descripcion, costo_puntos, activa, created_at
+                SELECT recompensa_id, titulo, descripcion, costo_puntos, activa, created_at,
+                       tipo_descuento, valor_descuento
                 FROM recompensas
                 WHERE activa = 1
                 ORDER BY costo_puntos ASC
@@ -43,17 +43,18 @@ class Recompensa
 
     public function getById(int $id): ?array
     {
-        // Preferimos 'activo'
         try {
             return $this->db->fetchOne("
-                SELECT recompensa_id, titulo, descripcion, costo_puntos, activo, created_at
+                SELECT recompensa_id, titulo, descripcion, costo_puntos, activo, created_at,
+                       tipo_descuento, valor_descuento
                 FROM recompensas
                 WHERE recompensa_id = :id
                 LIMIT 1
             ", [':id' => $id]);
         } catch (\Throwable $e) {
             return $this->db->fetchOne("
-                SELECT recompensa_id, titulo, descripcion, costo_puntos, activa, created_at
+                SELECT recompensa_id, titulo, descripcion, costo_puntos, activa, created_at,
+                       tipo_descuento, valor_descuento
                 FROM recompensas
                 WHERE recompensa_id = :id
                 LIMIT 1

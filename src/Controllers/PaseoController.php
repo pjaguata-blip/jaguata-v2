@@ -611,88 +611,146 @@ class PaseoController
      * 🔹 Guardar nueva solicitud de paseo (dueño)
      * 2 mascotas máx + descuento 30% si son 2
      */
-    public function store(): void
-    {
-        $duenoId = (int)(Session::getUsuarioId() ?? 0);
+   public function store(): void
+{
+    $duenoId = (int)(Session::getUsuarioId() ?? 0);
 
-        $mascota1 = (int)($_POST['mascota_id_1'] ?? 0);
-        $mascota2 = (int)($_POST['mascota_id_2'] ?? 0);
+    $mascota1 = (int)($_POST['mascota_id_1'] ?? 0);
+    $mascota2 = (int)($_POST['mascota_id_2'] ?? 0);
 
-        $paseadorId = (int)($_POST['paseador_id'] ?? 0);
-        $inicio     = trim((string)($_POST['inicio'] ?? ''));
-        $duracion   = (int)($_POST['duracion'] ?? 0);
-        $ubicacion  = trim((string)($_POST['ubicacion'] ?? ''));
+    $paseadorId = (int)($_POST['paseador_id'] ?? 0);
+    $inicio     = trim((string)($_POST['inicio'] ?? ''));
+    $duracion   = (int)($_POST['duracion'] ?? 0);
+    $ubicacion  = trim((string)($_POST['ubicacion'] ?? ''));
 
-        $pickupLat = (isset($_POST['pickup_lat']) && $_POST['pickup_lat'] !== '') ? (float)$_POST['pickup_lat'] : null;
-        $pickupLng = (isset($_POST['pickup_lng']) && $_POST['pickup_lng'] !== '') ? (float)$_POST['pickup_lng'] : null;
+    $pickupLat = (isset($_POST['pickup_lat']) && $_POST['pickup_lat'] !== '') ? (float)$_POST['pickup_lat'] : null;
+    $pickupLng = (isset($_POST['pickup_lng']) && $_POST['pickup_lng'] !== '') ? (float)$_POST['pickup_lng'] : null;
 
-        if ($duenoId <= 0 || $mascota1 <= 0 || $paseadorId <= 0 || $inicio === '' || $duracion <= 0 || $ubicacion === '') {
-            $_SESSION['error'] = 'Datos incompletos para crear el paseo.';
-            return;
-        }
+    // ✅ Canje opcional
+    $canjeId = (int)($_POST['canje_id'] ?? 0);
 
-        if ($mascota2 > 0 && $mascota2 === $mascota1) {
-            $_SESSION['error'] = 'Las mascotas seleccionadas no pueden ser las mismas.';
-            return;
-        }
+    if ($duenoId <= 0 || $mascota1 <= 0 || $paseadorId <= 0 || $inicio === '' || $duracion <= 0 || $ubicacion === '') {
+        $_SESSION['error'] = 'Datos incompletos para crear el paseo.';
+        return;
+    }
 
-        $cantidadMascotas = 1 + ($mascota2 > 0 ? 1 : 0);
+    if ($mascota2 > 0 && $mascota2 === $mascota1) {
+        $_SESSION['error'] = 'Las mascotas seleccionadas no pueden ser las mismas.';
+        return;
+    }
 
-        try {
-            // ✅ Validar que mascota 1 pertenezca al dueño
-            $chk1 = $this->db->prepare("
+    $cantidadMascotas = 1 + ($mascota2 > 0 ? 1 : 0);
+
+    try {
+        $this->db->beginTransaction();
+
+        // ✅ Validar mascota 1 pertenezca al dueño
+        $chk1 = $this->db->prepare("
             SELECT COUNT(*)
             FROM mascotas
             WHERE mascota_id = :mascota_id
               AND dueno_id   = :dueno_id
         ");
-            $chk1->execute([':mascota_id' => $mascota1, ':dueno_id' => $duenoId]);
-            if ((int)$chk1->fetchColumn() === 0) {
-                $_SESSION['error'] = 'La Mascota 1 seleccionada no te pertenece.';
-                return;
-            }
+        $chk1->execute([':mascota_id' => $mascota1, ':dueno_id' => $duenoId]);
+        if ((int)$chk1->fetchColumn() === 0) {
+            $this->db->rollBack();
+            $_SESSION['error'] = 'La Mascota 1 seleccionada no te pertenece.';
+            return;
+        }
 
-            // ✅ Validar mascota 2 (si existe)
-            if ($mascota2 > 0) {
-                $chk2 = $this->db->prepare("
+        // ✅ Validar mascota 2 (si existe)
+        if ($mascota2 > 0) {
+            $chk2 = $this->db->prepare("
                 SELECT COUNT(*)
                 FROM mascotas
                 WHERE mascota_id = :mascota_id
                   AND dueno_id   = :dueno_id
             ");
-                $chk2->execute([':mascota_id' => $mascota2, ':dueno_id' => $duenoId]);
-                if ((int)$chk2->fetchColumn() === 0) {
-                    $_SESSION['error'] = 'La Mascota 2 seleccionada no te pertenece.';
-                    return;
-                }
+            $chk2->execute([':mascota_id' => $mascota2, ':dueno_id' => $duenoId]);
+            if ((int)$chk2->fetchColumn() === 0) {
+                $this->db->rollBack();
+                $_SESSION['error'] = 'La Mascota 2 seleccionada no te pertenece.';
+                return;
             }
+        }
 
-            // ✅ Precio por hora del paseador
-            $stmtPrecio = $this->db->prepare("
+        // ✅ Precio por hora del paseador
+        $stmtPrecio = $this->db->prepare("
             SELECT precio_hora
             FROM paseadores
             WHERE paseador_id = :paseador_id
             LIMIT 1
         ");
-            $stmtPrecio->execute([':paseador_id' => $paseadorId]);
-            $precioHora = (float)($stmtPrecio->fetchColumn() ?: 0);
+        $stmtPrecio->execute([':paseador_id' => $paseadorId]);
+        $precioHora = (float)($stmtPrecio->fetchColumn() ?: 0);
 
-            $horas = $duracion / 60;
-            if ($precioHora <= 0) {
-                $precioTotal = 0;
-            } else {
-                $precioTotal = ($cantidadMascotas === 2)
-                    ? round(($precioHora * 2) * $horas * 0.70, 0) // -30%
-                    : round($precioHora * $horas, 0);
+        $horas = $duracion / 60;
+        $subtotal = 0.0;
+
+        if ($precioHora > 0) {
+            $subtotal = ($cantidadMascotas === 2)
+                ? round(($precioHora * 2) * $horas * 0.70, 0) // -30% 2 mascotas
+                : round($precioHora * $horas, 0);
+        }
+
+        // ==========================================================
+        // ✅ Aplicar canje (si hay) — VALIDADO EN BACKEND
+        // ==========================================================
+        $descuento = 0.0;
+        $tipoCanje = null;
+        $valorCanje = 0;
+
+        if ($canjeId > 0) {
+            // ✅ ACA ESTABA TU ERROR:
+            // NO se hace prepare(sql, params). Se hace prepare() y luego execute() y fetch()
+            $stmtCanje = $this->db->prepare("
+                SELECT canje_id, usuario_id, COALESCE(estado,'') AS estado,
+                       tipo_descuento, valor_descuento
+                FROM canjes
+                WHERE canje_id = :c
+                  AND usuario_id = :u
+                LIMIT 1
+            ");
+            $stmtCanje->execute([':c' => $canjeId, ':u' => $duenoId]);
+            $rowCanje = $stmtCanje->fetch(PDO::FETCH_ASSOC);
+
+            if (!$rowCanje) {
+                $this->db->rollBack();
+                $_SESSION['error'] = 'El canje seleccionado no existe o no te pertenece.';
+                return;
             }
 
-            // ✅ Estados iniciales
-            $estadoInicial     = 'solicitado';
-            $estadoPagoInicial = 'pendiente';
-            $puntosInicial     = 0;
+            $estadoCanje = (string)($rowCanje['estado'] ?? '');
+            if ($estadoCanje !== 'pendiente') {
+                $this->db->rollBack();
+                $_SESSION['error'] = 'Ese canje ya fue usado o no está disponible.';
+                return;
+            }
 
-            // ✅ INSERT incluyendo estado para que NO quede NULL
-            $sql = "
+            $tipoCanje  = strtoupper(trim((string)($rowCanje['tipo_descuento'] ?? '')));
+            $valorCanje = (int)($rowCanje['valor_descuento'] ?? 0);
+
+            if ($subtotal > 0) {
+                if ($tipoCanje === 'PORCENTAJE') {
+                    $pct = max(0, min(100, $valorCanje));
+                    $descuento = round($subtotal * ($pct / 100), 0);
+                } elseif ($tipoCanje === 'FIJO') {
+                    $descuento = max(0, (float)$valorCanje);
+                } elseif ($tipoCanje === 'GRATIS') {
+                    $descuento = $subtotal;
+                }
+            }
+        }
+
+        $precioTotal = (float)max(0, round($subtotal - $descuento, 0));
+
+        // ✅ Estados iniciales
+        $estadoInicial     = 'solicitado';
+        $estadoPagoInicial = 'pendiente';
+        $puntosInicial     = 0;
+
+        // ✅ INSERT paseo
+        $sql = "
             INSERT INTO paseos (
                 mascota_id,
                 mascota_id_2,
@@ -726,36 +784,75 @@ class PaseoController
             )
         ";
 
-            $st = $this->db->prepare($sql);
-            $ok = $st->execute([
-                ':mascota_id'        => $mascota1,
-                ':mascota_id_2'      => ($mascota2 > 0 ? $mascota2 : null),
-                ':cantidad_mascotas' => $cantidadMascotas,
-                ':paseador_id'       => $paseadorId,
-                ':inicio'            => $inicio,
-                ':duracion'          => $duracion,
-                ':ubicacion'         => $ubicacion,
-                ':precio_total'      => $precioTotal,
-                ':pickup_lat'        => $pickupLat,
-                ':pickup_lng'        => $pickupLng,
-                ':pickup_direccion'  => $ubicacion,
-                ':estado'            => $estadoInicial,
-                ':estado_pago'       => $estadoPagoInicial,
-                ':puntos_ganados'    => $puntosInicial,
+        $st = $this->db->prepare($sql);
+        $ok = $st->execute([
+            ':mascota_id'        => $mascota1,
+            ':mascota_id_2'      => ($mascota2 > 0 ? $mascota2 : null),
+            ':cantidad_mascotas' => $cantidadMascotas,
+            ':paseador_id'       => $paseadorId,
+            ':inicio'            => $inicio,
+            ':duracion'          => $duracion,
+            ':ubicacion'         => $ubicacion,
+            ':precio_total'      => $precioTotal,
+            ':pickup_lat'        => $pickupLat,
+            ':pickup_lng'        => $pickupLng,
+            ':pickup_direccion'  => $ubicacion,
+            ':estado'            => $estadoInicial,
+            ':estado_pago'       => $estadoPagoInicial,
+            ':puntos_ganados'    => $puntosInicial,
+        ]);
+
+        if (!$ok) {
+            $this->db->rollBack();
+            $_SESSION['error'] = 'Ocurrió un error al solicitar el paseo.';
+            return;
+        }
+
+        $paseoId = (int)$this->db->lastInsertId();
+
+        // ✅ Si se usó canje -> marcar como usado (para que NO vuelva a aparecer)
+        if ($canjeId > 0) {
+            $upd = $this->db->prepare("
+                UPDATE canjes
+                SET estado = 'usado',
+                    paseo_id = :p,
+                    used_at = NOW()
+                WHERE canje_id = :c
+                  AND usuario_id = :u
+                  AND COALESCE(estado,'') = 'pendiente'
+            ");
+            $upd->execute([
+                ':p' => $paseoId,
+                ':c' => $canjeId,
+                ':u' => $duenoId
             ]);
 
-            if ($ok) {
-                $_SESSION['success'] = ($cantidadMascotas === 2)
-                    ? 'Paseo solicitado correctamente (2 mascotas con 30% de descuento).'
-                    : 'Paseo solicitado correctamente.';
-            } else {
-                $_SESSION['error'] = 'Ocurrió un error al solicitar el paseo.';
+            if ($upd->rowCount() === 0) {
+                $this->db->rollBack();
+                $_SESSION['error'] = 'No se pudo aplicar la recompensa. Intentá nuevamente.';
+                return;
             }
-        } catch (PDOException $e) {
-            error_log('PaseoController::store error: ' . $e->getMessage());
-            $_SESSION['error'] = 'Ocurrió un error al solicitar el paseo.';
         }
+
+        $this->db->commit();
+
+        if ($canjeId > 0 && $subtotal > 0) {
+            $_SESSION['success'] = 'Paseo solicitado correctamente. Recompensa aplicada ✅';
+        } else {
+            $_SESSION['success'] = ($cantidadMascotas === 2)
+                ? 'Paseo solicitado correctamente (2 mascotas con 30% de descuento).'
+                : 'Paseo solicitado correctamente.';
+        }
+    } catch (\PDOException $e) {
+        if ($this->db->inTransaction()) $this->db->rollBack();
+        error_log('PaseoController::store PDO error: ' . $e->getMessage());
+        $_SESSION['error'] = 'Ocurrió un error al solicitar el paseo.';
+    } catch (\Throwable $e) {
+        if ($this->db->inTransaction()) $this->db->rollBack();
+        error_log('PaseoController::store error: ' . $e->getMessage());
+        $_SESSION['error'] = 'Ocurrió un error al solicitar el paseo.';
     }
+}
 
 
     /** 🔹 Obtener ruta del paseo */

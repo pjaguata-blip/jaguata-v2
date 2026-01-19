@@ -46,6 +46,10 @@ if ((int)($paseo['paseador_id'] ?? 0) !== $paseadorIdSesion) {
     die('<h3 style="color:red;text-align:center;">No tenés permiso para ver este paseo.</h3>');
 }
 
+/* ✅ IDs de mascotas (CLAVE para calificar) */
+$mascota1Id = (int)($paseo['mascota_id'] ?? 0);
+$mascota2Id = (int)($paseo['mascota_id_2'] ?? 0);
+
 /* Mascotas */
 $cantidadMascotas = (int)($paseo['cantidad_mascotas'] ?? 1);
 
@@ -55,7 +59,7 @@ $mascota1Foto   = $paseo['mascota_foto'] ?? null;
 $mascota2Nombre = $paseo['mascota2_nombre'] ?? $paseo['nombre_mascota_2'] ?? null;
 $mascota2Foto   = $paseo['mascota2_foto'] ?? $paseo['mascota_foto_2'] ?? null;
 
-$hayMascota2 = ($cantidadMascotas === 2) || (!empty($paseo['mascota_id_2'])) || (!empty($mascota2Nombre));
+$hayMascota2 = ($cantidadMascotas === 2) || ($mascota2Id > 0) || (!empty($mascota2Nombre));
 
 /* Datos base */
 $paseadorNombre = $paseo['paseador_nombre'] ?? $paseo['nombre_paseador'] ?? '-';
@@ -93,30 +97,13 @@ foreach ($rutaPuntos as $punto) {
 
 $paseoId = (int)($paseo['paseo_id'] ?? $id);
 
-/* ✅ Dueno ID (si no vino en show, lo buscamos con AppConfig::db()) */
-$duenoId = (int)($paseo['dueno_id'] ?? 0);
-if ($duenoId <= 0) {
-    try {
-        $pdo = AppConfig::db();
-        $st = $pdo->prepare("
-            SELECT m.dueno_id
-            FROM paseos p
-            INNER JOIN mascotas m ON m.mascota_id = p.mascota_id
-            WHERE p.paseo_id = :paseo_id
-            LIMIT 1
-        ");
-        $st->execute(['paseo_id' => $paseoId]);
-        $duenoId = (int)(($st->fetch(PDO::FETCH_ASSOC)['dueno_id'] ?? 0));
-    } catch (Throwable) {
-        $duenoId = 0;
-    }
-}
-
-/* Calificación */
+/* Calificación (solo 1 por paseo para el paseador) */
 $califModel = new Calificacion();
 $yaCalifico = $califModel->existeParaPaseo($paseoId, 'mascota', $paseadorIdSesion);
 
-$puedeCalificar = $duenoId > 0 && in_array($estado, ['completo', 'finalizado'], true) && !$yaCalifico;
+$puedeCalificar = in_array($estado, ['completo', 'finalizado'], true)
+    && !$yaCalifico
+    && $mascota1Id > 0;
 
 /* Rutas UI */
 $baseUrl = AppConfig::getBaseUrl();
@@ -129,20 +116,13 @@ function fotoUrl(?string $raw, string $baseUrl, string $placeholder): string
 {
     $raw = trim((string)$raw);
     if ($raw === '') return $placeholder;
-
     if (preg_match('~^https?://~i', $raw)) return $raw;
-
     if (preg_match('~^localhost/~i', $raw)) return 'http://' . $raw;
-
     return rtrim($baseUrl, '/') . '/' . ltrim($raw, '/');
 }
 
 $foto1 = fotoUrl($mascota1Foto, $baseUrl, $placeholderDog);
 $foto2 = $hayMascota2 ? fotoUrl($mascota2Foto, $baseUrl, $placeholderDog) : $placeholderDog;
-
-/* Layout igual dashboard */
-$rolMenu      = Session::getUsuarioRol() ?: 'paseador';
-$baseFeatures = BASE_URL . "/features/{$rolMenu}";
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -211,20 +191,6 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
             justify-content:center;
         }
 
-        .btn-pill{
-            display:inline-flex;
-            align-items:center;
-            gap:.5rem;
-            padding: .45rem .9rem;
-            border-radius: 999px;
-            border: 1px solid rgba(0,0,0,.10);
-            background:#fff;
-            color:#111;
-            text-decoration:none;
-            font-weight:600;
-        }
-        .btn-pill:hover{ background:#f6f6f6; }
-
         .pill{
             display:inline-flex;
             align-items:center;
@@ -253,7 +219,8 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
                 <strong>DEBUG:</strong>
                 paseo_id=<?= (int)$paseoId ?> |
                 paseador_sesion=<?= (int)$paseadorIdSesion ?> |
-                dueno_id=<?= (int)$duenoId ?> |
+                mascota1Id=<?= (int)$mascota1Id ?> |
+                mascota2Id=<?= (int)$mascota2Id ?> |
                 cantidad_mascotas=<?= (int)$cantidadMascotas ?> |
                 estado="<?= h($estado) ?>"
             </div>
@@ -408,14 +375,14 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
                                             class="btn btn-primary"
                                             data-bs-toggle="modal"
                                             data-bs-target="#modalCalificarMascota">
-                                        <i class="fas fa-star me-1"></i> Calificar
+                                        <i class="fas fa-star me-1"></i> Calificar mascota
                                     </button>
                                 <?php elseif ($yaCalifico): ?>
                                     <span class="badge bg-success align-self-center px-3 py-2">
                                         Ya enviaste tu calificación ⭐
                                     </span>
                                 <?php else: ?>
-                                    <span class="text-muted">No se puede calificar (dueño inválido o estado no permitido).</span>
+                                    <span class="text-muted">No se puede calificar (estado o mascota inválida).</span>
                                 <?php endif; ?>
                             <?php else: ?>
                                 <span class="text-muted">No hay acciones disponibles para este estado.</span>
@@ -450,55 +417,68 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
     </div>
 </main>
 
-<!-- MODAL: CALIFICAR DUEÑO / MASCOTA -->
+<!-- MODAL: CALIFICAR MASCOTA -->
 <div class="modal fade" id="modalCalificarMascota" tabindex="-1" aria-labelledby="modalCalificarMascotaLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <form id="formCalificarMascota">
-                <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title" id="modalCalificarMascotaLabel">
-                        <i class="fas fa-star me-2"></i>Calificar dueño / mascota
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-
-                <div class="modal-body">
-                    <input type="hidden" name="paseo_id" value="<?= (int)$paseoId; ?>">
-                    <input type="hidden" name="rated_id" value="<?= (int)$duenoId; ?>">
-
-                    <div class="mb-2 small text-muted">
-                        (Se guardará como calificación del servicio del dueño/mascota, asociada al dueño.)
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Calificación (1 a 5)</label>
-                        <select name="calificacion" class="form-select" required>
-                            <option value="5">⭐⭐⭐⭐⭐ (Excelente)</option>
-                            <option value="4">⭐⭐⭐⭐ (Muy bueno)</option>
-                            <option value="3">⭐⭐⭐ (Bueno)</option>
-                            <option value="2">⭐⭐ (Regular)</option>
-                            <option value="1">⭐ (Malo)</option>
-                        </select>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Comentario (opcional)</label>
-                        <textarea name="comentario" class="form-control" rows="3"
-                                  placeholder="Comentá brevemente cómo fue la experiencia con el dueño y la mascota..."></textarea>
-                    </div>
-                </div>
-
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
-                        <i class="fas fa-times me-1"></i> Cancelar
-                    </button>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-paper-plane me-1"></i> Enviar calificación
-                    </button>
-                </div>
-            </form>
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form id="formCalificarMascota">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title" id="modalCalificarMascotaLabel">
+            <i class="fas fa-star me-2"></i>Calificar mascota
+          </h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
         </div>
+
+        <div class="modal-body">
+          <input type="hidden" name="paseo_id" value="<?= (int)$paseoId; ?>">
+
+          <?php if ($hayMascota2 && $mascota2Id > 0): ?>
+            <div class="mb-3">
+              <label class="form-label">¿Qué mascota querés calificar?</label>
+              <select name="rated_id" class="form-select" required>
+                <option value="<?= (int)$mascota1Id ?>"><?= h((string)$mascota1Nombre) ?></option>
+                <option value="<?= (int)$mascota2Id ?>"><?= h((string)($mascota2Nombre ?: 'Mascota 2')) ?></option>
+              </select>
+              <div class="form-text text-muted">Se guarda como calificación tipo “mascota”.</div>
+            </div>
+          <?php else: ?>
+            <input type="hidden" name="rated_id" value="<?= (int)$mascota1Id; ?>">
+            <div class="mb-2 small text-muted">
+              Mascota a calificar: <b><?= h((string)$mascota1Nombre) ?></b>
+            </div>
+          <?php endif; ?>
+
+          <div class="mb-3">
+            <label class="form-label">Calificación (1 a 5)</label>
+            <select name="calificacion" class="form-select" required>
+              <option value="5">⭐⭐⭐⭐⭐ (Excelente)</option>
+              <option value="4">⭐⭐⭐⭐ (Muy bueno)</option>
+              <option value="3">⭐⭐⭐ (Bueno)</option>
+              <option value="2">⭐⭐ (Regular)</option>
+              <option value="1">⭐ (Malo)</option>
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Comentario (opcional)</label>
+            <textarea name="comentario" class="form-control" rows="3"
+              placeholder="Comentá brevemente cómo fue la experiencia con la mascota..."></textarea>
+          </div>
+
+          <div id="califError" class="alert alert-danger d-none"></div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+            <i class="fas fa-times me-1"></i> Cancelar
+          </button>
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-paper-plane me-1"></i> Enviar calificación
+          </button>
+        </div>
+      </form>
     </div>
+  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -570,10 +550,16 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
         );
     }
 
+    // ✅ Enviar calificación
     const formCalificarMascota = document.getElementById('formCalificarMascota');
+    const califError = document.getElementById('califError');
+
     if (formCalificarMascota) {
         formCalificarMascota.addEventListener('submit', async (e) => {
             e.preventDefault();
+            califError?.classList.add('d-none');
+            if (califError) califError.textContent = '';
+
             const formData = new FormData(formCalificarMascota);
 
             try {
@@ -595,7 +581,13 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
                     alert('✅ Calificación enviada correctamente');
                     window.location.reload();
                 } else {
-                    alert('⚠️ ' + (data.error || 'No se pudo guardar la calificación.'));
+                    const msg = data.error || data.mensaje || 'No se pudo guardar la calificación.';
+                    if (califError) {
+                        califError.textContent = msg;
+                        califError.classList.remove('d-none');
+                    } else {
+                        alert('⚠️ ' + msg);
+                    }
                 }
             } catch (err) {
                 console.error(err);

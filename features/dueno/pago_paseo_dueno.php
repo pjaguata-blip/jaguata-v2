@@ -47,26 +47,24 @@ if ($paseoId <= 0) {
 $paseoCtrl = new PaseoController();
 $pagoCtrl  = new PagoController();
 
-/* Detalle del paseo */
+/* Detalle del paseo para mostrar y calcular monto */
 $detalle = $paseoCtrl->getDetalleParaPago($paseoId);
 if (!$detalle) {
     http_response_code(404);
     exit('Paseo no encontrado');
 }
 
-/* Datos base para vista */
+/* Datos base para la vista */
 $paseadorNombre = h($detalle['nombre_paseador'] ?? 'No asignado');
-$paseadorBanco  = (string)($detalle['paseador_banco'] ?? '');
-$paseadorAlias  = (string)($detalle['paseador_alias'] ?? '');
-$paseadorCuenta = (string)($detalle['paseador_cuenta'] ?? '');
-
-$fecha = !empty($detalle['inicio'])
-    ? date('d/m/Y H:i', strtotime((string)$detalle['inicio']))
+$paseadorBanco  = $detalle['paseador_banco'] ?? '';
+$paseadorAlias  = $detalle['paseador_alias'] ?? '';
+$paseadorCuenta = $detalle['paseador_cuenta'] ?? '';
+$fecha          = !empty($detalle['inicio'])
+    ? date('d/m/Y H:i', strtotime($detalle['inicio']))
     : '—';
-
-$duracionMin  = (int)($detalle['duracion_min'] ?? 0);
-$montoNum     = (float)($detalle['precio_total'] ?? 0.0);
-$montoFormato = number_format($montoNum, 0, ',', '.');
+$duracionMin    = (int)($detalle['duracion_min'] ?? 0);
+$montoNum       = (float)($detalle['precio_total'] ?? 0.0);
+$montoFormato   = number_format($montoNum, 0, ',', '.');
 
 $success = $_SESSION['success'] ?? '';
 $error   = $_SESSION['error']   ?? '';
@@ -86,11 +84,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $rutaComprobante = null;
 
-    /* 📎 archivo (solo transferencia) */
+    /* 📎 Manejo de archivo de comprobante (solo transferencia) */
     if ($metodo === 'transferencia' && !empty($_FILES['comprobante']['name'])) {
         $file = $_FILES['comprobante'];
-
-        if (($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK) {
+        if ($file['error'] === UPLOAD_ERR_OK) {
             $permitidos = [
                 'image/jpeg' => 'jpg',
                 'image/png'  => 'png',
@@ -100,32 +97,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $mime = mime_content_type($file['tmp_name']);
             if (!isset($permitidos[$mime])) {
                 $error = 'Formato de comprobante no permitido. Solo JPG, PNG o PDF.';
-            } elseif (($file['size'] ?? 0) > 5 * 1024 * 1024) {
+            } elseif ($file['size'] > 5 * 1024 * 1024) {
                 $error = 'El comprobante no puede superar los 5MB.';
             } else {
                 $ext = $permitidos[$mime];
-
-                // ✅ directorio dentro de /public/assets/uploads/... para ser accesible
-                $dir = dirname(__DIR__, 2) . '/public/assets/uploads/comprobantes';
+                $dir = __DIR__ . '/../../assets/uploads/comprobantes';
                 if (!is_dir($dir)) {
                     mkdir($dir, 0775, true);
                 }
-
                 $nombreArchivo = 'pago_' . $paseoId . '_' . date('YmdHis') . '.' . $ext;
                 $rutaFisica    = $dir . '/' . $nombreArchivo;
-
                 if (move_uploaded_file($file['tmp_name'], $rutaFisica)) {
-                    $rutaComprobante = '/public/assets/uploads/comprobantes/' . $nombreArchivo;
+                    // Ruta accesible desde el navegador
+                    $rutaComprobante = '/assets/uploads/comprobantes/' . $nombreArchivo;
                 } else {
                     $error = 'No se pudo guardar el comprobante.';
                 }
             }
-        } elseif (($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
+        } elseif ($file['error'] !== UPLOAD_ERR_NO_FILE) {
             $error = 'Error al subir el comprobante.';
         }
     }
 
     if ($error === '') {
+        /* 📦 Armamos datos para PagoController::crearPagoDueno */
         $data = [
             'paseo_id'    => $paseoId,
             'usuario_id'  => $duenoId,
@@ -142,9 +137,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $resultado = $pagoCtrl->crearPagoDueno($data);
 
         if (!empty($resultado['error'])) {
-            $error = (string)$resultado['error'];
+            $error = $resultado['error'];
         } else {
             $_SESSION['success'] = 'Pago registrado correctamente.';
+            // Podés redirigir a GastosTotales, MisPaseos o dashboard
             header("Location: {$baseFeatures}/GastosTotales.php");
             exit;
         }
@@ -160,235 +156,192 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pagar paseo - Jaguata</title>
 
-    <!-- CSS -->
+    <!-- CSS global Jaguata -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
     <link href="<?= BASE_URL; ?>/public/assets/css/jaguata-theme.css" rel="stylesheet">
-
-    <style>
-        html, body { height: 100%; overflow-x: hidden; }
-        body { background: var(--gris-fondo, #f4f6f9); }
-
-        /* ✅ igual a tus pantallas */
-        main.main-content{
-            margin-left: 260px;
-            min-height: 100vh;
-            padding: 24px;
-            width: 100%;
-            box-sizing: border-box;
-        }
-
-        @media (max-width: 768px){
-            main.main-content{
-                margin-left: 0 !important;
-                margin-top: 0 !important;
-                width: 100% !important;
-                padding: calc(16px + var(--topbar-h)) 16px 16px !important;
-            }
-        }
-
-        .dl-row dt{ color:#6b7280; font-weight:700; }
-        .dl-row dd{ margin-bottom:.75rem; }
-
-        /* caja transferencia con look del theme */
-        .transfer-box{
-            border: 1px solid rgba(0,0,0,.08);
-            border-radius: 16px;
-            background: rgba(255,255,255,.75);
-            padding: 14px;
-        }
-        .hint{
-            font-size: .85rem;
-            color:#6b7280;
-        }
-    </style>
 </head>
 
 <body>
 
-<!-- Sidebar dueño (incluye topbar/backdrop/JS unificado) -->
-<?php include __DIR__ . '/../../src/Templates/SidebarDueno.php'; ?>
+    <!-- Sidebar dueño unificado -->
+    <?php include __DIR__ . '/../../src/Templates/SidebarDueno.php'; ?>
 
-<main class="main-content">
-    <div class="py-2">
+ 
 
-        <!-- HEADER -->
-        <div class="header-box header-pagos mb-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
-            <div>
-                <h1 class="fw-bold mb-1">
-                    <i class="fas fa-money-bill-wave me-2"></i>Pago del paseo
-                </h1>
-                <p class="mb-0">Confirmá y registrá tu pago de manera rápida y segura 🐾</p>
+    <main class="main-content bg-light">
+
+        <div class="container-fluid py-2">
+
+            <!-- HEADER pagos -->
+            <div class="header-box header-pagos mb-4">
+                <div>
+                    <h1 class="fw-bold mb-1">
+                        <i class="fas fa-money-bill-wave me-2"></i>Pago del paseo
+                    </h1>
+                    <p class="mb-0">Confirmá y registrá tu pago de manera rápida y segura 🐾</p>
+                </div>
+                <div class="text-end">
+                    <a href="<?= $baseFeatures; ?>/MisPaseos.php" class="btn btn-outline-light fw-semibold">
+                        <i class="fas fa-arrow-left me-1"></i> Volver a Mis Paseos
+                    </a>
+                </div>
             </div>
 
-            <div class="text-end">
-                <a href="<?= $baseFeatures; ?>/MisPaseos.php" class="btn btn-outline-light fw-semibold">
-                    <i class="fas fa-arrow-left me-1"></i> Volver a Mis Paseos
-                </a>
-            </div>
-        </div>
+            <!-- Alertas -->
+            <?php if ($success): ?>
+                <div class="alert alert-success alert-dismissible fade show shadow-sm">
+                    <i class="fas fa-check-circle me-2"></i><?= h($success); ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            <?php endif; ?>
 
-        <!-- Alertas -->
-        <?php if ($success): ?>
-            <div class="alert alert-success alert-dismissible fade show shadow-sm">
-                <i class="fas fa-check-circle me-2"></i><?= h($success); ?>
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        <?php endif; ?>
+            <?php if ($error): ?>
+                <div class="alert alert-danger alert-dismissible fade show shadow-sm">
+                    <i class="fas fa-exclamation-triangle me-2"></i><?= h($error); ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            <?php endif; ?>
 
-        <?php if ($error): ?>
-            <div class="alert alert-danger alert-dismissible fade show shadow-sm">
-                <i class="fas fa-exclamation-triangle me-2"></i><?= h($error); ?>
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        <?php endif; ?>
-
-        <div class="row g-3">
-
-            <!-- ✅ Resumen (section-card) -->
-            <div class="col-lg-5">
-                <div class="section-card h-100">
-                    <div class="section-header">
-                        <i class="fas fa-receipt me-2"></i> Resumen del paseo
-                    </div>
-                    <div class="section-body">
-
-                        <div class="row g-3 mb-2">
-                            <div class="col-12 col-md-6">
-                                <div class="stat-card text-center h-100">
-                                    <i class="fas fa-user text-primary mb-1"></i>
-                                    <h4 style="font-size:1.05rem; font-weight:900;"><?= $paseadorNombre ?></h4>
-                                    <p class="mb-0">Paseador</p>
-                                </div>
-                            </div>
-                            <div class="col-12 col-md-6">
-                                <div class="stat-card text-center h-100">
-                                    <i class="fas fa-coins text-success mb-1"></i>
-                                    <h4>₲<?= h($montoFormato) ?></h4>
-                                    <p class="mb-0">Monto</p>
-                                </div>
-                            </div>
+            <!-- Contenido principal: resumen + formulario -->
+            <div class="row g-4">
+                <!-- Resumen del paseo -->
+                <div class="col-lg-5">
+                    <div class="section-card h-100">
+                        <div class="section-header">
+                            <i class="fas fa-receipt me-2"></i> Resumen del paseo
                         </div>
+                        <div class="section-body">
+                            <dl class="row mb-0">
+                                <dt class="col-5">Paseador:</dt>
+                                <dd class="col-7"><?= $paseadorNombre; ?></dd>
 
-                        <dl class="row dl-row mb-0">
-                            <dt class="col-5">Fecha:</dt>
-                            <dd class="col-7"><?= h($fecha); ?></dd>
+                                <dt class="col-5">Fecha:</dt>
+                                <dd class="col-7"><?= h($fecha); ?></dd>
 
-                            <dt class="col-5">Duración:</dt>
-                            <dd class="col-7"><?= (int)$duracionMin; ?> min</dd>
+                                <dt class="col-5">Duración:</dt>
+                                <dd class="col-7"><?= $duracionMin; ?> min</dd>
 
-                            <dt class="col-5">Banco paseador:</dt>
-                            <dd class="col-7"><?= h($paseadorBanco ?: '—'); ?></dd>
+                                <dt class="col-5">Monto:</dt>
+                                <dd class="col-7 fw-bold text-success">₲ <?= $montoFormato; ?></dd>
 
-                            <dt class="col-5">Alias/Cuenta:</dt>
-                            <dd class="col-7"><?= h($paseadorAlias ?: $paseadorCuenta ?: '—'); ?></dd>
-                        </dl>
+                                <dt class="col-5">Banco paseador:</dt>
+                                <dd class="col-7"><?= h($paseadorBanco ?: '—'); ?></dd>
 
-                        <div class="hint mt-2">
-                            * Si elegís transferencia, subí el comprobante (JPG/PNG/PDF) para validar el pago.
+                                <dt class="col-5">Alias/Cuenta paseador:</dt>
+                                <dd class="col-7"><?= h($paseadorAlias ?: $paseadorCuenta ?: '—'); ?></dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Formulario de pago -->
+                <div class="col-lg-7">
+                    <div class="section-card h-100">
+                        <div class="section-header">
+                            <i class="fas fa-credit-card me-2"></i> Registrar pago
+                        </div>
+                        <div class="section-body">
+                            <form method="POST" enctype="multipart/form-data">
+                                <input type="hidden" name="paseo_id" value="<?= $paseoId; ?>">
+
+                                <!-- Método -->
+                                <div class="mb-3">
+                                    <label class="form-label">Método de pago</label>
+                                    <div class="d-flex flex-wrap gap-4 mt-1">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="metodo" id="m1" value="efectivo" checked>
+                                            <label class="form-check-label" for="m1">Efectivo</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="metodo" id="m2" value="transferencia">
+                                            <label class="form-check-label" for="m2">Transferencia</label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Datos transferencia -->
+                                <div id="transferenciaFields" class="border rounded p-3 bg-light mb-4 d-none">
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label">Banco desde el que pagás</label>
+                                            <input type="text"
+                                                class="form-control"
+                                                name="banco"
+                                                placeholder="Ej: Banco X">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Cuenta o alias usado</label>
+                                            <input type="text"
+                                                class="form-control"
+                                                name="cuenta"
+                                                placeholder="Alias o nro de cuenta">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Referencia del pago (N° operación)</label>
+                                            <input type="text"
+                                                class="form-control"
+                                                name="referencia"
+                                                placeholder="Ej: Nro de transacción">
+                                        </div>
+                                        <div class="col-12">
+                                            <label class="form-label">Comprobante (JPG/PNG/PDF, máx 5MB)</label>
+                                            <input type="file"
+                                                class="form-control"
+                                                name="comprobante"
+                                                accept=".jpg,.jpeg,.png,.pdf">
+                                        </div>
+                                        <div class="col-12">
+                                            <label class="form-label">Observación (opcional)</label>
+                                            <textarea class="form-control"
+                                                name="observacion"
+                                                rows="2"
+                                                placeholder="Ej: Transferí desde mi cuenta de ahorro..."></textarea>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Botones -->
+                                <div class="d-flex justify-content-end gap-2">
+                                    <a href="<?= $baseFeatures; ?>/MisPaseos.php" class="btn btn-outline-secondary">
+                                        <i class="fas fa-times me-1"></i> Cancelar
+                                    </a>
+                                    <button type="submit" class="btn btn-guardar">
+                                        <i class="fas fa-check me-1"></i> Confirmar pago
+                                    </button>
+                                </div>
+                            </form>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- ✅ Formulario (section-card) -->
-            <div class="col-lg-7">
-                <div class="section-card h-100">
-                    <div class="section-header">
-                        <i class="fas fa-credit-card me-2"></i> Registrar pago
-                    </div>
-                    <div class="section-body">
-
-                        <form method="POST" enctype="multipart/form-data">
-                            <input type="hidden" name="paseo_id" value="<?= (int)$paseoId; ?>">
-
-                            <!-- Método -->
-                            <div class="mb-3">
-                                <label class="form-label fw-semibold">Método de pago</label>
-                                <div class="d-flex flex-wrap gap-4 mt-1">
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="metodo" id="m1" value="efectivo" checked>
-                                        <label class="form-check-label" for="m1">
-                                            <i class="fas fa-money-bill-wave me-1 text-success"></i> Efectivo
-                                        </label>
-                                    </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="metodo" id="m2" value="transferencia">
-                                        <label class="form-check-label" for="m2">
-                                            <i class="fas fa-building-columns me-1 text-primary"></i> Transferencia
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Transferencia -->
-                            <div id="transferenciaFields" class="transfer-box mb-3 d-none">
-                                <div class="row g-3">
-                                    <div class="col-md-6">
-                                        <label class="form-label fw-semibold">Banco desde el que pagás</label>
-                                        <input type="text" class="form-control" name="banco" placeholder="Ej: Banco X">
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label fw-semibold">Cuenta o alias usado</label>
-                                        <input type="text" class="form-control" name="cuenta" placeholder="Alias o nro de cuenta">
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label fw-semibold">Referencia (N° operación)</label>
-                                        <input type="text" class="form-control" name="referencia" placeholder="Ej: Nro de transacción">
-                                    </div>
-                                    <div class="col-12">
-                                        <label class="form-label fw-semibold">Comprobante (JPG/PNG/PDF, máx 5MB)</label>
-                                        <input type="file" class="form-control" name="comprobante" accept=".jpg,.jpeg,.png,.pdf">
-                                    </div>
-                                    <div class="col-12">
-                                        <label class="form-label fw-semibold">Observación (opcional)</label>
-                                        <textarea class="form-control" name="observacion" rows="2"
-                                            placeholder="Ej: Transferí desde mi cuenta de ahorro..."></textarea>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Botones -->
-                            <div class="d-flex justify-content-end gap-2 mt-3">
-                                <a href="<?= $baseFeatures; ?>/MisPaseos.php" class="btn btn-outline-secondary">
-                                    <i class="fas fa-times me-1"></i> Cancelar
-                                </a>
-                                <button type="submit" class="btn btn-guardar">
-                                    <i class="fas fa-check me-1"></i> Confirmar pago
-                                </button>
-                            </div>
-
-                        </form>
-
-                    </div>
-                </div>
-            </div>
-
+            <footer class="mt-4 text-center text-muted small">
+                © <?= date('Y'); ?> Jaguata — Panel del Dueño
+            </footer>
         </div>
+    </main>
 
-        <footer class="mt-4 text-center text-muted small">
-            © <?= date('Y'); ?> Jaguata — Panel del Dueño
-        </footer>
-    </div>
-</main>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Sidebar responsive (igual que otras pantallas)
+        document.getElementById('toggleSidebar')?.addEventListener('click', function() {
+            document.getElementById('sidebar')?.classList.toggle('sidebar-open');
+        });
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+        // Mostrar/ocultar campos de transferencia
+        const m1 = document.getElementById('m1');
+        const m2 = document.getElementById('m2');
+        const box = document.getElementById('transferenciaFields');
 
-<script>
-    // ✅ Mostrar/ocultar campos de transferencia (SIN tocar sidebar)
-    const m1 = document.getElementById('m1');
-    const m2 = document.getElementById('m2');
-    const box = document.getElementById('transferenciaFields');
+        function toggleTransferencia() {
+            if (!box) return;
+            box.classList.toggle('d-none', !m2.checked);
+        }
 
-    function toggleTransferencia() {
-        if (!box) return;
-        box.classList.toggle('d-none', !m2.checked);
-    }
-
-    m1?.addEventListener('change', toggleTransferencia);
-    m2?.addEventListener('change', toggleTransferencia);
-    toggleTransferencia();
-</script>
-
+        m1?.addEventListener('change', toggleTransferencia);
+        m2?.addEventListener('change', toggleTransferencia);
+    </script>
 </body>
+
 </html>

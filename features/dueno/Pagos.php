@@ -264,18 +264,7 @@ foreach ($pagos as $p) {
                                         <td>
                                             <?php if ($tieneComprobante && $pagoId > 0): ?>
                                                 <div class="btns-comp">
-                                                    <a class="btn btn-sm btn-outline-primary"
-                                                       target="_blank" rel="noopener"
-                                                       href="<?= BASE_URL; ?>/public/api/pagos/comprobantePago.php?pago_id=<?= (int)$pagoId ?>">
-                                                        <i class="fas fa-eye"></i> Ver
-                                                    </a>
-
-                                                    <a class="btn btn-sm btn-outline-secondary"
-                                                       download
-                                                       href="<?= BASE_URL; ?>/public/api/pagos/comprobantePago.php?pago_id=<?= (int)$pagoId ?>">
-                                                        <i class="fas fa-download"></i>
-                                                    </a>
-
+                                                  
                                                     <a class="btn btn-sm btn-success"
                                                        href="<?= $baseFeatures; ?>/comprobante_pago.php?pago_id=<?= (int)$pagoId ?>"
                                                        title="Ver comprobante bonito">

@@ -6,11 +6,15 @@ require_once __DIR__ . '/../Config/AppConfig.php';
 require_once __DIR__ . '/../Services/DatabaseService.php';
 require_once __DIR__ . '/../Models/Paseo.php';
 require_once __DIR__ . '/../Helpers/Session.php';
+require_once __DIR__ . '/PuntoController.php';
+
+
 
 use Jaguata\Config\AppConfig;
 use Jaguata\Services\DatabaseService;
 use Jaguata\Models\Paseo;
 use Jaguata\Helpers\Session;
+use Jaguata\Controllers\PuntoController;
 use PDO;
 use PDOException;
 
@@ -437,31 +441,85 @@ class PaseoController
     }
 
     /** 🔹 Completar paseo (paseador) */
-    public function completarPaseo(int $paseoId, string $comentario = ''): array
-    {
-        if ($paseoId <= 0) return ['success' => false, 'error' => 'ID de paseo inválido.'];
-
-        $paseo = $this->getById($paseoId);
-        if (!$paseo) return ['success' => false, 'error' => 'Paseo no encontrado.'];
-
-        $paseadorActualId = (int)(Session::getUsuarioId() ?? 0);
-        if ($paseadorActualId <= 0 || (int)($paseo['paseador_id'] ?? 0) !== $paseadorActualId) {
-            return ['success' => false, 'error' => 'No tienes permiso sobre este paseo.'];
-        }
-
-        $estadoActual = strtolower($paseo['estado'] ?? '');
-        if (!in_array($estadoActual, ['en_curso', 'confirmado'], true)) {
-            return ['success' => false, 'error' => 'El paseo no se puede completar desde su estado actual.'];
-        }
-
-        try {
-            $ok = $this->paseoModel->actualizarEstado($paseoId, 'completo');
-            return ['success' => $ok, 'error' => $ok ? null : 'No se pudo marcar el paseo como completo.'];
-        } catch (PDOException $e) {
-            error_log('PaseoController::completarPaseo error: ' . $e->getMessage());
-            return ['success' => false, 'error' => 'Error al completar el paseo.'];
-        }
+   public function completarPaseo(int $paseoId, string $comentario = ''): array
+{
+    if ($paseoId <= 0) {
+        return ['success' => false, 'error' => 'ID de paseo inválido.'];
     }
+
+    $paseo = $this->getById($paseoId);
+    if (!$paseo) {
+        return ['success' => false, 'error' => 'Paseo no encontrado.'];
+    }
+
+    $paseadorActualId = (int)(Session::getUsuarioId() ?? 0);
+    if ($paseadorActualId <= 0 || (int)($paseo['paseador_id'] ?? 0) !== $paseadorActualId) {
+        return ['success' => false, 'error' => 'No tienes permiso sobre este paseo.'];
+    }
+
+    $estadoActual = strtolower(trim((string)($paseo['estado'] ?? '')));
+    if (!in_array($estadoActual, ['en_curso', 'confirmado'], true)) {
+        return ['success' => false, 'error' => 'El paseo no se puede completar desde su estado actual.'];
+    }
+
+    try {
+        // 1) Marcar como completo
+        $ok = $this->paseoModel->actualizarEstado($paseoId, 'completo');
+        if (!$ok) {
+            return ['success' => false, 'error' => 'No se pudo marcar el paseo como completo.'];
+        }
+
+        // 2) Guardar comentario si existe columna (no rompe si no existe)
+        $comentario = trim($comentario);
+        if ($comentario !== '') {
+            try {
+                // Probamos primero con "comentario_fin"
+                $stmt = $this->db->prepare("
+                    UPDATE paseos
+                    SET comentario_fin = :c
+                    WHERE paseo_id = :id
+                ");
+                $stmt->execute([':c' => $comentario, ':id' => $paseoId]);
+            } catch (\Throwable $e1) {
+                try {
+                    // Si no existe comentario_fin, probamos con "comentario"
+                    $stmt = $this->db->prepare("
+                        UPDATE paseos
+                        SET comentario = :c
+                        WHERE paseo_id = :id
+                    ");
+                    $stmt->execute([':c' => $comentario, ':id' => $paseoId]);
+                } catch (\Throwable $e2) {
+                    // Si no existe ninguna, no hacemos nada (solo log)
+                    error_log("No se pudo guardar comentario de paseo #{$paseoId}: " . $e2->getMessage());
+                }
+            }
+        }
+
+        // 3) ✅ Otorgar puntos al dueño (una sola vez, tu modelo ya tiene candado puntos_ganados)
+        $puntosOtorgados = 0;
+        try {
+            $puntosCtrl = new PuntoController();
+            $puntosOtorgados = (int)$puntosCtrl->otorgarPorPaseo($paseoId);
+        } catch (\Throwable $e) {
+            error_log("Error otorgando puntos por paseo #{$paseoId}: " . $e->getMessage());
+            // No rompemos el flujo del completar por puntos
+        }
+
+        return [
+            'success'          => true,
+            'puntos_otorgados' => $puntosOtorgados,
+            'mensaje'          => $puntosOtorgados > 0
+                ? "Paseo completado. Se otorgaron {$puntosOtorgados} puntos al dueño."
+                : "Paseo completado."
+        ];
+
+    } catch (\Throwable $e) {
+        error_log('PaseoController::completarPaseo error: ' . $e->getMessage());
+        return ['success' => false, 'error' => 'Error al completar el paseo.'];
+    }
+}
+
 
     /** 🔹 Solicitudes pendientes para un paseador */
     public function getSolicitudesPendientes(int $paseadorId): array

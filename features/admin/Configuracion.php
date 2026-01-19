@@ -4,6 +4,8 @@ ini_set('display_errors', 1);
 
 require_once dirname(__DIR__, 2) . '/src/Config/AppConfig.php';
 require_once dirname(__DIR__, 2) . '/src/Helpers/Session.php';
+require_once dirname(__DIR__, 2) . '/src/Services/DatabaseService.php';
+
 require_once dirname(__DIR__, 2) . '/src/Controllers/ConfiguracionController.php';
 
 use Jaguata\Config\AppConfig;

@@ -29,14 +29,32 @@ function h(?string $v): string
     return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
 }
 
+/**
+ * ✅ Normaliza la foto para que SIEMPRE funcione con tu BD:
+ * - /assets/uploads/perfiles/xxx.jpg
+ * - assets/uploads/perfiles/xxx.jpg
+ * - URL completa
+ * - nombre suelto (xxx.jpg) => lo asume en /assets/uploads/perfiles/
+ */
 function resolveFotoUrl(?string $foto): string
 {
     $foto = trim((string)$foto);
     if ($foto === '') return '';
+
     if (preg_match('~^https?://~i', $foto)) return $foto;
 
-    $foto = ltrim(str_replace('\\', '/', $foto), '/');
-    return BASE_URL . '/' . $foto;
+    $fotoNorm = str_replace('\\', '/', $foto);
+    $fotoNorm = ltrim($fotoNorm, '/');
+
+    if (
+        str_starts_with($fotoNorm, 'assets/') ||
+        str_starts_with($fotoNorm, 'public/') ||
+        str_starts_with($fotoNorm, 'uploads/')
+    ) {
+        return BASE_URL . '/' . $fotoNorm;
+    }
+
+    return BASE_URL . '/assets/uploads/perfiles/' . $fotoNorm;
 }
 
 function renderStars(float $rate): string
@@ -55,7 +73,6 @@ function renderStars(float $rate): string
 
 function normPhone(string $tel): string
 {
-    // deja solo dígitos
     $digits = preg_replace('/\D+/', '', $tel) ?? '';
     return $digits ?: '';
 }
@@ -65,11 +82,9 @@ function whatsappUrl(?string $tel, string $nombre = ''): string
     $digits = normPhone((string)$tel);
     if ($digits === '') return '';
 
-    // Paraguay: si viene con 0 al inicio (ej 0984...), lo pasamos a 595984...
     if (str_starts_with($digits, '0')) {
         $digits = '595' . substr($digits, 1);
     } elseif (!str_starts_with($digits, '595') && strlen($digits) <= 10) {
-        // si no tiene prefijo y parece local, asumimos PY
         $digits = '595' . $digits;
     }
 
@@ -94,16 +109,24 @@ $baseFeatures = BASE_URL . "/features/dueno";
 $volverUrl    = $baseFeatures . "/BuscarPaseadores.php";
 $solicitarUrl = $baseFeatures . "/SolicitarPaseo.php?paseador_id=" . $id;
 
+/* Default avatar */
+$DEFAULT_AVATAR = BASE_URL . '/public/assets/images/user-default.png';
+
 /* DB */
 $pdo = AppConfig::db();
 
-/* ✅ Paseador + rating real */
+/* ✅ Paseador + rating real + datos de usuario (incluye foto_perfil, ciudad, barrio, telefono) */
 $sql = "
     SELECT 
         p.*,
+        u.telefono,
+        u.ciudad,
+        u.barrio,
+        u.foto_perfil,
         COALESCE(r.promedio, 0) AS calificacion_promedio,
         COALESCE(r.total, 0)    AS calificacion_total
     FROM paseadores p
+    INNER JOIN usuarios u ON u.usu_id = p.paseador_id
     LEFT JOIN (
         SELECT rated_id,
                ROUND(AVG(calificacion), 1) AS promedio,
@@ -133,14 +156,13 @@ $paseos  = (int)($u['total_paseos'] ?? 0);
 $rate    = (float)($u['calificacion_promedio'] ?? 0);
 $rateCnt = (int)($u['calificacion_total'] ?? 0);
 
-$foto    = resolveFotoUrl((string)($u['foto_url'] ?? ''));
+/* ✅ Foto real o default SIEMPRE */
+$fotoReal = resolveFotoUrl((string)($u['foto_perfil'] ?? ''));
+$foto     = $fotoReal !== '' ? $fotoReal : $DEFAULT_AVATAR;
+
 $waLink  = whatsappUrl($tel, $nombre);
 
-/* ✅ Reseñas (últimas 10)
-   Ajustá nombres de columnas si tu tabla difiere:
-   - calificaciones: calificacion, comentario, created_at, rater_id (o usuario_id)
-   - usuarios: usu_id, nombre
-*/
+/* ✅ Reseñas (últimas 10) */
 $reseñas = [];
 if ($u) {
     try {
@@ -163,7 +185,6 @@ if ($u) {
         $rv->execute();
         $reseñas = $rv->fetchAll(PDO::FETCH_ASSOC) ?: [];
     } catch (Throwable $e) {
-        // Si tu esquema no coincide, no rompemos la pantalla
         $reseñas = [];
     }
 }
@@ -186,7 +207,6 @@ if ($u) {
         html, body { height: 100%; }
         body { background: var(--gris-fondo, #f4f6f9); }
 
-        /* ✅ Layout IGUAL al Dashboard */
         main.main-content{
             margin-left: 260px;
             min-height: 100vh;
@@ -201,15 +221,13 @@ if ($u) {
             }
         }
 
-        /* ✅ HERO cover horizontal */
         .walker-hero{
             border-radius: 18px;
             overflow: hidden;
             box-shadow: 0 12px 30px rgba(0,0,0,.06);
             position: relative;
             min-height: 190px;
-            background:
-              linear-gradient(90deg, rgba(25,193,146,.95) 0%, rgba(6,75,43,.92) 100%);
+            background: linear-gradient(90deg, rgba(25,193,146,.95) 0%, rgba(6,75,43,.92) 100%);
         }
         .walker-hero.has-photo{
             background:
@@ -228,6 +246,7 @@ if ($u) {
             min-height: 190px;
         }
 
+        /* ✅ avatar SIN ícono, siempre imagen */
         .walker-avatar{
             width: 92px;
             height: 92px;
@@ -236,18 +255,7 @@ if ($u) {
             border: 2px solid rgba(255,255,255,.75);
             background: rgba(255,255,255,.15);
         }
-        .walker-avatar-fallback{
-            width: 92px;
-            height: 92px;
-            border-radius: 20px;
-            display:flex;
-            align-items:center;
-            justify-content:center;
-            border: 2px solid rgba(255,255,255,.35);
-            background: rgba(255,255,255,.10);
-        }
 
-        /* chips */
         .chip{
             display:inline-flex;
             gap:.45rem;
@@ -282,13 +290,11 @@ if ($u) {
 
 <body class="page-dashboard-dueno">
 
-    <!-- Sidebar Dueño unificado -->
     <?php include __DIR__ . '/../../src/Templates/SidebarDueno.php'; ?>
 
     <main class="main-content">
         <div class="py-2">
 
-            <!-- Header -->
             <div class="header-box header-paseos mb-3 d-flex justify-content-between align-items-center">
                 <div>
                     <h1 class="fw-bold mb-1">
@@ -312,27 +318,21 @@ if ($u) {
 
                 <!-- HERO -->
                 <?php
-                $heroClass = $foto !== '' ? 'walker-hero has-photo' : 'walker-hero';
-                $heroStyle = $foto !== '' ? "style=\"--hero-photo:url('" . h($foto) . "');\"" : '';
+                // Solo ponemos hero con foto si NO es el default
+                $heroClass = ($foto !== $DEFAULT_AVATAR) ? 'walker-hero has-photo' : 'walker-hero';
+                $heroStyle = ($foto !== $DEFAULT_AVATAR) ? "style=\"--hero-photo:url('" . h($foto) . "');\"" : '';
                 ?>
                 <div class="<?= $heroClass; ?> mb-3" <?= $heroStyle; ?>>
                     <div class="walker-hero-inner flex-wrap">
                         <div class="d-flex gap-3 align-items-end flex-wrap">
-                            <?php if ($foto !== ''): ?>
-                                <img
-                                    src="<?= h($foto) ?>"
-                                    alt="Foto de <?= h($nombre) ?>"
-                                    class="walker-avatar"
-                                    loading="lazy"
-                                    onerror="this.onerror=null; this.style.display='none'; this.parentElement.querySelector('.walker-avatar-fallback')?.classList.remove('d-none');">
-                                <div class="walker-avatar-fallback d-none">
-                                    <i class="fas fa-user-circle fa-2x text-white-50"></i>
-                                </div>
-                            <?php else: ?>
-                                <div class="walker-avatar-fallback">
-                                    <i class="fas fa-user-circle fa-2x text-white-50"></i>
-                                </div>
-                            <?php endif; ?>
+
+                            <!-- ✅ SIEMPRE imagen (real o default) -->
+                            <img
+                                src="<?= h($foto) ?>"
+                                alt="Foto de <?= h($nombre) ?>"
+                                class="walker-avatar"
+                                loading="lazy"
+                                onerror="this.onerror=null; this.src='<?= $DEFAULT_AVATAR ?>';">
 
                             <div>
                                 <h3 class="mb-1 fw-bold"><?= h($nombre); ?></h3>
@@ -376,13 +376,7 @@ if ($u) {
                         </div>
 
                         <div class="d-flex gap-2 align-items-center mt-2">
-                            <?php if ($waLink !== ''): ?>
-                                <a class="btn btn-light btn-sm fw-semibold"
-                                   href="<?= h($waLink) ?>"
-                                   target="_blank" rel="noopener">
-                                    <i class="fab fa-whatsapp me-1"></i> WhatsApp
-                                </a>
-                            <?php endif; ?>
+                            
 
                             <a class="btn btn-light btn-sm fw-semibold" href="<?= h($solicitarUrl) ?>">
                                 <i class="fas fa-calendar-plus me-1"></i> Solicitar paseo
@@ -466,11 +460,7 @@ if ($u) {
                                         <i class="fas fa-calendar-check me-1"></i> Solicitar paseo
                                     </a>
 
-                                    <?php if ($waLink !== ''): ?>
-                                        <a class="btn btn-outline-success" href="<?= h($waLink) ?>" target="_blank" rel="noopener">
-                                            <i class="fab fa-whatsapp me-1"></i> Hablar por WhatsApp
-                                        </a>
-                                    <?php endif; ?>
+                                   
 
                                     <a class="btn btn-secondary" href="<?= h($volverUrl) ?>">
                                         <i class="fas fa-arrow-left me-1"></i> Volver a buscar
@@ -497,7 +487,6 @@ if ($u) {
         </div>
     </main>
 
-    <!-- JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

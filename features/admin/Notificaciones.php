@@ -274,7 +274,7 @@ function labelDestino(string $rol): string
                                     <th>Destinatario</th>
                                     <th>Fecha</th>
                                     <th>Estado</th>
-                                    <th>Acciones</th>
+                                   
                                 </tr>
                             </thead>
                             <tbody>
@@ -337,17 +337,7 @@ function labelDestino(string $rol): string
                                                     <?= htmlspecialchars($estadoLabel); ?>
                                                 </span>
                                             </td>
-                                            <td>
-                                                <button class="btn-ver btn-sm"
-                                                    type="button"
-                                                    data-bs-toggle="modal"
-                                                    data-bs-target="#verNotiModal"
-                                                    data-titulo="<?= htmlspecialchars($titulo, ENT_QUOTES, 'UTF-8'); ?>"
-                                                    data-destinatario="<?= htmlspecialchars($rolLabel, ENT_QUOTES, 'UTF-8'); ?>"
-                                                    data-mensaje="<?= htmlspecialchars($mensaje, ENT_QUOTES, 'UTF-8'); ?>">
-                                                    <i class="fas fa-eye"></i> Ver
-                                                </button>
-                                            </td>
+                                           
                                         </tr>
                                     <?php endforeach; ?>
                                 <?php endif; ?>
@@ -367,38 +357,7 @@ function labelDestino(string $rol): string
         </div>
     </main>
 
-    <!-- ✅ MODAL VER NOTIFICACIÓN -->
-    <div class="modal fade modal-jaguata" id="verNotiModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <div>
-                        <h5 class="modal-title mb-0">
-                            <i class="fas fa-eye me-2"></i>
-                            <span id="notiTitulo">Notificación</span>
-                        </h5>
-                        <div class="mt-2">
-                            <span class="meta-pill">
-                                <i class="fas fa-users"></i>
-                                <span id="notiDestinatario">—</span>
-                            </span>
-                        </div>
-                    </div>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-                </div>
-
-                <div class="modal-body">
-                    <div class="mensaje-box" id="notiMensaje">—</div>
-                </div>
-
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
-                        Cerrar
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
+    
 
     <!-- Bootstrap -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

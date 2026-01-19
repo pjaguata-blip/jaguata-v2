@@ -59,7 +59,33 @@ if ($rolPerfil === '') {
 }
 
 /* ====== DOCUMENTOS DEL USUARIO ====== */
-$baseVerifUrl = BASE_URL . '/uploads/verificaciones/';
+/**
+ * En tu proyecto los documentos se guardan en:
+ * C:\xampp\htdocs\jaguata\public\assets\uploads\documentos
+ * URL: BASE_URL . '/public/assets/uploads/documentos/archivo.ext'
+ */
+function urlDoc(?string $valorBD): ?string
+{
+    $valorBD = trim((string)$valorBD);
+    if ($valorBD === '') return null;
+
+    // Normalizar slashes por si viniera con "\" desde Windows
+    $valorBD = str_replace('\\', '/', $valorBD);
+    $valorBD = ltrim($valorBD, '/');
+
+    // Caso A: en BD guardaste "assets/uploads/documentos/archivo.jpg"
+    if (str_starts_with($valorBD, 'assets/')) {
+        return rtrim(BASE_URL, '/') . '/public/' . $valorBD;
+    }
+
+    // Caso B: en BD guardaste "public/assets/uploads/documentos/archivo.jpg"
+    if (str_starts_with($valorBD, 'public/')) {
+        return rtrim(BASE_URL, '/') . '/' . $valorBD;
+    }
+
+    // Caso C: en BD guardaste SOLO el nombre del archivo
+    return rtrim(BASE_URL, '/') . '/public/assets/uploads/documentos/' . $valorBD;
+}
 
 $docsConfig = [
     'foto_cedula_frente'       => 'Cédula (frente)',
@@ -71,18 +97,21 @@ $docsConfig = [
 $documentos = [];
 foreach ($docsConfig as $campo => $label) {
     $file = $usuario[$campo] ?? null;
-    if ($file) {
+    $url  = urlDoc($file);
+
+    if ($file && $url) {
         $ext      = strtolower(pathinfo((string)$file, PATHINFO_EXTENSION));
         $esImagen = in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp'], true);
 
         $documentos[] = [
             'label'    => $label,
             'file'     => $file,
-            'url'      => $baseVerifUrl . rawurlencode((string)$file),
+            'url'      => $url,      // ✅ YA no encodeamos la ruta completa
             'esImagen' => $esImagen,
         ];
     }
 }
+
 
 /* ====== CALIFICACIONES ====== */
 $mostrarCalificaciones = in_array($rolPerfil, ['dueno', 'paseador'], true);
@@ -251,9 +280,7 @@ $subBadgeText = match ($subEstado) {
             </div>
 
             <div class="d-flex gap-2 flex-wrap align-items-center">
-                <button class="btn btn-light d-lg-none" id="btnSidebarToggle" type="button">
-                    <i class="fas fa-bars"></i>
-                </button>
+               
 
                 <a href="<?= BASE_URL; ?>/features/admin/Usuarios.php" class="btn btn-outline-light btn-sm">
                     <i class="fas fa-arrow-left me-1"></i> Volver

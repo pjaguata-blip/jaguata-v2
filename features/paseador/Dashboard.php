@@ -208,9 +208,6 @@ $paseosRecientes = array_slice($paseosAsignados, 0, 5);
                 </div>
 
                 <div class="d-flex align-items-center gap-2">
-                    <button class="btn btn-light d-lg-none" id="btnSidebarToggle" type="button">
-                        <i class="fas fa-bars"></i>
-                    </button>
                     <i class="fas fa-dog fa-2x opacity-75 d-none d-md-inline"></i>
                 </div>
             </div>

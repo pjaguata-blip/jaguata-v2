@@ -111,9 +111,7 @@ foreach ($registros as $r) {
                 </div>
 
                 <div class="d-flex align-items-center gap-2">
-                    <button class="btn btn-light d-lg-none" id="btnSidebarToggle" type="button">
-                        <i class="fas fa-bars"></i>
-                    </button>
+                   
                 </div>
 
                 <a href="<?= $baseFeatures; ?>/Dashboard.php" class="btn btn-outline-light">

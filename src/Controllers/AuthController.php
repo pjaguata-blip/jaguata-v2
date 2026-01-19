@@ -194,55 +194,147 @@ class AuthController
     }
 
     public function apiRegister(): array
-    {
-        $nombre = trim((string)($_POST['nombre'] ?? ''));
-        $email  = strtolower(trim((string)($_POST['email'] ?? '')));
-        $pass   = (string)($_POST['pass'] ?? ($_POST['password'] ?? ''));
-        $rol    = (string)($_POST['rol'] ?? 'dueno');
+{
+    $nombre   = trim((string)($_POST['nombre'] ?? ''));
+    $email    = strtolower(trim((string)($_POST['email'] ?? '')));
+    $pass     = (string)($_POST['pass'] ?? ($_POST['password'] ?? ''));
+    $rol      = strtolower(trim((string)($_POST['rol'] ?? 'dueno')));
+    $telefono = trim((string)($_POST['telefono'] ?? ''));
 
-        if ($nombre === '' || $email === '' || $pass === '') {
-            return ['success' => false, 'error' => 'Todos los campos son obligatorios'];
-        }
+    // checkbox "acepto"
+    $acepto = !empty($_POST['acepto_terminos']) ? 1 : 0;
 
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            return ['success' => false, 'error' => 'Email inválido'];
-        }
-
-        if ($this->usuarioModel->getByEmail($email)) {
-            return ['success' => false, 'error' => 'Ya existe un usuario con ese email'];
-        }
-
-        $data = [
-            'nombre' => $nombre,
-            'email'  => $email,
-            'pass'   => $pass,   // el modelo lo hashea
-            'rol'    => $rol,
-            'estado' => 'pendiente',
-        ];
-
-        $result = $this->usuarioModel->crearDesdeRegistro($data);
-        if (empty($result['success'])) {
-            return ['success' => false, 'error' => $result['error'] ?? 'Error al registrar'];
-        }
-
-        $usuario = $result['usuario'];
-        Session::login($usuario);
-
-        Auditoria::log(
-            'REGISTRO',
-            'Autenticación',
-            'Registro de nuevo usuario: ' . $email . ' con rol ' . $rol,
-            (int)$usuario['usu_id']
-        );
-
-        return [
-            'success' => true,
-            'usuario' => [
-                'id'     => $usuario['usu_id'],
-                'nombre' => $usuario['nombre'],
-                'email'  => $usuario['email'],
-                'rol'    => $usuario['rol'],
-            ],
-        ];
+    if ($nombre === '' || $email === '' || $pass === '' || $telefono === '') {
+        return ['success' => false, 'error' => 'Todos los campos son obligatorios'];
     }
+
+    if (!in_array($rol, ['dueno','paseador'], true)) {
+        return ['success' => false, 'error' => 'Rol inválido'];
+    }
+
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        return ['success' => false, 'error' => 'Email inválido'];
+    }
+
+    if (strlen($pass) < 6) {
+        return ['success' => false, 'error' => 'La contraseña debe tener al menos 6 caracteres'];
+    }
+
+    if ($acepto !== 1) {
+        return ['success' => false, 'error' => 'Debes aceptar las Bases y Condiciones'];
+    }
+
+    if ($this->usuarioModel->getByEmail($email)) {
+        return ['success' => false, 'error' => 'Ya existe un usuario con ese email'];
+    }
+
+    // ==========================
+    // SUBIDA DE ARCHIVOS (solo paseador)
+    // ==========================
+    $uploadsDirAbs = dirname(__DIR__, 2) . '/public/assets/uploads/documentos'; // /jaguata/public/assets/uploads/documentos
+    $uploadsDirRel = 'assets/uploads/documentos'; // lo que guardás en BD
+
+    if (!is_dir($uploadsDirAbs)) {
+        @mkdir($uploadsDirAbs, 0775, true);
+    }
+
+    $paths = [
+        'foto_cedula_frente'       => null,
+        'foto_cedula_dorso'        => null,
+        'foto_selfie'              => null,
+        'certificado_antecedentes' => null,
+    ];
+
+    if ($rol === 'paseador') {
+        $map = [
+            'cedula_frente' => 'foto_cedula_frente',
+            'cedula_dorso'  => 'foto_cedula_dorso',
+            'selfie'        => 'foto_selfie',
+            'antecedentes'  => 'certificado_antecedentes',
+        ];
+
+        foreach ($map as $inputName => $dbField) {
+            if (empty($_FILES[$inputName]['name'])) {
+                return ['success' => false, 'error' => 'Faltan documentos obligatorios para paseador'];
+            }
+            if (!isset($_FILES[$inputName]['error']) || $_FILES[$inputName]['error'] !== UPLOAD_ERR_OK) {
+                return ['success' => false, 'error' => 'Error al subir un documento. Probá nuevamente'];
+            }
+
+            $tmp  = (string)$_FILES[$inputName]['tmp_name'];
+            $orig = (string)$_FILES[$inputName]['name'];
+
+            $ext = strtolower(pathinfo($orig, PATHINFO_EXTENSION));
+            $permitidas = ['jpg','jpeg','png','webp','pdf'];
+
+            if (!in_array($ext, $permitidas, true)) {
+                return ['success' => false, 'error' => "Formato no permitido en $inputName (solo jpg, png, webp, pdf)"];
+            }
+
+            // nombre único
+            $safeEmail = preg_replace('/[^a-z0-9]+/i', '_', $email);
+            $fileName  = $dbField . '_' . $safeEmail . '_' . date('Ymd_His') . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
+
+            $destAbs = $uploadsDirAbs . '/' . $fileName;
+            $destRel = $uploadsDirRel . '/' . $fileName;
+
+            if (!move_uploaded_file($tmp, $destAbs)) {
+                return ['success' => false, 'error' => 'No se pudo guardar un documento. Revisá permisos de carpeta uploads.'];
+            }
+
+            $paths[$dbField] = $destRel;
+        }
+    }
+
+    // ==========================
+    // DATA para crear usuario
+    // ==========================
+    $data = [
+        'nombre' => $nombre,
+        'email'  => $email,
+        'pass'   => $pass,   // el modelo lo hashea
+        'rol'    => $rol,
+        'estado' => 'pendiente',
+
+        // extras de tu tabla
+        'telefono'         => $telefono,
+        'acepto_terminos'  => 1,
+        'fecha_aceptacion' => date('Y-m-d H:i:s'),
+        'ip_registro'      => $_SERVER['REMOTE_ADDR'] ?? null,
+
+        // rutas docs (si es paseador)
+        'foto_cedula_frente'       => $paths['foto_cedula_frente'],
+        'foto_cedula_dorso'        => $paths['foto_cedula_dorso'],
+        'foto_selfie'              => $paths['foto_selfie'],
+        'certificado_antecedentes' => $paths['certificado_antecedentes'],
+    ];
+
+    $result = $this->usuarioModel->crearDesdeRegistro($data);
+    if (empty($result['success'])) {
+        return ['success' => false, 'error' => $result['error'] ?? 'Error al registrar'];
+    }
+
+    $usuario = $result['usuario'];
+
+    // ✅ opcional: NO loguear automáticamente si preferís que vaya directo a login
+    Session::login($usuario);
+
+    Auditoria::log(
+        'REGISTRO',
+        'Autenticación',
+        'Registro de nuevo usuario: ' . $email . ' con rol ' . $rol,
+        (int)($usuario['usu_id'] ?? 0)
+    );
+
+    return [
+        'success' => true,
+        'usuario' => [
+            'id'     => $usuario['usu_id'],
+            'nombre' => $usuario['nombre'],
+            'email'  => $usuario['email'],
+            'rol'    => $usuario['rol'],
+        ],
+    ];
+}
+
 }

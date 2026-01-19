@@ -144,9 +144,6 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
                 </div>
 
                 <div class="d-flex align-items-center gap-2">
-                    <button class="btn btn-light d-lg-none" id="btnSidebarToggle" type="button">
-                        <i class="fas fa-bars"></i>
-                    </button>
 
                     <a href="<?= $baseFeatures; ?>/Dashboard.php" class="btn btn-outline-light">
                         <i class="fas fa-arrow-left me-1"></i> Volver

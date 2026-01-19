@@ -133,9 +133,6 @@ function labelDestino(string $rol): string
                     <p class="mb-0">Envía avisos, recordatorios y promociones a los usuarios 🔔</p>
                 </div>
                 <div class="d-flex align-items-center gap-2">
-                    <button class="btn btn-light d-lg-none" id="btnSidebarToggle" type="button">
-                        <i class="fas fa-bars"></i>
-                    </button>
                    
                 </div>
                 <a href="<?= $baseFeatures; ?>/Dashboard.php" class="btn btn-outline-light">

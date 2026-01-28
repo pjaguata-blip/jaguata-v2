@@ -7,38 +7,47 @@ use Jaguata\Services\DatabaseService;
 
 final class AppConfig
 {
-    // 👉 AJUSTÁ este BASE_URL según tu carpeta en XAMPP
     private const BASE_URL = 'http://localhost/jaguata';
 
     private static bool $booted = false;
 
-    /**
-     * Inicializa:
-     * - session
-     * - constante BASE_URL
-     * - (opcional) ASSETS_URL si no existe
-     */
     public static function init(): void
     {
         if (self::$booted) {
             return;
         }
         self::$booted = true;
-
-        // Sesión
         if (\session_status() === PHP_SESSION_NONE) {
             \session_name(\defined('SESSION_NAME') ? SESSION_NAME : 'JAGUATA_SESSION');
             \session_start();
         }
-
-        // BASE_URL global
         if (!\defined('BASE_URL')) {
             \define('BASE_URL', self::BASE_URL);
         }
-
-        // ASSETS_URL (si tu Constantes.php no lo define)
         if (!\defined('ASSETS_URL')) {
             \define('ASSETS_URL', BASE_URL . '/public/assets');
+        }
+        if (\defined('TIMEZONE')) {
+            @\date_default_timezone_set((string) TIMEZONE);
+        }
+    }
+    public static function isInitialized(): bool
+    {
+        return self::$booted;
+    }
+    public static function log(string $message, string $level = 'INFO'): void
+    {
+        self::init();
+
+        $line = sprintf("[%s] [%s] %s\n", date('Y-m-d H:i:s'), strtoupper($level), $message);
+        if (\defined('LOG_FILE')) {
+            $dir = \dirname((string) LOG_FILE);
+            if (!is_dir($dir)) {
+                @mkdir($dir, 0777, true);
+            }
+            @file_put_contents((string) LOG_FILE, $line, FILE_APPEND);
+        } else {
+            @error_log($line);
         }
     }
 

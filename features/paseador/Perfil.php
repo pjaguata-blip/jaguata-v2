@@ -20,8 +20,6 @@ use Jaguata\Helpers\Session;
 use Jaguata\Services\CalificacionService;
 
 AppConfig::init();
-
-/* 🔒 Solo paseador */
 $auth = new AuthController();
 $auth->checkRole('paseador');
 
@@ -34,12 +32,9 @@ if (!$usuario) {
     exit;
 }
 
-/* 🔹 Datos del paseador (tabla paseadores: precio_hora, etc.) */
 $paseadorModel = new Paseador();
 $paseadorRow   = $paseadorModel->find($usuarioId) ?: [];
 $precioHora    = (float)($paseadorRow['precio_hora'] ?? 0);
-
-/* ===== Helpers ===== */
 function h(?string $v, string $fallback = '—'): string
 {
     $v = trim((string)($v ?? ''));
@@ -67,7 +62,6 @@ function esUrlAbsoluta(string $p): bool
     return (bool)preg_match('#^https?://#i', $p);
 }
 
-/* ===== Foto ===== */
 $foto = $usuario['foto_perfil'] ?? ($usuario['perfil_foto'] ?? '');
 if ($foto && !esUrlAbsoluta((string)$foto)) {
     $foto = rtrim(BASE_URL, '/') . (string)$foto;
@@ -78,7 +72,6 @@ if (!$foto) {
 
 $edad = calcularEdad($usuario['fecha_nacimiento'] ?? null);
 
-/* Zonas */
 $zonas = [];
 if (!empty($usuario['zona'])) {
     $decoded = json_decode((string)$usuario['zona'], true);
@@ -89,7 +82,6 @@ if (!empty($usuario['zona'])) {
     }
 }
 
-/* ✅ Datos para transferencias: vienen de USUARIOS */
 $ctaBanco  = (string)($usuario['banco_nombre']  ?? '');
 $ctaAlias  = (string)($usuario['alias_cuenta']  ?? '');
 $ctaCuenta = (string)($usuario['cuenta_numero'] ?? '');
@@ -99,7 +91,6 @@ $diasSemana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 
 $dispCtrl             = new DisponibilidadController();
 $disponibilidadActual = $dispCtrl->getFormDataByPaseador($usuarioId);
 
-/* ⭐ reputación */
 $califService = new CalificacionService();
 $stats        = $califService->getPromedioByUsuario($usuarioId);
 $repPromedio  = isset($stats['promedio']) ? (float)$stats['promedio'] : 0.0;
@@ -220,13 +211,10 @@ $repTotal     = isset($stats['total']) ? (int)$stats['total'] : 0;
         }
     </style>
 </head>
-
 <body>
     <?php include __DIR__ . '/../../src/Templates/SidebarPaseador.php'; ?>
-
     <main>
         <div class="py-2">
-
             <div class="header-box header-dashboard mb-2 d-flex justify-content-between align-items-center">
                 <div>
                     <h1 class="fw-bold mb-2">
@@ -234,7 +222,6 @@ $repTotal     = isset($stats['total']) ? (int)$stats['total'] : 0;
                     </h1>
                     <p class="mb-0">Zonas de trabajo, tu experiencia, disponibilidad y reputación 🐾</p>
                 </div>
-
                 <div class="text-end">
                     <?php if ($repPromedio > 0 && $repTotal > 0): ?>
                         <div class="fs-4 fw-semibold mb-1">
@@ -258,7 +245,6 @@ $repTotal     = isset($stats['total']) ? (int)$stats['total'] : 0;
                     </div>
                 </div>
             </div>
-
             <div class="row g-3">
                 <div class="col-lg-4">
                     <div class="section-card text-center">
@@ -335,8 +321,6 @@ $repTotal     = isset($stats['total']) ? (int)$stats['total'] : 0;
 
                 <div class="col-lg-8">
                     <div class="row g-3">
-
-                        <!-- ✅ Zonas de trabajo -->
                         <div class="col-12">
                             <div class="section-card">
                                 <div class="section-header">
@@ -376,8 +360,6 @@ $repTotal     = isset($stats['total']) ? (int)$stats['total'] : 0;
                                 </div>
                             </div>
                         </div>
-
-                        <!-- ✅ Datos para recibir transferencias (SOLO LECTURA) -->
                         <div class="col-12">
                             <div class="section-card">
                                 <div class="section-header">
@@ -412,8 +394,6 @@ $repTotal     = isset($stats['total']) ? (int)$stats['total'] : 0;
                                 </div>
                             </div>
                         </div>
-
-                        <!-- ✅ Experiencia -->
                         <div class="col-12">
                             <div class="section-card">
                                 <div class="section-header">
@@ -430,8 +410,6 @@ $repTotal     = isset($stats['total']) ? (int)$stats['total'] : 0;
                                 </div>
                             </div>
                         </div>
-
-                        <!-- ✅ Disponibilidad -->
                         <div class="col-12">
                             <div class="section-card">
                                 <div class="section-header">

@@ -105,9 +105,6 @@ $totalPagosPend = $map['pendiente'] ?? 0;
 $reporteController = new ReporteController();
 $estadisticas      = $reporteController->getEstadisticas() ?: [];
 
-/* =============================
-   CALIFICACIONES POR ROL ⭐
-   ============================= */
 $calModel = new Calificacion();
 $promedioPaseadores = $calModel->promedioGlobalPorTipo('paseador');
 $promedioDuenos     = $calModel->promedioGlobalPorTipo('mascota');
@@ -149,7 +146,6 @@ $estadisticas['suscripciones_pagadas'] = $cantSuscripcionesPagadas;
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
-        /* ✅ igual que tus otras pantallas: sin scroll horizontal */
         html, body { overflow-x: hidden; width: 100%; }
         .chart-card canvas { width: 100% !important; height: 260px !important; }
         @media (max-width: 768px){
@@ -164,8 +160,6 @@ $estadisticas['suscripciones_pagadas'] = $cantSuscripcionesPagadas;
 
     <main>
         <div class="container-fluid px-3 px-md-2">
-
-            <!-- ✅ HEADER estilo igual a las otras pantallas -->
             <div class="header-box header-dashboard mb-3">
                 <div>
                     <h1 class="fw-bold mb-1">Panel de Administración</h1>
@@ -176,8 +170,6 @@ $estadisticas['suscripciones_pagadas'] = $cantSuscripcionesPagadas;
                     <i class="fas fa-user-shield fa-2x opacity-75 d-none d-md-inline"></i>
                 </div>
             </div>
-
-            <!-- ✅ MÉTRICAS (con mismo look “cards” del dashboard) -->
             <div class="row g-3 mb-2">
                 <div class="col-md-3">
                     <div class="stat-card">
@@ -245,8 +237,6 @@ $estadisticas['suscripciones_pagadas'] = $cantSuscripcionesPagadas;
                     </div>
                 </div>
             </div>
-
-            <!-- ✅ REPUTACIÓN (igual estilo “stat-card”) -->
             <div class="row g-3 mb-4">
                 <div class="col-md-6">
                     <div class="stat-card">
@@ -271,8 +261,6 @@ $estadisticas['suscripciones_pagadas'] = $cantSuscripcionesPagadas;
                     </div>
                 </div>
             </div>
-
-            <!-- ✅ FILTROS (misma caja .filtros que usás en listas) -->
             <div class="filtros mb-4">
                 <form class="row g-3 align-items-end">
                     <div class="col-md-5">
@@ -297,8 +285,6 @@ $estadisticas['suscripciones_pagadas'] = $cantSuscripcionesPagadas;
                     </div>
                 </form>
             </div>
-
-            <!-- ✅ GRÁFICOS con el mismo “card” que usás en tus listas (section-card) -->
             <div class="row" id="chartGroup">
 
                 <div class="col-lg-6 mb-3 chart-item" data-type="dia">
@@ -411,7 +397,6 @@ $estadisticas['suscripciones_pagadas'] = $cantSuscripcionesPagadas;
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        /* ✅ Toggle sidebar (igual a tus pantallas) */
         document.addEventListener('DOMContentLoaded', () => {
             const sidebar = document.querySelector('.sidebar');
             const btnToggle = document.getElementById('btnSidebarToggle');

@@ -1,10 +1,5 @@
 <?php
 
-/**
- * features/dueno/exportar_datos.php
- * Exporta los datos del dueño autenticado (paseos, mascotas o pagos)
- * en formato CSV compatible con Excel.
- */
 
 declare(strict_types=1);
 

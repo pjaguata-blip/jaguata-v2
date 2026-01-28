@@ -16,7 +16,6 @@ use Jaguata\Helpers\Session;
 
 AppConfig::init();
 
-/* 🔒 Auth dueño */
 $auth = new AuthController();
 $auth->checkRole('dueno');
 
@@ -70,9 +69,6 @@ $success = $_SESSION['success'] ?? '';
 $error   = $_SESSION['error']   ?? '';
 unset($_SESSION['success'], $_SESSION['error']);
 
-/* ===========================
-   POST: registrar pago
-   =========================== */
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $metodo = $_POST['metodo'] ?? 'efectivo';
     $metodo = $metodo === 'transferencia' ? 'transferencia' : 'efectivo';
@@ -120,7 +116,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($error === '') {
-        /* 📦 Armamos datos para PagoController::crearPagoDueno */
         $data = [
             'paseo_id'    => $paseoId,
             'usuario_id'  => $duenoId,

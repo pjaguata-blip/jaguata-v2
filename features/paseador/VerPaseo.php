@@ -17,8 +17,6 @@ use Jaguata\Helpers\Session;
 use Jaguata\Models\Calificacion;
 
 AppConfig::init();
-
-/* 🔒 Solo paseador */
 $auth = new AuthController();
 $auth->checkRole('paseador');
 
@@ -46,7 +44,6 @@ if ((int)($paseo['paseador_id'] ?? 0) !== $paseadorIdSesion) {
     die('<h3 style="color:red;text-align:center;">No tenés permiso para ver este paseo.</h3>');
 }
 
-/* ✅ IDs de mascotas (CLAVE para calificar) */
 $mascota1Id = (int)($paseo['mascota_id'] ?? 0);
 $mascota2Id = (int)($paseo['mascota_id_2'] ?? 0);
 
@@ -549,8 +546,6 @@ $foto2 = $hayMascota2 ? fotoUrl($mascota2Foto, $baseUrl, $placeholderDog) : $pla
             { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 }
         );
     }
-
-    // ✅ Enviar calificación
     const formCalificarMascota = document.getElementById('formCalificarMascota');
     const califError = document.getElementById('califError');
 

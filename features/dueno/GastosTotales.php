@@ -1,12 +1,35 @@
 <?php
-
 declare(strict_types=1);
 
-require_once __DIR__ . '/../../src/Config/AppConfig.php';
-require_once __DIR__ . '/../../src/Controllers/AuthController.php';
-require_once __DIR__ . '/../../src/Controllers/PaseoController.php';
-require_once __DIR__ . '/../../src/Controllers/PagoController.php';
-require_once __DIR__ . '/../../src/Helpers/Session.php';
+error_reporting(E_ALL);
+ini_set('display_errors', '1');
+
+/**
+ * ✅ ROOT robusto: sube carpetas hasta encontrar /src/Config/AppConfig.php
+ * (Funciona aunque muevas el archivo de lugar)
+ */
+$dir = __DIR__;
+$ROOT = null;
+for ($i = 0; $i < 10; $i++) {
+    if (file_exists($dir . '/src/Config/AppConfig.php')) {
+        $ROOT = realpath($dir);
+        break;
+    }
+    $parent = dirname($dir);
+    if ($parent === $dir) break;
+    $dir = $parent;
+}
+if (!$ROOT) {
+    http_response_code(500);
+    die('❌ No se encontró el ROOT del proyecto (src/Config/AppConfig.php).');
+}
+
+/** ✅ Cargar dependencias */
+require_once $ROOT . '/src/Config/AppConfig.php';
+require_once $ROOT . '/src/Controllers/AuthController.php';
+require_once $ROOT . '/src/Controllers/PaseoController.php';
+require_once $ROOT . '/src/Controllers/PagoController.php';
+require_once $ROOT . '/src/Helpers/Session.php';
 
 use Jaguata\Config\AppConfig;
 use Jaguata\Controllers\AuthController;
@@ -16,7 +39,6 @@ use Jaguata\Helpers\Session;
 
 AppConfig::init();
 
-/* 🔒 Auth rol dueño */
 $auth = new AuthController();
 $auth->checkRole('dueno');
 
@@ -29,7 +51,9 @@ function parseDate(?string $v): ?string
 {
     $v = $v ? trim($v) : '';
     if ($v === '') return null;
-    return date('Y-m-d', strtotime($v));
+    $t = strtotime($v);
+    if ($t === false) return null;
+    return date('Y-m-d', $t);
 }
 function moneyPy(float $v): string
 {
@@ -50,11 +74,11 @@ $usuarioNombre = h(Session::getUsuarioNombre() ?? 'Dueño');
 /* Parámetros GET */
 $from       = parseDate($_GET['from'] ?? null);
 $to         = parseDate($_GET['to'] ?? null);
-$mascotaId  = $_GET['mascota_id'] ?? '';
-$paseadorId = $_GET['paseador_id'] ?? '';
+$mascotaId  = (string)($_GET['mascota_id'] ?? '');
+$paseadorId = (string)($_GET['paseador_id'] ?? '');
 $metodo     = strtoupper(trim((string)($_GET['metodo'] ?? '')));
 $estado     = strtoupper(trim((string)($_GET['estado'] ?? '')));
-$exportCsv  = (($_GET['export'] ?? '') === 'csv');
+$exportCsv  = ((string)($_GET['export'] ?? '') === 'csv');
 
 /* Datos para filtros */
 $paseoController = new PaseoController();
@@ -82,41 +106,51 @@ foreach ($rows as $r) {
     $total += (float)($r['monto'] ?? 0);
 }
 
-/* Export CSV */
+/**
+ * ✅ EXPORT CSV REAL (descarga)
+ * URL: GastosTotales.php?....&export=csv
+ */
 if ($exportCsv) {
+    $filename = 'gastos_jaguata_' . date('Ymd_His') . '.csv';
     header('Content-Type: text/csv; charset=UTF-8');
-    header('Content-Disposition: attachment; filename="gastos_jaguata_' . date('Ymd_His') . '.csv"');
+    header('Content-Disposition: attachment; filename=' . $filename);
+    header('Pragma: no-cache');
+    header('Expires: 0');
+
+    // BOM UTF-8 (Excel lo abre bien)
+    echo "\xEF\xBB\xBF";
 
     $out = fopen('php://output', 'w');
-    fprintf($out, chr(0xEF) . chr(0xBB) . chr(0xBF)); // BOM UTF-8
 
-    fputcsv($out, ['ID Pago', 'Fecha pago', 'Monto (PYG)', 'Método', 'Estado', 'Mascota', 'Paseador', 'ID Paseo', 'Fecha paseo', 'Referencia', 'Observación']);
+    // Encabezados
+    fputcsv($out, [
+        'ID', 'Fecha pago', 'Monto', 'Método', 'Estado',
+        'Mascota', 'Paseador', 'ID Paseo', 'Fecha paseo',
+        'Referencia', 'Observación'
+    ], ';');
 
     foreach ($rows as $r) {
         fputcsv($out, [
-            $r['id'] ?? '',
-            $r['fecha_pago'] ?? '',
-            $r['monto'] ?? '',
-            $r['metodo'] ?? '',
-            $r['estado'] ?? '',
-            $r['mascota'] ?? '',
-            $r['paseador'] ?? '',
-            $r['paseo_id'] ?? '',
-            $r['fecha_paseo'] ?? '',
-            $r['referencia'] ?? '',
-            $r['observacion'] ?? ''
-        ]);
+            (string)($r['id'] ?? ''),
+            (string)($r['fecha_pago'] ?? ''),
+            (string)($r['monto'] ?? ''),
+            (string)($r['metodo'] ?? ''),
+            (string)($r['estado'] ?? ''),
+            (string)($r['mascota'] ?? ''),
+            (string)($r['paseador'] ?? ''),
+            (string)($r['paseo_id'] ?? ''),
+            (string)($r['fecha_paseo'] ?? ''),
+            (string)($r['referencia'] ?? ''),
+            (string)($r['observacion'] ?? ''),
+        ], ';');
     }
 
-    fputcsv($out, []);
-    fputcsv($out, ['TOTAL', '', '₲' . moneyPy($total)]);
     fclose($out);
     exit;
 }
 ?>
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
     <meta charset="UTF-8">
     <title>Gastos Totales - Jaguata</title>
@@ -130,85 +164,43 @@ if ($exportCsv) {
     <link href="<?= BASE_URL; ?>/public/assets/css/jaguata-theme.css" rel="stylesheet">
 
     <style>
-        html,
-        body {
-            height: 100%;
-        }
+        html, body { height: 100%; }
+        body { background: var(--gris-fondo, #f4f6f9); }
+        main.main-content { margin-left: 260px; min-height: 100vh; padding: 24px; }
+        @media (max-width: 768px) { main.main-content { margin-left: 0; padding: 16px; } }
 
-        body {
-            background: var(--gris-fondo, #f4f6f9);
+        .dash-card{
+            background:#fff;border-radius:18px;padding:18px 20px;
+            box-shadow:0 12px 30px rgba(0,0,0,.06);
+            text-align:center;display:flex;flex-direction:column;justify-content:center;gap:6px;height:100%;
         }
+        .dash-card-icon{ font-size:2rem;margin-bottom:6px; }
+        .dash-card-value{ font-size:1.4rem;font-weight:700;color:#222; }
+        .dash-card-label{ font-size:.9rem;font-weight:400;color:#555;line-height:1.2; }
 
-        /* ✅ IGUAL A TU DASHBOARD DUEÑO */
-        main.main-content {
-            margin-left: 260px;
-            min-height: 100vh;
-            padding: 24px;
-        }
+        .icon-blue{ color:#0d6efd; }
+        .icon-green{ color:var(--verde-jaguata, #3c6255); }
+        .icon-yellow{ color:#ffc107; }
+        .icon-red{ color:#dc3545; }
 
-        @media (max-width: 768px) {
-            main.main-content {
-                margin-left: 0;
-                padding: 16px;
-            }
-        }
+        /* ===== Botón Exportar centrado ===== */
+/* ===== Botón Exportar alineado a la izquierda ===== */
+.text-export-left{
+  display: flex;
+  justify-content: flex-start; /* 👈 izquierda */
+  margin: 16px 0 8px;
+}
 
-        /* ✅ DASH CARD IGUAL A DASHBOARD */
-        .dash-card {
-            background: #ffffff;
-            border-radius: 18px;
-            padding: 18px 20px;
-            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.06);
-            text-align: center;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            gap: 6px;
-            height: 100%;
-        }
 
-        .dash-card-icon {
-            font-size: 2rem;
-            margin-bottom: 6px;
-        }
 
-        .dash-card-value {
-            font-size: 1.4rem;
-            font-weight: 700; /* ✅ NO 800 */
-            color: #222;
-        }
-
-        .dash-card-label {
-            font-size: 0.9rem;
-            font-weight: 400; /* ✅ sin negrita */
-            color: #555;
-            line-height: 1.2;
-        }
-
-        .icon-blue {
-            color: #0d6efd;
-        }
-
-        .icon-green {
-            color: var(--verde-jaguata, #3c6255);
-        }
-
-        .icon-yellow {
-            color: #ffc107;
-        }
-
-        .icon-red {
-            color: #dc3545;
-        }
     </style>
 </head>
 
 <body class="page-gastos">
 
-    <!-- Sidebar Dueño unificado (incluye topbar mobile + toggle) -->
-    <?php include __DIR__ . '/../../src/Templates/SidebarDueno.php'; ?>
+    <!-- Sidebar Dueño -->
+    <?php include $ROOT . '/src/Templates/SidebarDueno.php'; ?>
 
-    <!-- Contenido principal -->
     <main class="main-content">
         <div class="py-2">
 
@@ -228,10 +220,7 @@ if ($exportCsv) {
                         <i class="fas fa-arrow-left me-1"></i> Volver
                     </a>
 
-                    <a href="<?= BASE_URL ?>/public/api/pagos/reporte_gastos_dueno.php?<?= h(http_build_query($_GET)) ?>"
-                        class="btn btn-outline-light btn-sm fw-semibold">
-                        <i class="fas fa-file-excel me-1"></i> Exportar Excel
-                    </a>
+                  
                 </div>
             </div>
 
@@ -241,12 +230,11 @@ if ($exportCsv) {
                     <i class="fas fa-arrow-left me-1"></i> Volver
                 </a>
                 <a href="<?= BASE_URL ?>/public/api/pagos/reporte_gastos_dueno.php?<?= h(http_build_query($_GET)) ?>"
-                    class="btn btn-success btn-sm w-50">
+                   class="btn btn-success btn-sm w-50">
                     <i class="fas fa-file-excel me-1"></i> Excel
                 </a>
             </div>
 
-            <!-- ✅ MÉTRICAS (COPIA DEL DASHBOARD: row g-3 mb-4 / col-md-3 / dash-card-label) -->
             <div class="row g-3 mb-4">
                 <div class="col-md-3">
                     <div class="dash-card">
@@ -348,21 +336,25 @@ if ($exportCsv) {
                         <a href="<?= $baseFeatures; ?>/GastosTotales.php" class="btn btn-accion btn-desactivar">
                             <i class="fas fa-undo me-1"></i> Limpiar
                         </a>
-
-                        <a class="btn btn-outline-secondary ms-auto"
-                           href="<?= $baseFeatures; ?>/GastosTotales.php?<?= h(http_build_query(array_merge($_GET, ['export' => 'csv']))) ?>">
-                            <i class="fas fa-file-csv me-1"></i> CSV
-                        </a>
                     </div>
                 </form>
             </div>
+<!-- Botón Exportar Excel -->
+<!-- Botón Exportar Excel (izquierda) -->
+<div class="text-export-left">
+    <a href="<?= BASE_URL ?>/public/api/pagos/reporte_gastos_dueno.php?<?= h(http_build_query($_GET)) ?>"
+       class="btn btn-success btn-sm fw-semibold">
+        <i class="fas fa-file-excel me-1"></i> Exportar Excel
+    </a>
+</div>
+
+
 
             <!-- Tabla -->
             <div class="section-card mt-4">
                 <div class="section-header">
                     <i class="fas fa-list me-2"></i>Detalle de Pagos
                 </div>
-
                 <div class="section-body">
                     <div class="table-responsive">
                         <table class="table table-hover align-middle text-center mb-0">
@@ -435,6 +427,5 @@ if ($exportCsv) {
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- ✅ NO agregamos JS toggle acá: SidebarDueno.php ya lo trae unificado -->
 </body>
 </html>

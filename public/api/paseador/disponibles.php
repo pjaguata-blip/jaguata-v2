@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-ob_start(); // ✅ captura cualquier salida accidental ANTES de headers/init
+ob_start(); 
 
 set_error_handler(function ($severity, $message, $file, $line) {
     if (!(error_reporting() & $severity)) return false;
@@ -40,7 +40,7 @@ try {
     $duracion = (int)($_GET['duracion'] ?? 0);
     $radioKm  = isset($_GET['radio_km']) ? (float)$_GET['radio_km'] : 10.0;
     $limit    = isset($_GET['limit']) ? (int)$_GET['limit'] : 30;
-    $limit    = max(1, min(100, $limit)); // ✅ seguro
+    $limit    = max(1, min(100, $limit)); 
 
     if ($lat === 0.0 || $lng === 0.0 || $inicio === '' || $duracion <= 0) {
         ob_end_clean();
@@ -59,7 +59,6 @@ try {
 
     $pdo = AppConfig::db();
 
-    // ✅ SQL sin repetir placeholders (para evitar HY093)
     $sql = "
         SELECT
             w.paseador_id,

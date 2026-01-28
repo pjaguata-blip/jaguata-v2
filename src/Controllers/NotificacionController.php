@@ -29,10 +29,6 @@ class NotificacionController
         $this->notificacionModel = new Notificacion();
     }
 
-    /* ==========================================================
-       ADMIN
-       ========================================================== */
-
     public function indexAdmin(string $destino = 'todos'): array
     {
         try {
@@ -164,10 +160,6 @@ class NotificacionController
         }
     }
 
-    /* ==========================================================
-       USUARIO (dueño / paseador)
-       ========================================================== */
-
     public function index(array $filters = []): array
     {
         $usuId = (int)(Session::getUsuarioId() ?? 0);
@@ -218,12 +210,6 @@ class NotificacionController
         return $this->notificacionModel->markAllRead($usuId, $rol);
     }
 
-    /* ==========================================================
-       ✅ LO QUE TE FALTA: LIMPIAR / ELIMINAR
-       - personal (usu_id = user) => archivada=1
-       - masiva  (usu_id IS NULL) => notificaciones_ocultas
-       ========================================================== */
-
     public function limpiarUnaForCurrentUser(int $notiId): bool
     {
         $usuId = (int)(Session::getUsuarioId() ?? 0);
@@ -266,7 +252,6 @@ class NotificacionController
         }
     }
 
-    /* (tus métodos de auditoría “simulados” los dejo igual) */
     public function enviarNotificacionUsuario(int $usuarioId, string $titulo, string $mensaje): bool
     {
         $ok = true;

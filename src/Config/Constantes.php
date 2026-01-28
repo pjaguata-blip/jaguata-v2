@@ -51,8 +51,12 @@ if (!defined('UPLOADS_PATH')) {
 
 // Configuración de base de datos (AppConfig puede sobrescribir leyendo .env)
 if (!defined('DB_HOST')) {
-    define('DB_HOST', 'localhost');
+    define('DB_HOST', '127.0.0.1'); // ✅ TCP real
 }
+if (!defined('DB_PORT')) {
+    define('DB_PORT', '3307'); // ✅ tu nuevo puerto
+}
+
 if (!defined('DB_NAME')) {
     define('DB_NAME', 'jaguata');
 }

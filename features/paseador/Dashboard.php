@@ -21,11 +21,9 @@ use Jaguata\Models\Suscripcion;
 
 AppConfig::init();
 
-/* 🔒 Auth */
 $authController = new AuthController();
 $authController->checkRole('paseador');
 
-/* 🔒 BLOQUEO POR ESTADO (MUY IMPORTANTE) */
 if (Session::getUsuarioEstado() !== 'aprobado') {
     Session::setError('Tu cuenta aún no fue aprobada.');
     header('Location: ' . BASE_URL . '/public/login.php');
@@ -49,10 +47,6 @@ $notificacionController = new NotificacionController();
 
 $paseosAsignados = $paseadorId > 0 ? ($paseoController->indexForPaseador($paseadorId) ?: []) : [];
 $notificaciones  = $paseadorId > 0 ? ($notificacionController->getRecientes($paseadorId) ?: []) : [];
-
-/* =========================================================
-   ✅ SUSCRIPCIÓN PRO (50.000 mensual)
-   ========================================================= */
 $tieneProActiva = false;
 $subEstado      = null;
 $subFin         = null;
@@ -177,7 +171,6 @@ $paseosRecientes = array_slice($paseosAsignados, 0, 5);
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
-        /* ✅ evita scroll horizontal y mantiene consistencia */
         html, body { overflow-x: hidden; width: 100%; }
 
         /* charts: alto fijo responsive */
@@ -199,8 +192,6 @@ $paseosRecientes = array_slice($paseosAsignados, 0, 5);
 
     <main>
         <div class="container-fluid px-3 px-md-2">
-
-            <!-- ✅ HEADER (mismo estilo que tus pantallas) -->
             <div class="header-box header-dashboard mb-3">
                 <div>
                     <h1 class="fw-bold mb-1">¡Hola, <?= h($usuarioNombre); ?>! 🐾</h1>
@@ -211,8 +202,6 @@ $paseosRecientes = array_slice($paseosAsignados, 0, 5);
                     <i class="fas fa-dog fa-2x opacity-75 d-none d-md-inline"></i>
                 </div>
             </div>
-
-            <!-- ✅ ALERTA SUSCRIPCIÓN (SI NO ACTIVA) -->
             <?php if (!$tieneProActiva): ?>
                 <div class="alert alert-warning border d-flex align-items-start gap-3 mb-3">
                     <i class="fa-solid fa-triangle-exclamation mt-1"></i>
@@ -266,8 +255,6 @@ $paseosRecientes = array_slice($paseosAsignados, 0, 5);
                     </div>
                 </div>
             <?php endif; ?>
-
-            <!-- ✅ Cards (stat-card como tus dashboards) -->
             <div class="row g-3 mb-3">
                 <div class="col-12 col-sm-6 col-lg-3">
                     <div class="stat-card">
@@ -301,8 +288,6 @@ $paseosRecientes = array_slice($paseosAsignados, 0, 5);
                     </div>
                 </div>
             </div>
-
-            <!-- ✅ Gráficos (section-card igual a Notificaciones) -->
             <div class="row g-3 mb-3">
                 <div class="col-12 col-lg-6">
                     <div class="section-card h-100">
@@ -367,8 +352,6 @@ $paseosRecientes = array_slice($paseosAsignados, 0, 5);
                     </div>
                 </div>
             </div>
-
-            <!-- ✅ Tabla + Notificaciones (section-card) -->
             <div class="row g-3">
                 <div class="col-12 col-lg-8">
                     <div class="section-card">
@@ -460,7 +443,6 @@ $paseosRecientes = array_slice($paseosAsignados, 0, 5);
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        /* ✅ Toggle sidebar en mobile (igual que tus pantallas admin) */
         document.addEventListener('DOMContentLoaded', () => {
             const sidebar = document.querySelector('.sidebar');
             const btnToggle = document.getElementById('btnSidebarToggle');
@@ -471,8 +453,6 @@ $paseosRecientes = array_slice($paseosAsignados, 0, 5);
                 });
             }
         });
-
-        /* ✅ Charts */
         const horas = <?= json_encode($horas, JSON_UNESCAPED_UNICODE); ?>;
         const cantidadPorHora = <?= json_encode($cantidadPorHora, JSON_UNESCAPED_UNICODE); ?>;
 

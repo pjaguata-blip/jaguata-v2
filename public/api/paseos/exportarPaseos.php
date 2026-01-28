@@ -40,9 +40,6 @@ function safeField(array $row, string $key): string
             font-size: 12px;
         }
 
-        /* ==========================
-       ENCABEZADO CHULI
-    ========================== */
         .header-table {
             margin-bottom: 15px;
             width: 100%;
@@ -67,9 +64,6 @@ function safeField(array $row, string $key): string
             font-weight: 600;
         }
 
-        /* ==========================
-       TABLA PRINCIPAL
-    ========================== */
         table {
             border-collapse: collapse;
             width: 100%;
@@ -102,9 +96,6 @@ function safeField(array $row, string $key): string
             text-align: right;
         }
 
-        /* ===============================
-        ESTADO PASEO
-    =============================== */
         .estado-pendiente {
             background: #ffc10733;
             color: #856404;
@@ -131,9 +122,6 @@ function safeField(array $row, string $key): string
             font-weight: 600;
         }
 
-        /* ===============================
-        ESTADO PAGO
-    =============================== */
         .estado-pago-pendiente {
             background: #ffc10733;
             color: #856404;
@@ -156,9 +144,6 @@ function safeField(array $row, string $key): string
 
 <body>
 
-    <!-- ===========================
-     ENCABEZADO EXCEL BONITO
-=========================== -->
     <table class="header-table">
         <tr>
             <td class="header-title">
@@ -171,10 +156,6 @@ function safeField(array $row, string $key): string
             </td>
         </tr>
     </table>
-
-    <!-- ===========================
-     TABLA PRINCIPAL
-=========================== -->
     <table>
         <thead>
             <tr>

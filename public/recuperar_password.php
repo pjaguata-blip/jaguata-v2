@@ -1,9 +1,4 @@
 <?php
-/* =========================================================
-   C:\xampp\htdocs\jaguata\public\recuperar_password.php
-   Pantalla: solicitar enlace de recuperación (estilo dashboards)
-========================================================= */
-
 declare(strict_types=1);
 
 require_once __DIR__ . '/../vendor/autoload.php';
@@ -18,7 +13,6 @@ function h($v): string {
     return htmlspecialchars((string)($v ?? ''), ENT_QUOTES, 'UTF-8');
 }
 
-/* ========= Estado / rol / sidebar (IGUAL HOME/LOGIN) ========= */
 $logueado = Session::isLoggedIn();
 
 $rol = null;

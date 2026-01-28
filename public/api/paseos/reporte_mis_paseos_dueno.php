@@ -13,8 +13,6 @@ use Jaguata\Controllers\PaseoController;
 use Jaguata\Helpers\Session;
 
 AppConfig::init();
-
-/* 🔒 Solo dueño */
 $auth = new AuthController();
 $auth->checkRole('dueno');
 
@@ -73,14 +71,12 @@ if ($estadoFiltro !== '' && in_array($estadoFiltro, $estadosValidos, true)) {
     ));
 }
 
-/* Métricas (sobre TODOS, como tu pantalla) */
 $total      = count($all);
 $pendientes = array_filter($all, fn($p) => in_array($norm($p['estado'] ?? ''), ['solicitado', 'confirmado'], true));
 $completos  = array_filter($all, fn($p) => $norm($p['estado'] ?? '') === 'completo');
 $cancelados = array_filter($all, fn($p) => $norm($p['estado'] ?? '') === 'cancelado');
 $gastoTotal = array_sum(array_map(fn($p) => (float)($p['precio_total'] ?? 0), $completos));
 
-/* ✅ Forzar descarga Excel (HTML) */
 header("Content-Type: application/vnd.ms-excel; charset=UTF-8");
 header("Content-Disposition: attachment; filename=reporte_mis_paseos_jaguata_" . date('Ymd_His') . ".xls");
 header("Pragma: no-cache");

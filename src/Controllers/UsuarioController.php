@@ -16,7 +16,6 @@ class UsuarioController
 {
     private Usuario $usuarioModel;
 
-    /** ✅ Estados válidos en tu BD (según tu ENUM) */
     private array $estadosValidos = ['pendiente', 'aprobado', 'rechazado', 'cancelado'];
 
     public function __construct()
@@ -41,38 +40,70 @@ class UsuarioController
         return $this->usuarioModel->update($id, $data);
     }
 
-    /** Exportación Excel */
+    /** ✅ Exportación Excel (Usuarios + reputación + suscripción) */
     public function obtenerDatosExportacion(): array
     {
-        $usuarios = $this->usuarioModel->all() ?? [];
-        $export = [];
+        try {
+            // ✅ Necesita que el modelo Usuario tenga getDb()
+            $db = $this->usuarioModel->getDb();
 
-        foreach ($usuarios as $u) {
-            $export[] = [
-                'usu_id'     => (string)($u['usu_id'] ?? ''),
-                'nombre'     => (string)($u['nombre'] ?? ''),
-                'email'      => (string)($u['email'] ?? ''),
-                'rol'        => (string)($u['rol'] ?? ''),
-                'estado'     => (string)($u['estado'] ?? ''),
-                'created_at' => (string)($u['created_at'] ?? ''),
-                'updated_at' => (string)($u['updated_at'] ?? ''),
-            ];
+            $sql = "
+                SELECT
+                    u.usu_id,
+                    u.nombre,
+                    u.email,
+                    u.rol,
+                    u.estado,
+                    u.created_at,
+                    u.updated_at,
+
+                    /* ✅ Reputación del paseador (si aplica) */
+                    COALESCE(rep.reputacion_promedio, 0) AS reputacion_promedio,
+                    COALESCE(rep.reputacion_total, 0)    AS reputacion_total,
+
+                    /* ✅ Última suscripción del paseador (si existe) */
+                    COALESCE(s.estado, '') AS suscripcion_estado,
+                    COALESCE(s.inicio, '') AS suscripcion_inicio,
+                    COALESCE(s.fin, '')    AS suscripcion_fin,
+                    COALESCE(s.monto, 0)   AS suscripcion_monto
+
+                FROM usuarios u
+
+                /* Reputación: promedio y total de calificaciones del paseador */
+                LEFT JOIN (
+                    SELECT
+                        rated_id,
+                        ROUND(AVG(calificacion), 1) AS reputacion_promedio,
+                        COUNT(*)                    AS reputacion_total
+                    FROM calificaciones
+                    WHERE tipo = 'paseador'
+                    GROUP BY rated_id
+                ) rep ON rep.rated_id = u.usu_id
+
+                /* Última suscripción por paseador (por id más alto) */
+                LEFT JOIN (
+                    SELECT s1.*
+                    FROM suscripciones s1
+                    INNER JOIN (
+                        SELECT paseador_id, MAX(id) AS max_id
+                        FROM suscripciones
+                        GROUP BY paseador_id
+                    ) x ON x.paseador_id = s1.paseador_id
+                       AND x.max_id      = s1.id
+                ) s ON s.paseador_id = u.usu_id
+
+                ORDER BY u.usu_id ASC
+            ";
+
+            $stmt = $db->query($sql);
+            return $stmt ? ($stmt->fetchAll(\PDO::FETCH_ASSOC) ?: []) : [];
+
+        } catch (\Throwable $e) {
+            error_log('❌ Error obtenerDatosExportacion() usuarios extendido: ' . $e->getMessage());
+            return [];
         }
-
-        return $export;
     }
 
-    /**
-     * ✅ Acciones de admin sobre usuario
-     *
-     * Tu ENUM actual permite:
-     *  - pendiente
-     *  - aprobado
-     *  - rechazado
-     *  - cancelado
-     *
-     * Entonces mapeamos acciones “activar/suspender/desactivar” a estados válidos.
-     */
     public function ejecutarAccion(string $accion, int $id): array
     {
         $accion = strtolower(trim($accion));
@@ -93,7 +124,6 @@ class UsuarioController
                     $mensaje = $ok ? 'Usuario eliminado correctamente.' : 'No se pudo eliminar el usuario.';
                     break;
 
-                /** ✅ Acciones reales (compatibles con ENUM) */
                 case 'aprobar':
                     $ok = $this->cambiarEstadoSeguro($id, 'aprobado');
                     $mensaje = $ok ? 'Usuario aprobado correctamente.' : 'No se pudo aprobar el usuario.';
@@ -114,7 +144,6 @@ class UsuarioController
                     $mensaje = $ok ? 'Usuario cancelado correctamente.' : 'No se pudo cancelar el usuario.';
                     break;
 
-                /** ✅ Compatibilidad con tus botones actuales */
                 case 'activar':
                     // tu BD no tiene "activo" => lo más cercano es "aprobado"
                     $ok = $this->cambiarEstadoSeguro($id, 'aprobado');
@@ -145,7 +174,6 @@ class UsuarioController
         }
     }
 
-    /** ✅ Cambia estado, pero SOLO si es válido para tu ENUM */
     private function cambiarEstadoSeguro(int $id, string $estado): bool
     {
         $estado = strtolower(trim($estado));
@@ -158,7 +186,6 @@ class UsuarioController
         return $this->usuarioModel->update($id, ['estado' => $estado]);
     }
 
-    /** Cambiar contraseña actual */
     public function cambiarPasswordActual(string $passActual, string $passNueva): array
     {
         if (!Session::isLoggedIn()) {

@@ -18,11 +18,9 @@ use Jaguata\Models\Canje;
 
 AppConfig::init();
 
-/* 🔒 Autenticación */
 $authController = new AuthController();
 $authController->checkRole('dueno');
 
-/* 🔒 (igual dashboard) */
 if (Session::getUsuarioEstado() !== 'aprobado') {
     Session::setError('Tu cuenta aún no fue aprobada.');
     header('Location: ' . BASE_URL . '/public/login.php');
@@ -40,7 +38,6 @@ if (empty($mascotas)) {
     exit;
 }
 
-/* ✅ Canjes pendientes del dueño */
 $canjeModel = new Canje();
 $canjesPendientes = $canjeModel->listarPendientesPorUsuario((int)(Session::getUsuarioId() ?? 0));
 
@@ -93,7 +90,6 @@ unset($_SESSION['success'], $_SESSION['error']);
             background: var(--gris-fondo, #f4f6f9);
         }
 
-        /* ✅ Layout igual al Dashboard */
         main.main-content {
             margin-left: var(--sidebar-w);
             width: calc(100% - var(--sidebar-w));
@@ -187,8 +183,6 @@ unset($_SESSION['success'], $_SESSION['error']);
             <?php endif; ?>
 
             <form method="POST" novalidate>
-
-                <!-- ✅ PASO 1 -->
                 <div class="section-card mb-3">
                     <div class="section-header">
                         <span class="step-badge">1</span> Elegí tus mascotas
@@ -232,8 +226,6 @@ unset($_SESSION['success'], $_SESSION['error']);
                         </div>
                     </div>
                 </div>
-
-                <!-- ✅ PASO 2 -->
                 <div class="section-card mb-3">
                     <div class="section-header">
                         <span class="step-badge">2</span> Elegí fecha, hora y duración
@@ -267,8 +259,6 @@ unset($_SESSION['success'], $_SESSION['error']);
                         </div>
                     </div>
                 </div>
-
-                <!-- ✅ PASO 3 -->
                 <div class="section-card mb-3">
                     <div class="section-header">
                         <span class="step-badge">3</span> Seleccioná la ubicación de recogida
@@ -309,7 +299,6 @@ unset($_SESSION['success'], $_SESSION['error']);
                     </div>
                 </div>
 
-                <!-- ✅ PASO 4 -->
                 <div class="section-card mb-3">
                     <div class="section-header">
                         <span class="step-badge">4</span> Elegí un paseador cercano y disponible
@@ -323,14 +312,11 @@ unset($_SESSION['success'], $_SESSION['error']);
                     </div>
                 </div>
 
-                <!-- ✅ PASO 5 -->
                 <div class="section-card">
                     <div class="section-header">
                         <span class="step-badge">5</span> Confirmá el total y solicitá
                     </div>
                     <div class="section-body">
-
-                        <!-- ✅ Recompensa / Canje -->
                         <div class="mb-3">
                             <label class="form-label fw-semibold">Usar recompensa (opcional)</label>
                             <select class="form-select" id="canje_id" name="canje_id">
@@ -398,9 +384,7 @@ unset($_SESSION['success'], $_SESSION['error']);
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <script>
-        // ==========================
-        // Helpers UI
-        // ==========================
+
         function formatGs(n) {
             const v = Math.max(0, Math.round(Number(n) || 0));
             return '₲' + v.toLocaleString('es-PY');
@@ -482,9 +466,6 @@ unset($_SESSION['success'], $_SESSION['error']);
             document.getElementById('total_estimado').value = String(total);
         }
 
-        // ==========================
-        // Mascotas: no repetir
-        // ==========================
         function syncMascotas() {
             const m1 = document.getElementById('mascota_id_1');
             const m2 = document.getElementById('mascota_id_2');
@@ -508,9 +489,6 @@ unset($_SESSION['success'], $_SESSION['error']);
             }
         }
 
-        // ==========================
-        // Map + ubicación funcional
-        // ==========================
         let mapa = L.map('mapa').setView([-25.3, -57.6], 12);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; OpenStreetMap contributors'
@@ -632,9 +610,6 @@ unset($_SESSION['success'], $_SESSION['error']);
             }, err => alert("No se pudo obtener la ubicación: " + err.message));
         });
 
-        // ==========================
-        // Paseadores cercanos y libres
-        // ==========================
         async function cargarPaseadoresCercanos() {
             const lat = Number(document.getElementById('pickup_lat')?.value || 0);
             const lng = Number(document.getElementById('pickup_lng')?.value || 0);
@@ -719,9 +694,7 @@ unset($_SESSION['success'], $_SESSION['error']);
             }
         }
 
-        // ==========================
-        // Init + eventos
-        // ==========================
+    
         document.addEventListener('DOMContentLoaded', () => {
             const now = new Date();
             now.setHours(now.getHours() + 2);

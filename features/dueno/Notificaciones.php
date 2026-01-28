@@ -13,15 +13,12 @@ require_once dirname(__DIR__, 2) . '/src/Controllers/AuthController.php';
 require_once dirname(__DIR__, 2) . '/src/Controllers/NotificacionController.php';
 
 AppConfig::init();
-
-/* 🔒 Auth solo dueño */
 $auth = new AuthController();
 $auth->checkRole('dueno');
 
 $notiCtrl = new NotificacionController();
 $selfUrl  = BASE_URL . '/features/dueno/Notificaciones.php';
 
-/* 🔧 Acciones POST */
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = (string)($_POST['action'] ?? '');
 
@@ -44,7 +41,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    /* ✅ eliminar una */
     if ($action === 'deleteOne' && isset($_POST['noti_id'])) {
         $notiId = (int)$_POST['noti_id'];
         if ($notiId > 0 && $notiCtrl->limpiarUnaForCurrentUser($notiId)) {
@@ -56,7 +52,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    /* ✅ eliminar todas */
     if ($action === 'deleteAll') {
         $cant = (int)$notiCtrl->limpiarTodasForCurrentUser();
         if ($cant > 0) Session::setSuccess($cant . ' notificación(es) eliminadas ✅');
@@ -66,7 +61,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-/* 📄 Filtros */
 $q       = trim((string)($_GET['q'] ?? ''));
 $leido   = (string)($_GET['leido'] ?? '');
 $page    = max(1, (int)($_GET['page'] ?? 1));
@@ -74,7 +68,6 @@ $perPage = 10;
 
 $leidoParam = ($leido === '' ? null : (int)$leido);
 
-/* 🧩 Datos */
 $data           = $notiCtrl->listForCurrentUser($page, $perPage, $leidoParam, $q);
 $notificaciones = $data['data'] ?? [];
 $totalPages     = $data['totalPages'] ?? 1;
@@ -113,11 +106,7 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
 </head>
 
 <body>
-
-    <!-- ✅ Sidebar Dueño unificado (incluye topbar-mobile + backdrop + JS toggle) -->
     <?php include dirname(__DIR__, 2) . '/src/Templates/SidebarDueno.php'; ?>
-
-    <!-- ✅ Contenido: usamos <main> sin main-content para que aplique el layout global -->
     <main>
         <div class="py-2">
 
@@ -129,20 +118,16 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
                     </h1>
                     <p class="mb-0">Enterate de novedades sobre tus paseos y tu cuenta, <?= $usuarioNombre; ?> 🐶</p>
                 </div>
-
-                <!-- ✅ Botones (desktop) -->
                 <div class="d-none d-md-flex gap-2 align-items-center">
                     <a href="<?= $baseFeatures; ?>/Dashboard.php" class="btn btn-outline-light btn-sm">
                         <i class="fas fa-arrow-left me-1"></i> Volver
                     </a>
-
                     <form method="post" class="m-0">
                         <input type="hidden" name="action" value="markAllRead">
                         <button type="submit" class="btn-enviar">
                             <i class="fas fa-check-double me-1"></i> Marcar todas
                         </button>
                     </form>
-
                     <form method="post" class="m-0" onsubmit="return confirm('¿Querés eliminar todas tus notificaciones?');">
                         <input type="hidden" name="action" value="deleteAll">
                         <button type="submit" class="btn btn-outline-danger btn-sm">
@@ -151,20 +136,16 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
                     </form>
                 </div>
             </div>
-
-            <!-- ✅ Botones (mobile) -->
             <div class="d-md-none d-grid gap-2 mb-3">
                 <a href="<?= $baseFeatures; ?>/Dashboard.php" class="btn btn-secondary btn-sm">
                     <i class="fas fa-arrow-left me-1"></i> Volver
                 </a>
-
                 <form method="post" class="m-0">
                     <input type="hidden" name="action" value="markAllRead">
                     <button type="submit" class="btn-enviar w-100">
                         <i class="fas fa-check-double me-1"></i> Marcar todas como leídas
                     </button>
                 </form>
-
                 <form method="post" class="m-0" onsubmit="return confirm('¿Querés eliminar todas tus notificaciones?');">
                     <input type="hidden" name="action" value="deleteAll">
                     <button type="submit" class="btn btn-outline-danger btn-sm w-100">
@@ -294,7 +275,6 @@ $baseFeatures = BASE_URL . "/features/{$rolMenu}";
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- ✅ NO agregamos JS de sidebar acá: SidebarDueno.php ya lo incluye -->
 </body>
 
 </html>

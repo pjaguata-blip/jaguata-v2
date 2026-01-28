@@ -14,7 +14,6 @@ use Jaguata\Helpers\Session;
 
 AppConfig::init();
 
-/* 🔒 Auth */
 $auth = new AuthController();
 $auth->checkRole('dueno');
 
@@ -137,14 +136,11 @@ $urlNueva    = $baseFeatures . '/MisMascotas.php?vista=nueva';
         html, body { height: 100%; }
         body { background: var(--gris-fondo, #f4f6f9); }
 
-        /* ✅ Desktop: igual */
         main.main-content{
             margin-left: 260px;
             min-height: 100vh;
             padding: 24px;
         }
-
-        /* ✅ Mobile: NO margin-top, reservamos espacio arriba con padding-top */
         @media (max-width: 768px){
             main.main-content{
                 margin-left: 0;
@@ -185,13 +181,7 @@ $urlNueva    = $baseFeatures . '/MisMascotas.php?vista=nueva';
 
 <body class="page-mis-mascotas">
 
-    <!-- ✅ Sidebar unificado (topbar mobile + backdrop + JS toggle) -->
     <?php include __DIR__ . '/../../src/Templates/SidebarDueno.php'; ?>
-
-    <!-- ✅ IMPORTANTE:
-         Quitamos el botón hamburguesa EXTRA y el JS extra,
-         porque SidebarDueno.php debería manejar el toggle unificado.
-    -->
 
     <main class="main-content">
         <div class="container-fluid py-2">
@@ -239,9 +229,6 @@ $urlNueva    = $baseFeatures . '/MisMascotas.php?vista=nueva';
                 </div>
             <?php endif; ?>
 
-            <!-- =============================
-                    VISTA AGREGAR MASCOTA
-            ============================== -->
             <?php if ($vista === 'nueva'): ?>
 
                 <div class="section-card">

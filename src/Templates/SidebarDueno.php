@@ -10,19 +10,15 @@ $baseFeatures  = BASE_URL . "/features/{$rolUsuario}";
 $currentFile   = basename($_SERVER['PHP_SELF']);
 ?>
 
-<!-- ✅ TOPBAR MOBILE -->
 <div class="topbar-mobile d-lg-none">
     <div class="d-flex align-items-center gap-2 fw-semibold">
         <i class="fas fa-paw"></i> Jaguata
     </div>
-
-    <!-- ✅ YA NO usamos id -->
     <button type="button" data-toggle="sidebar" aria-label="Abrir menú">
         <i class="fas fa-bars"></i>
     </button>
 </div>
 
-<!-- ✅ OVERLAY -->
 <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 
 <aside id="sidebar" class="sidebar">
@@ -196,7 +192,6 @@ $currentFile   = basename($_SERVER['PHP_SELF']);
     </div>
 </aside>
 
-<!-- ✅ JS Sidebar UNIFICADO (sin depender de ids duplicados) -->
 <script>
 (function () {
     const sidebar   = document.getElementById('sidebar');
@@ -226,20 +221,16 @@ $currentFile   = basename($_SERVER['PHP_SELF']);
 
     toggles.forEach(btn => btn.addEventListener('click', toggle));
     backdrop.addEventListener('click', close);
-
-    // ✅ cerrar al tocar un link en mobile
     sidebar.addEventListener('click', (e) => {
         const a = e.target.closest('a.nav-link');
         if (!a) return;
         if (isMobile()) close();
     });
 
-    // ✅ si se agranda la pantalla, resetea overlay
     window.addEventListener('resize', () => {
         if (!isMobile()) close();
     });
 
-    // ✅ ESC cierra
     window.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') close();
     });

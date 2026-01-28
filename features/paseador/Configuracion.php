@@ -18,8 +18,6 @@ use Jaguata\Controllers\ConfiguracionController;
 use Jaguata\Models\Usuario;
 
 AppConfig::init();
-
-/* 🔒 Verificación de sesión y rol */
 $auth = new AuthController();
 $auth->checkRole('paseador');
 
@@ -35,7 +33,6 @@ if (!$usuarioId) {
     exit;
 }
 
-/* 🔹 Cargar datos actuales desde BD */
 $usuarioRow = $usuarioModel->find((int)$usuarioId);
 
 if (!$usuarioRow) {
@@ -96,11 +93,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'telefono' => $paseador['telefono'],
                 'zona'     => $paseador['zona'],
             ]);
-
-            // 🔹 Guardar preferencia de notificaciones en tabla configuracion
             $configCtrl->set($notifKey, $paseador['notificaciones'] ? '1' : '0');
-
-            // 🔹 Cambio de contraseña (si corresponde)
             if ($nuevaPassword !== '' && $nuevaPassword === $confirmarPassword) {
                 $hash = password_hash($nuevaPassword, PASSWORD_BCRYPT);
                 $usuarioModel->actualizarPassword((int)$usuarioId, $hash);

@@ -1,8 +1,5 @@
 <?php
-/* =========================================================
-   C:\xampp\htdocs\jaguata\public\guardar_password.php
-   Backend: valida token + actualiza contraseña + marca used
-========================================================= */
+
 
 declare(strict_types=1);
 

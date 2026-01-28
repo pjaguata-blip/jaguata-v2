@@ -6,8 +6,6 @@ require_once __DIR__ . '/../../src/Config/AppConfig.php';
 require_once __DIR__ . '/../../src/Controllers/AuthController.php';
 require_once __DIR__ . '/../../src/Controllers/PaseoController.php';
 require_once __DIR__ . '/../../src/Helpers/Session.php';
-
-/* ✅ Suscripción */
 require_once __DIR__ . '/../../src/Models/Suscripcion.php';
 
 use Jaguata\Config\AppConfig;
@@ -17,12 +15,8 @@ use Jaguata\Helpers\Session;
 use Jaguata\Models\Suscripcion;
 
 AppConfig::init();
-
-/* 🔒 Solo paseador */
 $auth = new AuthController();
 $auth->checkRole('paseador');
-
-/* 🔒 BLOQUEO POR ESTADO */
 if (Session::getUsuarioEstado() !== 'aprobado') {
     Session::setError('Tu cuenta aún no fue aprobada.');
     header('Location: ' . BASE_URL . '/public/login.php');
@@ -33,10 +27,6 @@ function h($v): string
 {
     return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
 }
-
-/* =========================
-   Helpers redirect seguro
-   ========================= */
 $baseFeatures = BASE_URL . "/features/paseador";
 $defaultBack  = $baseFeatures . '/MisPaseos.php';
 
@@ -47,10 +37,6 @@ $redirectUrl = $defaultBack;
 if ($redirectTo !== '' && in_array($redirectTo, $allowedRedirects, true)) {
     $redirectUrl = $baseFeatures . '/' . $redirectTo;
 }
-
-/* =========================
-   Leer acción (POST o GET)
-   ========================= */
 $method = $_SERVER['REQUEST_METHOD'];
 
 if ($method === 'POST') {
@@ -70,10 +56,6 @@ if ($paseoId <= 0 || $accion === '') {
 
 $paseadorId      = (int)(Session::getUsuarioId() ?? 0);
 $paseoController = new PaseoController();
-
-/* =========================
-   ✅ Validar suscripción PRO
-   ========================= */
 $tieneProActiva = false;
 try {
     if ($paseadorId > 0) {
@@ -82,7 +64,6 @@ try {
         if (method_exists($subModel, 'marcarVencidas')) {
             $subModel->marcarVencidas();
         }
-
         $ultima = method_exists($subModel, 'getUltimaPorPaseador')
             ? $subModel->getUltimaPorPaseador($paseadorId)
             : null;

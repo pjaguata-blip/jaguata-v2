@@ -8,7 +8,6 @@ use PDO;
 
 class Disponibilidad extends BaseModel
 {
-    // 👈 nombre real de la tabla
     protected string $table = 'disponibilidades_paseador';
     protected string $primaryKey = 'id';
 
@@ -24,15 +23,6 @@ class Disponibilidad extends BaseModel
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
-    /**
-     * Guarda la disponibilidad completa de un paseador.
-     * Borra lo anterior y vuelve a insertar.
-     *
-     * $data: [
-     *   ['dia' => 'Lunes', 'inicio' => '08:00', 'fin' => '12:00', 'activo' => 1],
-     *   ...
-     * ]
-     */
     public function saveDisponibilidad(int $paseadorId, array $data): bool
     {
         // 1) borrar disponibilidad anterior

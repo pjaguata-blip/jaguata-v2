@@ -25,7 +25,6 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-// 🔐 Solo paseador logueado
 $auth = new AuthController();
 $auth->checkRole('paseador'); // si falla, redirige; aquí asumimos que sigue
 

@@ -17,11 +17,6 @@ class CanjeController
         $this->db = DatabaseService::getInstance();
         $this->recompensaModel = new Recompensa();
     }
-
-    /**
-     * Crea un canje "pendiente" (ticket) y descuenta puntos.
-     * Ese ticket luego se usa en SolicitarPaseo.
-     */
     public function canjear(int $usuarioId, int $recompensaId): array
     {
         if ($usuarioId <= 0 || $recompensaId <= 0) {
@@ -32,8 +27,6 @@ class CanjeController
         if (!$rec) {
             return ['success' => false, 'error' => 'La recompensa no existe.'];
         }
-
-        // ✅ activa/activo check (soporta ambos)
         $flag = null;
         if (array_key_exists('activo', $rec)) $flag = (int)($rec['activo'] ?? 0);
         if (array_key_exists('activa', $rec)) $flag = (int)($rec['activa'] ?? 0);
@@ -58,7 +51,6 @@ class CanjeController
             return ['success' => false, 'error' => 'No tenés puntos suficientes.'];
         }
 
-        // ✅ Datos de recompensa para “snapshot” en el canje
         $titulo = (string)($rec['titulo'] ?? 'Recompensa');
         $tipo   = strtoupper(trim((string)($rec['tipo_descuento'] ?? 'PORCENTAJE')));
         $valor  = (int)($rec['valor_descuento'] ?? 0);
@@ -75,7 +67,6 @@ class CanjeController
             $valor = 100; // opcional, solo referencia
         }
 
-        // ✅ Evitar duplicado diario (opcional)
         $ya = $this->db->fetchOne("
             SELECT canje_id
             FROM canjes

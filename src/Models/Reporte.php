@@ -18,10 +18,6 @@ class Reporte
             throw new PDOException("No hay conexión a la base de datos en Reporte.php");
         }
     }
-
-    /**
-     * Obtener estadísticas generales del sistema
-     */
     public function getEstadisticas(): array
     {
         try {
@@ -41,9 +37,6 @@ class Reporte
         }
     }
 
-    /**
-     * Ganancias acumuladas de un paseador
-     */
     public function getGananciasPorPaseador(int $paseadorId): array
     {
         try {
@@ -65,9 +58,6 @@ class Reporte
         }
     }
 
-    /**
-     * Actividades agrupadas por rol de usuario (dueño / paseador / admin)
-     */
     public function getActividadesPorRol(string $rol): array
     {
         try {

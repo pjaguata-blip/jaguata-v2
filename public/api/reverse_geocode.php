@@ -9,12 +9,6 @@ use Jaguata\Config\AppConfig;
 AppConfig::init();
 header('Content-Type: application/json; charset=utf-8');
 
-/*
-  Este endpoint normalmente hace reverse geocoding (lat/lng → dirección)
-  Acá te dejo una estructura base segura.
-  Si vos ya tenías lógica con cURL, pegala dentro del try.
-*/
-
 $lat = isset($_GET['lat']) ? (float)$_GET['lat'] : 0.0;
 $lng = isset($_GET['lng']) ? (float)$_GET['lng'] : 0.0;
 
@@ -24,7 +18,6 @@ if ($lat === 0.0 || $lng === 0.0) {
 }
 
 try {
-    // ✅ Nominatim Reverse (sin API key)
     $url = "https://nominatim.openstreetmap.org/reverse?format=json&lat={$lat}&lon={$lng}&zoom=18&addressdetails=1";
 
     $ch = curl_init();

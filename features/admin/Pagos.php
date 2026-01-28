@@ -14,7 +14,6 @@ use Jaguata\Controllers\PagoController;
 
 AppConfig::init();
 
-/* 🔒 Solo admin */
 if (!Session::isLoggedIn()) {
     header('Location: ' . BASE_URL . '/public/login.php');
     exit;
@@ -22,7 +21,6 @@ if (!Session::isLoggedIn()) {
 $auth = new AuthController();
 $auth->checkRole('admin');
 
-/* ✅ baseFeatures para botón volver */
 $baseFeatures = BASE_URL . '/features/admin';
 
 /* Datos */
@@ -47,12 +45,10 @@ function h(?string $v): string
     <link href="<?= BASE_URL; ?>/public/assets/css/jaguata-theme.css" rel="stylesheet">
 
     <style>
-        /* ✅ evita scroll horizontal */
         html, body { overflow-x: hidden; width: 100%; }
         .table-responsive { overflow-x: auto; }
         th, td { white-space: nowrap; }
 
-        /* ✅ chip de estado pro (igual Mascotas) */
         .estado-chip{
             display:inline-flex;
             align-items:center;
@@ -76,7 +72,6 @@ function h(?string $v): string
     <main>
         <div class="container-fluid px-3 px-md-2">
 
-            <!-- ✅ HEADER (igual estilo) -->
             <div class="header-box header-paseos mb-3">
                 <div>
                     <h1 class="fw-bold mb-1">Gestión de Pagos</h1>
@@ -139,7 +134,6 @@ function h(?string $v): string
                 </a>
             </div>
 
-            <!-- ✅ SECTION CARD (igual las otras) -->
             <div class="section-card mb-3">
                 <div class="section-header d-flex justify-content-between align-items-center flex-wrap gap-2">
                     <div class="d-flex align-items-center">
@@ -196,7 +190,6 @@ function h(?string $v): string
                                             default     => ucfirst($estadoPago),
                                         };
 
-                                        // ✅ badge-estado (como tu sistema)
                                         $badgeEstado = match ($estadoPago) {
                                             'pendiente' => 'estado-pendiente',
                                             'pagado'    => 'estado-aprobado',   // o estado-activo si preferís
@@ -256,14 +249,12 @@ function h(?string $v): string
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        // ✅ Toggle sidebar en mobile (igual)
         document.addEventListener('DOMContentLoaded', () => {
             const sidebar = document.querySelector('.sidebar');
             const btnToggle = document.getElementById('btnSidebarToggle');
             if (btnToggle && sidebar) btnToggle.addEventListener('click', () => sidebar.classList.toggle('show'));
         });
 
-        // ✅ Filtros pagos
         const searchInput  = document.getElementById('searchInput');
         const filterEstado = document.getElementById('filterEstado');
         const filterMetodo = document.getElementById('filterMetodo');

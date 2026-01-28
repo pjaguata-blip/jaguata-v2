@@ -13,8 +13,6 @@ use Jaguata\Helpers\Session;
 use Jaguata\Controllers\ConfiguracionController;
 
 AppConfig::init();
-
-/* 🔒 Solo admin */
 if (!Session::isLoggedIn() || Session::getUsuarioRol() !== 'admin') {
     header('Location: ' . BASE_URL . '/public/login.php?error=unauthorized');
     exit;
@@ -25,19 +23,13 @@ function h(?string $v): string
 {
     return htmlspecialchars((string)($v ?? ''), ENT_QUOTES, 'UTF-8');
 }
-
 /* Rutas base (para botón volver, etc.) */
 $rolMenu      = Session::getUsuarioRol() ?: 'admin';
 $baseFeatures = BASE_URL . "/features/{$rolMenu}";
-
 $configController = new ConfiguracionController();
-
 $mensajeConfig = '';
 $mensajeRoles  = '';
-
-/* 🔹 Traer TODO lo que haya en la tabla configuracion (clave/valor) */
 $configDB = $configController->getAll();
-
 /**
  * Defaults del sistema
  * (Ya NO usamos comisión ni tarifa por paseo)
@@ -46,8 +38,6 @@ $configBase = [
     'nombre_sistema'            => 'Jaguata',
     'correo_soporte'            => 'soporte@jaguata.com',
     'modo_mantenimiento'        => '0',
-
-    // ✅ Suscripción mensual (nuevas claves)
     'suscripcion_mensual_monto' => '50000', // ejemplo
     'suscripcion_estado'        => '1',     // 1=activo, 0=inactivo
     'suscripcion_detalle'       => 'Acceso completo a la plataforma mediante suscripción mensual.'
@@ -122,11 +112,8 @@ $permisosModuloRolDefault = [
         'dueno'    => false,
     ],
 ];
-
-/* 🔹 Cargar CONFIGURACIÓN del sistema (clave/valor) */
 $config = array_merge($configBase, $configDB);
 
-/* 🔹 Cargar ROLES guardados como JSON (si existen) */
 if (!empty($configDB['roles_config'])) {
     $dec = json_decode($configDB['roles_config'], true);
     $rolesConfig = is_array($dec) ? $dec : $rolesDefault;
@@ -134,7 +121,6 @@ if (!empty($configDB['roles_config'])) {
     $rolesConfig = $rolesDefault;
 }
 
-/* 🔹 Cargar PERMISOS guardados como JSON (acciones por módulo) – opcional */
 if (!empty($configDB['permisos_config'])) {
     $dec = json_decode($configDB['permisos_config'], true);
     $permisosConfig = is_array($dec) ? $dec : $permisosDefault;
@@ -142,7 +128,6 @@ if (!empty($configDB['permisos_config'])) {
     $permisosConfig = $permisosDefault;
 }
 
-/* 🔹 Cargar PERMISOS POR MÓDULO Y ROL (admin/paseador/dueno) */
 if (!empty($configDB['permisos_modulo_rol'])) {
     $dec = json_decode($configDB['permisos_modulo_rol'], true);
     $permisosModuloRolConfig = is_array($dec) ? $dec : $permisosModuloRolDefault;
@@ -150,21 +135,17 @@ if (!empty($configDB['permisos_modulo_rol'])) {
     $permisosModuloRolConfig = $permisosModuloRolDefault;
 }
 
-/* 🔹 Procesar POST */
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $tipoForm = $_POST['tipo_form'] ?? 'sistema';
 
     if ($tipoForm === 'sistema') {
 
-        // ✅ Guardar configuración general + suscripción + modo mantenimiento
         $suscripcionActiva = isset($_POST['suscripcion_estado']) ? '1' : '0';
 
         $configController->saveMany([
             'nombre_sistema'            => $_POST['nombre_sistema'] ?? '',
             'correo_soporte'            => $_POST['correo_soporte'] ?? '',
             'modo_mantenimiento'        => isset($_POST['modo_mantenimiento']) ? '1' : '0',
-
-            // ✅ Suscripción mensual
             'suscripcion_mensual_monto' => $_POST['suscripcion_mensual_monto'] ?? '0',
             'suscripcion_estado'        => $suscripcionActiva,
             'suscripcion_detalle'       => $_POST['suscripcion_detalle'] ?? '',
@@ -283,8 +264,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
             </div>
         </div>
-
-        <!-- ✅ Suscripción mensual (reemplaza comisión/tarifa) -->
         <div class="section-card">
             <div class="section-header">
                 <i class="fas fa-crown me-2"></i>Suscripción Mensual
@@ -480,8 +459,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <script>
     const BASE_URL = '<?= BASE_URL; ?>';
-
-    // 🔐 Cambio de contraseña
     const btnCambiarPass = document.getElementById('btnCambiarPass');
     if (btnCambiarPass) {
         btnCambiarPass.addEventListener('click', async () => {

@@ -18,11 +18,9 @@ use Jaguata\Controllers\NotificacionController;
 
 AppConfig::init();
 
-/* 🔒 Autenticación y rol */
 $auth = new AuthController();
 $auth->checkRole('dueno');
 
-/* 🔒 BLOQUEO POR ESTADO (MUY IMPORTANTE) */
 if (Session::getUsuarioEstado() !== 'aprobado') {
     Session::setError('Tu cuenta aún no fue aprobada.');
     header('Location: ' . BASE_URL . '/public/login.php');
@@ -36,17 +34,9 @@ $duenoId = (int)(Session::getUsuarioId() ?? 0);
 $mascotaController      = new MascotaController();
 $paseoController        = new PaseoController();
 $notificacionController = new NotificacionController();
-
-/* 🐶 Mascotas del dueño */
 $mascotas = $mascotaController->indexByDuenoActual() ?: [];
-
-/* 🚶 Paseos del dueño (SOLO de este usuario) */
 $paseos = $duenoId > 0 ? ($paseoController->indexByDueno($duenoId) ?: []) : [];
-
-/* 🔔 Notificaciones recientes del dueño */
 $notificaciones = $duenoId > 0 ? ($notificacionController->getRecientes($duenoId, 5) ?: []) : [];
-
-/* 🧮 Estadísticas */
 $totalMascotas = count($mascotas);
 
 $normEstado = static function (?string $s): string {
@@ -67,17 +57,11 @@ $gastosTotales = array_sum(array_map(
     fn(array $p) => (float)($p['precio_total'] ?? 0),
     $paseosCompletadosArr
 ));
-
-/* 📅 Ordenar paseos por fecha de inicio (más recientes primero) */
 usort($paseos, function (array $a, array $b): int {
     return strtotime($b['inicio'] ?? '1970-01-01') <=> strtotime($a['inicio'] ?? '1970-01-01');
 });
 $paseosRecientes = array_slice($paseos, 0, 5);
-
-/* 🐾 Mascotas recientes */
 $mascotasRecientes = array_slice($mascotas, 0, 3);
-
-/* Rutas base y nombre usuario para SidebarDueno */
 $baseFeatures  = BASE_URL . "/features/dueno";
 $usuarioNombre = Session::getUsuarioNombre() ?? 'Dueño/a';
 
@@ -86,7 +70,6 @@ function h(?string $v): string
 {
     return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
 }
-
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -121,7 +104,7 @@ main.main-content {
 @media (max-width: 768px) {
     main.main-content {
         margin-left: 0;
-        margin-top: 0 !important; /* 🔥 clave */
+        margin-top: 0 !important; 
         width: 100% !important;
         padding: calc(16px + var(--topbar-h)) 16px 16px !important;
     }
@@ -163,11 +146,6 @@ main.main-content {
 
     <!-- Sidebar Dueño unificado -->
     <?php include __DIR__ . '/../../src/Templates/SidebarDueno.php'; ?>
-
-    <!-- ✅ IMPORTANTE:
-         - Eliminamos el botón hamburguesa EXTRA (data-toggle="sidebar")
-         - Eliminamos el JS extra del toggleSidebar (SidebarDueno ya lo trae)
-    -->
 
     <main class="main-content">
         <div class="py-2">

@@ -1,8 +1,4 @@
 <?php
-/* =========================================================
-   C:\xampp\htdocs\jaguata\public\restablecer_password.php
-   Pantalla: nueva contraseña (estilo dashboards)
-========================================================= */
 
 declare(strict_types=1);
 
@@ -18,7 +14,6 @@ function h($v): string {
     return htmlspecialchars((string)($v ?? ''), ENT_QUOTES, 'UTF-8');
 }
 
-/* ========= Estado / rol / sidebar (IGUAL HOME/LOGIN) ========= */
 $logueado = Session::isLoggedIn();
 
 $rol = null;

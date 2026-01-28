@@ -9,24 +9,14 @@ use PDOException;
 
 class Paseador extends BaseModel
 {
-    // 👇 Estos los usa BaseModel para find(), all(), etc.
     protected string $table = 'paseadores';
     protected string $primaryKey = 'paseador_id';
 
     public function __construct()
     {
-        // Usa el constructor de BaseModel (que ya crea $this->db)
         parent::__construct();
     }
 
-    /**
-     * 🔹 Obtiene el listado de paseadores disponibles para el dueño.
-     *
-     * - Solo devuelve paseadores marcados como disponibles.
-     * - Junta datos de la tabla usuarios: ciudad, barrio, teléfono, etc.
-     * - $fecha es opcional. Por ahora se mantiene en la firma para no romper
-     *   el código, pero la versión simple no filtra por fecha.
-     */
     public function getDisponibles(?string $fecha = null): array
     {
         try {
@@ -52,8 +42,6 @@ class Paseador extends BaseModel
                   AND p.disponibilidad = 1
                   AND u.estado = 'aprobado'
             ";
-
-            // Más adelante podés agregar filtro por $fecha si querés
             $stmt = $this->db->prepare($sql);
             $stmt->execute();
 
@@ -64,9 +52,6 @@ class Paseador extends BaseModel
         }
     }
 
-    /**
-     * (Opcional) Obtener un paseador puntual por ID
-     */
     public function getById(int $id): ?array
     {
         try {
@@ -94,10 +79,7 @@ class Paseador extends BaseModel
             return null;
         }
     }
-    /**
-     * Cambiar disponibilidad visible del paseador
-     * (lo usa PaseadorController::apiSetDisponible)
-     */
+ 
     public function setDisponible(int $id, bool $estado): bool
     {
         // OJO: usá el nombre real de la columna: 'disponible' o 'disponibilidad'
@@ -112,10 +94,6 @@ class Paseador extends BaseModel
         ]);
     }
 
-    /**
-     * Actualizar calificación del paseador
-     * (lo usa PaseadorController::apiUpdateCalificacion)
-     */
     public function updateCalificacion(int $id, float $valor): bool
     {
         $sql = "UPDATE {$this->table}
@@ -129,10 +107,6 @@ class Paseador extends BaseModel
         ]);
     }
 
-    /**
-     * Incrementar contador de paseos realizados
-     * (lo usa PaseadorController::apiIncrementarPaseos)
-     */
     public function incrementarPaseos(int $id): bool
     {
         $sql = "UPDATE {$this->table}
@@ -145,10 +119,6 @@ class Paseador extends BaseModel
         ]);
     }
 
-    /**
-     * Buscar paseadores por nombre, email o teléfono
-     * (lo usa PaseadorController::buscar)
-     */
     public function search(string $query): array
     {
         try {

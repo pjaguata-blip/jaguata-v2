@@ -26,9 +26,6 @@ class PagoController
         $this->pagoModel = new Pago();
     }
 
-    /**
-     * Listado general para ADMIN (todos los pagos).
-     */
     public function index(?string $estado = null): array
     {
         try {
@@ -39,10 +36,6 @@ class PagoController
         }
     }
 
-    /**
-     * Listado filtrado por estado (admin).
-     * $estado: 'pendiente', 'pagado', etc.
-     */
     public function getByEstado(string $estado): array
     {
         if (!Session::isLoggedIn() || Session::getUsuarioRol() !== 'admin') {
@@ -62,9 +55,6 @@ class PagoController
         }
     }
 
-    /**
-     * Crear pago desde el lado del DUEÑO (gastos del dueño).
-     */
     public function crearPagoDueno(array $data): array
     {
         if (!Session::isLoggedIn()) {
@@ -78,11 +68,7 @@ class PagoController
             }
         }
 
-        // ✅ NORMALIZAR método (acepta EFECTIVO / efectivo / Transferencia, etc.)
         $metodo = strtoupper(trim((string)$data['metodo'])); // EFECTIVO | TRANSFERENCIA
-
-        // ✅ Para el dueño: si ya cargó el pago, lo marcamos como confirmado por dueño
-        // (así en Paseador ya se ve “Pagado” si vos querés eso)
         $estado = ($metodo === 'EFECTIVO' || $metodo === 'TRANSFERENCIA')
             ? 'confirmado_por_dueno'
             : 'pendiente';
@@ -103,9 +89,6 @@ class PagoController
 
         try {
             $id = $this->pagoModel->create($payload);
-
-            // ✅ CLAVE: reflejar en la tabla paseos lo que usa tu pantalla del paseador
-            // Tu MisPaseos.php muestra pago leyendo: $p['estado_pago']
             $st = $this->db->prepare("
             UPDATE paseos
             SET estado_pago = 'procesado'
@@ -120,18 +103,11 @@ class PagoController
         }
     }
 
-
-    /**
-     * Alias por si desde el front llamás a /api/pagos/crear
-     */
     public function crear(array $data): array
     {
         return $this->crearPagoDueno($data);
     }
 
-    /**
-     * El paseador confirma que recibió el pago.
-     */
     public function confirmarPago(int $pagoId, ?string $observacion = null): array
     {
         if (!Session::isLoggedIn()) {
@@ -160,9 +136,6 @@ class PagoController
         }
     }
 
-    /**
-     * Marca un pago con observación (rechazado / necesita revisión).
-     */
     public function observarPago(int $pagoId, ?string $observacion = null): array
     {
         if (!Session::isLoggedIn()) {
@@ -178,9 +151,6 @@ class PagoController
         }
     }
 
-    /**
-     * Reporte de gastos para el dueño (GastosTotales.php).
-     */
     public function listarGastosDueno(array $filters): array
     {
         $sql = "
@@ -188,8 +158,6 @@ class PagoController
             pg.id,
             pg.paseo_id,
             UPPER(pg.metodo) AS metodo,
-
-            /* ✅ Normalizamos el estado para la UI */
             CASE
                 WHEN LOWER(pg.estado) LIKE 'confirmado%' THEN 'CONFIRMADO'
                 WHEN LOWER(pg.estado) = 'pendiente'      THEN 'PENDIENTE'
@@ -239,8 +207,6 @@ class PagoController
             $params[':metodo'] = strtoupper((string)$filters['metodo']);
         }
 
-        /* ✅ Estado UI: CONFIRMADO / PENDIENTE / RECHAZADO
-       Si NO se envía estado => por defecto mostramos SOLO confirmados */
         $estadoUI = strtoupper(trim((string)($filters['estado'] ?? '')));
         if ($estadoUI === 'CONFIRMADO' || $estadoUI === '') {
             $sql .= " AND LOWER(pg.estado) LIKE 'confirmado%'";
@@ -328,10 +294,7 @@ class PagoController
             return null;
         }
     }
-    /**
-     * ✅ Lista pagos del dueño (usuario_id en pagos = dueño)
-     * Trae también info del paseo + mascotas (incluye 2 mascotas)
-     */
+
     public function listarPagosDueno(int $duenoId): array
     {
         if ($duenoId <= 0) return [];
@@ -381,4 +344,48 @@ class PagoController
             return [];
         }
     }
+    public function obtenerDatosExportacion(): array
+{
+    try {
+        $sql = "
+            SELECT
+                pg.id              AS pago_id,
+                pg.paseo_id        AS paseo_id,
+                pg.monto           AS monto,
+                pg.estado          AS estado_pago,
+                pg.comprobante     AS comprobante,
+                pg.created_at      AS pago_creado,
+                pg.updated_at      AS pago_actualizado,
+
+                dueno.nombre       AS dueno_nombre,
+                dueno.email        AS dueno_email,
+
+                paseador.nombre    AS paseador_nombre,
+                paseador.email     AS paseador_email,
+
+                m.nombre           AS mascota_nombre,
+                COALESCE(m2.nombre,'') AS mascota2_nombre,
+                COALESCE(p.cantidad_mascotas, 1) AS cantidad_mascotas,
+
+                p.inicio           AS paseo_inicio,
+                p.duracion         AS paseo_duracion,
+                p.estado           AS paseo_estado
+            FROM pagos pg
+            INNER JOIN paseos p          ON p.paseo_id = pg.paseo_id
+            INNER JOIN mascotas m        ON m.mascota_id = p.mascota_id
+            LEFT  JOIN mascotas m2       ON m2.mascota_id = p.mascota_id_2
+            INNER JOIN usuarios dueno    ON dueno.usu_id = m.dueno_id
+            INNER JOIN usuarios paseador ON paseador.usu_id = p.paseador_id
+            ORDER BY pg.id DESC
+        ";
+
+        $stmt = $this->db->query($sql);
+        return $stmt ? ($stmt->fetchAll(\PDO::FETCH_ASSOC) ?: []) : [];
+
+    } catch (\PDOException $e) {
+        error_log('❌ PagoController::obtenerDatosExportacion() error: ' . $e->getMessage());
+        return [];
+    }
+}
+
 }

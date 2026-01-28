@@ -14,7 +14,6 @@ use Jaguata\Helpers\Session;
 
 AppConfig::init();
 
-/* 🔒 Auth (solo dueño) */
 $auth = new AuthController();
 $auth->checkRole('dueno');
 
@@ -34,15 +33,8 @@ if (!$usuario) {
     exit('Usuario no encontrado.');
 }
 
-/* =========================
-   CATÁLOGOS: Dep → Ciudad → Barrios
-   ========================= */
 $DEPARTAMENTOS = ['Asunción', 'Gran Asunción', 'Otra'];
 
-/**
- * Estructura:
- *  UBICACIONES[Departamento][Ciudad] = [Barrios...]
- */
 $UBICACIONES = [
     'Asunción' => [
         'Asunción' => [
@@ -78,9 +70,6 @@ $UBICACIONES = [
     ],
 ];
 
-/* =========================
-   DATOS ACTUALES
-   ========================= */
 $nombre     = $usuario['nombre']       ?? '';
 $email      = $usuario['email']        ?? '';
 $telefono   = $usuario['telefono']     ?? '';
@@ -107,9 +96,6 @@ $fotoActual = $usuario['foto_perfil'] ?? '';
 $msg   = '';
 $error = '';
 
-/* =========================
-   📨 PROCESAR POST
-   ========================= */
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nombre    = trim($_POST['nombre'] ?? '');
     $email     = trim($_POST['email'] ?? '');
@@ -143,7 +129,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $fotoNueva = null;
 
-        /* 👇 Foto de perfil */
         if (!empty($_FILES['foto']['name']) && is_uploaded_file($_FILES['foto']['tmp_name'])) {
             $file   = $_FILES['foto'];
             $permit = [
@@ -213,9 +198,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-/* =========================
-   RUTAS BASE
-   ========================= */
 $rolMenu      = Session::getUsuarioRol() ?: 'dueno';
 $baseFeatures = BASE_URL . "/features/{$rolMenu}";
 
@@ -243,12 +225,10 @@ if (!empty($fotoActual)) {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
 
-    <!-- ✅ CSS unificado -->
     <link href="<?= BASE_URL; ?>/public/assets/css/jaguata-theme.css" rel="stylesheet">
 </head>
 
 <body>
-    <!-- ✅ Sidebar unificado (incluye topbar + backdrop + JS toggle) -->
     <?php include __DIR__ . '/../../src/Templates/SidebarDueno.php'; ?>
 
     <main>
@@ -420,9 +400,7 @@ if (!empty($fotoActual)) {
             if (img) img.src = url;
         });
 
-        // =========================
-        // Dep → Ciudad → Barrio
-        // =========================
+     
         const UBICACIONES = <?= json_encode($UBICACIONES, JSON_UNESCAPED_UNICODE); ?>;
 
         const depEl = document.getElementById('departamento');

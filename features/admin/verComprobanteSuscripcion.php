@@ -13,7 +13,6 @@ use Jaguata\Services\DatabaseService;
 
 AppConfig::init();
 
-/* 🔒 solo admin */
 $auth = new AuthController();
 $auth->checkRole('admin');
 
@@ -25,7 +24,6 @@ if ($id <= 0) {
 }
 
 try {
-    // ✅ FORMA CORRECTA
     $db = DatabaseService::getInstance()->getConnection();
 
     $st = $db->prepare(
@@ -43,8 +41,6 @@ try {
         echo "Sin comprobante";
         exit;
     }
-
-    // 🔒 evitar path traversal
     $file = basename((string)$file);
 
     $path = dirname(__DIR__, 2) . '/uploads/suscripciones/' . $file;

@@ -12,7 +12,6 @@ use Jaguata\Helpers\Session;
 
 AppConfig::init();
 
-// 🔒 Solo paseador
 if (!Session::isLoggedIn() || Session::getUsuarioRol() !== 'paseador') {
     http_response_code(401);
     exit('No autorizado');

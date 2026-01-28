@@ -18,11 +18,6 @@ class Paseo extends BaseModel
         parent::__construct();
     }
 
-    /**
-     * 🔹 Paseos para panel admin (lista general)
-     * Trae nombre de mascota, paseador y dueño.
-     * Usado en: features/admin/Paseos.php
-     */
     public function getAllWithRelations(): array
     {
         $sql = "
@@ -55,9 +50,6 @@ class Paseo extends BaseModel
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
-    /**
-     * 🔹 Paseos por dueño (para vistas del dueño)
-     */
     public function getByDueno(int $duenoId): array
     {
         $sql = "
@@ -77,12 +69,6 @@ class Paseo extends BaseModel
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
-
-
-    /**
-     * 🔹 Detalle de paseo para panel admin (VerPaseo.php)
-     * Incluye nombres y coordenadas del paseador + pickup.
-     */
     public function getDetalleAdmin(int $id): ?array
     {
         $sql = "
@@ -110,9 +96,6 @@ class Paseo extends BaseModel
         return $row !== false ? $row : null;
     }
 
-    /**
-     * 🔹 Actualiza el estado del paseo (solicitado, confirmado, en_curso, completo, cancelado)
-     */
     public function actualizarEstado(int $id, string $estado): bool
     {
         $sql = "
@@ -131,9 +114,6 @@ class Paseo extends BaseModel
         return $stmt->rowCount() > 0;
     }
 
-    /**
-     * 🔹 Exportar paseos por paseador (Excel)
-     */
     public function getExportByPaseador(int $paseadorId): array
     {
         $sql = "
@@ -159,10 +139,6 @@ class Paseo extends BaseModel
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
-    /**
-     * 🔹 Obtener ruta (lista de puntos lat/lng) para un paseo
-     * Usado para dibujar la línea con huellitas en el mapa
-     */
     public function getRuta(int $paseoId): array
     {
         $sql = "

@@ -21,7 +21,6 @@ use Jaguata\Helpers\Session;
 
 AppConfig::init();
 
-/* ✅ Validación para endpoint (sin redirects) */
 if (!Session::isLoggedIn()) {
     echo json_encode(['success' => false, 'error' => 'No autorizado (sin sesión).']);
     exit;

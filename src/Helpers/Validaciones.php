@@ -4,9 +4,6 @@ namespace Jaguata\Helpers;
 
 class Validaciones
 {
-    /**
-     * Genera y devuelve un token CSRF seguro
-     */
     public static function generarCSRF(): string
     {
         if (!isset($_SESSION['csrf_token'])) {
@@ -15,9 +12,6 @@ class Validaciones
         return $_SESSION['csrf_token'];
     }
 
-    /**
-     * Verifica un token CSRF recibido contra el almacenado en sesión
-     */
     public static function verificarCSRF(?string $token): bool
     {
         return isset($_SESSION['csrf_token'])
@@ -25,17 +19,11 @@ class Validaciones
             && \hash_equals($_SESSION['csrf_token'], $token);
     }
 
-    /**
-     * Valida un email (bool simple)
-     */
     public static function isEmail(string $email): bool
     {
         return \filter_var($email, FILTER_VALIDATE_EMAIL) !== false;
     }
 
-    /**
-     * (Mantén la versión anterior si la usas en otros lugares)
-     */
     public static function validarEmail(string $email): array
     {
         return self::isEmail($email)
@@ -43,9 +31,6 @@ class Validaciones
             : ['valido' => false, 'mensaje' => 'El email no es válido'];
     }
 
-    /**
-     * Valida una contraseña con reglas mínimas (unifica a 8)
-     */
     public static function validarPassword(string $password, int $min = 8): array
     {
         if (\strlen($password) < $min) {
@@ -57,9 +42,6 @@ class Validaciones
         return ['valido' => true];
     }
 
-    /**
-     * Valida teléfono tipo 0981-123-456 o solo dígitos de 9 a 15
-     */
     public static function validarTelefono(string $telefono): bool
     {
         $telefono = \trim($telefono);
@@ -70,17 +52,11 @@ class Validaciones
         return $conGuion || $soloDigitos;
     }
 
-    /**
-     * Limpia y sanitiza un string (úsalo al imprimir)
-     */
     public static function sanitizarString(string $string): string
     {
         return \htmlspecialchars(\trim($string), ENT_QUOTES, 'UTF-8');
     }
 
-    /**
-     * (Opcional) Validador compuesto para forms grandes
-     */
     public static function validarDatosUsuario(array $data): array
     {
         $errores = [];
@@ -101,10 +77,6 @@ class Validaciones
             $errores['telefono'] = 'Teléfono inválido (ej: 0981-123-456 o solo dígitos)';
         }
 
-        /**
-         * ✅ Se agregó el rol 'admin' para compatibilidad con el panel administrativo.
-         *    Ahora también será considerado válido al registrarse o iniciar sesión.
-         */
         if (empty($data['rol']) || !\in_array($data['rol'], ['dueno', 'paseador', 'admin'], true)) {
             $errores['rol'] = 'Debes seleccionar un rol válido';
         }

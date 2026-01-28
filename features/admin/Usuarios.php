@@ -16,7 +16,6 @@ use Jaguata\Models\Suscripcion;
 
 AppConfig::init();
 
-/* 🔒 Seguridad */
 if (!Session::isLoggedIn() || Session::getUsuarioRol() !== 'admin') {
     header('Location: ' . BASE_URL . '/public/login.php?error=unauthorized');
     exit;
@@ -27,7 +26,6 @@ function h(?string $v): string
     return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
 }
 
-/* ✅ baseFeatures */
 $baseFeatures = BASE_URL . '/features/admin';
 
 /* Datos */
@@ -35,7 +33,6 @@ $usuarioController = new UsuarioController();
 $usuarios          = $usuarioController->index() ?: [];
 $calificacionModel = new Calificacion();
 
-/* ✅ SUSCRIPCIONES (1 query) */
 $subModel = new Suscripcion();
 
 $paseadorIds = [];
@@ -81,7 +78,6 @@ try {
     <link href="<?= BASE_URL; ?>/public/assets/css/jaguata-theme.css" rel="stylesheet">
 
     <style>
-        /* ✅ evita scroll horizontal */
         html, body { overflow-x: hidden; width: 100%; }
         .table-responsive { overflow-x: auto; }
         th, td { white-space: nowrap; }
@@ -98,8 +94,6 @@ try {
 
 <main>
     <div class="container-fluid px-3 px-md-2">
-
-        <!-- ✅ HEADER (igual que Notificaciones) -->
         <div class="header-box header-usuarios mb-3">
             <div>
                 <h1 class="fw-bold mb-1">Gestión de Usuarios</h1>
@@ -384,7 +378,6 @@ try {
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-    /* ✅ Toggle sidebar en mobile (IGUAL a Notificaciones) */
     document.addEventListener('DOMContentLoaded', () => {
         const sidebar = document.querySelector('.sidebar');
         const btnToggle = document.getElementById('btnSidebarToggle');

@@ -15,7 +15,6 @@ use Jaguata\Services\DatabaseService;
 
 AppConfig::init();
 
-/* 🔒 Seguridad */
 if (!Session::isLoggedIn() || Session::getUsuarioRol() !== 'admin') {
     header('Location: ' . BASE_URL . '/public/login.php?error=unauthorized');
     exit;
@@ -25,7 +24,6 @@ if (!Session::isLoggedIn() || Session::getUsuarioRol() !== 'admin') {
 function h(?string $v): string { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
 function formato_guarani(float $m): string { return number_format($m, 0, ',', '.'); }
 
-/* ✅ baseFeatures */
 $baseFeatures = BASE_URL . '/features/admin';
 
 /* ============================
@@ -158,23 +156,6 @@ foreach ($pagosPaseos as $r) {
 }
 
 /* ============================
-   DEBUG
-   ============================ */
-$debugEstadosPagos = [];
-$debugEstadosSus   = [];
-if ($debug) {
-    try {
-        $q1 = $db->query("SELECT LOWER(TRIM(estado)) AS estado, COUNT(*) AS c FROM pagos GROUP BY LOWER(TRIM(estado)) ORDER BY c DESC");
-        $debugEstadosPagos = $q1 ? ($q1->fetchAll(PDO::FETCH_ASSOC) ?: []) : [];
-    } catch (Throwable $e) { $debugEstadosPagos = []; }
-
-    try {
-        $q2 = $db->query("SELECT estado, COUNT(*) AS c FROM suscripciones GROUP BY estado ORDER BY c DESC");
-        $debugEstadosSus = $q2 ? ($q2->fetchAll(PDO::FETCH_ASSOC) ?: []) : [];
-    } catch (Throwable $e) { $debugEstadosSus = []; }
-}
-
-/* ============================
    EXPORT CSV
    ============================ */
 if ($exportCsv) {
@@ -248,7 +229,7 @@ function badgePago(?string $estado): array {
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>ReporteGanancias - Jaguata</title>
+    <title>Reporte/Suscrpciones - Jaguata</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -256,7 +237,6 @@ function badgePago(?string $estado): array {
     <link href="<?= BASE_URL; ?>/public/assets/css/jaguata-theme.css" rel="stylesheet">
 
     <style>
-        /* ✅ evita scroll horizontal */
         html, body { overflow-x: hidden; width: 100%; }
         .table-responsive { overflow-x: auto; }
         th, td { white-space: nowrap; }
@@ -275,11 +255,9 @@ function badgePago(?string $estado): array {
 
 <main>
   <div class="container-fluid px-3 px-md-2">
-
-    <!-- ✅ HEADER (IGUAL a tus pantallas: Notificaciones / Usuarios) -->
     <div class="header-box header-usuarios mb-3">
         <div>
-            <h1 class="fw-bold mb-1">ReporteGanancias</h1>
+            <h1 class="fw-bold mb-1">Reporte/Suscrpciones</h1>
             <p class="mb-0">Ingresos APP por Suscripciones + Flujo Dueño → Paseador 💸</p>
         </div>
 
@@ -347,17 +325,12 @@ function badgePago(?string $estado): array {
     </div>
 
     <!-- EXPORT + DEBUG abajo del filtro (igual a Usuarios) -->
-    <div class="export-buttons mb-3 d-flex gap-2 flex-wrap">
-        <a class="btn btn-excel"
-           href="?export=csv&tab=<?= urlencode($tab) ?>&desde=<?= urlencode($desde) ?>&hasta=<?= urlencode($hasta) ?>">
-            <i class="fas fa-file-csv"></i> CSV
-        </a>
+     <div class="export-buttons mb-3">
+                <a class="btn btn-excel" href="<?= BASE_URL; ?>/public/api/suscripcion/exportSuscripcion.php">
+                    <i class="fas fa-file-excel"></i> Excel
+                </a>
+            </div>
 
-        <a class="btn btn-outline-warning"
-           href="?debug=1&tab=<?= urlencode($tab) ?>&desde=<?= urlencode($desde) ?>&hasta=<?= urlencode($hasta) ?>">
-            <i class="fas fa-bug"></i> Debug
-        </a>
-    </div>
 
     <!-- =========================
          SECCIÓN SUSCRIPCIONES
@@ -559,7 +532,6 @@ function badgePago(?string $estado): array {
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-  /* ✅ Toggle sidebar en mobile (IGUAL a Notificaciones / Usuarios) */
   document.addEventListener('DOMContentLoaded', () => {
     const sidebar = document.querySelector('.sidebar');
     const btnToggle = document.getElementById('btnSidebarToggle');

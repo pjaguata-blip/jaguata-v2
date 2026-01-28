@@ -16,8 +16,6 @@ use Jaguata\Controllers\AuthController;
 use Jaguata\Controllers\NotificacionController;
 
 AppConfig::init();
-
-// 🔒 Solo admin
 $auth = new AuthController();
 $auth->checkRole('admin');
 
@@ -26,7 +24,6 @@ $destino = $_GET['destino'] ?? 'todos';
 
 $notificacionController = new NotificacionController();
 
-// 📩 Alta de notificación desde el formulario
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $postData  = $_POST;
     $resultado = $notificacionController->crearDesdeAdmin($postData);
@@ -41,7 +38,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     exit;
 }
 
-// 📋 Listado desde BD
 $notificaciones = $notificacionController->indexAdmin($destino);
 $sinDatos       = empty($notificaciones);
 
@@ -75,7 +71,6 @@ function labelDestino(string $rol): string
     <link href="<?= BASE_URL; ?>/public/assets/css/jaguata-theme.css" rel="stylesheet">
 
     <style>
-        /* ✅ Modal “estirado” y con estética Jaguata */
         .modal-jaguata .modal-content {
             border-radius: 18px;
             border: 0;
@@ -294,10 +289,8 @@ function labelDestino(string $rol): string
                                         $fecha         = $n['fecha'] ?? '';
                                         $mensaje       = $n['mensaje'] ?? '';
 
-                                        // ✅ estado REAL desde BD
                                         $estadoRaw = strtolower(trim((string)($n['estado'] ?? 'pendiente')));
 
-                                        // ✅ mapeo BD -> estado lógico
                                         $estado = match ($estadoRaw) {
                                             'enviada'   => 'enviado',
                                             'pendiente' => 'pendiente',
@@ -305,7 +298,6 @@ function labelDestino(string $rol): string
                                             default     => 'pendiente',
                                         };
 
-                                        // ✅ etiqueta visible
                                         $estadoLabel = match ($estado) {
                                             'enviado'   => 'Enviado',
                                             'pendiente' => 'Pendiente',
@@ -313,7 +305,6 @@ function labelDestino(string $rol): string
                                             default     => 'Pendiente',
                                         };
 
-                                        // ✅ clase badge correcta (NO se pisa después)
                                         $badgeClass = match ($estado) {
                                             'enviado'   => 'badge-enviado',
                                             'pendiente' => 'badge-pendiente',

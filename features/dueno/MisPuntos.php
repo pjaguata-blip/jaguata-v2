@@ -26,11 +26,9 @@ use Jaguata\Models\Recompensa;
 
 AppConfig::init();
 
-/* 🔒 Solo dueño */
 $auth = new AuthController();
 $auth->checkRole('dueno');
 
-/* 🔒 Bloqueo por estado */
 if (Session::getUsuarioEstado() !== 'aprobado') {
     Session::setError('Tu cuenta aún no fue aprobada.');
     header('Location: ' . BASE_URL . '/public/login.php');
@@ -53,9 +51,6 @@ if (empty($_SESSION['csrf_token'])) {
 }
 $csrfToken = $_SESSION['csrf_token'];
 
-/* =========================
-   Datos de puntos
-   ========================= */
 $puntoCtrl   = new PuntoController();
 $saldoPuntos = 0;
 $puntosMes   = 0;
@@ -75,9 +70,6 @@ try {
     die("ERROR PUNTOS: " . $e->getMessage());
 }
 
-/* =========================
-   Recompensas reales (DB)
-   ========================= */
 $recompensas = [];
 try {
     $recompensas = (new Recompensa())->getActivas();

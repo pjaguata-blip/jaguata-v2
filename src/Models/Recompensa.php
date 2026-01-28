@@ -14,12 +14,6 @@ class Recompensa
         $this->db = DatabaseService::getInstance();
     }
 
-    /**
-     * ✅ Trae recompensas activas.
-     * Soporta:
-     * - columna 'activo' (preferida)
-     * - columna 'activa' (fallback si existiera)
-     */
     public function getActivas(): array
     {
         try {

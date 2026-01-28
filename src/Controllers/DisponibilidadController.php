@@ -15,21 +15,10 @@ class DisponibilidadController
         $this->model = new Disponibilidad();
     }
 
-    /**
-     * Devuelve registros crudos de la BD
-     */
     public function getByPaseador(int $id): array
     {
         return $this->model->getByPaseador($id);
     }
-
-    /**
-     * Devuelve un array formateado para la vista:
-     * [
-     *   'Lunes' => ['inicio' => '08:00', 'fin' => '12:00', 'activo' => true],
-     *   ...
-     * ]
-     */
     public function getFormDataByPaseador(int $id): array
     {
         $rows = $this->model->getByPaseador($id);
@@ -50,9 +39,6 @@ class DisponibilidadController
         return $result;
     }
 
-    /**
-     * Guarda disponibilidad a partir de un array normalizado.
-     */
     public function save(int $paseadorId, array $data): bool
     {
         return $this->model->saveDisponibilidad($paseadorId, $data);

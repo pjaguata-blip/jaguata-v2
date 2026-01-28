@@ -4,18 +4,18 @@ namespace Jaguata\Controllers;
 
 use Jaguata\Models\Paseador;
 use Jaguata\Helpers\Session;
-use Jaguata\Services\DatabaseService; // ✅ agregado
+use Jaguata\Services\DatabaseService; 
 use Exception;
 
 class PaseadorController
 {
     private Paseador $paseadorModel;
-    private $db; // ✅ agregado
+    private $db; 
 
     public function __construct()
     {
         $this->paseadorModel = new Paseador();
-        $this->db = DatabaseService::getInstance()->getConnection(); // ✅ inicializado
+        $this->db = DatabaseService::getInstance()->getConnection(); 
     }
 
     public function index()
@@ -166,7 +166,6 @@ class PaseadorController
 
     public function getDisponibilidad(int $paseadorId): array
     {
-        // 🔹 Si todavía no tenés tabla de disponibilidad, devolvemos datos simulados
         $fakeData = [
             1 => [
                 ['dia' => 'Lunes', 'desde' => '08:00', 'hasta' => '16:00'],
@@ -178,7 +177,6 @@ class PaseadorController
             ],
         ];
 
-        // Devuelve según el paseador, o vacío si no hay registros
         return $fakeData[$paseadorId] ?? [];
     }
 }

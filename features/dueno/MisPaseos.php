@@ -14,7 +14,6 @@ use Jaguata\Helpers\Session;
 
 AppConfig::init();
 
-/* 🔒 Autenticación (rol dueño) */
 $auth = new AuthController();
 $auth->checkRole('dueno');
 
@@ -75,15 +74,12 @@ $gastoTotal = array_sum(array_map(fn($p) => (float)($p['precio_total'] ?? 0), $c
     <style>
         html, body { height: 100%; }
         body { background: var(--gris-fondo, #f4f6f9); }
-
-        /* ✅ Desktop igual que tus otras pantallas */
         main.main-content{
             margin-left: 260px;
             min-height: 100vh;
             padding: 24px;
         }
 
-        /* ✅ Mobile: NO margin-top, reservamos espacio para la topbar con padding-top */
         @media (max-width: 768px){
             main.main-content{
                 margin-left: 0;
@@ -111,15 +107,7 @@ $gastoTotal = array_sum(array_map(fn($p) => (float)($p['precio_total'] ?? 0), $c
 </head>
 
 <body class="page-mis-paseos">
-
-    <!-- ✅ Sidebar unificado (incluye topbar mobile + backdrop + JS toggle) -->
     <?php include __DIR__ . '/../../src/Templates/SidebarDueno.php'; ?>
-
-    <!-- ✅ IMPORTANTE:
-         - Eliminamos el botón hamburguesa EXTRA (data-toggle="sidebar")
-         - Eliminamos el JS extra de toggleSidebar
-    -->
-
     <main class="main-content">
         <div class="py-2">
 

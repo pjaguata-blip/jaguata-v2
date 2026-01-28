@@ -224,10 +224,6 @@ class AuthController
         if ($this->usuarioModel->getByEmail($email)) {
             return ['success' => false, 'error' => 'Ya existe un usuario con ese email'];
         }
-
-        /* ==========================
-           SUBIDA DE ARCHIVOS (solo paseador)
-           ========================== */
         $uploadsDirAbs = dirname(__DIR__, 2) . '/public/assets/uploads/documentos';
         $uploadsDirRel = 'assets/uploads/documentos';
 
@@ -281,10 +277,6 @@ class AuthController
                 $paths[$dbField] = $destRel;
             }
         }
-
-        /* ==========================
-           CREAR USUARIO + CREAR FILA EN PASEADORES (si corresponde)
-           ========================== */
         $pdo = AppConfig::db();
         $pdo->beginTransaction();
 
@@ -315,8 +307,6 @@ class AuthController
 
             $usuario = $result['usuario'];
             $newId   = (int)($usuario['usu_id'] ?? 0);
-
-            // ✅ FIX: crear paseador SIEMPRE que rol = paseador
             if ($rol === 'paseador' && $newId > 0) {
                 $sqlP = "
                     INSERT INTO paseadores (
@@ -338,8 +328,6 @@ class AuthController
             }
 
             $pdo->commit();
-
-            // ✅ opcional: loguear automáticamente
             Session::login($usuario);
 
             Auditoria::log(

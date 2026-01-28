@@ -1,11 +1,7 @@
 <?php
-
 declare(strict_types=1);
-
 namespace Jaguata\Models;
-
 require_once __DIR__ . '/BaseModel.php';
-
 use PDO;
 use PDOException;
 
@@ -13,17 +9,10 @@ class Usuario extends BaseModel
 {
     protected string $table      = 'usuarios';
   protected string $primaryKey = 'usu_id';
-
-
-
     public function __construct()
     {
         parent::__construct();
     }
-
-    /**
-     * Campos base para SELECT
-     */
     private function baseSelectFields(): string
     {
         return "
@@ -64,10 +53,6 @@ class Usuario extends BaseModel
             descripcion
         ";
     }
-
-    /**
-     * Buscar usuario por email (normalizado)
-     */
     public function getByEmail(string $email): ?array
     {
         $sql = "
@@ -84,10 +69,6 @@ class Usuario extends BaseModel
         return $row !== false ? $row : null;
     }
 
-    /**
-     * Crear usuario desde formulario de registro (web / controlador)
-     * ✅ Fix: acepta contraseña venga como 'password' o 'pass'
-     */
     public function crearDesdeRegistro(array $data): array
     {
         try {
@@ -95,8 +76,6 @@ class Usuario extends BaseModel
             $data['nombre'] = trim((string)($data['nombre'] ?? ''));
             $data['email']  = strtolower(trim((string)($data['email'] ?? '')));
             $data['rol']    = (string)($data['rol'] ?? 'dueno');
-
-            // ✅ FIX: si el form manda "password", lo copiamos a "pass"
             if (empty($data['pass']) && !empty($data['password'])) {
                 $data['pass'] = $data['password'];
             }
@@ -138,9 +117,6 @@ class Usuario extends BaseModel
         }
     }
 
-    /**
-     * Actualizar contraseña (recuperación o cambio)
-     */
     public function actualizarPassword(int $id, string $hashPassword): bool
     {
         $sql = "UPDATE usuarios SET pass = :pass WHERE usu_id = :id";
@@ -150,10 +126,6 @@ class Usuario extends BaseModel
         return $stmt->execute();
     }
 
-    /**
-     * Crear usuario (otra forma) - si la usás en algún admin/seed
-     * ✅ Fix: también acepta password/pass
-     */
     public function createUsuario(array $data): int
     {
         $nombre   = trim((string)($data['nombre'] ?? ''));
@@ -161,8 +133,6 @@ class Usuario extends BaseModel
         $rolIn    = (string)($data['rol'] ?? 'dueno');
         $rol      = in_array($rolIn, ['dueno', 'paseador', 'admin'], true) ? $rolIn : 'dueno';
         $telefono = trim((string)($data['telefono'] ?? ''));
-
-        // ✅ FIX: password puede venir como password o pass
         $plain = (string)($data['password'] ?? ($data['pass'] ?? ''));
         $passwordHash = password_hash($plain, PASSWORD_DEFAULT);
 
@@ -203,4 +173,9 @@ class Usuario extends BaseModel
 
         return (int)$this->db->lastInsertId();
     }
+    public function getDb(): \PDO
+{
+    return $this->db;
+}
+
 }

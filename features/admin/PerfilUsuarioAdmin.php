@@ -19,7 +19,6 @@ use Jaguata\Models\Suscripcion;
 
 AppConfig::init();
 
-/* 🔒 Solo admin */
 if (!Session::isLoggedIn() || Session::getUsuarioRol() !== 'admin') {
     header('Location: ' . BASE_URL . '/public/login.php?error=unauthorized');
     exit;
@@ -45,7 +44,6 @@ if (!$usuario) {
     exit('<h3 style="color:red; text-align:center;">Usuario no encontrado</h3>');
 }
 
-/* ✅ Rol del PERFIL (NO usar $rolUsuario porque el sidebar lo puede pisar) */
 $rolPerfil = strtolower(trim((string)(
     $usuario['rol']
     ?? $usuario['usu_rol']
@@ -58,12 +56,6 @@ if ($rolPerfil === '') {
     $rolPerfil = 'dueno';
 }
 
-/* ====== DOCUMENTOS DEL USUARIO ====== */
-/**
- * En tu proyecto los documentos se guardan en:
- * C:\xampp\htdocs\jaguata\public\assets\uploads\documentos
- * URL: BASE_URL . '/public/assets/uploads/documentos/archivo.ext'
- */
 function urlDoc(?string $valorBD): ?string
 {
     $valorBD = trim((string)$valorBD);
@@ -106,7 +98,7 @@ foreach ($docsConfig as $campo => $label) {
         $documentos[] = [
             'label'    => $label,
             'file'     => $file,
-            'url'      => $url,      // ✅ YA no encodeamos la ruta completa
+            'url'      => $url,      
             'esImagen' => $esImagen,
         ];
     }
@@ -149,7 +141,6 @@ $badgeEstado = match ($estado) {
 };
 $estadoLabel = ucfirst($estado);
 
-/* ====== ✅ SUSCRIPCIÓN (solo paseador) ====== */
 $sub = null;
 $subEstado = null;
 

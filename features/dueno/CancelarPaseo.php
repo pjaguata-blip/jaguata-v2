@@ -12,26 +12,15 @@ use Jaguata\Controllers\AuthController;
 use Jaguata\Controllers\PaseoController;
 use Jaguata\Helpers\Session;
 
-/* =========================
-   Init + Auth
-========================= */
-
 AppConfig::init();
 
 $auth = new AuthController();
 $auth->checkRole('dueno');
-
-/* =========================
-   Helpers
-========================= */
 function h($v): string
 {
     return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
 }
 
-/* =========================
-   Datos del paseo
-========================= */
 $paseoId = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 if ($paseoId <= 0) {
     exit('ID de paseo no válido.');
@@ -44,9 +33,6 @@ if (!$paseo) {
     exit('No se encontró el paseo.');
 }
 
-/* =========================
-   Rutas / navegación
-========================= */
 $rol          = Session::getUsuarioRol() ?: 'dueno';
 $baseFeatures = BASE_URL . "/features/{$rol}";
 $panelUrl     = $baseFeatures . "/Dashboard.php";
@@ -69,9 +55,6 @@ $inicioUrl     = $panelUrl;
 $rolUsuario    = $rol;
 $usuarioNombre = Session::getUsuarioNombre() ?? 'Dueño';
 
-/* =========================
-   Cancelación
-========================= */
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $motivo = trim($_POST['motivo'] ?? '');
     $resp   = $paseoCtrl->cancelarPaseo($paseoId, $motivo);
@@ -84,9 +67,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $_SESSION['error'] = $resp['error'] ?? "No se pudo cancelar el paseo.";
 }
 
-/* =========================
-   UI data (según tus campos reales)
-========================= */
 $fecha = !empty($paseo['inicio'])
     ? date('d/m/Y H:i', strtotime((string)$paseo['inicio']))
     : '—';
@@ -122,7 +102,6 @@ $duracion = h($paseo['duracion'] ?? '—');
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
 
-    <!-- ✅ CSS GLOBAL (tu tema) -->
     <link href="<?= BASE_URL; ?>/public/assets/css/jaguata-theme.css" rel="stylesheet">
 
     <style>
@@ -188,7 +167,6 @@ $duracion = h($paseo['duracion'] ?? '—');
     </button>
     <div class="mobile-overlay" id="mobileOverlay"></div>
 
-    <!-- ✅ Sidebar por include -->
     <?php
     $sidebarPath = __DIR__ . '/../../src/Templates/SidebarDueno.php';
     if (is_file($sidebarPath)) {
@@ -237,8 +215,6 @@ $duracion = h($paseo['duracion'] ?? '—');
                                 <h5 class="mb-3">
                                     <i class="fas fa-info-circle me-2 text-success"></i>Detalles del paseo
                                 </h5>
-
-                                <!-- ✅ ESTIRADO: Mascotas y Fecha a ancho completo -->
                                 <div class="row g-3">
 
                                     <div class="col-12">
@@ -337,7 +313,7 @@ $duracion = h($paseo['duracion'] ?? '—');
     <script>
         // Sidebar móvil (funciona aunque el template no tenga id="sidebar")
         const btn = document.getElementById('btnSidebarToggle');
-        const sidebar = document.querySelector('.sidebar'); // ✅ busca por clase
+        const sidebar = document.querySelector('.sidebar'); 
         const overlay = document.getElementById('mobileOverlay');
 
         function openSidebar() {

@@ -14,7 +14,6 @@ use Jaguata\Helpers\Session;
 
 AppConfig::init();
 
-/* 🔒 Solo dueño */
 $auth = new AuthController();
 $auth->checkRole('dueno');
 
@@ -99,7 +98,6 @@ if ($totalFiltradas > 0) {
     $promedioEdadMes = (int)round($sumEdad / $totalFiltradas);
 }
 
-/* ✅ Forzar descarga Excel (HTML) */
 header("Content-Type: application/vnd.ms-excel; charset=UTF-8");
 header("Content-Disposition: attachment; filename=reporte_mis_mascotas_jaguata_" . date('Ymd_His') . ".xls");
 header("Pragma: no-cache");

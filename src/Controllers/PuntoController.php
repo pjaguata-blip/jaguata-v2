@@ -36,17 +36,6 @@ class PuntoController
         return $this->model->add($usuarioId, $descripcion, $puntos);
     }
 
-    /**
-     * ✅ Otorga puntos por un paseo COMPLETO (admin finaliza).
-     * - NO duplica: usa paseos.puntos_ganados como candado.
-     * - Resuelve dueño por mascota: paseos.mascota_id -> mascotas.dueno_id
-     * - Registra en:
-     *   1) puntos (historial)
-     *   2) usuarios.puntos (saldo)
-     *   3) paseos.puntos_ganados (candado + reporte)
-     *
-     * @return int puntos otorgados (0 si no otorga)
-     */
     public function otorgarPorPaseo(int $paseoId): int
     {
         return $this->model->addPorPaseo($paseoId);

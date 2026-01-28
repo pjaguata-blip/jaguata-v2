@@ -15,7 +15,6 @@ use Jaguata\Helpers\Session;
 
 AppConfig::init();
 
-/* 🔒 Solo paseador */
 if (!Session::isLoggedIn() || Session::getUsuarioRol() !== 'paseador') {
     http_response_code(401);
     echo json_encode(['error' => 'No autorizado']);
@@ -72,9 +71,6 @@ foreach ($paseosCompletados as $p) {
     $total += (float)($p['precio_total'] ?? 0);
 }
 
-/* ============================
-   FORMATO JSON
-   ============================ */
 if ($formato === 'json') {
     header('Content-Type: application/json; charset=UTF-8');
 
@@ -115,9 +111,6 @@ if ($formato === 'json') {
     exit;
 }
 
-/* ============================
-   FORMATO CSV (por defecto)
-   ============================ */
 header('Content-Type: text/csv; charset=UTF-8');
 header('Content-Disposition: attachment; filename="ganancias_paseador_' . date('Ymd_His') . '.csv"');
 header('Pragma: no-cache');

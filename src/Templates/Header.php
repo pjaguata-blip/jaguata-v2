@@ -6,10 +6,8 @@ require_once __DIR__ . '/../Helpers/Session.php';
 use Jaguata\Config\AppConfig;
 use Jaguata\Helpers\Session;
 
-// 🔹 Inicialización
 AppConfig::init();
 
-// 🔹 Datos del usuario y rol
 $usuarioNombre = Session::getUsuarioNombre() ?? 'Usuario';
 $rolUsuario = Session::getUsuarioRol() ?? 'dueno';
 $baseFeatures = BASE_URL . "/features/{$rolUsuario}";

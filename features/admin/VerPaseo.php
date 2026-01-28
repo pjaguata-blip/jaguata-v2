@@ -20,7 +20,6 @@ function h($v): string {
     return htmlspecialchars((string)($v ?? ''), ENT_QUOTES, 'UTF-8');
 }
 
-/* 🔒 Seguridad */
 if (!Session::isLoggedIn() || Session::getUsuarioRol() !== 'admin') {
     header('Location: ' . BASE_URL . '/public/login.php?error=unauthorized');
     exit;
@@ -28,7 +27,6 @@ if (!Session::isLoggedIn() || Session::getUsuarioRol() !== 'admin') {
 $auth = new AuthController();
 $auth->checkRole('admin');
 
-/* ✅ baseFeatures */
 $baseFeatures = BASE_URL . '/features/admin';
 
 /* ID */
@@ -162,8 +160,6 @@ $urlVolver = $baseFeatures . '/Paseos.php';
 
 <main>
     <div class="container-fluid px-3 px-md-2">
-
-        <!-- ✅ HEADER (estilo Usuarios.php) -->
         <div class="header-box header-paseos mb-3">
             <div>
                 <h1 class="fw-bold mb-1">Detalle del Paseo #<?= (int)$id; ?></h1>
@@ -178,8 +174,6 @@ $urlVolver = $baseFeatures . '/Paseos.php';
         </div>
 
         <div class="row g-3">
-
-            <!-- ✅ Info paseo -->
             <div class="col-lg-6">
                 <div class="section-card mb-3">
                     <div class="section-header d-flex justify-content-between align-items-center flex-wrap gap-2">
@@ -261,8 +255,6 @@ $urlVolver = $baseFeatures . '/Paseos.php';
                         </p>
                     </div>
                 </div>
-
-                <!-- ✅ Acciones -->
                 <div class="section-card mb-3">
                     <div class="section-header d-flex justify-content-between align-items-center flex-wrap gap-2">
                         <div class="d-flex align-items-center">
@@ -293,8 +285,6 @@ $urlVolver = $baseFeatures . '/Paseos.php';
                     </div>
                 </div>
             </div>
-
-            <!-- ✅ Mapa -->
             <div class="col-lg-6">
                 <div class="section-card mb-3">
                     <div class="section-header d-flex justify-content-between align-items-center flex-wrap gap-2">
@@ -317,20 +307,16 @@ $urlVolver = $baseFeatures . '/Paseos.php';
                     </div>
                 </div>
             </div>
-
         </div>
-
         <footer class="mt-3">
             <small>© <?= date('Y'); ?> Jaguata — Panel de Administración</small>
         </footer>
-
     </div>
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-    /* ✅ Toggle sidebar en mobile (IGUAL Usuarios.php) */
     document.addEventListener('DOMContentLoaded', () => {
         const sidebar = document.querySelector('.sidebar');
         const btnToggle = document.getElementById('btnSidebarToggle');

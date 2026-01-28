@@ -53,7 +53,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  // 🖋️ Editar usuario
   document.querySelectorAll('.btn-editar').forEach(btn => {
     btn.addEventListener('click', () => {
       const id = btn.dataset.id;
@@ -61,21 +60,18 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // 🗑️ Eliminar usuario
   document.querySelectorAll('.btn-eliminar').forEach(btn => {
     btn.addEventListener('click', () => {
       handleAction(btn.dataset.id, 'eliminar', '¿Seguro que deseas eliminar este usuario?', btn);
     });
   });
 
-  // 🚫 Suspender usuario
   document.querySelectorAll('.btn-suspender').forEach(btn => {
     btn.addEventListener('click', () => {
       handleAction(btn.dataset.id, 'suspender', '¿Suspender este usuario?', btn);
     });
   });
 
-  // ✅ Activar usuario
   document.querySelectorAll('.btn-activar').forEach(btn => {
     btn.addEventListener('click', () => {
       handleAction(btn.dataset.id, 'activar', '¿Activar este usuario?', btn);

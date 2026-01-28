@@ -11,15 +11,10 @@ use Jaguata\Config\AppConfig;
 use Jaguata\Controllers\AuthController;
 use Jaguata\Controllers\PaseoController;
 use Jaguata\Helpers\Session;
-
-// ==== Inicialización ====
 AppConfig::init();
-
 $auth = new AuthController();
 $auth->checkRole('paseador');
 
-// ==== Datos del usuario logueado ====
-// ⚠️ NADA de Session::get('...'), usamos los helpers que sí existen
 $paseadorId    = (int)(Session::getUsuarioId() ?? 0);
 $usuarioNombre = Session::getUsuarioNombre() ?? 'Paseador';
 
@@ -27,17 +22,11 @@ if ($paseadorId <= 0) {
     header('Location: ' . BASE_URL . '/public/login.php?error=unauthorized');
     exit;
 }
-
-// ==== Controlador ====
 $paseoController = new PaseoController();
 $paseos          = $paseoController->indexForPaseador($paseadorId);
-
-// ==== Si no hay paseos ====
 if (empty($paseos)) {
     $paseos = [];
 }
-
-// ==== Estadísticas ====
 $paseosCompletados = 0;
 $paseosCancelados  = 0;
 $ingresosTotales   = 0;

@@ -83,10 +83,6 @@ class Punto
         }
     }
 
-    /**
-     * ✅ Otorgar puntos por paseo (UNA sola vez)
-     * Usa: paseos.puntos_ganados como candado anti-duplicado
-     */
    public function addPorPaseo(int $paseoId): int
 {
     // 1) Traer paseo + dueño (JOIN real) + mascotas (1 y 2)
@@ -108,29 +104,17 @@ class Punto
     );
 
     if (!$p) return 0;
-
-    // ✅ Candado: si ya se otorgó, no repetir
     if ((int)($p['puntos_ganados'] ?? 0) > 0) return 0;
-
     $estado = strtolower(trim((string)($p['estado'] ?? '')));
-    // Otorgamos solo si está completo (por seguridad)
     if ($estado !== 'completo') return 0;
-
     $duenoId = (int)($p['dueno_id'] ?? 0);
     if ($duenoId <= 0) return 0;
-
     $precio = (float)($p['precio_total'] ?? 0);
-
-    // 2) Regla de puntos (ajustable)
-    // Ejemplo: 1 punto cada 1000Gs, mínimo 1
     $puntosGanados = (int)floor($precio / 1000);
     if ($puntosGanados < 1) $puntosGanados = 1;
-
-    // ✅ Si querés que 2 mascotas den un bonus (opcional)
-    // Ej: +1 punto extra si hay 2 mascotas
     $cantMascotas = (int)($p['cantidad_mascotas'] ?? 1);
     if ($cantMascotas >= 2) {
-        $puntosGanados += 1; // podés cambiar esta regla si querés
+        $puntosGanados += 1; 
     }
 
     $desc = "Puntos por paseo #{$paseoId}";
@@ -157,9 +141,6 @@ if ($ya) return 0;
     ':pts'  => $puntosGanados,
     ':pid'  => $paseoId
 ]);
-
-
-        // Sumar saldo (usuarios.usu_id)
         $this->db->prepare(
             "UPDATE usuarios
              SET puntos = COALESCE(puntos,0) + :pts
@@ -168,8 +149,6 @@ if ($ya) return 0;
             ':pts' => $puntosGanados,
             ':uid' => $duenoId
         ]);
-
-        // Guardar puntos en el paseo (candado)
         $this->db->prepare(
             "UPDATE paseos
              SET puntos_ganados = :pts

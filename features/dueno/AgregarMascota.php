@@ -14,7 +14,6 @@ use Jaguata\Helpers\Session;
 
 AppConfig::init();
 
-/* 🔒 Auth */
 $auth = new AuthController();
 $auth->checkRole('dueno');
 
@@ -51,7 +50,6 @@ $usuarioNombre = htmlspecialchars(Session::getUsuarioNombre() ?? 'Dueño/a', ENT
     <link href="<?= BASE_URL; ?>/public/assets/css/jaguata-theme.css" rel="stylesheet">
 
     <style>
-        /* ✅ FIX TOPBAR MOBILE SOLO PARA ESTA PANTALLA */
         main{
             margin-left: 260px;
             min-height: 100vh;
@@ -62,11 +60,9 @@ $usuarioNombre = htmlspecialchars(Session::getUsuarioNombre() ?? 'Dueño/a', ENT
                 margin-left: 0 !important;
                 width: 100% !important;
                 margin-top: 0 !important;
-                padding: calc(16px + var(--topbar-h)) 16px 16px !important; /* ✅ reserva espacio arriba */
+                padding: calc(16px + var(--topbar-h)) 16px 16px !important; 
             }
         }
-
-        /* 🔹 Resaltado tamaño sugerido */
         .tamano-sugerido + label {
             outline: 3px solid rgba(32, 201, 151, .45);
             box-shadow: 0 0 0 4px rgba(32, 201, 151, .2);

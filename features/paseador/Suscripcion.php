@@ -17,12 +17,8 @@ use Jaguata\Helpers\Validaciones;
 use Jaguata\Models\Suscripcion;
 
 AppConfig::init();
-
-/* 🔒 solo paseador */
 $auth = new AuthController();
 $auth->checkRole('paseador');
-
-/* 🔒 bloqueo por estado */
 if (Session::getUsuarioEstado() !== 'aprobado') {
     Session::setError('Tu cuenta aún no fue aprobada.');
     header('Location: ' . BASE_URL . '/public/login.php');
@@ -113,8 +109,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     $errores = [];
-
-    // evitar duplicados
     $ultima = $subModel->getUltimaPorPaseador($paseadorId);
     $estadoUlt = strtolower((string)($ultima['estado'] ?? ''));
     $finUlt    = $ultima['fin'] ?? null;
@@ -126,8 +120,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($estadoUlt === 'pendiente') {
         $errores[] = 'Ya tenés una suscripción pendiente de aprobación.';
     }
-
-    // ✅ SOLO TRANSFERENCIA
     $metodo     = 'transferencia';
     $referencia = trim((string)($_POST['referencia'] ?? ''));
     $nota       = trim((string)($_POST['nota'] ?? ''));
@@ -178,8 +170,6 @@ $badgeClass = match ($estado) {
     'cancelada'  => 'bg-dark',
     default      => 'bg-light text-dark border',
 };
-
-/* ✅ Datos reales de transferencia */
 $BANCO_TRANSFER = 'Ueno Bank';
 $ALIAS_TRANSFER = '6112910';
 $TITULAR_TRANSF = 'Jaguata';
@@ -198,16 +188,12 @@ $MONTO_TRANSF   = 50000;
     <link href="<?= BASE_URL; ?>/public/assets/css/jaguata-theme.css" rel="stylesheet">
 
     <style>
-        /* ✅ anti scroll horizontal */
         html, body { overflow-x: hidden; width: 100%; }
         *, *::before, *::after { box-sizing: border-box; }
-
         :root{ --sidebar-w: 260px; }
-
-        /* ✅ MISMO LAYOUT QUE DASHBOARD (sin scroll abajo) */
         main.main-content{
             margin-left: var(--sidebar-w);
-            width: calc(100% - var(--sidebar-w)); /* ✅ clave */
+            width: calc(100% - var(--sidebar-w)); 
             min-height: 100vh;
             padding: 24px;
             overflow-x: hidden;
@@ -234,8 +220,6 @@ $MONTO_TRANSF   = 50000;
         }
         .hint{ font-size:.9rem; color:#6b7b83; }
         .doc-note{ font-size:.9rem; color:#5b6a72; }
-
-        /* ✅ “Card” de transferencia más prolija */
         .transfer-card{
             border: 1px solid rgba(0,0,0,.08);
             border-radius: 16px;
@@ -405,8 +389,6 @@ $MONTO_TRANSF   = 50000;
                                         : 'Tu suscripción está activa. Podrás renovar cuando venza.'; ?>
                                 </div>
                             <?php else: ?>
-
-                                <!-- ✅ DATOS REALES DE TRANSFERENCIA (UENO + ALIAS) -->
                                 <div class="transfer-card mb-3">
                                     <div class="transfer-head">
                                         <i class="fas fa-building-columns"></i>

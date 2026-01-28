@@ -12,7 +12,6 @@ use Jaguata\Models\Mascota;
 
 AppConfig::init();
 
-/* 🔒 Seguridad */
 if (!Session::isLoggedIn() || Session::getUsuarioRol() !== 'admin') {
     header('Location: ' . BASE_URL . '/public/login.php?error=unauthorized');
     exit;
@@ -23,7 +22,6 @@ function h(?string $v): string
     return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
 }
 
-/* ✅ baseFeatures (para el botón volver, igual que Notificaciones/Usuarios) */
 $baseFeatures = BASE_URL . '/features/admin';
 
 /* Modelo */
@@ -56,7 +54,6 @@ foreach ($mascotas as $m) {
     <link href="<?= BASE_URL ?>/public/assets/css/jaguata-theme.css" rel="stylesheet">
 
     <style>
-        /* ✅ evita scroll horizontal */
         html, body { overflow-x: hidden; width: 100%; }
         .table-responsive { overflow-x: auto; }
         th, td { white-space: nowrap; }
@@ -93,8 +90,6 @@ foreach ($mascotas as $m) {
 
 <main>
     <div class="container-fluid px-3 px-md-2">
-
-        <!-- ✅ HEADER (igual que Notificaciones/Usuarios) -->
         <div class="header-box header-usuarios mb-3">
             <div>
                 <h1 class="fw-bold mb-1">Gestión de Mascotas</h1>
@@ -152,8 +147,6 @@ foreach ($mascotas as $m) {
                 <i class="fas fa-file-excel"></i> Excel
             </a>
         </div>
-
-        <!-- ✅ SECTION CARD (igual Notificaciones) -->
         <div class="section-card mb-3">
             <div class="section-header d-flex align-items-center justify-content-between flex-wrap gap-2">
                 <div class="d-flex align-items-center">
@@ -342,7 +335,6 @@ foreach ($mascotas as $m) {
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-    // ✅ Toggle sidebar (igual Notificaciones)
     document.addEventListener('DOMContentLoaded', () => {
         const sidebar = document.querySelector('.sidebar');
         const btnToggle = document.getElementById('btnSidebarToggle');

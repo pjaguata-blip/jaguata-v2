@@ -16,7 +16,6 @@ use Jaguata\Models\Calificacion;
 
 AppConfig::init();
 
-/* 🔒 Solo dueño */
 $auth = new AuthController();
 $auth->checkRole('dueno');
 
@@ -26,13 +25,9 @@ function h($v): string
     return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
 }
 
-/* =========================
-   ID de paseo y rutas base
-   ========================= */
-
 $paseoId = isset($_GET['paseo_id'])
     ? (int)$_GET['paseo_id']
-    : (int)($_GET['id'] ?? 0); // por si llega ?id=
+    : (int)($_GET['id'] ?? 0); 
 
 if ($paseoId <= 0) {
     $_SESSION['error'] = 'ID de paseo no válido.';
@@ -44,10 +39,6 @@ $duenoIdSesion = (int)(Session::getUsuarioId() ?? 0);
 $rolUsuario    = Session::getUsuarioRol() ?: 'dueno';
 $baseFeatures  = BASE_URL . "/features/{$rolUsuario}";
 $backUrl       = $baseFeatures . "/MisPaseos.php";
-
-/* =========================
-   Cargar paseo + ruta
-   ========================= */
 
 $paseoCtrl = new PaseoController();
 $paseo     = $paseoCtrl->show($paseoId);
@@ -71,9 +62,6 @@ foreach ($rutaPuntos as $p) {
     $rutaCoords[] = [(float)$p['latitud'], (float)$p['longitud']];
 }
 
-/* =========================
-   Normalización de campos
-   ========================= */
 
 $fechaPaseo = isset($paseo['inicio'])
     ? date('d/m/Y H:i', strtotime((string)$paseo['inicio']))
@@ -108,20 +96,10 @@ $paseoIdSeguro = (int)($paseo['paseo_id'] ?? $paseoId);
 /* Punto de recogida */
 $pickupLat = $paseo['pickup_lat'] ?? null;
 $pickupLng = $paseo['pickup_lng'] ?? null;
-
-/* =========================
-   Calificación: dueño → paseador
-   ========================= */
-
 $paseadorId     = (int)($paseo['paseador_id'] ?? 0);
 $califModel     = new Calificacion();
 $yaCalifico     = $califModel->existeParaPaseo($paseoIdSeguro, 'paseador', $duenoIdSesion);
 $puedeCalificar = ($estadoSlug === 'completo' && !$yaCalifico);
-
-/* =========================
-   Mensajes flash
-   ========================= */
-
 $success = $_SESSION['success'] ?? null;
 $error   = $_SESSION['error']   ?? null;
 unset($_SESSION['success'], $_SESSION['error']);
@@ -241,8 +219,6 @@ unset($_SESSION['success'], $_SESSION['error']);
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
         <?php endif; ?>
-
-        <!-- ✅ Mini resumen (stat-cards como tus otras pantallas) -->
         <div class="row g-3 mb-3">
             <div class="col-12 col-md-3">
                 <div class="stat-card text-center h-100">
@@ -278,7 +254,6 @@ unset($_SESSION['success'], $_SESSION['error']);
         </div>
 
         <div class="row g-3">
-            <!-- ✅ Info (section-card) -->
             <div class="col-lg-6">
                 <div class="section-card mb-3">
                     <div class="section-header">
@@ -314,8 +289,6 @@ unset($_SESSION['success'], $_SESSION['error']);
                         </div>
                     </div>
                 </div>
-
-                <!-- ✅ Acciones (section-card) -->
                 <div class="section-card">
                     <div class="section-header">
                         <i class="fas fa-tools me-2"></i> Acciones del dueño
@@ -367,8 +340,6 @@ unset($_SESSION['success'], $_SESSION['error']);
                     </div>
                 </div>
             </div>
-
-            <!-- ✅ Mapa (section-card) -->
             <div class="col-lg-6">
                 <div class="section-card">
                     <div class="section-header">

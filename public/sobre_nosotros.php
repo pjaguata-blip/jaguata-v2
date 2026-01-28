@@ -72,8 +72,6 @@ $urlContacto    = BASE_URL . '/contacto.php';
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
-
-    <!-- ✅ tu theme (mismo que dashboards) -->
     <link href="<?= BASE_URL; ?>/public/assets/css/jaguata-theme.css" rel="stylesheet">
 
     <style>
@@ -162,8 +160,6 @@ $urlContacto    = BASE_URL . '/contacto.php';
             color:#444;
         }
         .check-li i{ margin-top:.2rem; }
-
-        /* ✅ HERO (video + texto) para que se vea lindo */
         .hero-home{
             display:grid;
             grid-template-columns: 300px 1fr;
@@ -294,8 +290,6 @@ $urlContacto    = BASE_URL . '/contacto.php';
                             <i class="fas fa-home me-2"></i>Bienvenido a Jaguata
                         </div>
                         <div class="section-body">
-
-                            <!-- ✅ HERO lindo (video al lado del texto) -->
                             <div class="hero-home">
 
                                 <div class="home-video">
@@ -349,8 +343,6 @@ $urlContacto    = BASE_URL . '/contacto.php';
                             </div>
                         </div>
                     </div>
-
-                    <!-- ✅ NUEVO: Beneficios por rol -->
                     <div class="section-card mt-3">
                         <div class="section-header">
                             <i class="fa-solid fa-people-group me-2"></i>Beneficios para todos
@@ -384,7 +376,6 @@ $urlContacto    = BASE_URL . '/contacto.php';
                             </div>
                         </div>
                     </div>
-<!-- ✅ NUEVO: Qué podés hacer en Jaguata -->
 <div class="section-card mt-3">
   <div class="section-header">
     <i class="fa-solid fa-bolt me-2"></i>¿Qué podés hacer en Jaguata?
@@ -430,8 +421,6 @@ $urlContacto    = BASE_URL . '/contacto.php';
     </div>
   </div>
 </div>
-
-<!-- ✅ NUEVO: Seguridad y confianza -->
 <div class="section-card mt-3">
   <div class="section-header">
     <i class="fa-solid fa-shield-heart me-2"></i>Seguridad y confianza
@@ -465,8 +454,6 @@ $urlContacto    = BASE_URL . '/contacto.php';
     </div>
   </div>
 </div>
-
-<!-- ✅ NUEVO: Cobertura -->
 <div class="section-card mt-3">
   <div class="section-header">
     <i class="fa-solid fa-location-dot me-2"></i>Zonas de cobertura
@@ -485,8 +472,6 @@ $urlContacto    = BASE_URL . '/contacto.php';
     </div>
   </div>
 </div>
-
-<!-- ✅ NUEVO: Mini testimonios -->
 <div class="section-card mt-3">
   <div class="section-header">
     <i class="fa-solid fa-comments me-2"></i>Opiniones de la comunidad
@@ -520,13 +505,8 @@ $urlContacto    = BASE_URL . '/contacto.php';
     </div>
   </div>
 </div>
-
                 </div>
-
-                <!-- Lateral -->
                 <div class="col-lg-4">
-
-                    <!-- ✅ Suscripción Paseador -->
                     <div class="section-card mb-3">
                         <div class="section-header">
                             <i class="fa-solid fa-crown me-2"></i>Suscripción <?= h($planNombre) ?>

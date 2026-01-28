@@ -49,8 +49,6 @@ $pagos = [];
 foreach ($paseos as $p) {
     $estadoPagoRaw = strtolower((string)($p['estado_pago'] ?? ''));
     $estadoPago = in_array($estadoPagoRaw, ['procesado', 'pagado'], true) ? 'pagado' : 'pendiente';
-
-    // ⚠️ depende de que indexForPaseador() traiga pago_id
     $pagoId = (isset($p['pago_id']) && (int)$p['pago_id'] > 0) ? (int)$p['pago_id'] : null;
 
     $pagos[] = [
@@ -76,15 +74,11 @@ $totalPaseos    = count($pagos);
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
-
-    <!-- ✅ mismo theme que el resto -->
     <link href="<?= BASE_URL; ?>/public/assets/css/jaguata-theme.css" rel="stylesheet">
 
     <style>
         html, body { height:100%; overflow-x:hidden; }
         body { background: var(--gris-fondo, #f4f6f9); }
-
-        /* ✅ Layout igual Dashboard */
         main.main-content{
             margin-left: var(--sidebar-w);
             width: calc(100% - var(--sidebar-w));
@@ -175,8 +169,6 @@ $totalPaseos    = count($pagos);
                 </div>
             </div>
         </div>
-
-        <!-- ✅ MIS GANANCIAS -->
         <div class="section-card mb-3">
             <div class="section-header d-flex justify-content-between align-items-center flex-wrap gap-2">
                 <div class="d-flex align-items-center gap-2">
@@ -251,8 +243,6 @@ $totalPaseos    = count($pagos);
 
             </div>
         </div>
-
-        <!-- ✅ HISTORIAL DE PAGOS (section-card) -->
         <div class="section-card">
             <div class="section-header d-flex justify-content-between align-items-center flex-wrap gap-2">
                 <div class="d-flex align-items-center gap-2">

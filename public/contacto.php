@@ -12,11 +12,9 @@ function h($v): string {
     return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
 }
 
-/* ========= CONFIG WHATSAPP ========= */
 $WHATSAPP_NUM = '595986314958'; // 0986314958 -> 595986314958
 $WA_BASE      = "https://wa.me/{$WHATSAPP_NUM}";
 
-/* ========= Estado / rol / sidebar (igual Home) ========= */
 $logueado = Session::isLoggedIn();
 
 $rol = null;
@@ -35,25 +33,16 @@ $usuarioNombre = $logueado ? (Session::getUsuarioNombre() ?? 'Usuario') : '';
 $usuarioEmail  = $logueado ? (Session::getUsuarioEmail() ?? '') : '';
 $usuarioId     = $logueado ? (int)(Session::getUsuarioId() ?? 0) : 0;
 $estadoUsuario = $logueado ? (Session::getUsuarioEstado() ?? '') : '';
-
 $panelUrl = $rol ? (BASE_URL . "/features/{$rol}/Dashboard.php") : null;
-
-/* ✅ VOLVER: siempre a /jaguata/sobre_nosotros.php (tu ruta real) */
 $urlVolver  = BASE_URL . '/public/sobre_nosotros.php';
-
-
-/* Sidebar según rol */
 $sidebarPath = null;
 if ($rol === 'dueno')    $sidebarPath = __DIR__ . '/../src/Templates/SidebarDueno.php';
 if ($rol === 'paseador') $sidebarPath = __DIR__ . '/../src/Templates/SidebarPaseador.php';
 if ($rol === 'admin')    $sidebarPath = __DIR__ . '/../src/Templates/SidebarAdmin.php';
 
-/* ========= helper para links ========= */
 function wa_link(string $base, string $msg): string {
     return $base . '?text=' . rawurlencode($msg);
 }
-
-/* ========= Contexto: SOLO si está logueado ========= */
 $contexto = '';
 if ($logueado) {
     $contexto  = "*Datos del usuario*\n";
@@ -64,8 +53,6 @@ if ($logueado) {
     if ($estadoUsuario !== '')  $contexto .= "- Estado: {$estadoUsuario}\n";
     $contexto .= "\n";
 }
-
-/* ========= Mensajes BOT (sin emojis para evitar �) ========= */
 $opciones = [
     [
         'icon'  => 'fa-solid fa-user-check',

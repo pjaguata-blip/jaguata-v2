@@ -53,13 +53,11 @@ try {
         exit;
     }
 
-    // ✅ PDO: usa conexión global si existe, sino DatabaseService
     $db = $GLOBALS['db'] ?? null;
     if (!$db instanceof PDO) {
         $db = DatabaseService::getInstance()->getConnection();
     }
 
-    // ✅ Tabla correcta
     $tabla = 'datos_pago';
 
     // ¿Existe?

@@ -29,9 +29,6 @@ class Permisos
         }
     }
 
-    /**
-     * Devuelve TRUE si el rol puede ver ese módulo
-     */
     public static function puedeVer(string $rol, string $modulo): bool
     {
         self::cargar();

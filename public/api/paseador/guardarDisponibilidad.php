@@ -32,7 +32,6 @@ if (json_last_error() !== JSON_ERROR_NONE || !is_array($data)) {
     exit;
 }
 
-// ✅ Tomamos el paseador_id del body, o como fallback de la sesión
 $paseadorIdBody    = (int)($data['paseador_id'] ?? 0);
 $paseadorIdSession = (int)(Session::getUsuarioId() ?? 0);
 $paseadorId        = $paseadorIdBody > 0 ? $paseadorIdBody : $paseadorIdSession;

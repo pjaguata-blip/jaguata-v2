@@ -13,21 +13,12 @@ require_once dirname(__DIR__, 2) . '/src/Controllers/AuthController.php';
 require_once dirname(__DIR__, 2) . '/src/Controllers/NotificacionController.php';
 
 AppConfig::init();
-
-/* 🔒 Auth solo paseador */
 $auth = new AuthController();
 $auth->checkRole('paseador');
-
 $notiCtrl = new NotificacionController();
-
-/* URL de esta página */
 $selfUrl = BASE_URL . '/features/paseador/Notificaciones.php';
-
-/* 🔧 Acciones POST */
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
-
-    // ✅ Marcar una como leída
     if ($action === 'markRead' && isset($_POST['noti_id'])) {
         $notiId = (int)$_POST['noti_id'];
 
@@ -40,8 +31,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         header('Location: ' . $selfUrl);
         exit;
     }
-
-    // ✅ Marcar todas como leídas
     if ($action === 'markAllRead') {
         $cant = $notiCtrl->marcarTodasForCurrentUser();
 
@@ -54,8 +43,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         header('Location: ' . $selfUrl);
         exit;
     }
-
-    // ✅ Eliminar/Limpiar una (personal = archiva / masiva = oculta)
     if ($action === 'deleteOne' && isset($_POST['noti_id'])) {
         $notiId = (int)$_POST['noti_id'];
 
@@ -68,8 +55,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         header('Location: ' . $selfUrl);
         exit;
     }
-
-    // ✅ Eliminar/Limpiar todas (personales = archivar / masivas = ocultar)
     if ($action === 'deleteAll') {
         if (!method_exists($notiCtrl, 'limpiarTodasForCurrentUser')) {
             Session::setError('Falta implementar limpiarTodasForCurrentUser() en NotificacionController.');
@@ -89,22 +74,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 }
-
-/* 📄 Filtros */
 $q       = trim($_GET['q'] ?? '');
 $leido   = (string)($_GET['leido'] ?? '');
 $page    = max(1, (int)($_GET['page'] ?? 1));
 $perPage = 10;
-
 $leidoParam = ($leido === '') ? null : (int)$leido;
-
-/* 🧩 Datos */
 $data = $notiCtrl->listForCurrentUser($page, $perPage, $leidoParam, $q);
-
 $notificaciones = $data['data'] ?? [];
 $totalPages     = $data['totalPages'] ?? 1;
-
-/* Flash */
 $mensajeSuccess = Session::getSuccess();
 $mensajeError   = Session::getError();
 
@@ -281,7 +258,6 @@ function h(?string $v): string
                                                 </span>
                                             </td>
                                             <td class="text-center">
-                                                <!-- ✅ Marcar como leída -->
                                                 <?php if (!$leida && $notiId > 0): ?>
                                                     <form method="post" class="d-inline">
                                                         <input type="hidden" name="action" value="markRead">
@@ -291,8 +267,6 @@ function h(?string $v): string
                                                         </button>
                                                     </form>
                                                 <?php endif; ?>
-
-                                                <!-- ✅ Eliminar -->
                                                 <?php if ($notiId > 0): ?>
                                                     <form method="post" class="d-inline" onsubmit="return confirm('¿Eliminar esta notificación?');">
                                                         <input type="hidden" name="action" value="deleteOne">

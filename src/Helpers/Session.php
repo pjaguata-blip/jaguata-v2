@@ -13,29 +13,24 @@ class Session
         }
     }
 
-    // ==========
-    // LOGIN / LOGOUT
-    // ==========
-
     public static function login(array $usuario): void
     {
         self::start();
 
-        $_SESSION['usuario_id']     = $usuario['usu_id']   ?? null;
-        $_SESSION['usuario_nombre'] = $usuario['nombre']   ?? null;
-        $_SESSION['usuario_email']  = $usuario['email']    ?? null;
-        $_SESSION['usuario_rol']    = $usuario['rol']      ?? null;
-        $_SESSION['usuario_estado'] = $usuario['estado'] ?? null;
+        $_SESSION['usuario_id']     = $usuario['usu_id'] ?? null;
+        $_SESSION['usuario_nombre'] = $usuario['nombre'] ?? null;
+        $_SESSION['usuario_email']  = $usuario['email']  ?? null;
+        $_SESSION['usuario_rol']    = $usuario['rol']    ?? null;
 
-        // ✅ NUEVO: estado del usuario (pendiente / aprobado / rechazado)
-        $_SESSION['usuario_estado'] = $usuario['estado']   ?? 'pendiente';
+        // ✅ CORREGIDO: solo una vez
+        $_SESSION['usuario_estado'] = $usuario['estado'] ?? 'pendiente';
     }
-
 
     public static function logout(): void
     {
         self::start();
         $_SESSION = [];
+
         if (ini_get('session.use_cookies')) {
             $params = session_get_cookie_params();
             setcookie(
@@ -56,15 +51,22 @@ class Session
         self::start();
         return !empty($_SESSION['usuario_id']);
     }
+
     public static function get(string $key, $default = null)
     {
         self::start();
         return $_SESSION[$key] ?? $default;
     }
 
-    // ==========
-    // GETTERS
-    // ==========
+    public static function set(string $key, $value): void
+    {
+        self::start();
+        if ($value === null) {
+            unset($_SESSION[$key]);
+        } else {
+            $_SESSION[$key] = $value;
+        }
+    }
 
     public static function getUsuarioId(): ?int
     {
@@ -90,9 +92,32 @@ class Session
         return $_SESSION['usuario_rol'] ?? null;
     }
 
-    // ==========
-    // FLASH / MENSAJES
-    // ==========
+    /**
+     * ✅ Alias para compatibilidad (evita error "Undefined method getRol()")
+     */
+    public static function getRol(): ?string
+    {
+        return self::getUsuarioRol();
+    }
+
+    public static function getUsuarioRolSeguro(): ?string
+    {
+        $rol = self::getUsuarioRol();
+        if (!$rol) return null;
+
+        $rolLimpio = preg_replace('/[^A-Za-z0-9_-]/', '', $rol);
+        return $rolLimpio !== '' ? $rolLimpio : null;
+    }
+
+    public static function getUsuarioEstado(): ?string
+    {
+        self::start();
+        return $_SESSION['usuario_estado'] ?? null;
+    }
+
+    /* ==========================
+       FLASH MESSAGES
+       ========================== */
 
     public static function setFlash(string $key, string $message): void
     {
@@ -103,9 +128,8 @@ class Session
     public static function getFlash(string $key): ?string
     {
         self::start();
-        if (!isset($_SESSION['flash'][$key])) {
-            return null;
-        }
+        if (!isset($_SESSION['flash'][$key])) return null;
+
         $msg = $_SESSION['flash'][$key];
         unset($_SESSION['flash'][$key]);
         return $msg;
@@ -129,36 +153,5 @@ class Session
     public static function getSuccess(): ?string
     {
         return self::getFlash('success');
-    }
-
-    public static function set(string $key, $value): void
-    {
-        self::start();
-        if ($value === null) {
-            unset($_SESSION[$key]);
-        } else {
-            $_SESSION[$key] = $value;
-        }
-    }
-
-    /**
-     * Versión “segura” del rol para armar URLs:
-     * solo letras, números, guión y guión bajo.
-     */
-    public static function getUsuarioRolSeguro(): ?string
-    {
-        $rol = self::getUsuarioRol();
-        if (!$rol) {
-            return null;
-        }
-
-        // Permitimos solo caracteres seguros para la carpeta del rol
-        $rolLimpio = preg_replace('/[^A-Za-z0-9_-]/', '', $rol);
-        return $rolLimpio !== '' ? $rolLimpio : null;
-    }
-    public static function getUsuarioEstado(): ?string
-    {
-        self::start();
-        return $_SESSION['usuario_estado'] ?? null;
     }
 }

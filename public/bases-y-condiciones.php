@@ -1,20 +1,13 @@
 <?php
 declare(strict_types=1);
-
-/* ================== BOOTSTRAP ================== */
 require_once __DIR__ . '/../vendor/autoload.php';
-
 use Jaguata\Config\AppConfig;
 use Jaguata\Helpers\Session;
-
 AppConfig::init();
-
-/* ================== HELPERS ================== */
 function h($v): string {
     return htmlspecialchars((string)($v ?? ''), ENT_QUOTES, 'UTF-8');
 }
 
-/* ================== ESTADO ================== */
 $error   = Session::getError();
 $success = Session::getSuccess();
 

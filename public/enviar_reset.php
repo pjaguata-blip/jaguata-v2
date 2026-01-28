@@ -1,8 +1,4 @@
 <?php
-/* =========================================================
-   C:\xampp\htdocs\jaguata\public\enviar_reset.php
-   Backend: genera reset + envía email (mensaje genérico)
-========================================================= */
 
 declare(strict_types=1);
 

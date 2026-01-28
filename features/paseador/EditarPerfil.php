@@ -15,8 +15,6 @@ use Jaguata\Models\Paseador;
 use Jaguata\Helpers\Session;
 
 AppConfig::init();
-
-/* 🔒 Solo paseador */
 $authController = new AuthController();
 $authController->checkRole('paseador');
 
@@ -112,7 +110,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $zonasTrabajo = json_decode($zonaJsonPost, true);
     if (!is_array($zonasTrabajo)) $zonasTrabajo = [];
 
-    /* ✅ Datos transferencia POST -> se guardan en USUARIOS */
     $ctaBancoPost  = trim($_POST['banco'] ?? '');
     $ctaAliasPost  = trim($_POST['alias'] ?? '');
     $ctaCuentaPost = trim($_POST['cuenta'] ?? '');
@@ -128,8 +125,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($fechaNac !== '' && $fechaNac > date('Y-m-d')) {
         $error = "La fecha de nacimiento no puede ser futura.";
     } else {
-
-        /* 📷 Foto */
         $rutaFotoNueva = null;
         if (!empty($_FILES['foto_perfil']['name'])) {
             $file = $_FILES['foto_perfil'];
@@ -180,8 +175,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'barrio'           => $barrio,
                 'calle'            => $calle,
                 'zona'             => json_encode($zonasTrabajo, JSON_UNESCAPED_UNICODE),
-
-                /* ✅ Transferencias -> USUARIOS */
                 'banco_nombre'     => ($ctaBancoPost !== '' ? $ctaBancoPost : null),
                 'alias_cuenta'     => ($ctaAliasPost !== '' ? $ctaAliasPost : null),
                 'cuenta_numero'    => ($ctaCuentaPost !== '' ? $ctaCuentaPost : null),
@@ -190,8 +183,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($rutaFotoNueva) {
                 $dataUsuario['foto_perfil'] = $rutaFotoNueva;
             }
-
-            /* 2) Actualiza PASEADORES (tarifa) */
             $okPaseador = $paseadorModel->update($usuarioId, [
                 'precio_hora' => $precioHora,
             ]);
@@ -322,8 +313,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     <input type="date" class="form-control" name="fecha_nacimiento"
                                         value="<?= htmlspecialchars($fechaNacAct) ?>" max="<?= date('Y-m-d') ?>">
                                 </div>
-
-                                <!-- ✅ TARIFA -->
                                 <div class="mb-0 text-start">
                                     <label class="form-label">Tarifa por hora (₲)</label>
                                     <input type="number" class="form-control" name="precio_hora"
@@ -338,8 +327,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     <div class="col-lg-8">
                         <div class="row g-3">
-
-                            <!-- ✅ Dirección y contacto -->
                             <div class="col-12">
                                 <div class="section-card">
                                     <div class="section-header">
@@ -393,8 +380,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     </div>
                                 </div>
                             </div>
-
-                            <!-- ✅ Zonas de trabajo -->
                             <div class="col-12">
                                 <div class="section-card">
                                     <div class="section-header">
@@ -438,8 +423,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     </div>
                                 </div>
                             </div>
-
-                            <!-- ✅ Experiencia -->
                             <div class="col-12">
                                 <div class="section-card">
                                     <div class="section-header">
@@ -451,8 +434,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     </div>
                                 </div>
                             </div>
-
-                            <!-- ✅ Transferencias (GUARDA en USUARIOS) -->
                             <div class="col-12">
                                 <div class="section-card">
                                     <div class="section-header">

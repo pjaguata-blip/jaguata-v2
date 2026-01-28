@@ -16,7 +16,6 @@ use Jaguata\Helpers\Session;
 
 AppConfig::init();
 
-/* 🔒 Auth (rol dueño) */
 $auth = new AuthController();
 $auth->checkRole('dueno');
 
@@ -36,8 +35,6 @@ if (!$usuario) {
 /* Puntos del dueño (campo puntos en la tabla usuarios) */
 $puntos       = (int)($usuario['puntos'] ?? 0);
 $baseFeatures = BASE_URL . "/features/{$rol}";
-
-/* ⭐ Reputación del dueño (promedio de calificaciones de sus mascotas) */
 $calificacionModel = new Calificacion();
 $resumenCali       = $calificacionModel->resumenPorDueno($usuarioId);
 $repPromedio       = $resumenCali['promedio'] ?? null;
@@ -100,11 +97,9 @@ $direccionRef = $usuario['direccion'] ?? null;
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
 
-    <!-- 🎨 Estilos globales Jaguata (unificado) -->
     <link href="<?= BASE_URL; ?>/public/assets/css/jaguata-theme.css" rel="stylesheet" />
 
     <style>
-        /* 🐾 Mismo estilo de foto que el perfil del paseador */
         .perfil-avatar {
             width: 160px;
             height: 160px;
@@ -145,11 +140,7 @@ $direccionRef = $usuario['direccion'] ?? null;
 </head>
 
 <body>
-
-    <!-- ✅ Sidebar dueño unificado (incluye topbar-mobile + backdrop + JS toggle) -->
     <?php include __DIR__ . '/../../src/Templates/SidebarDueno.php'; ?>
-
-    <!-- ✅ Contenido (sin botón hamburguesa extra / sin JS duplicado) -->
     <main>
         <div class="py-2">
 
@@ -221,8 +212,6 @@ $direccionRef = $usuario['direccion'] ?? null;
                                 <strong>Puntos:</strong> <?= number_format($puntos, 0, ',', '.'); ?>
                             </div>
                         </div>
-
-                        <!-- ⭐ Bloque de reputación del dueño -->
                         <div class="rating-block-dueno text-start mt-3">
                             <h6 class="text-muted mb-2">
                                 <i class="fas fa-star me-2 text-warning"></i>Reputación como dueño
@@ -342,7 +331,6 @@ $direccionRef = $usuario['direccion'] ?? null;
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- ✅ NO agregamos JS de sidebar acá: SidebarDueno.php ya lo incluye -->
 </body>
 
 </html>

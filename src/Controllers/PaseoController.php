@@ -8,8 +8,6 @@ require_once __DIR__ . '/../Models/Paseo.php';
 require_once __DIR__ . '/../Helpers/Session.php';
 require_once __DIR__ . '/PuntoController.php';
 
-
-
 use Jaguata\Config\AppConfig;
 use Jaguata\Services\DatabaseService;
 use Jaguata\Models\Paseo;
@@ -31,7 +29,6 @@ class PaseoController
         $this->paseoModel = new Paseo();
     }
 
-    /** 🔹 Listado general de paseos (ADMIN) */
     public function index(): array
     {
         try {
@@ -42,10 +39,6 @@ class PaseoController
         }
     }
 
-    /**
-     * 🔹 Listar paseos asignados a un paseador
-     * Usado en: features/paseador/MisPaseos.php y Dashboard paseador
-     */
     public function indexForPaseador(int $paseadorId): array
     {
         if ($paseadorId <= 0) {
@@ -118,11 +111,6 @@ class PaseoController
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
-
-    /**
-     * 🔹 Listar paseos de un dueño
-     * Usado en: features/dueno/MisPaseos.php
-     */
     public function indexByDueno(int $duenoId): array
     {
         if ($duenoId <= 0) {
@@ -176,8 +164,6 @@ class PaseoController
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
-
-    /** 🔹 Listar mascotas de un dueño (para selects) */
     public function listarMascotasDeDueno(int $duenoId): array
     {
         if ($duenoId <= 0) return [];
@@ -195,7 +181,6 @@ class PaseoController
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
-    /** 🔹 Listar paseadores (para selects) */
     public function listarPaseadores(): array
     {
         $sql = "
@@ -208,19 +193,13 @@ class PaseoController
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
-    /** 🔹 Obtener un paseo simple por ID */
-    /** 🔹 Obtener un paseo por ID (con detalle/joins) */
+
     public function getById(int $id): ?array
     {
         if ($id <= 0) return null;
-        return $this->show($id); // ✅ trae nombre_mascota, nombre_mascota_2, paseador_nombre, inicio, precio_total, etc.
+        return $this->show($id); 
     }
 
-
-    /**
-     * 🔹 Detalle de paseo (paseador / dueño)
-     * Usado en: features/paseador/VerPaseo.php y ver paseo del dueño
-     */
     public function show(int $id): ?array
     {
         if ($id <= 0) return null;
@@ -269,7 +248,6 @@ class PaseoController
         return $row !== false ? $row : null;
     }
 
-    /** 🔹 Detalle para pantalla de pago (dueño) */
     public function getDetalleParaPago(int $paseoId): ?array
     {
         if ($paseoId <= 0) return null;
@@ -299,7 +277,6 @@ class PaseoController
         return $row !== false ? $row : null;
     }
 
-    /** 🔹 Cancelar un paseo (dueño) */
     public function cancelarPaseo(int $id, string $motivo = ''): array
     {
         if ($id <= 0) {
@@ -328,7 +305,6 @@ class PaseoController
         }
     }
 
-    /** 🔹 Cancelar un paseo (paseador) */
     public function cancelarPaseoPaseador(int $paseoId, int $paseadorId): array
     {
         if ($paseoId <= 0 || $paseadorId <= 0) {
@@ -357,47 +333,80 @@ class PaseoController
         ];
     }
 
-    /** 🔹 Datos para exportar paseos (Excel) */
     public function obtenerDatosExportacion(): array
-    {
-        try {
-            $sql = "
-                SELECT 
-                    p.paseo_id                    AS id,
-                    dueno.nombre                  AS dueno_nombre,
-                    paseador.nombre               AS paseador_nombre,
-                    m.nombre                      AS mascota_nombre,
-                    p.inicio                      AS fecha_inicio,
-                    p.duracion                    AS duracion,
-                    p.precio_total                AS costo,
-                    p.estado                      AS estado,
-                    p.estado_pago                 AS estado_pago,
-                    COALESCE(p.puntos_ganados, 0) AS puntos_ganados
-                FROM paseos p
-                LEFT JOIN mascotas m 
-                       ON m.mascota_id = p.mascota_id
-                LEFT JOIN usuarios dueno 
-                       ON dueno.usu_id = m.dueno_id
-                LEFT JOIN usuarios paseador 
-                       ON paseador.usu_id = p.paseador_id
-                ORDER BY p.paseo_id DESC
-            ";
-            $stmt = $this->db->query($sql);
-            return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
-        } catch (PDOException $e) {
-            error_log('❌ Error en obtenerDatosExportacion(): ' . $e->getMessage());
-            return [];
-        }
-    }
+{
+    try {
+        $sql = "
+            SELECT 
+                p.paseo_id                    AS id,
 
-    /** 🔹 Detalle de paseo para vista del ADMIN */
+                dueno.nombre                  AS dueno_nombre,
+                paseador.nombre               AS paseador_nombre,
+
+                /* Mascotas */
+                m.nombre                      AS mascota_nombre,
+                COALESCE(m2.nombre, '')       AS mascota2_nombre,
+                COALESCE(p.cantidad_mascotas, 1) AS cantidad_mascotas,
+
+                p.inicio                      AS fecha_inicio,
+                p.duracion                    AS duracion,
+
+                p.precio_total                AS costo,
+                p.estado                      AS estado,
+                p.estado_pago                 AS estado_pago,
+                COALESCE(p.puntos_ganados, 0) AS puntos_ganados,
+
+                /* Pago */
+                COALESCE(pg.estado, '')       AS pago_estado,
+
+                /* Calificación dueño -> paseador (si existe) */
+                COALESCE(c.calificacion, 0)   AS calificacion,
+                COALESCE(c.comentario, '')    AS comentario_calificacion
+
+            FROM paseos p
+            INNER JOIN mascotas m        ON m.mascota_id  = p.mascota_id
+            LEFT  JOIN mascotas m2       ON m2.mascota_id = p.mascota_id_2
+            INNER JOIN usuarios dueno    ON dueno.usu_id  = m.dueno_id
+            INNER JOIN usuarios paseador ON paseador.usu_id = p.paseador_id
+
+            /* Último pago del paseo (si hay varios) */
+            LEFT JOIN (
+                SELECT pg1.*
+                FROM pagos pg1
+                INNER JOIN (
+                    SELECT paseo_id, MAX(id) AS max_id
+                    FROM pagos
+                    GROUP BY paseo_id
+                ) x ON x.paseo_id = pg1.paseo_id AND x.max_id = pg1.id
+            ) pg ON pg.paseo_id = p.paseo_id
+
+            /* Calificación (tipo paseador) */
+            LEFT JOIN calificaciones c
+                ON c.paseo_id = p.paseo_id
+               AND c.tipo     = 'paseador'
+               AND c.rated_id = p.paseador_id
+
+            ORDER BY p.paseo_id DESC
+        ";
+
+        $stmt = $this->db->query($sql);
+        return $stmt ? ($stmt->fetchAll(PDO::FETCH_ASSOC) ?: []) : [];
+
+    } catch (PDOException $e) {
+        error_log('❌ Error en PaseoController::obtenerDatosExportacion() PASEOS: ' . $e->getMessage());
+        return [];
+    }
+}
+
+
+
+
     public function getDetalleAdmin(int $id): ?array
     {
         if ($id <= 0) return null;
         return $this->paseoModel->getDetalleAdmin($id);
     }
 
-    /** 🔹 Cambiar estado del paseo desde el ADMIN */
     public function cambiarEstadoDesdeAdmin(int $id, string $accion): array
     {
         if ($id <= 0) return ['ok' => false, 'mensaje' => 'ID de paseo inválido.'];
@@ -421,7 +430,6 @@ class PaseoController
         ];
     }
 
-    /** 🔹 Iniciar paseo (paseador) */
     public function apiIniciar(int $paseoId): bool
     {
         if ($paseoId <= 0) return false;
@@ -440,7 +448,6 @@ class PaseoController
         return $this->paseoModel->actualizarEstado($paseoId, 'en_curso');
     }
 
-    /** 🔹 Completar paseo (paseador) */
    public function completarPaseo(int $paseoId, string $comentario = ''): array
 {
     if ($paseoId <= 0) {
@@ -495,8 +502,6 @@ class PaseoController
                 }
             }
         }
-
-        // 3) ✅ Otorgar puntos al dueño (una sola vez, tu modelo ya tiene candado puntos_ganados)
         $puntosOtorgados = 0;
         try {
             $puntosCtrl = new PuntoController();
@@ -519,9 +524,6 @@ class PaseoController
         return ['success' => false, 'error' => 'Error al completar el paseo.'];
     }
 }
-
-
-    /** 🔹 Solicitudes pendientes para un paseador */
     public function getSolicitudesPendientes(int $paseadorId): array
     {
         if ($paseadorId <= 0) return [];
@@ -557,7 +559,6 @@ class PaseoController
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
-    /** 🔹 Confirmar solicitud (paseador) */
     public function confirmarPaseoPaseador(int $paseoId, int $paseadorId): array
     {
         if ($paseoId <= 0 || $paseadorId <= 0) return ['success' => false, 'error' => 'Datos inválidos.'];
@@ -579,7 +580,6 @@ class PaseoController
         return ['success' => $ok, 'mensaje' => $ok ? 'Solicitud confirmada correctamente.' : 'No se pudo confirmar la solicitud.'];
     }
 
-    /** 🔹 Rechazar/cancelar solicitud (paseador) */
     public function rechazarPaseoPaseador(int $paseoId, int $paseadorId): array
     {
         if ($paseoId <= 0 || $paseadorId <= 0) return ['success' => false, 'error' => 'Datos inválidos.'];
@@ -601,16 +601,11 @@ class PaseoController
         return ['success' => $ok, 'mensaje' => $ok ? 'Solicitud rechazada correctamente.' : 'No se pudo rechazar la solicitud.'];
     }
 
-    /** 🔹 Datos exportación paseador */
     public function obtenerDatosExportacionPaseador(int $paseadorId): array
     {
         return $this->paseoModel->getExportByPaseador($paseadorId);
     }
 
-    /**
-     * 🔹 Guardar nueva solicitud de paseo (dueño)
-     * 2 mascotas máx + descuento 30% si son 2
-     */
    public function store(): void
 {
     $duenoId = (int)(Session::getUsuarioId() ?? 0);
@@ -626,7 +621,6 @@ class PaseoController
     $pickupLat = (isset($_POST['pickup_lat']) && $_POST['pickup_lat'] !== '') ? (float)$_POST['pickup_lat'] : null;
     $pickupLng = (isset($_POST['pickup_lng']) && $_POST['pickup_lng'] !== '') ? (float)$_POST['pickup_lng'] : null;
 
-    // ✅ Canje opcional
     $canjeId = (int)($_POST['canje_id'] ?? 0);
 
     if ($duenoId <= 0 || $mascota1 <= 0 || $paseadorId <= 0 || $inicio === '' || $duracion <= 0 || $ubicacion === '') {
@@ -643,8 +637,6 @@ class PaseoController
 
     try {
         $this->db->beginTransaction();
-
-        // ✅ Validar mascota 1 pertenezca al dueño
         $chk1 = $this->db->prepare("
             SELECT COUNT(*)
             FROM mascotas
@@ -658,7 +650,6 @@ class PaseoController
             return;
         }
 
-        // ✅ Validar mascota 2 (si existe)
         if ($mascota2 > 0) {
             $chk2 = $this->db->prepare("
                 SELECT COUNT(*)
@@ -674,7 +665,6 @@ class PaseoController
             }
         }
 
-        // ✅ Precio por hora del paseador
         $stmtPrecio = $this->db->prepare("
             SELECT precio_hora
             FROM paseadores
@@ -693,16 +683,11 @@ class PaseoController
                 : round($precioHora * $horas, 0);
         }
 
-        // ==========================================================
-        // ✅ Aplicar canje (si hay) — VALIDADO EN BACKEND
-        // ==========================================================
         $descuento = 0.0;
         $tipoCanje = null;
         $valorCanje = 0;
 
         if ($canjeId > 0) {
-            // ✅ ACA ESTABA TU ERROR:
-            // NO se hace prepare(sql, params). Se hace prepare() y luego execute() y fetch()
             $stmtCanje = $this->db->prepare("
                 SELECT canje_id, usuario_id, COALESCE(estado,'') AS estado,
                        tipo_descuento, valor_descuento
@@ -743,13 +728,9 @@ class PaseoController
         }
 
         $precioTotal = (float)max(0, round($subtotal - $descuento, 0));
-
-        // ✅ Estados iniciales
         $estadoInicial     = 'solicitado';
         $estadoPagoInicial = 'pendiente';
         $puntosInicial     = 0;
-
-        // ✅ INSERT paseo
         $sql = "
             INSERT INTO paseos (
                 mascota_id,
@@ -809,8 +790,6 @@ class PaseoController
         }
 
         $paseoId = (int)$this->db->lastInsertId();
-
-        // ✅ Si se usó canje -> marcar como usado (para que NO vuelva a aparecer)
         if ($canjeId > 0) {
             $upd = $this->db->prepare("
                 UPDATE canjes

@@ -15,10 +15,6 @@ class Canje
         $this->db = DatabaseService::getInstance();
     }
 
-    /**
-     * Lista SOLO tickets disponibles (pendientes) del usuario
-     * ✅ Esto es lo que evita que el canje “siga apareciendo”.
-     */
     public function listarPendientesPorUsuario(int $usuarioId): array
     {
         return $this->db->fetchAll("
@@ -41,9 +37,6 @@ class Canje
         ", [':u' => $usuarioId]);
     }
 
-    /**
-     * Marca el ticket como usado y lo vincula al paseo
-     */
     public function marcarUsado(int $canjeId, int $usuarioId, int $paseoId): bool
     {
         $st = $this->db->prepare("
@@ -65,9 +58,6 @@ class Canje
         return $st->rowCount() > 0;
     }
 
-    /**
-     * Trae un canje por ID validando dueño (para backend)
-     */
     public function getByIdParaUsuario(int $canjeId, int $usuarioId): ?array
     {
         $row = $this->db->fetchOne("

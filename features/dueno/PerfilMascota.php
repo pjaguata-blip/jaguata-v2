@@ -17,7 +17,6 @@ use Jaguata\Helpers\Session;
 
 AppConfig::init();
 
-/* 🔒 Auth dueño */
 $auth = new AuthController();
 $auth->checkRole('dueno');
 
@@ -132,15 +131,11 @@ $usuarioNombre = htmlspecialchars(Session::getUsuarioNombre() ?? 'Dueño/a', ENT
         body {
             background: var(--gris-fondo, #f4f6f9);
         }
-
-        /* ✅ Desktop igual */
         main.main-content {
             margin-left: 260px;
             min-height: 100vh;
             padding: 24px;
         }
-
-        /* ✅ Mobile: NO margin-top, reservamos espacio con padding-top (IGUAL que Dashboard) */
         @media (max-width: 768px) {
             main.main-content {
                 margin-left: 0;
@@ -207,15 +202,8 @@ $usuarioNombre = htmlspecialchars(Session::getUsuarioNombre() ?? 'Dueño/a', ENT
 
 <body>
 
-    <!-- Sidebar unificada del dueño -->
     <?php include __DIR__ . '/../../src/Templates/SidebarDueno.php'; ?>
 
-    <!-- ✅ IMPORTANTE:
-         - Eliminamos el botón hamburguesa EXTRA (data-toggle="sidebar")
-         - Eliminamos el JS extra del toggleSidebar (SidebarDueno ya lo trae)
-    -->
-
-    <!-- Contenido -->
     <main class="main-content">
         <div class="container-fluid py-2">
 

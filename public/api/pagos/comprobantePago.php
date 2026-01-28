@@ -12,7 +12,6 @@ use Jaguata\Helpers\Session;
 
 AppConfig::init();
 
-// 🔒 Solo usuarios logueados
 if (!Session::isLoggedIn()) {
     http_response_code(401);
     echo 'No autorizado';
@@ -28,8 +27,6 @@ if ($pagoId <= 0) {
 
 try {
     $db = DatabaseService::getInstance()->getConnection();
-
-    // 🔹 Pago + paseo + dueño + paseador (para validar permisos)
     $sql = "
     SELECT 
         pg.id,
@@ -56,7 +53,6 @@ try {
         exit;
     }
 
-    // ✅ Validar permisos
     $usuarioId = (int)(Session::getUsuarioId() ?? 0);
     $rol       = (string)(Session::getUsuarioRol() ?? '');
 
@@ -72,7 +68,6 @@ try {
         exit;
     }
 
-    // 📁 Nombre / ruta guardada en BD
     $archivoDb = trim((string)($pago['comprobante'] ?? ''));
     if ($archivoDb === '') {
         http_response_code(404);
@@ -80,11 +75,8 @@ try {
         exit;
     }
 
-    // ✅ Normalizar a nombre de archivo
-    // (si en BD viene con carpetas, nos quedamos con el basename)
     $nombreArchivo = basename(str_replace('\\', '/', $archivoDb));
 
-    // ✅ Rutas físicas posibles (dependiendo de tu estructura real)
     $candidatos = [
         // 1) si tu subida está en: public/assets/uploads/comprobantes/
         __DIR__ . '/../../assets/uploads/comprobantes/' . $nombreArchivo,
@@ -113,12 +105,9 @@ try {
         exit;
     }
 
-    // ✅ MIME
     $mime = function_exists('mime_content_type')
         ? (mime_content_type($filePath) ?: 'application/octet-stream')
         : 'application/octet-stream';
-
-    // ✅ Headers para mostrar inline en el navegador
     header('Content-Type: ' . $mime);
     header('Content-Disposition: inline; filename="' . $nombreArchivo . '"');
     header('Content-Length: ' . filesize($filePath));

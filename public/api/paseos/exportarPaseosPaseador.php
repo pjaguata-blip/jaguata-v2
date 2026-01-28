@@ -12,33 +12,16 @@ use Jaguata\Helpers\Session;
 
 AppConfig::init();
 
-/* 🔒 Solo paseador logueado */
 if (!Session::isLoggedIn() || Session::getUsuarioRol() !== 'paseador') {
     header('Location: /jaguata/public/login.php?error=unauthorized');
     exit;
 }
 
-// ✅ Usa el helper correcto, NO Session::get('usuario_id')
 $paseadorId = Session::getUsuarioId() ?? 0;
 $paseadorId = (int)$paseadorId;
-
 $controller = new PaseoController();
-
-/**
- * Opción A (recomendada):
- *  - Crear en tu PaseoController un método obtenerDatosExportacionPaseador($paseadorId)
- *  - Que devuelva los mismos campos que obtenerDatosExportacion(), pero filtrados por el paseador.
- */
 $paseos = $controller->obtenerDatosExportacionPaseador($paseadorId) ?? [];
 
-/**
- * Opción B (si todavía no tienes el método):
- *  - Puedes usar indexForPaseador($paseadorId) pero quizá devuelve menos columnas.
- *  - En ese caso, cambia la línea anterior por:
- *      $paseos = $controller->indexForPaseador($paseadorId) ?? [];
- */
-
-// Si no hay datos, aviso simple
 if (empty($paseos)) {
     echo "<script>alert('No hay datos para exportar'); window.history.back();</script>";
     exit;
@@ -55,18 +38,14 @@ header("Expires: 0");
 // BOM UTF-8 (para acentos)
 echo "\xEF\xBB\xBF";
 
-/**
- * Limpia campos para Excel
- */
+
 function safeField(array $row, string $key): string
 {
     if (!isset($row[$key])) return '';
     return str_replace(["\t", "\r", "\n"], ' ', (string)$row[$key]);
 }
 
-/**
- * Formatea fecha/hora (usa 'inicio' o 'fecha' según venga del controlador)
- */
+
 function formatFecha(array $row): string
 {
     $raw = $row['inicio'] ?? ($row['fecha'] ?? '');
@@ -76,9 +55,7 @@ function formatFecha(array $row): string
     return date('d/m/Y H:i', $ts);
 }
 
-/**
- * Formatea estado del paseo
- */
+
 function formatEstado(array $row): string
 {
     $estado = strtolower((string)($row['estado'] ?? ''));
@@ -87,9 +64,7 @@ function formatEstado(array $row): string
     return ucfirst($estado);
 }
 
-/**
- * Formatea estado de pago
- */
+
 function formatEstadoPago(array $row): string
 {
     $pago = strtolower((string)($row['estado_pago'] ?? ''));
@@ -101,9 +76,7 @@ function formatEstadoPago(array $row): string
     };
 }
 
-/**
- * Formatea precio con separador de miles
- */
+
 function formatPrecio(array $row): string
 {
     $monto = (float)($row['precio_total'] ?? 0);

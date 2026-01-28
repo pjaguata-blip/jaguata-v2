@@ -14,8 +14,6 @@ use Jaguata\Controllers\MascotaController;
 use Jaguata\Helpers\Session;
 
 AppConfig::init();
-
-/* 🔒 Auth rol dueño */
 $auth = new AuthController();
 $auth->checkRole('dueno');
 
@@ -82,7 +80,6 @@ sort($razasDisponibles);
 $rol          = Session::getUsuarioRol() ?: 'dueno';
 $baseFeatures = BASE_URL . "/features/{$rol}";
 
-/* ✅ Flash para SweetAlert (mismo patrón que tu Dashboard) */
 $success = $_SESSION['success'] ?? null;
 $error   = $_SESSION['error'] ?? null;
 unset($_SESSION['success'], $_SESSION['error']);
@@ -102,8 +99,6 @@ unset($_SESSION['success'], $_SESSION['error']);
     <link href="<?= BASE_URL; ?>/public/assets/css/jaguata-theme.css" rel="stylesheet" />
 
     <style>
-        /* ✅ Solo lo mínimo propio de esta pantalla.
-           El resto (sidebar/topbar/main/section-card/btn-gradient/etc) lo maneja jaguata-theme.css */
         html,
         body {
             height: 100%;
@@ -112,8 +107,6 @@ unset($_SESSION['success'], $_SESSION['error']);
         body {
             background: var(--gris-fondo, #f4f6f9);
         }
-
-        /* ✅ Layout principal (GUIADO por Dashboard) */
         main.main-content {
             margin-left: var(--sidebar-w);
             width: calc(100% - var(--sidebar-w));
@@ -121,8 +114,6 @@ unset($_SESSION['success'], $_SESSION['error']);
             padding: 24px;
             box-sizing: border-box;
         }
-
-        /* ✅ Mobile: NO margin-top, reservamos espacio con padding-top */
         @media (max-width: 768px) {
             main.main-content {
                 margin-left: 0 !important;
@@ -131,8 +122,6 @@ unset($_SESSION['success'], $_SESSION['error']);
                 padding: calc(16px + var(--topbar-h)) 16px 16px !important;
             }
         }
-
-        /* Preview imagen */
         .img-preview {
             width: 150px;
             height: 150px;
@@ -150,8 +139,6 @@ unset($_SESSION['success'], $_SESSION['error']);
 
     <main class="main-content">
         <div class="2">
-
-            <!-- ✅ Header IGUAL estilo Dashboard (header-box del theme) -->
             <div class="header-box header-mascotas mb-3 d-flex justify-content-between align-items-center">
                 <div>
                     <h1 class="fw-bold mb-1">
@@ -166,8 +153,6 @@ unset($_SESSION['success'], $_SESSION['error']);
                     </a>
                 </div>
             </div>
-
-            <!-- ✅ Form en section-card (estilo Jaguata) -->
             <div class="section-card">
                 <div class="section-header d-flex justify-content-between align-items-center flex-wrap gap-2">
                     <span><i class="fas fa-dog me-2"></i>Información de <?= $nombre ?: 'Mascota' ?></span>
@@ -212,13 +197,10 @@ unset($_SESSION['success'], $_SESSION['error']);
                                 <div class="btn-group w-100" role="group">
                                     <input type="radio" class="btn-check" name="tamano" id="tam_peq" value="pequeno" <?= $tamano === 'pequeno' ? 'checked' : '' ?>>
                                     <label class="btn btn-outline-success" for="tam_peq">Pequeño</label>
-
                                     <input type="radio" class="btn-check" name="tamano" id="tam_med" value="mediano" <?= $tamano === 'mediano' ? 'checked' : '' ?>>
                                     <label class="btn btn-outline-warning" for="tam_med">Mediano</label>
-
                                     <input type="radio" class="btn-check" name="tamano" id="tam_gra" value="grande" <?= $tamano === 'grande' ? 'checked' : '' ?>>
                                     <label class="btn btn-outline-danger" for="tam_gra">Grande</label>
-
                                     <input type="radio" class="btn-check" name="tamano" id="tam_gig" value="gigante" <?= $tamano === 'gigante' ? 'checked' : '' ?>>
                                     <label class="btn btn-outline-dark" for="tam_gig">Gigante</label>
                                 </div>

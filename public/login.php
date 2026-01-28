@@ -74,8 +74,6 @@ $urlRecuperar = BASE_URL . '/recuperar_password.php';
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
-
-    <!-- ✅ tu theme (mismo que dashboards) -->
     <link href="<?= BASE_URL; ?>/public/assets/css/jaguata-theme.css" rel="stylesheet">
 
     <style>
@@ -100,8 +98,6 @@ $urlRecuperar = BASE_URL . '/recuperar_password.php';
                 padding: calc(16px + var(--topbar-h)) 16px 16px !important;
             }
         }
-
-        /* ✅ CARD del login (misma vibra que tus cards) */
         .login-wrap{
             max-width: 980px;
             margin: 0 auto;

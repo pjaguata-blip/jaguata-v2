@@ -13,8 +13,6 @@ use Jaguata\Controllers\PagoController;
 use Jaguata\Helpers\Session;
 
 AppConfig::init();
-
-/* 🔒 Auth dueño */
 (new AuthController())->checkRole('dueno');
 
 /* Helpers */
@@ -74,7 +72,6 @@ foreach ($pagos as $p) {
         html, body { height: 100%; overflow-x: hidden; }
         body { background: var(--gris-fondo, #f4f6f9); }
 
-        /* ✅ Igual a dashboards */
         main.main-content{
             margin-left: 260px;
             min-height: 100vh;
@@ -304,7 +301,6 @@ foreach ($pagos as $p) {
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-    // ✅ Filtro client-side (igual patrón admin/paseador)
     const searchInput  = document.getElementById('searchInput');
     const filterEstado = document.getElementById('filterEstado');
     const rows         = document.querySelectorAll('#tablaPagos tbody tr[data-texto]');

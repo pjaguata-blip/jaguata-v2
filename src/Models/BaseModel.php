@@ -16,8 +16,6 @@ abstract class BaseModel
 {
     /** @var PDO */
     protected PDO $db;
-
-    // Cada modelo debe definir estos:
     protected string $table;
     protected string $primaryKey = 'usu_id';
 
@@ -25,9 +23,6 @@ abstract class BaseModel
     {
         $this->db = DatabaseService::getInstance()->getConnection();
     }
-
-    // ========== CRUD BÁSICO ==========
-
     public function find(int $id): ?array
     {
         $sql  = "SELECT * FROM {$this->table} WHERE {$this->primaryKey} = :id LIMIT 1";
@@ -86,8 +81,6 @@ abstract class BaseModel
         $stmt = $this->db->prepare($sql);
         return $stmt->execute([':id' => $id]);
     }
-
-    // ========== HELPERS GENÉRICOS ==========
 
     protected function fetchAll(string $sql, array $params = []): array
     {

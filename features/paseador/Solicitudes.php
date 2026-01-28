@@ -14,12 +14,9 @@ use Jaguata\Helpers\Session;
 use Jaguata\Models\Suscripcion;
 
 AppConfig::init();
-
-/* 🔒 Seguridad */
 $authController = new AuthController();
 $authController->checkRole('paseador');
 
-/* 🔒 BLOQUEO POR ESTADO */
 if (Session::getUsuarioEstado() !== 'aprobado') {
     Session::setError('Tu cuenta aún no fue aprobada.');
     header('Location: ' . BASE_URL . '/public/login.php');
@@ -35,7 +32,6 @@ $paseadorId   = (int)(Session::getUsuarioId() ?? 0);
 $paseoController = new PaseoController();
 $solicitudes     = $paseoController->getSolicitudesPendientes($paseadorId) ?? [];
 
-/* ✅ Suscripción */
 $tieneProActiva = false;
 $subEstado = null;
 $subFin    = null;
@@ -96,8 +92,6 @@ unset($_SESSION['success'], $_SESSION['error']);
     <style>
         html, body { height: 100%; }
         body { background: var(--gris-fondo, #f4f6f9); }
-
-        /* ✅ Layout igual dashboards */
         main.main-content{
             margin-left: var(--sidebar-w);
             width: calc(100% - var(--sidebar-w));
@@ -210,8 +204,6 @@ unset($_SESSION['success'], $_SESSION['error']);
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
         <?php endif; ?>
-
-        <!-- ✅ SUSCRIPCIÓN PRO (estilo section-card) -->
         <?php if (!$tieneProActiva): ?>
             <div class="section-card mb-3">
                 <div class="section-header d-flex align-items-center justify-content-between flex-wrap gap-2">
@@ -260,8 +252,6 @@ unset($_SESSION['success'], $_SESSION['error']);
                 </div>
             </div>
         <?php endif; ?>
-
-        <!-- ✅ CONTENIDO -->
         <?php if (empty($solicitudes)): ?>
             <div class="section-card">
                 <div class="section-header">
@@ -322,8 +312,6 @@ unset($_SESSION['success'], $_SESSION['error']);
                                     <td><?= $duracion ?> min</td>
                                     <td>₲<?= fmtGs($precio) ?></td>
                                     <td class="text-end">
-
-                                        <!-- ✅ Aceptar (bloqueado si no PRO) -->
                                         <form action="AccionPaseo.php" method="post" class="d-inline">
                                             <input type="hidden" name="id" value="<?= $paseoId ?>">
                                             <input type="hidden" name="accion" value="confirmar">
@@ -358,7 +346,6 @@ unset($_SESSION['success'], $_SESSION['error']);
                             </tbody>
                         </table>
                     </div>
-
                     <!-- Cards (móvil) -->
                     <div class="d-md-none d-grid gap-2">
                         <?php foreach ($solicitudes as $s):

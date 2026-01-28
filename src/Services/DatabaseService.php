@@ -23,22 +23,44 @@ class DatabaseService
      */
     private function __construct()
     {
-        // 👉 AJUSTÁ ESTO según tu entorno
-        $host     = 'localhost';
-        $dbname   = 'jaguata';
-        $user     = 'root';
-        $password = ''; // tu contraseña de MySQL si tenés
+        // ✅ Asegurar que las constantes estén cargadas
+        // (Si ya las cargas en AppConfig/init, esto igual no molesta)
+        if (!defined('DB_HOST')) {
+            // Intento cargar Constantes.php si existe en la ruta típica
+            $constantes = dirname(__DIR__, 1) . '/Config/Constantes.php'; // src/Config/Constantes.php
+            if (file_exists($constantes)) {
+                require_once $constantes;
+            }
+        }
 
-        $dsn = "mysql:host={$host};dbname={$dbname};charset=utf8mb4";
+        // ✅ Usar constantes del proyecto (sin hardcode)
+        $host     = defined('DB_HOST') ? (string) DB_HOST : '127.0.0.1';
+        $port     = defined('DB_PORT') ? (string) DB_PORT : '3306';
+        $dbname   = defined('DB_NAME') ? (string) DB_NAME : 'jaguata';
+        $user     = defined('DB_USER') ? (string) DB_USER : 'root';
+        $password = defined('DB_PASS') ? (string) DB_PASS : '';
+        $charset  = defined('DB_CHARSET') ? (string) DB_CHARSET : 'utf8mb4';
+
+        // ✅ Forzar TCP real si alguien puso localhost (evita socket)
+        if ($host === 'localhost') {
+            $host = '127.0.0.1';
+        }
+
+        // ✅ DSN con puerto (clave para 3307)
+        $dsn = "mysql:host={$host};port={$port};dbname={$dbname};charset={$charset}";
 
         try {
             $this->connection = new PDO($dsn, $user, $password, [
                 PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                 PDO::ATTR_EMULATE_PREPARES   => false,
+
+                // ✅ Recomendado para evitar “cuelgues”
+                PDO::ATTR_TIMEOUT            => 5,
             ]);
         } catch (PDOException $e) {
-            die('Error de conexión a la base de datos: ' . $e->getMessage());
+            // ✅ Mejor que die(): así ves el error en tu handler/log
+            throw new PDOException('Error de conexión a la base de datos: ' . $e->getMessage(), (int)$e->getCode(), $e);
         }
     }
 

@@ -20,7 +20,6 @@ function h($v): string {
     return htmlspecialchars((string)($v ?? ''), ENT_QUOTES, 'UTF-8');
 }
 
-/* 🔒 Seguridad (igual que Usuarios.php) */
 if (!Session::isLoggedIn() || Session::getUsuarioRol() !== 'admin') {
     header('Location: ' . BASE_URL . '/public/login.php?error=unauthorized');
     exit;
@@ -28,8 +27,6 @@ if (!Session::isLoggedIn() || Session::getUsuarioRol() !== 'admin') {
 
 $auth = new AuthController();
 $auth->checkRole('admin');
-
-/* ✅ baseFeatures */
 $baseFeatures = BASE_URL . '/features/admin';
 
 /* ID del pago */
@@ -72,8 +69,6 @@ $estadoLabel = match ($estadoRaw) {
     'cancelado' => 'Cancelado',
     default     => ucfirst($estadoRaw),
 };
-
-/* ✅ MISMO sistema de badges que tu tabla */
 $badgeEstado = match ($estadoRaw) {
     'pendiente' => 'estado-pendiente',
     'pagado'    => 'estado-aprobado',
@@ -100,10 +95,7 @@ $paseoPrecio    = $pago['paseo_precio'] ?? null;
     <link href="<?= BASE_URL; ?>/public/assets/css/jaguata-theme.css" rel="stylesheet">
 
     <style>
-        /* ✅ evita scroll horizontal (igual que Usuarios.php) */
         html, body { overflow-x: hidden; width: 100%; }
-
-        /* ✅ chip de estado (igual Pagos.php/estilo sistema) */
         .estado-chip{
             display:inline-flex;
             align-items:center;
@@ -133,24 +125,17 @@ $paseoPrecio    = $pago['paseo_precio'] ?? null;
 
 <main>
     <div class="container-fluid px-3 px-md-2">
-
-        <!-- ✅ HEADER (MISMO estilo que Usuarios.php) -->
         <div class="header-box header-pagos mb-3">
             <div>
                 <h1 class="fw-bold mb-1">Detalle de Pago</h1>
                 <p class="mb-0">Pago #<?= (int)$id; ?> • Información completa del pago y del paseo 💸🐾</p>
             </div>
-
-            
-
             <a href="<?= h($baseFeatures); ?>/Pagos.php" class="btn btn-outline-light">
                 <i class="fas fa-arrow-left me-1"></i> Volver
             </a>
         </div>
 
         <div class="row g-3">
-
-            <!-- ✅ DATOS DEL PAGO (section-card) -->
             <div class="col-lg-7">
                 <div class="section-card mb-3">
                     <div class="section-header d-flex align-items-center justify-content-between">
@@ -226,8 +211,6 @@ $paseoPrecio    = $pago['paseo_precio'] ?? null;
                     </div>
                 </div>
             </div>
-
-            <!-- ✅ PASEO ASOCIADO (section-card) -->
             <div class="col-lg-5">
                 <div class="section-card mb-3">
                     <div class="section-header d-flex align-items-center justify-content-between">
@@ -283,7 +266,6 @@ $paseoPrecio    = $pago['paseo_precio'] ?? null;
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-    /* ✅ Toggle sidebar en mobile (IGUAL a Usuarios.php) */
     document.addEventListener('DOMContentLoaded', () => {
         const sidebar = document.querySelector('.sidebar');
         const btnToggle = document.getElementById('btnSidebarToggle');

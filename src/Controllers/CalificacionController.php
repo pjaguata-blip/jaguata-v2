@@ -58,7 +58,7 @@ class CalificacionController
         }
 
         $paseoId   = (int)($data['paseo_id'] ?? 0);
-        $mascotaId = (int)($data['rated_id'] ?? 0); // ✅ rated_id = mascota_id
+        $mascotaId = (int)($data['rated_id'] ?? 0); 
         $calif     = (int)($data['calificacion'] ?? 0);
 
         if ($paseoId <= 0)   return ['error' => 'Falta paseo_id'];
@@ -67,8 +67,6 @@ class CalificacionController
 
         $raterId = (int)(Session::getUsuarioId() ?? 0);
         if ($raterId <= 0) return ['error' => 'Sesión inválida'];
-
-        // ✅ Validar que el paseo pertenece al paseador y está completo
         $pdo = AppConfig::db();
         $st = $pdo->prepare("
             SELECT paseo_id, paseador_id, estado, mascota_id, mascota_id_2
@@ -93,8 +91,6 @@ class CalificacionController
         if (!in_array($mascotaId, array_filter([$m1, $m2]), true)) {
             return ['error' => 'La mascota no corresponde a este paseo'];
         }
-
-        // ✅ Evitar duplicado (1 calificación por paseo para tipo mascota)
         if ($this->model->existeParaPaseo($paseoId, 'mascota', $raterId)) {
             return ['error' => 'Ya calificaste este paseo'];
         }

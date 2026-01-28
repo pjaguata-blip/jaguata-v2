@@ -34,11 +34,6 @@ if ($duenoId <= 0) {
 }
 
 $db = DatabaseService::getInstance()->getConnection();
-
-/**
- * Traer datos del pago + paseo + nombres
- * Ajustá campos si tu tabla tiene nombres diferentes.
- */
 $sql = "
 SELECT
   pg.id,
@@ -86,7 +81,6 @@ if (!$row) {
     exit('Pago no encontrado');
 }
 
-/* 🔒 Permisos: solo el dueño del paseo */
 if ((int)$row['dueno_id'] !== $duenoId) {
     http_response_code(403);
     exit('No autorizado');

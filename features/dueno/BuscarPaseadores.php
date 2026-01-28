@@ -33,13 +33,7 @@ function bindUsedParams(\PDOStatement $st, string $sql, array $params): void
     }
 }
 
-/**
- * ✅ Normaliza la foto para que SIEMPRE funcione con tu BD:
- * - /assets/uploads/perfiles/xxx.jpg
- * - assets/uploads/perfiles/xxx.jpg
- * - URL completa
- * - nombre suelto (xxx.jpg) => lo asume en /assets/uploads/perfiles/
- */
+
 function resolveFotoUrl(?string $foto): string
 {
     $foto = trim((string)$foto);
@@ -84,9 +78,6 @@ function zonaToText(?string $raw): string
 
             // Caso: array
             if (is_array($decoded)) {
-
-                // ✅ Caso especial: viene como ["[\"[\\\"...","\"\\\"..."] (pedazos)
-                // Unimos todo y reintentamos decode
                 $onlyStrings = true;
                 foreach ($decoded as $x) {
                     if (!is_string($x)) { $onlyStrings = false; break; }
@@ -403,7 +394,6 @@ $DEFAULT_AVATAR = BASE_URL . '/public/assets/images/user-default.png';
         }
         .paseador-actions .btn{ flex:1; }
 
-        /* ✅ botón ver perfil con avatar real */
         .btn-avatar{
             display:inline-flex;
             align-items:center;

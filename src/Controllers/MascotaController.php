@@ -16,9 +16,6 @@ use PDOException;
 
 AppConfig::init();
 
-/**
- * Controlador de Mascotas (lado dueño / admin)
- */
 class MascotaController
 {
     private PDO $db;
@@ -28,15 +25,9 @@ class MascotaController
         $this->db = DatabaseService::getInstance()->getConnection();
     }
 
-    /**
-     * Listar mascotas del dueño logueado
-     * Si es admin -> lista todas
-     */
     public function index(): array
     {
         $rol = Session::getUsuarioRol() ?? '';
-
-        // 👉 ADMIN: listar todas
         if ($rol === 'admin') {
             $sql = "
                 SELECT 
@@ -61,7 +52,6 @@ class MascotaController
             return $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
         }
 
-        // 👉 Dueño: solo las suyas
         $duenoId = (int)(Session::getUsuarioId() ?? 0);
         if ($duenoId <= 0) {
             return [];
@@ -91,20 +81,11 @@ class MascotaController
 
         return $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
-
-    /**
-     * Versión explícita usada en algunos lugares
-     */
     public function indexByDuenoActual(): array
     {
         return $this->index();
     }
 
-    /**
-     * Obtener una mascota específica
-     * - Dueño: valida pertenencia
-     * - Admin: puede ver cualquiera
-     */
     public function show(int $id): array
     {
         $rol = Session::getUsuarioRol() ?? '';
@@ -114,7 +95,6 @@ class MascotaController
             return ['error' => 'ID inválido'];
         }
 
-        // ✅ ADMIN: sin restricción
         if ($rol === 'admin') {
             $sql = "
                 SELECT 
@@ -142,7 +122,6 @@ class MascotaController
             return $row ?: ['error' => 'Mascota no encontrada'];
         }
 
-        // ✅ DUEÑO: validar que sea suya
         $duenoId = (int)(Session::getUsuarioId() ?? 0);
         if ($duenoId <= 0) {
             return ['error' => 'Sesión no válida'];
@@ -182,15 +161,6 @@ class MascotaController
         return $row;
     }
 
-    /**
-     * ✅ Actualizar mascota (usado por EditarMascota.php)
-     * Devuelve: ['success'=>true] o ['error'=>'...']
-     */
-
-
-    /**
-     * Crear mascota (usado por AgregarMascota.php)
-     */
     public function store(): void
     {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -280,10 +250,6 @@ class MascotaController
         }
     }
 
-    /**
-     * ✅ Actualizar mascota (dueño)
-     * Usado en: features/dueno/EditarMascota.php
-     */
     public function update(int $id): array
     {
         $duenoId = (int)(Session::getUsuarioId() ?? 0);
@@ -406,11 +372,6 @@ class MascotaController
         }
     }
 
-    /**
-     * ✅ Eliminar mascota (dueño)
-     * Usado en: features/dueno/EliminarMascota.php
-     * Regla: si tiene paseos asociados, NO se elimina (por FK).
-     */
     public function destroy(int $id): void
     {
         $duenoId = (int)(Session::getUsuarioId() ?? 0);
@@ -501,4 +462,77 @@ class MascotaController
             return ['success' => false, 'error' => 'No se pudo actualizar el estado'];
         }
     }
+    public function obtenerDatosExportacion(): array
+{
+    try {
+        $rol = Session::getUsuarioRol() ?? '';
+
+        // ✅ Admin ve todas, Dueño solo las suyas
+        $where = "";
+        $params = [];
+
+        if ($rol !== 'admin') {
+            $duenoId = (int)(Session::getUsuarioId() ?? 0);
+            if ($duenoId <= 0) return [];
+
+            $where = "WHERE m.dueno_id = :dueno_id";
+            $params[':dueno_id'] = $duenoId;
+        }
+
+        $sql = "
+            SELECT
+                m.mascota_id,
+                m.dueno_id,
+                u.nombre AS dueno_nombre,
+                u.email  AS dueno_email,
+
+                m.nombre,
+                m.raza,
+                m.peso_kg,
+                m.tamano,
+                m.edad_meses,
+                m.observaciones,
+                m.foto_url,
+                m.estado,
+                m.created_at,
+                m.updated_at,
+
+                /* ✅ métricas de paseos */
+                COALESCE(px.total_paseos, 0)      AS total_paseos,
+                COALESCE(px.total_gastado, 0)     AS total_gastado,
+                COALESCE(px.ultimo_paseo, '')     AS ultimo_paseo,
+                COALESCE(px.puntos_ganados, 0)    AS puntos_ganados
+
+            FROM mascotas m
+            LEFT JOIN usuarios u ON u.usu_id = m.dueno_id
+
+            LEFT JOIN (
+                SELECT
+                    mascota_id,
+                    COUNT(*) AS total_paseos,
+                    COALESCE(SUM(precio_total), 0) AS total_gastado,
+                    MAX(inicio) AS ultimo_paseo,
+                    COALESCE(SUM(COALESCE(puntos_ganados, 0)), 0) AS puntos_ganados
+                FROM paseos
+                GROUP BY mascota_id
+            ) px ON px.mascota_id = m.mascota_id
+
+            $where
+            ORDER BY m.mascota_id DESC
+        ";
+
+        $st = $this->db->prepare($sql);
+        foreach ($params as $k => $v) {
+            $st->bindValue($k, $v, PDO::PARAM_INT);
+        }
+        $st->execute();
+
+        return $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+    } catch (PDOException $e) {
+        error_log('❌ MascotaController::obtenerDatosExportacion error: ' . $e->getMessage());
+        return [];
+    }
+}
+
 }

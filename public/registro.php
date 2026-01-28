@@ -3,8 +3,6 @@ declare(strict_types=1);
 
 error_reporting(E_ALL);
 ini_set('display_errors', '1');
-
-/* ================== BOOTSTRAP ================== */
 require_once dirname(__DIR__) . '/vendor/autoload.php';
 require_once dirname(__DIR__) . '/src/Config/AppConfig.php';
 require_once dirname(__DIR__) . '/src/Helpers/Session.php';
@@ -18,31 +16,23 @@ use Jaguata\Controllers\AuthController;
 
 AppConfig::init();
 
-/* ================== HELPERS ================== */
 function h($v): string {
     return htmlspecialchars((string)($v ?? ''), ENT_QUOTES, 'UTF-8');
 }
 
-/* ================== URL VOLVER ================== */
 $urlVolver = AppConfig::getBaseUrl() . '/sobre_nosotros.php';
 
-/* ================== PROCESAR POST (REGISTRO) ================== */
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
-        // 1) CSRF
         $token = $_POST['csrf_token'] ?? null;
         if (!Validaciones::verificarCSRF(is_string($token) ? $token : null)) {
             throw new Exception('Sesión expirada. Recargá e intentá de nuevo.');
         }
-
-        // 2) Campos
         $rol      = strtolower(trim((string)($_POST['rol'] ?? 'dueno')));
         $nombre   = trim((string)($_POST['nombre'] ?? ''));
         $email    = strtolower(trim((string)($_POST['email'] ?? '')));
         $telefono = trim((string)($_POST['telefono'] ?? ''));
         $password = (string)($_POST['password'] ?? '');
-
-        // ✅ checkbox (importante)
         $acepto = !empty($_POST['acepto_terminos']) ? 1 : 0;
 
         if (!in_array($rol, ['dueno','paseador'], true)) {
@@ -64,8 +54,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($acepto !== 1) {
             throw new Exception('Debés aceptar las Bases y Condiciones.');
         }
-
-        // 3) Si es paseador: documentos obligatorios
         if ($rol === 'paseador') {
             $requeridos = ['cedula_frente','cedula_dorso','selfie','antecedentes'];
             foreach ($requeridos as $k) {
@@ -77,14 +65,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
         }
-
-        // 4) Llamar a tu método apiRegister()
-        // apiRegister lee nombre/email/pass/password/rol
         $_POST['rol']      = $rol;
-        $_POST['pass']     = $password; // por si prioriza pass
+        $_POST['pass']     = $password; 
         $_POST['password'] = $password;
-
-        // ✅ mandamos también extras para que tu modelo pueda guardarlos si está preparado
         $_POST['telefono']        = $telefono;
         $_POST['acepto_terminos'] = $acepto;
 
@@ -106,7 +89,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-/* ================== ESTADO UI ================== */
 $error   = Session::getError();
 $success = Session::getSuccess();
 
@@ -271,8 +253,6 @@ $titulo = 'Registro - Jaguata';
               </div>
             </div>
           </div>
-
-          <!-- ✅ CHECKBOX CON NAME (CLAVE) -->
           <div class="form-check mt-4">
             <input class="form-check-input" type="checkbox" name="acepto_terminos" value="1" required>
             <label class="form-check-label">

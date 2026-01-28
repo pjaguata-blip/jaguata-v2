@@ -1,10 +1,4 @@
-/* ==============================
-   JAGUATA THEME (LIMPIO)
-   - Sin duplicados
-   - Sidebar + Topbar responsive unificado
-   ============================== */
 
-/* ✅ FUENTE GLOBAL (SIEMPRE ARRIBA) */
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
 
 :root{
@@ -17,9 +11,7 @@
   --topbar-h:56px;
 }
 
-/* ==============================
-   BASE
-   ============================== */
+
 html, body{
   font-family:"Poppins", sans-serif !important;
   color:#333;
@@ -37,9 +29,7 @@ table,th,td,
   font-family:"Poppins", sans-serif !important;
 }
 
-/* ==============================
-   SIDEBAR UNIFICADO
-   ============================== */
+
 .sidebar{
   position:fixed;
   top:0;
@@ -56,7 +46,7 @@ table,th,td,
   transition:transform .25s ease-in-out;
 }
 
-/* ✅ soporta tus 3 estructuras internas */
+
 .sidebar-inner,
 .sidebar-scroll{
   display:flex;
@@ -65,7 +55,7 @@ table,th,td,
   width:100%;
 }
 
-/* ✅ si un sidebar NO usa .sidebar-menu-scroll, igual scrollea */
+
 .sidebar-menu-scroll{
   flex:1;
   overflow-y:auto;
@@ -73,7 +63,7 @@ table,th,td,
   padding-bottom:1rem;
 }
 
-/* fallback de scroll (para tu sidebar de paseador que usa .sidebar-scroll sin wrapper) */
+
 .sidebar-scroll{
   overflow-y:auto;
   overflow-x:hidden;
@@ -148,9 +138,6 @@ table,th,td,
   color:rgba(148,163,184,.8) !important;
 }
 
-/* ==============================
-   TOPBAR MOBILE + BACKDROP
-   ============================== */
 .topbar-mobile{
   display:none;
   position:fixed;
@@ -184,9 +171,6 @@ table,th,td,
 
 .sidebar-backdrop.show{ display:block; }
 
-/* ==============================
-   MAIN / CONTENT AREA (soporta main y main.main-content)
-   ============================== */
 main{
   margin-left:var(--sidebar-w);
   width:calc(100% - var(--sidebar-w));
@@ -196,7 +180,6 @@ main{
   background:var(--gris-fondo);
 }
 
-/* ✅ tus páginas usan main.main-content */
 main.main-content{
   margin-left:var(--sidebar-w);
   width:calc(100% - var(--sidebar-w));
@@ -205,11 +188,7 @@ main.main-content{
   box-sizing:border-box;
   background:var(--gris-fondo);
 }
-/* ==============================
-   RESPONSIVE (TABLET / MOBILE)
-   - Sidebar overlay + topbar
-   - Main sin margin-top (usa padding-top)
-   ============================== */
+
 @media (max-width: 992px){
   .topbar-mobile{ display:flex; }
 
@@ -220,7 +199,6 @@ main.main-content{
   }
   .sidebar.sidebar-open{ transform:translateX(0); }
 
-  /* ✅ MAIN: SIN margin-top, reservamos espacio con padding-top */
   main,
   main.main-content{
     margin-left:0 !important;
@@ -240,9 +218,6 @@ main.main-content{
 }
 
 
-/* ==============================
-   HEADERS POR PANTALLA
-   ============================== */
 .header-box{
   color:#fff;
   padding:1.8rem 2.2rem;
@@ -267,7 +242,6 @@ main.main-content{
   font-size:clamp(.9rem, 1.4vw, .98rem);
 }
 
-/* ✅ GRADIENTE UNIFICADO (el que estás usando en tus pantallas) */
 .header-box,
 .header-dashboard,
 .header-usuarios,
@@ -280,19 +254,6 @@ main.main-content{
   color:#fff;
 }
 
-/* (Si querés por módulo, descomentá estos y comentá el bloque unificado de arriba)
-.header-dashboard{ background:linear-gradient(90deg,#20c997,#3c6255) !important; }
-.header-usuarios{ background:linear-gradient(90deg,#20c997,#08a39a) !important; }
-.header-paseos{ background:linear-gradient(90deg,#00c6ff,#0072ff) !important; }
-.header-pagos{ background:linear-gradient(90deg,#ff9a9e,#f6416c) !important; }
-.header-notificaciones{ background:linear-gradient(90deg,#ffdd57,#ff8a00) !important; }
-.header-auditoria{ background:linear-gradient(90deg,#8e2de2,#4a00e0) !important; }
-.header-configuracion{ background:linear-gradient(90deg,#3c6255,#0f2027) !important; }
-*/
-
-/* ==============================
-   FILTROS GENERALES
-   ============================== */
 .filtros{
   background:var(--blanco);
   padding:1rem 1.5rem;
@@ -310,9 +271,6 @@ main.main-content{
   font-size:.95rem;
 }
 
-/* ==============================
-   TABLAS & BADGES
-   ============================== */
 .table{
   background:var(--blanco);
   border-radius:16px;
@@ -351,10 +309,6 @@ main.main-content{
 .btn-desactivar{ background:#6c757d; color:#fff; }
 .btn-aprobar{ background:#0d6efd; color:#fff; }
 .btn-rechazar{ background:#dc3545; color:#fff; }
-
-/* ==============================
-   DASHBOARD CARDS / STATS
-   ============================== */
 .stat-card{
   background:var(--blanco);
   border-radius:14px;
@@ -400,9 +354,6 @@ main.main-content{
   .chart-wrap{ min-height:220px; }
 }
 
-/* ==============================
-   EXPORT BUTTONS
-   ============================== */
 .export-buttons{
   display:flex;
   justify-content:flex-end;
@@ -421,10 +372,6 @@ main.main-content{
 }
 .btn-excel{ background:#198754; }
 .btn-excel:hover{ background:#157347; }
-
-/* ==============================
-   BOTONES ESPECÍFICOS
-   ============================== */
 .btn-ver{
   background:var(--verde-claro);
   color:#fff;
@@ -456,7 +403,6 @@ main.main-content{
   transform:translateY(-2px);
 }
 
-/* ✅ FALTABA: lo usás en varias pantallas */
 .btn-gradient{
   border:none;
   color:#0f172a;
@@ -479,10 +425,6 @@ main.main-content{
 
 .badge-pendiente{ background:#ffc107; color:#000; }
 .badge-enviado{ background:#20c997; color:#fff; }
-
-/* ==============================
-   SECTION CARD (CONFIG / FORMS)
-   ============================== */
 .section-card{
   background:var(--blanco);
   border-radius:14px;
@@ -502,10 +444,6 @@ main.main-content{
   margin-bottom:1rem;
   padding-bottom:.5rem;
 }
-
-/* ==============================
-   SWITCH / CONFIG
-   ============================== */
 .switch{ position:relative; display:inline-block; width:60px; height:30px; }
 .switch input{ opacity:0; width:0; height:0; }
 
@@ -543,19 +481,11 @@ input:checked + .slider:before{ transform:translateX(30px); }
   background:var(--verde-claro);
   transform:scale(1.03);
 }
-
-/* ==============================
-   MAPAS RESPONSIVE
-   ============================== */
 #mapa, #map{
   width:100% !important;
   height:clamp(240px, 40vh, 380px) !important;
   border-radius:14px;
 }
-
-/* ==============================
-   MODAL JAGUATA (RESPONSIVE)
-   ============================== */
 .modal-jaguata{
   border-radius:18px;
   overflow:hidden;
@@ -654,9 +584,6 @@ input:checked + .slider:before{ transform:translateX(30px); }
 .opi-meta{ font-size:.85rem; color:rgba(0,0,0,.55); }
 .opi-stars{ font-weight:700; white-space:nowrap; }
 
-/* ==============================
-   UTILIDADES / EXTRAS
-   ============================== */
 .col-id{
   font-weight:700 !important;
   text-align:center !important;
@@ -669,9 +596,6 @@ input:checked + .slider:before{ transform:translateX(30px); }
   padding:.55rem .85rem;
 }
 
-/* ==============================
-   AJUSTES “LO NUEVO”
-   ============================== */
 h2{ font-size:1.4rem; }
 
 .illustration-title{ font-size:1.35rem; }
@@ -699,9 +623,6 @@ h2{ font-size:1.4rem; }
   font-size:.85rem;
 }
 
-/* =========================
-   VISTA: GASTOS TOTALES
-   ========================= */
 body.page-gastos .header-box h1{
   font-size:1.35rem;
   font-weight:900;
@@ -730,9 +651,6 @@ body.page-gastos table.table tbody td{
   font-size:.93rem;
 }
 
-/* ==============================
-   FOOTER
-   ============================== */
 footer{
   margin-top:2rem;
   text-align:center;
@@ -750,9 +668,6 @@ footer{
     width:100%;
   }
 }
-/* ===========================
-   DASH CARDS – UNIFICADO
-   =========================== */
 
 .dash-card {
     background: #ffffff;
@@ -783,8 +698,8 @@ footer{
 /* Texto inferior (igual Dashboard Dueño) */
 .dash-card-label {
     font-size: 0.9rem;
-    font-weight: 400;      /* 🔑 QUITA NEGRITA */
-    color: #555;           /* 🔑 MISMO COLOR */
+    font-weight: 400;      
+    color: #555;           
     line-height: 1.2;
 }
 @media (max-width: 992px){
@@ -794,11 +709,6 @@ footer{
   }
 }
 
-
-
-/* ===============================
-   FOTO COVER PERFIL PASEADOR
-   =============================== */
 .profile-cover {
     width: 100%;
     height: 320px;
@@ -829,7 +739,6 @@ footer{
 }
 
 
-/* ✅ En mobile, baja el header del sidebar para que no se esconda bajo la topbar */
 @media (max-width: 991.98px){
   .sidebar .sidebar-inner > .text-center{
     padding-top: calc(var(--topbar-h) + 12px) !important;
@@ -837,16 +746,15 @@ footer{
 }
 
 .home-narrow{
-  max-width: 980px;   /* probá 900-1050 */
-  margin: 0 auto;     /* centra */
+  max-width: 980px;   
+  margin: 0 auto;    
 }
-/* ✅ centra y achica la sección final */
+
 .home-narrow{
   max-width: 980px;
   margin: 0 auto;
 }
 
-/* ✅ hace más compactas las tarjetas de “Cómo funciona” */
 .home-narrow .dash-card{
   padding: 12px 12px;
   border-radius: 16px;
@@ -862,7 +770,6 @@ footer{
   font-size: .85rem;
 }
 
-/* ✅ en mobile quedan 2 por fila (no 4 apretadas) */
 @media (max-width: 768px){
   .home-narrow .col-md-3{
     flex: 0 0 50%;

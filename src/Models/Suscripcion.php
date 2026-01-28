@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace Jaguata\Models;
 
+require_once __DIR__ . '/../Services/DatabaseService.php';
+
 use PDO;
 use Jaguata\Services\DatabaseService;
 
@@ -95,20 +97,18 @@ class Suscripcion
     }
 
     public function getPendientes(int $limit = 50): array
-{
-    $sql = "SELECT s.*, u.nombre AS paseador_nombre, u.email AS paseador_email
-            FROM suscripciones s
-            JOIN usuarios u ON u.usu_id = s.paseador_id
-            WHERE s.estado = 'pendiente'
-            ORDER BY s.created_at ASC
-            LIMIT :lim";
-    $st = $this->db->prepare($sql);
-    $st->bindValue(':lim', max(1, $limit), PDO::PARAM_INT);
-    $st->execute();
-    return $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
-}
-
-
+    {
+        $sql = "SELECT s.*, u.nombre AS paseador_nombre, u.email AS paseador_email
+                FROM suscripciones s
+                JOIN usuarios u ON u.usu_id = s.paseador_id
+                WHERE s.estado = 'pendiente'
+                ORDER BY s.created_at ASC
+                LIMIT :lim";
+        $st = $this->db->prepare($sql);
+        $st->bindValue(':lim', max(1, $limit), PDO::PARAM_INT);
+        $st->execute();
+        return $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
 
     public function aprobar(int $suscripcionId): bool
     {
@@ -147,23 +147,21 @@ class Suscripcion
     }
 
     public function rechazar(int $id, string $motivo): bool
-{
-    $sql = "UPDATE suscripciones
-            SET estado = :estado,
-                motivo_rechazo = :motivo,
-                updated_at = NOW()
-            WHERE id = :id";
+    {
+        $sql = "UPDATE suscripciones
+                SET estado = :estado,
+                    motivo_rechazo = :motivo,
+                    updated_at = NOW()
+                WHERE id = :id";
 
-    $st = $this->db->prepare($sql);
+        $st = $this->db->prepare($sql);
 
-    return $st->execute([
-        ':estado' => 'rechazada',
-        ':motivo' => $motivo,
-        ':id'     => $id,
-    ]);
-}
-
-
+        return $st->execute([
+            ':estado' => 'rechazada',
+            ':motivo' => $motivo,
+            ':id'     => $id,
+        ]);
+    }
 
     public function marcarVencidas(): int
     {
@@ -175,64 +173,57 @@ class Suscripcion
         return (int)($this->db->exec($sql) ?: 0);
     }
 
-
     public function getEstadoActualPorPaseador(int $paseadorId): ?array
-{
-    $sql = "
-        SELECT estado, inicio, fin, monto, plan
-        FROM suscripciones
-        WHERE paseador_id = :pid
-        ORDER BY created_at DESC, id DESC
-        LIMIT 1
-    ";
-    $st = $this->db->prepare($sql);
-    $st->execute([':pid' => $paseadorId]);
-    $row = $st->fetch(PDO::FETCH_ASSOC);
-
-    return $row ?: null;
-}
-
-/**
- * Para admin: traer estados de suscripción de MUCHOS usuarios de una sola vez (más rápido)
- * Retorna array: [paseador_id => ['estado'=>..., 'inicio'=>..., 'fin'=>..., ...], ...]
- */
-public function getEstadosActualesPorPaseadores(array $paseadorIds): array
-{
-    $ids = array_values(array_unique(array_filter(array_map('intval', $paseadorIds), fn($v) => $v > 0)));
-    if (!$ids) return [];
-
-    $placeholders = implode(',', array_fill(0, count($ids), '?'));
-
-    // Tomamos la última suscripción por paseador (MAX(id) o MAX(created_at))
-    $sql = "
-        SELECT s.*
-        FROM suscripciones s
-        INNER JOIN (
-            SELECT paseador_id, MAX(id) AS max_id
+    {
+        $sql = "
+            SELECT estado, inicio, fin, monto, plan
             FROM suscripciones
-            WHERE paseador_id IN ($placeholders)
-            GROUP BY paseador_id
-        ) x ON x.paseador_id = s.paseador_id AND x.max_id = s.id
-    ";
+            WHERE paseador_id = :pid
+            ORDER BY created_at DESC, id DESC
+            LIMIT 1
+        ";
+        $st = $this->db->prepare($sql);
+        $st->execute([':pid' => $paseadorId]);
+        $row = $st->fetch(PDO::FETCH_ASSOC);
 
-    $st = $this->db->prepare($sql);
-    $st->execute($ids);
-    $rows = $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
-
-    $map = [];
-    foreach ($rows as $r) {
-        $pid = (int)($r['paseador_id'] ?? 0);
-        if ($pid > 0) {
-            $map[$pid] = [
-                'estado' => strtolower((string)($r['estado'] ?? '')),
-                'inicio' => $r['inicio'] ?? null,
-                'fin'    => $r['fin'] ?? null,
-                'monto'  => (int)($r['monto'] ?? 0),
-                'plan'   => $r['plan'] ?? null,
-            ];
-        }
+        return $row ?: null;
     }
-    return $map;
-}
 
+    public function getEstadosActualesPorPaseadores(array $paseadorIds): array
+    {
+        $ids = array_values(array_unique(array_filter(array_map('intval', $paseadorIds), fn($v) => $v > 0)));
+        if (!$ids) return [];
+
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+
+        $sql = "
+            SELECT s.*
+            FROM suscripciones s
+            INNER JOIN (
+                SELECT paseador_id, MAX(id) AS max_id
+                FROM suscripciones
+                WHERE paseador_id IN ($placeholders)
+                GROUP BY paseador_id
+            ) x ON x.paseador_id = s.paseador_id AND x.max_id = s.id
+        ";
+
+        $st = $this->db->prepare($sql);
+        $st->execute($ids);
+        $rows = $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        $map = [];
+        foreach ($rows as $r) {
+            $pid = (int)($r['paseador_id'] ?? 0);
+            if ($pid > 0) {
+                $map[$pid] = [
+                    'estado' => strtolower((string)($r['estado'] ?? '')),
+                    'inicio' => $r['inicio'] ?? null,
+                    'fin'    => $r['fin'] ?? null,
+                    'monto'  => (int)($r['monto'] ?? 0),
+                    'plan'   => $r['plan'] ?? null,
+                ];
+            }
+        }
+        return $map;
+    }
 }

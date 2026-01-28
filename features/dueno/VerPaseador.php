@@ -12,11 +12,9 @@ use Jaguata\Helpers\Session;
 
 AppConfig::init();
 
-/* 🔒 Auth */
 $auth = new AuthController();
 $auth->checkRole('dueno');
 
-/* 🔒 (Recomendado: igual a tu Dashboard) */
 if (Session::getUsuarioEstado() !== 'aprobado') {
     Session::setError('Tu cuenta aún no fue aprobada.');
     header('Location: ' . BASE_URL . '/public/login.php');
@@ -29,11 +27,6 @@ function h(?string $v): string
     return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
 }
 
-/**
- * ✅ Convierte la zona a texto lindo:
- * - Si es texto normal => lo muestra normal
- * - Si viene como JSON mal guardado / doble o triple escapado => lo arregla y muestra "A, B, C"
- */
 function zonaToText(?string $raw): string
 {
     $raw = trim((string)$raw);
@@ -98,14 +91,6 @@ function zonaToText(?string $raw): string
     $clean = trim((string)$clean, " ,");
     return $clean !== '' ? $clean : 'Sin zona';
 }
-
-/**
- * ✅ Normaliza la foto para que SIEMPRE funcione con tu BD:
- * - /assets/uploads/perfiles/xxx.jpg
- * - assets/uploads/perfiles/xxx.jpg
- * - URL completa
- * - nombre suelto (xxx.jpg) => lo asume en /assets/uploads/perfiles/
- */
 function resolveFotoUrl(?string $foto): string
 {
     $foto = trim((string)$foto);
@@ -185,7 +170,6 @@ $DEFAULT_AVATAR = BASE_URL . '/public/assets/images/user-default.png';
 /* DB */
 $pdo = AppConfig::db();
 
-/* ✅ Paseador + rating real + datos de usuario (incluye foto_perfil, ciudad, barrio, telefono) */
 $sql = "
     SELECT 
         p.*,
@@ -226,13 +210,11 @@ $paseos  = (int)($u['total_paseos'] ?? 0);
 $rate    = (float)($u['calificacion_promedio'] ?? 0);
 $rateCnt = (int)($u['calificacion_total'] ?? 0);
 
-/* ✅ Foto real o default SIEMPRE */
 $fotoReal = resolveFotoUrl((string)($u['foto_perfil'] ?? ''));
 $foto     = $fotoReal !== '' ? $fotoReal : $DEFAULT_AVATAR;
 
 $waLink  = whatsappUrl($tel, $nombre);
 
-/* ✅ Reseñas (últimas 10) */
 $reseñas = [];
 if ($u) {
     try {
@@ -402,8 +384,6 @@ if ($u) {
 
                         <div>
                             <h3 class="mb-1 fw-bold"><?= h($nombre); ?></h3>
-
-                            <!-- ✅ ZONA ARREGLADA -->
                             <div class="opacity-75 mb-2">
                                 <i class="fas fa-location-dot me-1"></i>
                                 <?= h(zonaToText($zona)); ?>

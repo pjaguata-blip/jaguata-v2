@@ -48,15 +48,7 @@ class Calificacion
         return round((float)$stmt->fetchColumn(), 2);
     }
 
-    /* =========================
-       NUEVOS MÉTODOS RESUMEN
-       ========================= */
-
-    /**
-     * Resumen de reputación para un PASEADOR
-     * - promedio: float|null
-     * - total: int (cantidad de opiniones)
-     */
+    
     public function resumenPorPaseador(int $paseadorId): array
     {
         $sql = "SELECT 
@@ -76,10 +68,6 @@ class Calificacion
         ];
     }
 
-    /**
-     * Resumen de reputación para un DUEÑO
-     * Se calcula como el promedio de las calificaciones de SUS MASCOTAS
-     */
     public function resumenPorDueno(int $duenoId): array
     {
         $sql = "SELECT 
@@ -99,11 +87,7 @@ class Calificacion
             'total'    => (int)($row['total'] ?? 0),
         ];
     }
-    /**
-     * Promedio global por tipo de calificación
-     *  - 'paseador' → calificaciones que los dueños hacen a paseadores
-     *  - 'mascota'  → calificaciones que los paseadores hacen a mascotas (dueños)
-     */
+
     public function promedioGlobalPorTipo(string $tipo): ?float
     {
         if (!in_array($tipo, ['paseador', 'mascota'], true)) {

@@ -6,12 +6,6 @@ use Jaguata\Services\DatabaseService;
 use PDO;
 use Exception;
 
-/**
- * Controlador de Configuración del Sistema
- * ----------------------------------------
- * Permite leer y actualizar los parámetros globales del sistema Jaguata.
- * (nombre, correo de soporte, modo mantenimiento, comisiones, tarifas, etc.)
- */
 class ConfiguracionController
 {
     private PDO $db;
@@ -21,9 +15,6 @@ class ConfiguracionController
         $this->db = DatabaseService::getInstance()->getConnection();
     }
 
-    /**
-     * 🔹 Devuelve todas las configuraciones en forma de array asociativo.
-     */
     public function getAll(): array
     {
         try {
@@ -40,9 +31,6 @@ class ConfiguracionController
         }
     }
 
-    /**
-     * 🔹 Obtiene una configuración específica por clave.
-     */
     public function get(string $clave): ?string
     {
         try {
@@ -57,10 +45,6 @@ class ConfiguracionController
         }
     }
 
-    /**
-     * 🔹 Guarda o actualiza una configuración
-     * (si existe la clave, actualiza; si no, la crea).
-     */
     public function set(string $clave, string $valor): bool
     {
         try {
@@ -79,9 +63,6 @@ class ConfiguracionController
         }
     }
 
-    /**
-     * 🔹 Guarda múltiples configuraciones de una vez.
-     */
     public function saveMany(array $data): bool
     {
         try {

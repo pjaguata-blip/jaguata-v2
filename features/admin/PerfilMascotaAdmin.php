@@ -18,7 +18,6 @@ use Jaguata\Models\Usuario;
 
 AppConfig::init();
 
-// 🔒 Solo admin
 if (!Session::isLoggedIn() || Session::getUsuarioRol() !== 'admin') {
     header('Location: ' . BASE_URL . '/public/login.php?error=unauthorized');
     exit;
@@ -109,7 +108,6 @@ $btnEstadoText  = ($estadoMascota === 'activo') ? 'Inactivar' : 'Activar';
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
     <link href="<?= BASE_URL; ?>/public/assets/css/jaguata-theme.css" rel="stylesheet">
 
-    <!-- ✅ Extra: orden visual sin romper tu theme -->
     <style>
         .kv-grid {
             display: grid;

@@ -17,12 +17,8 @@ use Jaguata\Helpers\Session;
 use Jaguata\Models\Suscripcion;
 
 AppConfig::init();
-
-/* 🔒 Solo paseador */
 $auth = new AuthController();
 $auth->checkRole('paseador');
-
-/* 🔒 BLOQUEO POR ESTADO */
 if (Session::getUsuarioEstado() !== 'aprobado') {
     Session::setError('Tu cuenta aún no fue aprobada.');
     header('Location: ' . BASE_URL . '/public/login.php');
@@ -46,8 +42,6 @@ $paseadorId   = (int)(Session::getUsuarioId() ?? 0);
 /* Datos paseos */
 $paseoController = new PaseoController();
 $paseos = $paseadorId > 0 ? ($paseoController->indexForPaseador($paseadorId) ?: []) : [];
-
-/* ✅ Suscripción PRO */
 $tieneProActiva = false;
 $subEstado = null;
 $subFin    = null;
@@ -95,7 +89,6 @@ $ingresosTotales   = array_reduce(
     0
 );
 
-/* Flash */
 $success = $_SESSION['success'] ?? null;
 $error   = $_SESSION['error'] ?? null;
 unset($_SESSION['success'], $_SESSION['error']);
@@ -114,8 +107,6 @@ unset($_SESSION['success'], $_SESSION['error']);
     <style>
         html, body { height:100%; overflow-x:hidden; }
         body { background: var(--gris-fondo, #f4f6f9); }
-
-        /* ✅ Layout igual dashboard */
         main.main-content{
             margin-left: var(--sidebar-w);
             width: calc(100% - var(--sidebar-w));
@@ -156,8 +147,6 @@ unset($_SESSION['success'], $_SESSION['error']);
 
         .table thead th { font-size:.86rem; color:#1f2937; }
         .table td { vertical-align: middle; }
-
-        /* ✅ botones pequeños tipo icon */
         .btn-icon{
             width: 38px;
             height: 38px;
@@ -204,8 +193,6 @@ unset($_SESSION['success'], $_SESSION['error']);
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
         <?php endif; ?>
-
-        <!-- ✅ Suscripción PRO (section-card) -->
         <?php if (!$tieneProActiva): ?>
             <div class="section-card mb-3">
                 <div class="section-header d-flex justify-content-between align-items-center flex-wrap gap-2">
@@ -246,8 +233,6 @@ unset($_SESSION['success'], $_SESSION['error']);
                 </div>
             </div>
         <?php endif; ?>
-
-        <!-- ✅ Estadísticas (section-card) -->
         <div class="section-card mb-3">
             <div class="section-header d-flex justify-content-between align-items-center flex-wrap gap-2">
                 <div><i class="fas fa-chart-simple me-2"></i> Resumen</div>
@@ -289,8 +274,6 @@ unset($_SESSION['success'], $_SESSION['error']);
                 </div>
             </div>
         </div>
-
-        <!-- ✅ Filtros + Export (section-card) -->
         <div class="section-card mb-3">
             <div class="section-header d-flex justify-content-between align-items-center flex-wrap gap-2">
                 <div><i class="fas fa-filter me-2"></i> Filtros y exportación</div>
@@ -334,8 +317,6 @@ unset($_SESSION['success'], $_SESSION['error']);
                 </p>
             </div>
         </div>
-
-        <!-- ✅ Tabla (section-card) -->
         <?php if (empty($paseos)): ?>
             <div class="section-card">
                 <div class="section-header">
@@ -526,7 +507,6 @@ unset($_SESSION['success'], $_SESSION['error']);
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-    // ✅ Filtros client-side (texto + estado + fecha)
     const searchInput  = document.getElementById('searchInput');
     const filterEstado = document.getElementById('filterEstado');
     const filterDesde  = document.getElementById('filterDesde');

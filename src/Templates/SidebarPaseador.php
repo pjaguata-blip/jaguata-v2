@@ -10,8 +10,6 @@ $usuarioNombre = Session::getUsuarioNombre() ?? 'Paseador';
 $rolUsuario    = Session::getUsuarioRol() ?? 'paseador';
 $baseFeatures  = BASE_URL . "/features/{$rolUsuario}";
 $currentFile   = basename($_SERVER['PHP_SELF']);
-
-/* ✅ Estado suscripción (badge) */
 $paseadorId = (int)(Session::getUsuarioId() ?? 0);
 $subEstado  = null;
 
@@ -46,8 +44,6 @@ $badgeText = match ($subEstado) {
   default     => null,
 };
 ?>
-
-<!-- ✅ TOPBAR MOBILE -->
 <div class="topbar-mobile d-lg-none">
   <div class="d-flex align-items-center gap-2 fw-semibold">
     <i class="fas fa-paw"></i> Jaguata
@@ -57,8 +53,6 @@ $badgeText = match ($subEstado) {
     <i class="fas fa-bars"></i>
   </button>
 </div>
-
-<!-- ✅ OVERLAY -->
 <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 
 <aside id="sidebar" class="sidebar">
@@ -141,8 +135,6 @@ $badgeText = match ($subEstado) {
             <i class="fas fa-bell me-2"></i>Notificaciones
           </a>
         </li>
-
-        <!-- ✅ NUEVO: SUSCRIPCIÓN -->
         <li class="nav-item">
           <a href="<?= $baseFeatures; ?>/Suscripcion.php"
              class="nav-link d-flex align-items-center justify-content-between <?= $currentFile === 'Suscripcion.php' ? 'active' : '' ?>">
@@ -195,8 +187,6 @@ $badgeText = match ($subEstado) {
     </div>
   </div>
 </aside>
-
-<!-- ✅ JS Sidebar UNIFICADO -->
 <script>
 (function () {
   const sidebar   = document.getElementById('sidebar');

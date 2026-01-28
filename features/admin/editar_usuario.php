@@ -18,7 +18,6 @@ use Jaguata\Helpers\Validaciones;
 
 AppConfig::init();
 
-/* 🔒 Solo admin */
 $auth = new AuthController();
 $auth->checkRole('admin');
 
@@ -41,7 +40,6 @@ if (!$usuario) {
     exit('<h3 style="color:red; text-align:center;">Usuario no encontrado</h3>');
 }
 
-/* ✅ Leer rol/estado de forma tolerante (como tu perfil) */
 $rolActual = strtolower(trim((string)(
     $usuario['rol']
     ?? $usuario['usu_rol']

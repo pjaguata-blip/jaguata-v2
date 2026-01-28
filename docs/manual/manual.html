@@ -8,14 +8,17 @@
   <!-- Fuente -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <!-- Iconos (Font Awesome) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
   <!-- CSS -->
-  <link rel="stylesheet" href="manual-jaguata-v2.css" />
+  <link rel="stylesheet" href="manual-jaguata-v3.css" />
 </head>
 
 <body>
-  <!-- Barra superior (solo pantalla) -->
+  <!-- Barra superior -->
   <div class="screenbar">
     <div class="screenbar-inner">
       <div class="sb-left">
@@ -24,7 +27,7 @@
       </div>
       <div class="sb-actions">
         <a class="sb-link" href="#indice">Índice</a>
-        <button class="sb-btn" onclick="window.print()">Imprimir / Guardar PDF</button>
+        <button class="sb-btn" onclick="window.print()"><i class="fa-solid fa-print"></i> Imprimir / Guardar PDF</button>
       </div>
     </div>
   </div>
@@ -32,22 +35,31 @@
   <main class="doc">
 
     <!-- PORTADA -->
-    <section class="page cover">
+    <section class="page cover" id="top">
       <div class="cover-hero">
-        
+        <div class="cover-brand">
+          <div class="cover-logo">JG</div>
+          <div>
+            <div class="cover-app">Jaguata</div>
+            <div class="cover-sub">Plataforma web para contratar paseos de perros</div>
+          </div>
+        </div>
 
         <div class="cover-title">
           <h1>Manual de Usuario</h1>
           <p>
-            Guía práctica para Administradores, Dueños y Paseadores: navegación, módulos,
-            flujos principales, reservas, pagos, notificaciones y uso de dashboards.
+            Guía práctica para navegar por Jaguata: pantallas públicas (registro/login),
+            y paneles por rol (<b>Administrador</b>, <b>Dueño</b>, <b>Paseador</b>),
+            incluyendo reservas, pagos, suscripción, puntos y notificaciones.
           </p>
 
           <div class="cover-chips">
-            <span class="chip">Admin</span>
-            <span class="chip">Dueño</span>
-            <span class="chip">Paseador</span>
-            <span class="chip">Reservas • Pagos • Notificaciones • Reputación</span>
+            <span class="chip"><i class="fa-solid fa-shield-dog"></i> Admin</span>
+            <span class="chip"><i class="fa-solid fa-user"></i> Dueño</span>
+            <span class="chip"><i class="fa-solid fa-person-walking"></i> Paseador</span>
+            <span class="chip"><i class="fa-solid fa-bell"></i> Notificaciones</span>
+            <span class="chip"><i class="fa-solid fa-wallet"></i> Pagos</span>
+            <span class="chip"><i class="fa-solid fa-star"></i> Puntos & Recompensas</span>
           </div>
         </div>
 
@@ -58,7 +70,7 @@
             <div class="meta-row"><span class="k">Autor/a</span><span class="v">Evelyn Camila Ayala Rojas</span></div>
             <div class="meta-row"><span class="k">Tutora</span><span class="v">Prof. Dra. Mirtha Villagra</span></div>
             <div class="meta-row"><span class="k">Lugar</span><span class="v">San Lorenzo – Paraguay</span></div>
-            <div class="meta-row"><span class="k">Año</span><span class="v">2026</span></div>
+            <div class="meta-row"><span class="k">Año</span><span class="v">2025</span></div>
           </div>
 
           <div class="logo-card">
@@ -66,750 +78,2394 @@
           </div>
         </div>
       </div>
-
-      <div class="cover-footer">
-        <span class="muted small">Versión 2.0</span>
-        <span class="muted small">© 2025 Jaguata</span>
-      </div>
     </section>
 
     <!-- ÍNDICE -->
     <section class="page" id="indice">
       <div class="page-head">
-        <h2>Índice</h2>
-        <p class="muted">Estructura del manual por módulos y roles.</p>
+        <h2><i class="fa-solid fa-list"></i> Índice</h2>
+        <p class="muted">Estructura del manual por pantallas y roles.</p>
       </div>
 
       <div class="toc-grid">
         <div class="toc-card">
           <div class="toc-title">General</div>
           <a class="toc-item" href="#intro"><span>1. Introducción</span><span class="dots"></span></a>
-          <a class="toc-item" href="#alcance"><span>2. Alcance y roles</span><span class="dots"></span></a>
-          <a class="toc-item" href="#requisitos"><span>3. Requisitos del sistema</span><span class="dots"></span></a>
-          <a class="toc-item" href="#acceso"><span>4. Acceso y registro</span><span class="dots"></span></a>
-          <a class="toc-item" href="#navegacion"><span>5. Navegación general</span><span class="dots"></span></a>
-          <a class="toc-item" href="#dashboards"><span>6. Dashboards (capturas)</span><span class="dots"></span></a>
+          <a class="toc-item" href="#requisitos"><span>2. Requisitos del sistema</span><span class="dots"></span></a>
+          <a class="toc-item" href="#public"><span>3. Pantallas públicas</span><span class="dots"></span></a>
+          <a class="toc-item" href="#navegacion"><span>4. Navegación general</span><span class="dots"></span></a>
         </div>
 
         <div class="toc-card">
-          <div class="toc-title">Por rol</div>
-          <a class="toc-item" href="#admin"><span>7. Administrador</span><span class="dots"></span></a>
-          <a class="toc-item" href="#dueno"><span>8. Dueño</span><span class="dots"></span></a>
-          <a class="toc-item" href="#paseador"><span>9. Paseador</span><span class="dots"></span></a>
-          <a class="toc-item" href="#faq"><span>10. Preguntas frecuentes</span><span class="dots"></span></a>
-          <a class="toc-item" href="#soporte"><span>11. Soporte y buenas prácticas</span><span class="dots"></span></a>
+          <div class="toc-title">Paneles por rol</div>
+          <a class="toc-item" href="#admin"><span>5. Administrador</span><span class="dots"></span></a>
+          <a class="toc-item" href="#dueno"><span>6. Dueño</span><span class="dots"></span></a>
+          <a class="toc-item" href="#paseador"><span>7. Paseador</span><span class="dots"></span></a>
+          <a class="toc-item" href="#faq"><span>8. Preguntas frecuentes</span><span class="dots"></span></a>
+          <a class="toc-item" href="#soporte"><span>9. Soporte</span><span class="dots"></span></a>
+          <a class="toc-item" href="#fin"><span>Fin del manual</span><span class="dots"></span></a>
         </div>
       </div>
 
-      
+      <div class="note tip">
+        <b>Cómo usar este manual:</b> cada pantalla tiene:
+        <ul class="steps">
+          <li><b>Ruta</b> (archivo exacto en XAMPP)</li>
+          <li><b>Qué muestra</b> (lo que ve el usuario)</li>
+          <li><b>Para qué sirve</b> (objetivo)</li>
+          <li><b>Cómo se usa</b> (pasos)</li>
+          <li><b>Acciones principales</b> (botones / resultados)</li>
+        </ul>
+      </div>
     </section>
 
     <!-- 1 INTRO -->
     <section class="page" id="intro">
       <div class="page-head">
-        <h2>1. Introducción</h2>
+        <h2><i class="fa-solid fa-book-open"></i> 1. Introducción</h2>
         <p class="muted">
-          Jaguata es una plataforma web que conecta dueños de mascotas con paseadores verificados,
-          permitiendo reservar paseos, gestionar solicitudes, registrar pagos, generar comprobantes,
-          recibir notificaciones y administrar perfiles según el rol.
+          Jaguata es una plataforma web que conecta <b>Dueños</b> con <b>Paseadores</b> verificados,
+          permitiendo solicitar paseos, gestionar pagos y comprobantes, recibir notificaciones,
+          administrar perfiles y utilizar un sistema de <b>puntos y recompensas</b>.
         </p>
       </div>
+
+      <div class="grid three">
+        <div class="card">
+          <div class="title"><i class="fa-solid fa-dog"></i> Objetivo</div>
+          <p class="muted" style="margin:0;">
+            Facilitar la contratación de paseadores confiables, con control por roles, trazabilidad y reputación.
+          </p>
+        </div>
+        <div class="card">
+          <div class="title"><i class="fa-solid fa-shield-heart"></i> Seguridad</div>
+          <p class="muted" style="margin:0;">
+            Verificación de paseadores mediante documentos, control administrativo, auditoría y estados de cuenta.
+          </p>
+        </div>
+        <div class="card">
+          <div class="title"><i class="fa-solid fa-star"></i> Recompensas</div>
+          <p class="muted" style="margin:0;">
+            Se acumulan puntos por paseos y se canjean por beneficios (con reglas de uso).
+          </p>
+        </div>
+      </div>
     </section>
 
-    <!-- 2 ALCANCE -->
-    <section class="page" id="alcance">
-      <div class="page-head">
-        <h2>2. Alcance y roles</h2>
-        <p class="muted">El sistema se divide en 3 roles con permisos y menús distintos.</p>
-      </div>
-
-      <h3 style="margin:10px 0 6px;">Roles</h3>
-      <ul style="margin:0; padding-left:18px; line-height:1.65;">
-        <li><b>Administrador:</b> gestiona usuarios, pagos, auditoría, reportes y configuraciones del sistema.</li>
-        <li><b>Dueño:</b> registra mascotas, busca paseadores, solicita paseos, realiza pagos y califica.</li>
-        <li><b>Paseador:</b> gestiona solicitudes, disponibilidad, paseos, cobros/remuneraciones y suscripción.</li>
-      </ul>
-
-      <div class="note info compact">
-        <b>Acceso por rol:</b> al iniciar sesión, cada usuario ingresa a su panel correspondiente y
-        solo ve los módulos habilitados para su perfil.
-      </div>
-    </section>
-
-    <!-- 3 REQUISITOS -->
+    <!-- 2 REQUISITOS -->
     <section class="page" id="requisitos">
       <div class="page-head">
-        <h2>3. Requisitos del sistema</h2>
-        <p class="muted">Requisitos mínimos para usar Jaguata correctamente.</p>
+        <h2><i class="fa-solid fa-laptop"></i> 2. Requisitos del sistema</h2>
+        <p class="muted">Requisitos recomendados para que Jaguata funcione sin problemas.</p>
       </div>
 
-      <h3 style="margin:10px 0 6px;">Para usuarios finales</h3>
-      <ul style="margin:0; padding-left:18px; line-height:1.65;">
-        <li>Navegador actualizado: Chrome, Edge o Firefox.</li>
-        <li>Conexión a internet estable.</li>
-        <li>Permitir ubicación (recomendado) para seleccionar el punto de retiro y detectar ciudad.</li>
-      </ul>
+      <div class="grid two">
+        <div class="card">
+          <div class="title"><i class="fa-solid fa-globe"></i> Navegadores</div>
+          <ul class="steps">
+            <li>Google Chrome (recomendado)</li>
+            <li>Microsoft Edge</li>
+            <li>Mozilla Firefox</li>
+          </ul>
+          <div class="note warn">
+            <b>Importante:</b> habilitar JavaScript y permitir ventanas emergentes si el sistema descarga reportes.
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="title"><i class="fa-solid fa-location-dot"></i> Ubicación y mapas</div>
+          <ul class="steps">
+            <li>Se recomienda permitir ubicación del navegador.</li>
+            <li>Para solicitar paseo, el dueño coloca un pin en el mapa (punto de retiro).</li>
+          </ul>
+          <div class="note tip">
+            <b>Tip:</b> si no aparece el mapa, probá recargar la página y verificar conexión a internet.
+          </div>
+        </div>
+      </div>
     </section>
-    
-<!-- 4 PANTALLAS PÚBLICAS + ACCESO -->
-<section class="page" id="acceso">
-  <div class="page-head">
-    <h2>4. Pantallas públicas, acceso y registro</h2>
-    <p class="muted">
-      Esta sección describe el recorrido completo: primero el sitio público (sin iniciar sesión) y,
-      luego, el ingreso al sistema (login/registro/recuperación de contraseña).
-    </p>
-  </div>
 
-  <!-- 4.1 Public -->
-  <h3 style="margin:10px 0 6px;">4.1 Pantallas públicas (antes de iniciar sesión)</h3>
+        <!-- =========================
+         3. PANTALLAS PÚBLICAS
+         ========================= -->
+    <section class="page" id="public">
+      <div class="page-head">
+        <h2><i class="fa-solid fa-earth-americas"></i> 3. Pantallas públicas</h2>
+        <p class="muted">
+          Estas pantallas están disponibles <b>sin iniciar sesión</b>. Desde aquí el usuario puede conocer la plataforma,
+          registrarse como <b>Dueño</b> o <b>Paseador</b>, aceptar bases y condiciones, iniciar sesión, recuperar contraseña
+          y contactar soporte vía WhatsApp.
+        </p>
+      </div>
 
-  <div class="note info compact">
-    <b>Pantalla principal del sistema (sitio público):</b>
-    el acceso inicial se realiza desde <b>public/sobre_nosotros.php</b>.
-    Desde esta pantalla se presenta Jaguata y se ofrecen accesos a <b>Registro</b>, <b>Login</b> y otras secciones.
-    <div class="muted small" style="margin-top:6px;">
-      <b>Acceso en localhost:</b> <code>http://localhost/jaguata/public/sobre_nosotros.php</code>
-    </div>
-  </div>
+      <!-- 3.1 Home -->
+      <div class="card" style="margin-top:14px;">
+        <div class="title">
+          <span class="badge green"><i class="fa-solid fa-house"></i> Pública</span>
+          3.1 Pantalla principal (Sobre nosotros / Home)
+        </div>
 
-  <ul style="margin:0; padding-left:18px; line-height:1.65;">
-    <li><b>Home / Landing:</b> explica qué es Jaguata y muestra botones de acceso (registro/login).</li>
-    <li><b>Contacto:</b> permite enviar un mensaje (nombre, email y contenido).</li>
-    <li><b>Bases y condiciones:</b> muestra términos de uso y responsabilidades.</li>
-  </ul>
+        <div class="grid two">
+          <div class="card compact">
+            <div class="title"><i class="fa-solid fa-circle-info"></i> ¿Qué muestra?</div>
+            <ul class="steps">
+              <li>Presentación del sistema y beneficios principales.</li>
+              <li>Botones de acceso rápido: <b>Crear cuenta</b>, <b>Iniciar sesión</b> y <b>Contacto</b>.</li>
+              <li>Información relevante para conocer Jaguata antes de registrarse.</li>
+            </ul>
+          </div>
 
-  <div class="note tip compact">
-    <b>Tip:</b> si el usuario ya está logueado, el sistema puede mostrar acceso directo al
-    <b>Dashboard</b> según su rol.
-  </div>
+          <div class="card compact">
+            <div class="title"><i class="fa-solid fa-bullseye"></i> ¿Para qué sirve?</div>
+            <ul class="steps">
+              <li>Explicar qué es Jaguata y cómo funciona.</li>
+              <li>Guiar al usuario al registro o inicio de sesión según necesidad.</li>
+              <li>Facilitar contacto rápido en caso de dudas.</li>
+            </ul>
+          </div>
+        </div>
 
-  <!-- 4.2 Login -->
-  <h3 style="margin:14px 0 6px;">4.2 Iniciar sesión (Login)</h3>
-  <ol style="margin:0; padding-left:18px; line-height:1.75;">
-    <li>Ingresá a la pantalla <b>Login</b>.</li>
-    <li>Escribí tu <b>email</b> y <b>contraseña</b>.</li>
-    <li>Presioná <b>Ingresar</b>.</li>
-    <li>Si la cuenta está habilitada, el sistema redirige a tu <b>Dashboard</b> según rol.</li>
-  </ol>
+        <div class="title" style="margin-top:10px;"><i class="fa-solid fa-route"></i> ¿Cómo se usa?</div>
+        <ol class="steps">
+          <li>Ingresar a la pantalla principal.</li>
+          <li>Elegir una acción: <b>Crear cuenta</b> (registro) o <b>Iniciar sesión</b> (login).</li>
+          <li>Si hay dudas o inconvenientes, presionar <b>Contacto</b>.</li>
+        </ol>
 
-  <div class="note warn compact">
-    <b>Estado de cuenta:</b> si tu usuario está <b>pendiente</b>, <b>rechazado</b>, <b>suspendido</b> o <b>inactivo</b>,
-    el sistema puede bloquear el acceso total o parcial hasta que el administrador lo habilite.
-  </div>
+        <div class="actions">
+          <span class="pill"><i class="fa-solid fa-user-plus"></i> Crear cuenta → Registro</span>
+          <span class="pill"><i class="fa-solid fa-right-to-bracket"></i> Iniciar sesión → Login</span>
+          <span class="pill"><i class="fa-solid fa-headset"></i> Contacto → WhatsApp soporte</span>
+        </div>
 
-  <!-- 4.3 Registro -->
-  <h3 style="margin:14px 0 6px;">4.3 Registro de usuario</h3>
-  <ol style="margin:0; padding-left:18px; line-height:1.75;">
-    <li>Entrá a <b>Registro</b>.</li>
-    <li>Completá tus datos personales.</li>
-    <li>Elegí el rol correspondiente: <b>Dueño</b> o <b>Paseador</b>.</li>
-    <li>Confirmá el registro. La cuenta queda en estado <b>pendiente</b> hasta revisión/aprobación.</li>
-  </ol>
+        <div class="shotgrid">
+          <figure class="shot">
+            <div class="shot-tag">Público</div>
+            <img src="img/public-sobre-nosotros.jpg" alt="Pantalla pública: Sobre nosotros">
+            <figcaption>Figura PU1. Pantalla principal pública (sobre_nosotros.php).</figcaption>
+          </figure>
+        </div>
+      </div>
 
-  <!-- 4.4 Recuperación -->
-  <h3 style="margin:14px 0 6px;">4.4 Recuperación de contraseña</h3>
-  <ul style="margin:0; padding-left:18px; line-height:1.65;">
-    <li>En Login, seleccioná <b>“Recuperar contraseña”</b>.</li>
-    <li>Ingresá tu <b>email</b> y seguí las instrucciones del sistema.</li>
-    <li>Definí una nueva contraseña segura (recomendado: mínimo 8 caracteres con letras y números).</li>
-  </ul>
+      <!-- 3.2 Registro -->
+      <div class="card" style="margin-top:14px;">
+        <div class="title">
+          <span class="badge blue"><i class="fa-solid fa-user-plus"></i> Acceso</span>
+          3.2 Crear cuenta (Registro)
+        </div>
 
-  <div class="note warn compact">
-    <b>Recomendación:</b> no compartas tu contraseña y cerrá sesión si usás equipos públicos.
-  </div>
+        <div class="grid two">
+          <div class="card compact">
+            <div class="title"><i class="fa-solid fa-circle-info"></i> ¿Qué muestra?</div>
+            <ul class="steps">
+              <li>Formulario de creación de cuenta.</li>
+              <li>Selección de rol: <b>Dueño</b> o <b>Paseador</b>.</li>
+              <li>Campos dinámicos según rol elegido.</li>
+            </ul>
+          </div>
 
-  <!-- 4.5 Contacto / Bases -->
-  <h3 style="margin:14px 0 6px;">4.5 Contacto y bases</h3>
-  <ul style="margin:0; padding-left:18px; line-height:1.65;">
-    <li><b>Contacto:</b> completá nombre, email y mensaje para enviar una consulta o problema.</li>
-    <li><b>Bases y condiciones:</b> revisá los términos de uso antes de operar en la plataforma.</li>
-  </ul>
+          <div class="card compact">
+            <div class="title"><i class="fa-solid fa-shield"></i> Validación y seguridad</div>
+            <ul class="steps">
+              <li>Si elige <b>Paseador</b>, se solicitan documentos para verificación.</li>
+              <li>Se requiere aceptar <b>Bases y condiciones</b> antes de completar el registro.</li>
+              <li>La cuenta queda en estado <b>Pendiente</b> hasta aprobación del Administrador.</li>
+            </ul>
+          </div>
+        </div>
 
-  <div class="note tip compact">
-    <b>Tip para soporte:</b> al reportar un problema, indicá la pantalla/módulo y adjuntá una captura si es posible.
-  </div>
+        <div class="note warn">
+          <b>Importante:</b> el paseador debe cargar documentos (seguridad). El Administrador revisa y decide
+          <b>aprobar</b> o <b>rechazar</b> la cuenta.
+        </div>
 
-  <!-- CAPTURAS -->
-  <h3 style="margin:18px 0 6px;">4.6 Capturas de pantallas (Público y Acceso)</h3>
-  <p class="muted" style="margin-top:0;">
-    Guardá tus capturas en <code>docs/manual/img/</code> y usá los nombres sugeridos.
-  </p>
+        <div class="title" style="margin-top:10px;"><i class="fa-solid fa-list-check"></i> ¿Cómo se usa? (pasos)</div>
+        <ol class="steps">
+          <li>Ingresar a <b>Crear cuenta</b>.</li>
+          <li>Completar datos básicos (nombre, correo, contraseña, etc.).</li>
+          <li>Elegir rol: <b>Dueño</b> o <b>Paseador</b>.</li>
+          <li>Si es <b>Paseador</b>, cargar documentos requeridos:</li>
+          <ul class="steps">
+            <li><b>Cédula de identidad</b></li>
+            <li><b>Antecedente policial</b></li>
+            <li><b>Selfie con la cédula</b> para confirmar identidad</li>
+          </ul>
+          <li>Aceptar <b>Bases y condiciones</b> (pantalla correspondiente).</li>
+          <li>Confirmar registro. El sistema deja la cuenta en <b>pendiente</b> para revisión.</li>
+        </ol>
 
-  <div class="shotgrid">
-    <figure class="shot">
-      <div class="shot-tag">Public</div>
-      <img src="img/public-home.jpg" alt="Página principal (Home)">
-      <figcaption>Figura G1. Pantalla principal del sistema (public/sobre_nosotros.php).</figcaption>
-    </figure>
+        <div class="actions">
+          <span class="pill"><i class="fa-solid fa-user"></i> Dueño: registro simple</span>
+          <span class="pill"><i class="fa-solid fa-id-card"></i> Paseador: documentos obligatorios</span>
+          <span class="pill"><i class="fa-solid fa-file-signature"></i> Aceptar bases y condiciones</span>
+        </div>
 
-    <figure class="shot">
-      <div class="shot-tag">Public</div>
-      <img src="img/public-login.jpg" alt="Login">
-      <figcaption>Figura G2. Iniciar sesión (Login).</figcaption>
-    </figure>
+        <div class="shotgrid">
+          <figure class="shot">
+            <div class="shot-tag">Registro</div>
+            <img src="img/public-registro.jpg" alt="Registro público">
+            <figcaption>Figura PU2. Registro (selección de rol Dueño/Paseador).</figcaption>
+          </figure>
 
-    <figure class="shot">
-      <div class="shot-tag">Public</div>
-      <img src="img/public-registro.jpg" alt="Registro">
-      <figcaption>Figura G3. Registro de usuario (Dueño / Paseador).</figcaption>
-    </figure>
+          <figure class="shot">
+            <div class="shot-tag">Paseador</div>
+            <img src="img/admin-editar-usuario.jpg" alt="Registro Paseador documentos">
+            <figcaption>Figura PU3. Registro de Paseador: carga de documentos (CI, antecedente y selfie).</figcaption>
+          </figure>
+        </div>
+      </div>
 
-    <figure class="shot">
-      <div class="shot-tag">Public</div>
-      <img src="img/public-recuperar-password.jpg" alt="Recuperar contraseña">
-      <figcaption>Figura G4. Recuperación de contraseña.</figcaption>
-    </figure>
+      <!-- 3.3 Bases y condiciones -->
+      <div class="card" style="margin-top:14px;">
+        <div class="title">
+          <span class="badge amber"><i class="fa-solid fa-scale-balanced"></i> Legal</span>
+          3.3 Bases y condiciones
+        </div>
 
-    <figure class="shot">
-      <div class="shot-tag">Public</div>
-      <img src="img/public-contacto.jpg" alt="Contacto">
-      <figcaption>Figura G5. Soporte a usuarios .</figcaption>
-    </figure>
+        <div class="grid two">
+          <div class="card compact">
+            <div class="title"><i class="fa-solid fa-circle-info"></i> ¿Qué muestra?</div>
+            <ul class="steps">
+              <li>Términos y condiciones de uso de la plataforma.</li>
+              <li>Responsabilidades del usuario (Dueño/Paseador) y reglas del sistema.</li>
+              <li>Confirmación de aceptación.</li>
+            </ul>
+          </div>
 
-    <figure class="shot">
-      <div class="shot-tag">Public</div>
-      <img src="img/public-bases-condiciones.jpg" alt="Bases y condiciones">
-      <figcaption>Figura G6. Bases y condiciones.</figcaption>
-    </figure>
-  </div>
-</section>
+          <div class="card compact">
+            <div class="title"><i class="fa-solid fa-bullseye"></i> ¿Para qué sirve?</div>
+            <ul class="steps">
+              <li>Formalizar el uso correcto de la plataforma.</li>
+              <li>Establecer reglas de seguridad, pagos y comportamiento.</li>
+              <li>Evitar mal uso y proteger a usuarios y mascotas.</li>
+            </ul>
+          </div>
+        </div>
 
-    <!-- 5 NAVEGACION -->
+        <div class="title" style="margin-top:10px;"><i class="fa-solid fa-check"></i> ¿Cómo se usa?</div>
+        <ol class="steps">
+          <li>Leer el contenido.</li>
+          <li>Marcar aceptación.</li>
+          <li>Continuar el proceso de registro.</li>
+        </ol>
+
+        <div class="shotgrid">
+          <figure class="shot">
+            <div class="shot-tag">Términos</div>
+            <img src="img/public-bases-condiciones.jpg" alt="Bases y condiciones">
+            <figcaption>Figura PU4. Bases y condiciones (obligatorio para registrar cuenta).</figcaption>
+          </figure>
+        </div>
+      </div>
+
+      <!-- 3.4 Login -->
+      <div class="card" style="margin-top:14px;">
+        <div class="title">
+          <span class="badge purple"><i class="fa-solid fa-right-to-bracket"></i> Acceso</span>
+          3.4 Iniciar sesión (Login)
+        </div>
+
+        <div class="grid two">
+          <div class="card compact">
+            <div class="title"><i class="fa-solid fa-circle-info"></i> ¿Qué muestra?</div>
+            <ul class="steps">
+              <li>Formulario de acceso con usuario/correo y contraseña.</li>
+              <li>Opción de <b>Recuperar contraseña</b>.</li>
+              <li>Redirección automática al panel según rol (Dueño/Paseador/Admin).</li>
+            </ul>
+          </div>
+
+          <div class="card compact">
+            <div class="title"><i class="fa-solid fa-user-shield"></i> Regla clave</div>
+            <ul class="steps">
+              <li>Para ingresar como <b>Dueño</b> o <b>Paseador</b>, la cuenta debe estar <b>Aprobada y Activa</b>.</li>
+              <li>El <b>Administrador</b> revisa el registro y habilita el acceso.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="note info">
+          <b>Flujo:</b> Registro → Cuenta pendiente → Admin aprueba/activa → Usuario puede iniciar sesión.
+        </div>
+
+        <div class="title" style="margin-top:10px;"><i class="fa-solid fa-list-check"></i> ¿Cómo se usa? (pasos)</div>
+        <ol class="steps">
+          <li>Ingresar a Login.</li>
+          <li>Completar credenciales.</li>
+          <li>Presionar <b>Ingresar</b>.</li>
+          <li>Si la cuenta está activa, el sistema abre el panel del rol correspondiente.</li>
+          <li>Si la cuenta está pendiente/rechazada/suspendida, el sistema bloquea el acceso.</li>
+        </ol>
+
+        <div class="shotgrid">
+          <figure class="shot">
+            <div class="shot-tag">Login</div>
+            <img src="img/public-login.jpg" alt="Login">
+            <figcaption>Figura PU5. Pantalla de inicio de sesión (login.php).</figcaption>
+          </figure>
+        </div>
+      </div>
+
+      <!-- 3.5 Recuperación -->
+      <div class="card" style="margin-top:14px;">
+        <div class="title">
+          <span class="badge blue"><i class="fa-solid fa-key"></i> Seguridad</span>
+          3.5 Recuperación de contraseña
+        </div>
+
+        <div class="grid two">
+          <div class="card compact">
+            <div class="title"><i class="fa-solid fa-circle-info"></i> ¿Qué permite?</div>
+            <ul class="steps">
+              <li>Recuperar acceso si el usuario olvidó su contraseña.</li>
+              <li>Seguir pasos guiados (según el flujo implementado en el sistema).</li>
+            </ul>
+          </div>
+
+          <div class="card compact">
+            <div class="title"><i class="fa-solid fa-lightbulb"></i> Recomendación</div>
+            <ul class="steps">
+              <li>Usar contraseñas seguras (mínimo 8 caracteres, letras y números).</li>
+              <li>No compartir credenciales.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="note warn">
+          Si en tu instalación local no existe la tabla/flujo (por ejemplo <code>password_resets</code>),
+          la recuperación puede estar deshabilitada o en desarrollo.
+        </div>
+
+        <div class="shotgrid">
+          <figure class="shot">
+            <div class="shot-tag">Recuperación</div>
+            <img src="img/public-recuperar-password.jpg" alt="Recuperar contraseña">
+            <figcaption>Figura PU6. Recuperación de contraseña (desde Login).</figcaption>
+          </figure>
+        </div>
+      </div>
+
+      <!-- 3.6 Contacto -->
+      <div class="card" style="margin-top:14px;">
+        <div class="title">
+          <span class="badge green"><i class="fa-brands fa-whatsapp"></i> Soporte</span>
+          3.6 Contacto (Soporte por WhatsApp)
+        </div>
+
+        <div class="grid two">
+          <div class="card compact">
+            <div class="title"><i class="fa-solid fa-circle-info"></i> ¿Qué muestra?</div>
+            <ul class="steps">
+              <li>Listado de consultas frecuentes o categorías de problemas.</li>
+              <li>Al seleccionar una consulta, se abre WhatsApp con un mensaje prearmado.</li>
+            </ul>
+          </div>
+
+          <div class="card compact">
+            <div class="title"><i class="fa-solid fa-bullseye"></i> ¿Para qué sirve?</div>
+            <ul class="steps">
+              <li>Facilitar soporte rápido al usuario.</li>
+              <li>El Administrador revisa el caso y responde indicando el conflicto y la solución.</li>
+              <li>Se usa especialmente cuando hay: rechazo de suscripción, problemas de acceso o dudas.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="title" style="margin-top:10px;"><i class="fa-solid fa-list-check"></i> ¿Cómo se usa? (pasos)</div>
+        <ol class="steps">
+          <li>Ingresar a <b>Contacto</b> desde la pantalla pública principal.</li>
+          <li>Elegir la consulta que más se ajuste al problema.</li>
+          <li>El sistema abre WhatsApp y envía el mensaje al soporte.</li>
+          <li>El Admin verifica el incidente y responde al usuario.</li>
+        </ol>
+
+        <div class="note tip">
+          <b>Cuándo usar Contacto:</b>
+          <ul class="steps">
+            <li>Cuenta pendiente / no aprobada.</li>
+            <li>Suscripción rechazada o pago no validado.</li>
+            <li>Problemas de acceso o funcionamiento.</li>
+          </ul>
+        </div>
+
+        <div class="shotgrid">
+          <figure class="shot">
+            <div class="shot-tag">Contacto</div>
+            <img src="img/public-contacto.jpg" alt="Contacto">
+            <figcaption>Figura PU7. Contacto (contacto.php) con envío de consulta por WhatsApp.</figcaption>
+          </figure>
+        </div>
+      </div>
+
+      <!-- Resumen público -->
+      <div class="note info" style="margin-top:16px;">
+        <b>Resumen de flujo público:</b>
+        <ol class="steps">
+          <li><b>Sobre nosotros</b> → usuario entiende el sistema.</li>
+          <li><b>Registro</b> → elige rol (Dueño/Paseador) + documentos si es paseador.</li>
+          <li><b>Bases y condiciones</b> → aceptación obligatoria.</li>
+          <li><b>Login</b> → acceso solo si Admin aprobó/activó cuenta.</li>
+          <li><b>Contacto</b> → soporte por WhatsApp para resolver incidentes.</li>
+        </ol>
+      </div>
+    </section>
+    <!-- =========================
+         4. NAVEGACIÓN GENERAL
+         ========================= -->
     <section class="page" id="navegacion">
       <div class="page-head">
-        <h2>5. Navegación general</h2>
-        <p class="muted">Estructura común de los paneles: sidebar + contenido + módulos.</p>
+        <h2><i class="fa-solid fa-compass"></i> 4. Navegación general</h2>
+        <p class="muted">
+          Una vez que el usuario inicia sesión, Jaguata muestra un <b>panel privado</b> según su rol:
+          <b>Administrador</b>, <b>Dueño</b> o <b>Paseador</b>. Todos los paneles comparten la misma lógica:
+          un <b>menú lateral (sidebar)</b>, contenido central y notificaciones.
+        </p>
       </div>
 
-      <ul style="margin:0; padding-left:18px; line-height:1.75;">
-        <li><b>Sidebar (menú lateral):</b> muestra los módulos disponibles según el rol.</li>
-        <li><b>Contenido principal:</b> tarjetas, tablas y formularios (altas, bajas, edición).</li>
-        <li><b>Notificaciones:</b> lista de avisos importantes (eventos del sistema).</li>
-        <li><b>Cerrar sesión:</b> finaliza la sesión y vuelve al login.</li>
-      </ul>
+      <div class="grid two">
+        <div class="card compact">
+          <div class="title">
+            <span class="badge green"><i class="fa-solid fa-bars"></i> Sidebar</span>
+            Menú lateral (Desktop)
+          </div>
+          <ul class="steps">
+            <li>Muestra los módulos disponibles para el rol.</li>
+            <li>Resalta la pantalla actual (link <b>active</b>).</li>
+            <li>Permite acceder a reportes, acciones y configuraciones.</li>
+          </ul>
+        </div>
+
+        <div class="card compact">
+          <div class="title">
+            <span class="badge blue"><i class="fa-solid fa-mobile-screen"></i> Mobile</span>
+            Topbar + menú desplegable
+          </div>
+          <ul class="steps">
+            <li>En pantallas pequeñas aparece la barra superior (“Jaguata” + botón ☰).</li>
+            <li>Al tocar el botón, el sidebar se abre con overlay.</li>
+            <li>Se cierra al tocar fuera, al elegir una opción o al presionar <b>ESC</b>.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="note tip" style="margin-top:14px;">
+        <b>Tip de uso:</b> si estás en celular y el menú queda abierto, tocá fuera (overlay) para cerrarlo.
+        El sistema también lo cierra automáticamente al entrar a una pantalla.
+      </div>
+
+      <h3 style="margin:16px 0 6px;">
+        <i class="fa-solid fa-layer-group"></i> 4.1 Sidebars por rol
+      </h3>
+
+      <div class="card" style="margin-top:10px;">
+        <div class="title">
+          <span class="badge purple"><i class="fa-solid fa-user-shield"></i> Admin</span>
+          Sidebar Administrador
+        </div>
+        <p class="muted" style="margin:10px 0 0;">
+          Incluye accesos a: <b>Inicio</b>, <b>Usuarios</b>, <b>Mascotas</b>, <b>Paseos</b>, <b>Pagos</b>,
+          <b>Suscripciones</b>, <b>Notificaciones</b>, <b>Reporte de Ganancias</b>, <b>Auditoría</b> y
+          <b>Configuración</b>. También incorpora cierre de sesión.
+        </p>
+      </div>
+
+      <div class="card" style="margin-top:12px;">
+        <div class="title">
+          <span class="badge blue"><i class="fa-solid fa-user"></i> Dueño</span>
+          Sidebar Dueño
+        </div>
+        <p class="muted" style="margin:10px 0 0;">
+          Incluye submenús colapsables para: <b>Reservas</b> (Solicitar Paseo, Mis Paseos, Buscar Paseadores),
+          <b>Pagos</b> (Gastos Totales, Pagos), <b>Mascotas</b> (Mis Mascotas, Agregar), <b>Perfil</b> (Mi Perfil, Editar),
+          <b>Puntos & Recompensas</b> (Mis Puntos) y <b>Configuración</b>.
+        </p>
+      </div>
+
+      <div class="card" style="margin-top:12px;">
+        <div class="title">
+          <span class="badge green"><i class="fa-solid fa-person-walking"></i> Paseador</span>
+          Sidebar Paseador
+        </div>
+        <p class="muted" style="margin:10px 0 0;">
+          Incluye accesos a: <b>Inicio</b>, <b>Solicitudes</b>, <b>Mis Paseos</b>, <b>Remuneraciones</b>,
+          <b>Notificaciones</b>, <b>Suscripción PRO</b> (con badge de estado), <b>Perfil</b> (Mi Perfil, Editar)
+          y <b>Configuración</b>.
+        </p>
+      </div>
+
+      <h3 style="margin:16px 0 6px;">
+        <i class="fa-solid fa-puzzle-piece"></i> 4.2 Elementos comunes en todas las pantallas
+      </h3>
+
+      <div class="grid two">
+        <div class="card compact">
+          <div class="title"><i class="fa-solid fa-filter"></i> Filtros y búsqueda</div>
+          <ul class="steps">
+            <li>Listas con buscador para encontrar registros rápidamente.</li>
+            <li>Filtros por estado (pendiente, aprobado, etc.) y fechas (según módulo).</li>
+            <li>Exportación a Excel cuando el módulo lo permite.</li>
+          </ul>
+        </div>
+
+        <div class="card compact">
+          <div class="title"><i class="fa-solid fa-bell"></i> Notificaciones</div>
+          <ul class="steps">
+            <li>Avisos del sistema (acciones, estados, promociones, recordatorios).</li>
+            <li>En Dueño/Paseador: muestra comunicados del Administrador.</li>
+            <li>En Admin: permite crear y enviar notificaciones masivas.</li>
+          </ul>
+        </div>
+      </div>
     </section>
 
-    <!-- 6 DASHBOARDS -->
-    <section class="page" id="dashboards">
-      <div class="page-head">
-        <h2>6. Dashboards por rol</h2>
-        <p class="muted">Capturas reales de los paneles principales del sistema.</p>
-      </div>
-
-      <div class="shotgrid">
-        <figure class="shot">
-          <div class="shot-tag">Administrador</div>
-          <img src="img/dashboard-admin.jpeg" alt="Dashboard Administrador">
-          <figcaption>Figura 1. Dashboard del Administrador.</figcaption>
-        </figure>
-
-        <figure class="shot">
-          <div class="shot-tag">Paseador</div>
-          <img src="img/dashboard-paseador.jpeg" alt="Dashboard Paseador">
-          <figcaption>Figura 2. Dashboard del Paseador.</figcaption>
-        </figure>
-
-        <figure class="shot">
-          <div class="shot-tag">Dueño</div>
-          <img src="img/dashboard-dueno.jpeg" alt="Dashboard Dueño">
-          <figcaption>Figura 3. Dashboard del Dueño.</figcaption>
-        </figure>
-      </div>
-    </section>
-    <!-- 7 ADMIN -->
+    <!-- =========================
+         5. ROL ADMINISTRADOR
+         ========================= -->
     <section class="page" id="admin">
       <div class="page-head">
-        <h2>7. Rol Administrador</h2>
+        <h2><i class="fa-solid fa-user-shield"></i> 5. Rol Administrador</h2>
         <p class="muted">
-          El Administrador es responsable de la operación del sistema: gestión de usuarios, control de pagos,
-          auditoría, reportes y parámetros globales.
+          El Administrador controla la operación completa de Jaguata: aprobación de cuentas, control de seguridad,
+          supervisión de paseos y pagos, gestión de suscripciones, envío de notificaciones y auditoría.
         </p>
       </div>
 
-      <div class="note info compact">
-        <b>Módulos disponibles (menú Admin):</b>
-        Dashboard, Usuarios, Reportes/Estadísticas, Notificaciones, Pagos (efectuados/pendientes),
-        Auditoría, Configuraciones Generales, Roles y Permisos.
+      <div class="note info">
+        <b>Objetivo del rol:</b> garantizar la seguridad y el correcto funcionamiento del sistema,
+        protegiendo a dueños, paseadores y mascotas.
       </div>
 
-      <h3 style="margin:14px 0 6px;">7.1 Usuarios</h3>
-      <ol style="margin:0; padding-left:18px; line-height:1.75;">
-        <li>Ingresá a <b>Usuarios</b> para visualizar la lista de cuentas registradas.</li>
-        <li>Utilizá filtros o búsqueda para localizar un usuario específico.</li>
-        <li>Accedé a <b>Editar</b> para modificar datos básicos y el <b>estado</b> del usuario.</li>
-      </ol>
+      <!-- 5.1 Dashboard Admin -->
+      <div class="card" style="margin-top:14px;">
+        <div class="title">
+          <span class="badge purple"><i class="fa-solid fa-chart-line"></i> Admin</span>
+          5.1 Dashboard del Administrador
+        </div>
 
-      <div class="note warn compact">
-        <b>Estados del usuario:</b> pendiente, aprobado, rechazado, suspendido o inactivo.
-        El estado determina el acceso del usuario a los módulos del sistema.
+        <div class="grid two">
+          <div class="card compact">
+            <div class="title"><i class="fa-solid fa-circle-info"></i> ¿Qué muestra?</div>
+            <ul class="steps">
+              <li>Estadísticas generales del sistema (usuarios, paseos, pagos, etc.).</li>
+              <li>Tarjetas (cards) que resumen el movimiento de Dueños y Paseadores.</li>
+              <li>Indicadores de calificaciones/reputación y actividad reciente.</li>
+            </ul>
+          </div>
+
+          <div class="card compact">
+            <div class="title"><i class="fa-solid fa-bullseye"></i> ¿Para qué sirve?</div>
+            <ul class="steps">
+              <li>Dar al Admin una vista rápida del estado del sistema.</li>
+              <li>Detectar situaciones anormales: muchas cancelaciones, reportes, etc.</li>
+              <li>Acceso rápido a módulos de control (usuarios, pagos, auditoría).</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="title" style="margin-top:10px;"><i class="fa-solid fa-list-check"></i> ¿Cómo se usa?</div>
+        <ol class="steps">
+          <li>Ingresar al Dashboard luego del login del Administrador.</li>
+          <li>Revisar tarjetas de resumen para identificar alertas.</li>
+          <li>Entrar al módulo correspondiente desde el menú lateral.</li>
+        </ol>
+
+        <div class="shotgrid">
+          <figure class="shot">
+            <div class="shot-tag">Admin</div>
+            <img src="img/dashboard-admin.jpeg" alt="Dashboard Administrador">
+            <figcaption>Figura A1. Dashboard del Administrador.</figcaption>
+          </figure>
+        </div>
       </div>
 
-      <h3 style="margin:14px 0 6px;">7.2 Pagos</h3>
-      <ul style="margin:0; padding-left:18px; line-height:1.65;">
-        <li><b>Pagos pendientes:</b> revisión de transacciones aún no confirmadas.</li>
-        <li><b>Pagos efectuados:</b> historial de pagos confirmados en el sistema.</li>
-        <li><b>Detalle de pago:</b> visualización de información completa del pago y comprobantes.</li>
-      </ul>
+      <!-- 5.2 Usuarios Admin (FIX: cierres correctos) -->
+      <div class="card" style="margin-top:14px;">
+        <div class="title">
+          <span class="badge purple"><i class="fa-solid fa-users"></i> Admin</span>
+          5.2 Gestión de Usuarios
+        </div>
 
-      <h3 style="margin:14px 0 6px;">7.3 Auditoría</h3>
-      <p class="muted" style="margin-top:0;">
-        El módulo de auditoría registra todas las acciones relevantes realizadas en el sistema
-        para garantizar trazabilidad y control.
-      </p>
-      <ul style="margin:0; padding-left:18px; line-height:1.65;">
-        <li>Consulta de eventos por fecha, módulo o tipo de acción.</li>
-        <li>Registro de acciones como crear, editar, eliminar, login y cambios de configuración.</li>
-      </ul>
+        <div class="grid two">
+          <div class="card compact">
+            <div class="title"><i class="fa-solid fa-circle-info"></i> ¿Qué muestra?</div>
+            <ul class="steps">
+              <li>Listado de usuarios registrados (Dueños y Paseadores).</li>
+              <li>Estado de cuenta: <b>pendiente, aprobado, rechazado, suspendido, activo/inactivo</b>.</li>
+              <li>Información de suscripción (cuando aplica para paseadores).</li>
+              <li>Acciones: aprobar, rechazar, suspender o activar.</li>
+            </ul>
+          </div>
 
-      <h3 style="margin:14px 0 6px;">7.4 Configuraciones</h3>
-      <ul style="margin:0; padding-left:18px; line-height:1.65;">
-        <li><b>Configuraciones generales:</b> parámetros globales del sistema.</li>
-        <li><b>Roles y permisos:</b> definición de accesos a módulos según rol.</li>
-      </ul>
+          <div class="card compact">
+            <div class="title"><i class="fa-solid fa-shield-halved"></i> ¿Para qué sirve?</div>
+            <ul class="steps">
+              <li>Validar identidad del usuario (especialmente paseadores).</li>
+              <li>Aplicar control por reportes: suspender si infringe normas.</li>
+              <li>Generar reporte Excel completo con reputación y comentarios.</li>
+            </ul>
+          </div>
+        </div>
 
-      <h3 style="margin:14px 0 6px;">7.5 Reportes y estadísticas</h3>
-      <ul style="margin:0; padding-left:18px; line-height:1.65;">
-        <li>Visualización de métricas generales del sistema.</li>
-        <li>Estadísticas de usuarios, paseos, pagos y actividad.</li>
-      </ul>
+        <div class="note warn">
+          <b>Seguridad:</b> en <b>editar_usuario.php</b> el Admin puede ver documentos del paseador
+          (cédula, antecedente, selfie con cédula) para aprobar con mayor confianza.
+        </div>
 
-      <!-- =========================
-           7.6 CAPTURAS ADMIN
-           ========================= -->
-      <h3 style="margin:18px 0 6px;">7.6 Capturas de pantallas (Administrador)</h3>
-      <p class="muted" style="margin-top:0;">
-        A continuación se muestran las principales pantallas del rol Administrador.
-      </p>
+        <div class="title" style="margin-top:10px;"><i class="fa-solid fa-list-check"></i> ¿Cómo se usa?</div>
+        <ol class="steps">
+          <li>Entrar a <b>Usuarios</b>.</li>
+          <li>Buscar el usuario por filtros/buscador.</li>
+          <li>Revisar su estado y, si corresponde, aprobar o rechazar.</li>
+          <li>En el botón de lápiz, entrar al perfil para ver documentos y más datos.</li>
+          <li>Exportar Excel si necesita un reporte general.</li>
+        </ol>
 
-      <div class="shotgrid">
-        <figure class="shot">
-          <div class="shot-tag">Admin</div>
-          <img src="img/dashboard-admin.jpeg" alt="Dashboard Administrador">
-          <figcaption>Figura A1. Dashboard del Administrador.</figcaption>
-        </figure>
-
-        <figure class="shot">
-          <div class="shot-tag">Admin</div>
-          <img src="img/admin-usuarios.jpg" alt="Admin - Usuarios">
-          <figcaption>Figura A2. Gestión de Usuarios.</figcaption>
-        </figure>
-
-        <figure class="shot">
-          <div class="shot-tag">Admin</div>
-          <img src="img/admin-editar-usuario.jpg" alt="Admin - Editar usuario">
-          <figcaption>Figura A3. Edición y detalle de usuario.</figcaption>
-        </figure>
-
-        <figure class="shot">
-          <div class="shot-tag">Admin</div>
-          <img src="img/admin-pagos.jpg" alt="Admin - Pagos">
-          <figcaption>Figura A4. Gestión de pagos.</figcaption>
-        </figure>
-
-        <figure class="shot">
-          <div class="shot-tag">Admin</div>
-          <img src="img/admin-auditoria.jpg" alt="Admin - Auditoría">
-          <figcaption>Figura A5. Auditoría del sistema.</figcaption>
-        </figure>
-
-        <figure class="shot">
-          <div class="shot-tag">Admin</div>
-          <img src="img/admin-configuracion.jpg" alt="Admin - Configuraciones">
-          <figcaption>Figura A6. Configuraciones generales.</figcaption>
-        </figure>
-
-        <figure class="shot">
-          <div class="shot-tag">Admin</div>
-          <img src="img/admin-roles-permisos.jpg" alt="Admin - Roles y permisos">
-          <figcaption>Figura A7. Roles y permisos.</figcaption>
-        </figure>
-
-        <figure class="shot">
-          <div class="shot-tag">Admin</div>
-          <img src="img/admin-reportes.jpg" alt="Admin - Reportes">
-          <figcaption>Figura A8. Reportes y estadísticas.</figcaption>
-        </figure>
+        <div class="shotgrid">
+          <figure class="shot">
+            <div class="shot-tag">Admin</div>
+            <img src="img/admin-usuarios.jpg" alt="Admin usuarios">
+            <figcaption>Figura A2. Listado de usuarios (estado, suscripción y acciones).</figcaption>
+          </figure>
+          <figure class="shot">
+            <div class="shot-tag">Admin</div>
+            <img src="img/admin-editar-usuario.jpg" alt="Editar usuario admin">
+            <figcaption>Figura A3. Detalle del usuario (documentos y validación).</figcaption>
+          </figure>
+        </div>
       </div>
     </section>
-    <!-- 8 DUEÑO -->
+    <!-- =========================
+         5.3 Mascotas (Admin)
+         ========================= -->
+    <section class="page" id="admin-mascotas">
+      <div class="page-head">
+        <h2><i class="fa-solid fa-dog"></i> 5.3 Gestión de Mascotas</h2>
+        <p class="muted">
+          Este módulo permite al Administrador supervisar las mascotas registradas por los dueños,
+          para asegurar que los datos sean correctos y mantener control ante reportes o irregularidades.
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="title">
+          <span class="badge purple"><i class="fa-solid fa-dog"></i> Admin</span>
+          Listado de Mascotas
+        </div>
+
+        <div class="grid two">
+          <div class="card compact">
+            <div class="title"><i class="fa-solid fa-circle-info"></i> ¿Qué contiene?</div>
+            <ul class="steps">
+              <li>Listado de mascotas registradas por los dueños.</li>
+              <li>Datos principales: nombre, especie/raza (si aplica), edad, dueño asociado, estado.</li>
+              <li>Acciones administrativas: <b>desactivar</b> mascotas reportadas o incorrectas.</li>
+              <li>Botón para <b>exportar Excel</b> (reporte total de mascotas).</li>
+            </ul>
+          </div>
+
+          <div class="card compact">
+            <div class="title"><i class="fa-solid fa-bullseye"></i> ¿Para qué sirve?</div>
+            <ul class="steps">
+              <li>Control y trazabilidad del contenido del sistema.</li>
+              <li>Medida de seguridad ante reportes de dueños/paseadores.</li>
+              <li>Generación de reportes para anexos o auditoría interna.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="title" style="margin-top:10px;"><i class="fa-solid fa-list-check"></i> ¿Cómo se usa?</div>
+        <ol class="steps">
+          <li>Entrar a <b>Mascotas</b> desde el menú del Administrador.</li>
+          <li>Buscar por nombre, dueño o filtros de estado.</li>
+          <li>Si existe un reporte o inconsistencia, seleccionar <b>Desactivar</b>.</li>
+          <li>Exportar Excel cuando se requiera un reporte global.</li>
+        </ol>
+
+        <div class="shotgrid">
+          <figure class="shot">
+            <div class="shot-tag">Admin</div>
+            <img src="img/admin-mascotas.jpg" alt="Admin - Mascotas">
+            <figcaption>Figura A4. Gestión de Mascotas (listado, estado y exportación).</figcaption>
+          </figure>
+        </div>
+
+        <div class="note tip">
+          <b>Tip:</b> desactivar una mascota es útil si el dueño la registró con datos erróneos o
+          si hay un conflicto con paseos asociados.
+        </div>
+      </div>
+    </section>
+
+    <!-- 5.4 Paseos (Admin) -->
+    <section class="page" id="admin-paseos">
+      <div class="page-head">
+        <h2><i class="fa-solid fa-walking"></i> 5.4 Gestión de Paseos</h2>
+        <p class="muted">
+          El Administrador puede monitorear todos los paseos del sistema. Esto permite verificar estados,
+          controlar incidentes y actuar ante reportes (cancelar/finalizar si corresponde).
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="title">
+          <span class="badge purple"><i class="fa-solid fa-walking"></i> Admin</span>
+          Listado de Paseos
+        </div>
+
+        <div class="grid two">
+          <div class="card compact">
+            <div class="title"><i class="fa-solid fa-circle-info"></i> ¿Qué contiene?</div>
+            <ul class="steps">
+              <li>Listado visual de paseos con su <b>estado</b> (pendiente/aceptado/en curso/completo/cancelado).</li>
+              <li>Filtros y búsqueda por dueño, paseador, fecha o estado (según tu implementación).</li>
+              <li>Acción <b>Ver</b> para ingresar al detalle del paseo.</li>
+              <li>Exportación a <b>Excel</b> (reporte de paseos del sistema).</li>
+            </ul>
+          </div>
+
+          <div class="card compact">
+            <div class="title"><i class="fa-solid fa-location-dot"></i> ¿Qué se ve en “VerPaseo”?</div>
+            <ul class="steps">
+              <li>Mapa con ubicación (pin) y detalles del punto de retiro.</li>
+              <li>Datos del paseo: dueño, paseador, mascota(s), fecha, duración, total.</li>
+              <li>Acciones administrativas: <b>finalizar</b> o <b>cancelar</b> (cuando corresponde).</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="note warn">
+          <b>Importante:</b> cancelar/finalizar desde Admin se usa solo cuando existe un incidente,
+          reporte o verificación necesaria. La auditoría registra estas acciones.
+        </div>
+
+        <div class="title" style="margin-top:10px;"><i class="fa-solid fa-list-check"></i> ¿Cómo se usa?</div>
+        <ol class="steps">
+          <li>Entrar a <b>Paseos</b>.</li>
+          <li>Filtrar por estado (por ejemplo: pendientes o en curso).</li>
+          <li>Presionar <b>Ver</b> para analizar el detalle (mapa + información completa).</li>
+          <li>Si corresponde por política del sistema, <b>Finalizar</b> o <b>Cancelar</b>.</li>
+          <li>Exportar Excel cuando se requiera un reporte.</li>
+        </ol>
+
+        <div class="shotgrid">
+          <figure class="shot">
+            <div class="shot-tag">Admin</div>
+            <img src="img/admin-paseos.jpg" alt="Admin - Paseos">
+            <figcaption>Figura A5. Listado de paseos con estados y acciones.</figcaption>
+          </figure>
+
+          <figure class="shot">
+            <div class="shot-tag">Admin</div>
+            <img src="img/admin-ver-paseo.jpg" alt="Admin - Ver Paseo">
+            <figcaption>Figura A6. VerPaseo (mapa + detalle + acciones).</figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5.5 Pagos (Admin) -->
+    <section class="page" id="admin-pagos">
+      <div class="page-head">
+        <h2><i class="fa-solid fa-wallet"></i> 5.5 Gestión de Pagos</h2>
+        <p class="muted">
+          El Administrador supervisa los pagos registrados en el sistema, verificando su estado y su relación con un paseo.
+          Esto garantiza transparencia y control financiero.
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="title">
+          <span class="badge purple"><i class="fa-solid fa-wallet"></i> Admin</span>
+          Listado de Pagos
+        </div>
+
+        <div class="grid two">
+          <div class="card compact">
+            <div class="title"><i class="fa-solid fa-circle-info"></i> ¿Qué contiene?</div>
+            <ul class="steps">
+              <li>Listado de pagos con estados (pendiente/confirmado/rechazado según tu lógica).</li>
+              <li>Datos clave: dueño, monto, método (transferencia/efectivo), fecha.</li>
+              <li>Acciones: ver detalle, descargar reporte Excel.</li>
+            </ul>
+          </div>
+
+          <div class="card compact">
+            <div class="title"><i class="fa-solid fa-receipt"></i> ¿Qué se ve en “DetallePago”?</div>
+            <ul class="steps">
+              <li>Información completa del pago.</li>
+              <li>Comprobante adjunto (si fue transferencia).</li>
+              <li>Botón para abrir el <b>paseo asociado</b> (VerPaseo).</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="note info">
+          <b>Transparencia:</b> el detalle vinculado al paseo permite validar que el pago
+          corresponde al servicio realizado (mascotas, duración, total).
+        </div>
+
+        <div class="title" style="margin-top:10px;"><i class="fa-solid fa-list-check"></i> ¿Cómo se usa?</div>
+        <ol class="steps">
+          <li>Entrar a <b>Pagos</b>.</li>
+          <li>Filtrar por estado si se necesita revisar pendientes.</li>
+          <li>Presionar <b>Ver</b> para entrar a <b>DetallePago</b>.</li>
+          <li>Revisar comprobante y, si hace falta, abrir el paseo asociado en <b>VerPaseo</b>.</li>
+          <li>Exportar Excel para auditoría o anexos.</li>
+        </ol>
+
+        <div class="shotgrid">
+          <figure class="shot">
+            <div class="shot-tag">Admin</div>
+            <img src="img/admin-pagos.jpg" alt="Admin - Pagos">
+            <figcaption>Figura A7. Listado de pagos y estados.</figcaption>
+          </figure>
+
+          <figure class="shot">
+            <div class="shot-tag">Admin</div>
+            <img src="img/admin-detalle-pago.jpg" alt="Admin - Detalle Pago">
+            <figcaption>Figura A8. DetallePago (comprobante y vínculo al paseo).</figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5.6 Suscripciones -->
+    <section class="page" id="admin-suscripciones">
+      <div class="page-head">
+        <h2><i class="fa-solid fa-file-invoice-dollar"></i> 5.6 Gestión de Suscripciones</h2>
+        <p class="muted">
+          Este módulo permite al Administrador gestionar las suscripciones de los paseadores,
+          validando los pagos realizados para habilitar o rechazar el acceso profesional al sistema.
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="title">
+          <span class="badge purple"><i class="fa-solid fa-crown"></i> Admin</span>
+          Suscripciones Pendientes
+        </div>
+
+        <div class="grid two">
+          <div class="card compact">
+            <div class="title"><i class="fa-solid fa-circle-info"></i> ¿Qué muestra esta pantalla?</div>
+            <ul class="steps">
+              <li>Listado de paseadores que solicitaron suscripción.</li>
+              <li>Estado de la suscripción: pendiente, aprobada o rechazada.</li>
+              <li>Visualización del comprobante de pago adjunto.</li>
+              <li>Acciones para <b>Aprobar</b> o <b>Rechazar</b> la suscripción.</li>
+            </ul>
+          </div>
+
+          <div class="card compact">
+            <div class="title"><i class="fa-solid fa-bullseye"></i> ¿Para qué sirve?</div>
+            <ul class="steps">
+              <li>Garantizar que solo paseadores verificados accedan al sistema.</li>
+              <li>Controlar el ingreso económico por suscripciones.</li>
+              <li>Evitar accesos sin pago confirmado.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="note warn">
+          <b>Importante:</b> si la suscripción es rechazada, el paseador deberá contactar
+          al soporte desde la pantalla pública de contacto para aclarar el inconveniente.
+        </div>
+      </div>
+    </section>
+
+    <!-- 5.7 Notificaciones -->
+    <section class="page" id="admin-notificaciones">
+      <div class="page-head">
+        <h2><i class="fa-solid fa-bell"></i> 5.7 Centro de Notificaciones</h2>
+        <p class="muted">
+          Desde este módulo el Administrador puede enviar notificaciones informativas,
+          promocionales o técnicas a los usuarios del sistema.
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="title">
+          <span class="badge purple"><i class="fa-solid fa-bell"></i> Admin</span>
+          Envío de Notificaciones
+        </div>
+
+        <ul class="steps">
+          <li>Enviar mensajes a dueños, paseadores o ambos.</li>
+          <li>Notificar cambios del sistema, promociones o avisos importantes.</li>
+          <li>Centralizar la comunicación oficial de Jaguata.</li>
+        </ul>
+
+        <div class="note info">
+          <b>Uso recomendado:</b> notificar mantenimientos, cambios de tarifas,
+          campañas promocionales o avisos de seguridad.
+        </div>
+      </div>
+    </section>
+
+    <!-- 5.8 Reporte -->
+    <section class="page" id="admin-reporte">
+      <div class="page-head">
+        <h2><i class="fa-solid fa-chart-pie"></i> 5.8 Reporte de Ganancias</h2>
+        <p class="muted">
+          Este módulo presenta un resumen económico del sistema basado en las
+          suscripciones de los paseadores.
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="title">
+          <span class="badge purple"><i class="fa-solid fa-chart-line"></i> Admin</span>
+          Reporte de Ingresos
+        </div>
+
+        <ul class="steps">
+          <li>Visualización de ingresos por suscripciones.</li>
+          <li>Filtros por fecha (inicio / fin).</li>
+          <li>Detalle de suscripciones aprobadas y rechazadas.</li>
+          <li>Exportación de reportes en Excel.</li>
+        </ul>
+
+        <div class="note tip">
+          <b>Utilidad académica:</b> este módulo respalda el modelo de negocio
+          propuesto en la tesis.
+        </div>
+      </div>
+    </section>
+
+    <!-- 5.9 Auditoría -->
+    <section class="page" id="admin-auditoria">
+      <div class="page-head">
+        <h2><i class="fa-solid fa-user-shield"></i> 5.9 Auditoría</h2>
+        <p class="muted">
+          La auditoría registra todas las acciones relevantes realizadas por los usuarios,
+          permitiendo trazabilidad y control de seguridad.
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="title">
+          <span class="badge purple"><i class="fa-solid fa-lock"></i> Admin</span>
+          Registro de Actividades
+        </div>
+
+        <ul class="steps">
+          <li>Registro de inicios de sesión y fallos de autenticación.</li>
+          <li>Acciones realizadas por dueños y paseadores.</li>
+          <li>Eventos críticos del sistema.</li>
+        </ul>
+
+        <div class="note warn">
+          <b>Seguridad:</b> este módulo es clave para detectar accesos indebidos
+          o comportamientos anómalos.
+        </div>
+      </div>
+    </section>
+
+    <!-- 5.10 Configuración -->
+    <section class="page" id="admin-configuracion">
+      <div class="page-head">
+        <h2><i class="fa-solid fa-cogs"></i> 5.10 Configuración del Sistema</h2>
+        <p class="muted">
+          Permite modificar parámetros generales del sistema Jaguata.
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="title">
+          <span class="badge purple"><i class="fa-solid fa-cogs"></i> Admin</span>
+          Parámetros Generales
+        </div>
+
+        <ul class="steps">
+          <li>Modificar costo de suscripción.</li>
+          <li>Cambiar nombre, correo y datos del sistema.</li>
+          <li>Gestión de permisos y roles.</li>
+          <li>Cambio de contraseñas administrativas.</li>
+        </ul>
+
+        <div class="note info">
+          <b>Recomendación:</b> estos valores deben ser modificados solo
+          por personal autorizado.
+        </div>
+      </div>
+    </section>
+
+    <!-- =========================================================
+         6. ROL DUEÑO (INTRO)  ✅ agregado para que #dueno exista
+         ========================================================= -->
     <section class="page" id="dueno">
       <div class="page-head">
-        <h2>8. Rol Dueño</h2>
+        <h2><i class="fa-solid fa-user"></i> 6. Rol Dueño</h2>
         <p class="muted">
-          El Dueño gestiona sus mascotas, busca paseadores, solicita paseos, realiza pagos,
-          visualiza historial y califica al paseador.
+          El Dueño registra sus mascotas, busca paseadores, solicita paseos, realiza pagos,
+          revisa notificaciones y utiliza puntos y recompensas.
         </p>
       </div>
 
-      <div class="note info compact">
-        <b>Módulos disponibles (menú Dueño):</b>
-        Dashboard, Reserva (Solicitar Paseo / Mis Paseos), Seguimiento, Buscar Paseadores,
-        Pagos (Gastos Totales / Pagos / Comprobantes), Notificaciones,
-        Mascotas (Mis Mascotas / Agregar / Editar), Perfil (Mi Perfil / Editar), Mis Puntos.
+      <div class="note info">
+        <b>Módulos del Dueño:</b> Dashboard, Solicitar Paseo, Mis Paseos, Buscar Paseadores, Gastos Totales,
+        Pagos/Comprobantes, Mascotas, Notificaciones, Perfil, Puntos y Configuración.
+      </div>
+    </section>
+
+    <!-- 6.1 Dashboard Dueño -->
+    <section class="page" id="dueno-dashboard">
+      <div class="page-head">
+        <h2><i class="fa-solid fa-house"></i> 6.1 Dashboard (Inicio del Dueño)</h2>
+        <p class="muted">
+          Es la primera pantalla que ve el dueño al ingresar. Aquí se resume todo lo importante:
+          paseos recientes, gastos, mascotas registradas, notificaciones y accesos rápidos.
+        </p>
       </div>
 
-      <h3 style="margin:14px 0 6px;">8.1 Gestión de Mascotas</h3>
-      <ol style="margin:0; padding-left:18px; line-height:1.75;">
-        <li>Ingresá a <b>Mis Mascotas</b> para ver el listado.</li>
-        <li>Seleccioná <b>Nueva Mascota</b> para registrar los datos y una foto.</li>
-        <li>Desde cada mascota podés <b>Ver Perfil</b> o <b>Editar</b>.</li>
-      </ol>
+      <div class="card">
+        <div class="title">
+          <span class="badge green"><i class="fa-solid fa-user"></i> Dueño</span>
+          Panel principal
+        </div>
 
-      <div class="note warn compact">
-        <b>Requisito:</b> para solicitar un paseo necesitás al menos <b>1 mascota registrada</b>.
+        <div class="grid two">
+          <div class="card compact">
+            <div class="title"><i class="fa-solid fa-circle-info"></i> ¿Qué contiene?</div>
+            <ul class="steps">
+              <li>Mensaje de bienvenida al usuario logueado.</li>
+              <li>Tarjetas (cards) con resúmenes: <b>paseos</b>, <b>gastos</b>, <b>mascotas</b> y <b>notificaciones</b>.</li>
+              <li>Sección de <b>paseos recientes</b> para ver el movimiento actual.</li>
+              <li>Accesos directos a módulos principales (Solicitar Paseo, Mis Mascotas, Pagos).</li>
+            </ul>
+          </div>
+
+          <div class="card compact">
+            <div class="title"><i class="fa-solid fa-bullseye"></i> ¿Para qué sirve?</div>
+            <ul class="steps">
+              <li>Permite al dueño controlar rápidamente su estado en el sistema.</li>
+              <li>Facilita el acceso a acciones frecuentes sin recorrer todo el menú.</li>
+              <li>Sirve como “resumen del día” y punto de partida para solicitar paseos.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="note tip">
+          <b>Tip:</b> si ves una notificación importante (promos, avisos o cambios),
+          ingresá al módulo <b>Notificaciones</b> para leer el detalle.
+        </div>
       </div>
-
-      <h3 style="margin:14px 0 6px;">8.2 Buscar paseadores</h3>
-      <ul style="margin:0; padding-left:18px; line-height:1.65;">
-        <li>Ingresá a <b>Buscar Paseadores</b>.</li>
-        <li>Revisá el perfil del paseador y su reputación.</li>
-        <li>Si corresponde, desde allí podés ir a <b>Solicitar Paseo</b>.</li>
-      </ul>
-
-      <h3 style="margin:14px 0 6px;">8.3 Solicitar Paseo (Reserva)</h3>
-      <p class="muted" style="margin-top:0;">
-        La solicitud guía al dueño por pasos: selección de mascota(s), ubicación en el mapa,
-        fecha/hora y confirmación del total.
-      </p>
-
-      <ol style="margin:0; padding-left:18px; line-height:1.75;">
-        <li>Seleccioná <b>Mascota 1</b> (obligatorio).</li>
-        <li><b>Opcional:</b> seleccioná <b>Mascota 2</b> (máximo 2, sin repetir).</li>
-        <li>Definí la <b>ubicación</b> mediante el mapa (pin) o ubicación del navegador.</li>
-        <li>Elegí fecha/hora, duración y confirmá el <b>total</b>.</li>
-        <li>Presioná <b>Solicitar Paseo</b>.</li>
-      </ol>
-
-      <div class="note tip compact">
-        <b>Reglas automáticas:</b>
-        <ul style="margin:6px 0 0; padding-left:18px; line-height:1.65;">
-          <li>Se permite seleccionar <b>hasta 2 mascotas</b>.</li>
-          <li>No se puede repetir la misma mascota en Mascota 1 y Mascota 2.</li>
-          <li>Si son 2 mascotas, el sistema aplica <b>30% de descuento</b> automáticamente.</li>
-        </ul>
-      </div>
-
-      <h3 style="margin:14px 0 6px;">8.4 Mis Paseos y seguimiento</h3>
-      <ul style="margin:0; padding-left:18px; line-height:1.65;">
-        <li><b>Mis Paseos:</b> lista general de solicitudes y paseos.</li>
-        <li><b>Pendientes:</b> solicitudes por confirmar o en proceso.</li>
-        <li><b>Completos:</b> paseos finalizados (habilita calificación y comprobantes).</li>
-        <li><b>Cancelados:</b> historial de cancelaciones.</li>
-      </ul>
-
-      <h3 style="margin:14px 0 6px;">8.5 Pagos y comprobantes</h3>
-      <ul style="margin:0; padding-left:18px; line-height:1.65;">
-        <li><b>Gastos Totales:</b> resumen de gastos.</li>
-        <li><b>Pagos:</b> historial de pagos realizados.</li>
-        <li><b>Comprobantes:</b> vista/descarga de comprobantes asociados.</li>
-      </ul>
-
-      <h3 style="margin:14px 0 6px;">8.6 Notificaciones</h3>
-      <ul style="margin:0; padding-left:18px; line-height:1.65;">
-        <li>Visualización de eventos del sistema: solicitudes, cambios de estado y confirmaciones.</li>
-      </ul>
-
-      <h3 style="margin:14px 0 6px;">8.7 Calificar Paseador</h3>
-      <ul style="margin:0; padding-left:18px; line-height:1.65;">
-        <li>Luego de un paseo completado, ingresá a <b>Calificar Paseador</b>.</li>
-        <li>Seleccioná estrellas (1 a 5) y dejá un comentario (opcional).</li>
-      </ul>
-
-      <h3 style="margin:14px 0 6px;">8.8 Perfil y puntos</h3>
-      <ul style="margin:0; padding-left:18px; line-height:1.65;">
-        <li><b>Mi Perfil / Editar Perfil:</b> actualización de datos personales.</li>
-        <li><b>Mis Puntos:</b> consulta del saldo acumulado.</li>
-      </ul>
-
-      <!-- =========================
-           8.9 CAPTURAS DUEÑO
-           ========================= -->
-      <h3 style="margin:18px 0 6px;">8.9 Capturas de pantallas (Dueño)</h3>
-      <p class="muted" style="margin-top:0;">A continuación se presentan las pantallas principales del rol Dueño.</p>
 
       <div class="shotgrid">
         <figure class="shot">
           <div class="shot-tag">Dueño</div>
-          <img src="img/dueno-dashboard.jpg" alt="Dueño - Dashboard">
-          <figcaption>Figura D1. Dashboard del Dueño.</figcaption>
-        </figure>
-
-        <figure class="shot">
-          <div class="shot-tag">Dueño</div>
-          <img src="img/dueno-mis-mascotas.jpg" alt="Dueño - Mis Mascotas">
-          <figcaption>Figura D2. Mis Mascotas (listado).</figcaption>
-        </figure>
-
-        <figure class="shot">
-          <div class="shot-tag">Dueño</div>
-          <img src="img/dueno-agregar-mascota.jpg" alt="Dueño - Agregar Mascota">
-          <figcaption>Figura D3. Agregar Mascota (formulario).</figcaption>
-        </figure>
-
-        <figure class="shot">
-          <div class="shot-tag">Dueño</div>
-          <img src="img/dueno-buscar-paseadores.jpg" alt="Dueño - Buscar Paseadores">
-          <figcaption>Figura D4. Buscar Paseadores.</figcaption>
-        </figure>
-
-        <figure class="shot">
-          <div class="shot-tag">Dueño</div>
-          <img src="img/dueno-ver-paseador.jpg" alt="Dueño - Ver perfil paseador">
-          <figcaption>Figura D4.1. Perfil paseador.</figcaption>
-        </figure>
-
-        <figure class="shot">
-          <div class="shot-tag">Dueño</div>
-          <img src="img/dueno-solicitar-paseo.jpg" alt="Dueño - Solicitar Paseo">
-          <figcaption>Figura D5. Solicitar Paseo (mascotas + mapa).</figcaption>
-        </figure>
-
-        <figure class="shot">
-          <div class="shot-tag">Dueño</div>
-          <img src="img/dueno-mis-paseos.jpg" alt="Dueño - Mis Paseos">
-          <figcaption>Figura D6. Mis Paseos y seguimiento.</figcaption>
-        </figure>
-
-        <figure class="shot">
-          <div class="shot-tag">Dueño</div>
-          <img src="img/dueno-pagos.jpg" alt="Dueño - Pagos">
-          <figcaption>Figura D7. Pagos del Dueño.</figcaption>
-        </figure>
-
-        <figure class="shot">
-          <div class="shot-tag">Dueño</div>
-          <img src="img/dueno-comprobante.jpg" alt="Dueño - Comprobante">
-          <figcaption>Figura D8. Comprobante de pago.</figcaption>
-        </figure>
-
-        <figure class="shot">
-          <div class="shot-tag">Dueño</div>
-          <img src="img/dueno-notificaciones.jpg" alt="Dueño - Notificaciones">
-          <figcaption>Figura D9. Notificaciones.</figcaption>
-        </figure>
-
-        <figure class="shot">
-          <div class="shot-tag">Dueño</div>
-          <img src="img/dueno-editar-perfil.jpg" alt="Dueño - Editar Perfil">
-          <figcaption>Figura D10. Editar Perfil.</figcaption>
-        </figure>
-
-        <figure class="shot">
-          <div class="shot-tag">Dueño</div>
-          <img src="img/dueno-puntos.jpg" alt="Dueño - Mis Puntos">
-          <figcaption>Figura D11. Mis Puntos.</figcaption>
+          <img src="img/dueno-dashboard.jpg" alt="Dashboard Dueño">
+          <figcaption>Figura D1. Dashboard del Dueño: resumen de paseos, gastos, mascotas y notificaciones.</figcaption>
         </figure>
       </div>
     </section>
 
+    <!-- 6.2 Solicitar Paseo -->
+    <section class="page" id="dueno-solicitar-paseo">
+      <div class="page-head">
+        <h2><i class="fa-solid fa-map-location-dot"></i> 6.2 Solicitar Paseo</h2>
+        <p class="muted">
+          Pantalla principal para crear una solicitud. Funciona como un “asistente por pasos” para elegir
+          mascota(s), ubicación, fecha/hora, paseador disponible y aplicar recompensas.
+        </p>
+      </div>
 
-    <!-- 9 PASEADOR -->
+      <div class="card">
+        <div class="title">
+          <span class="badge green"><i class="fa-solid fa-walking"></i> Dueño</span>
+          Asistente de reserva
+        </div>
+
+        <div class="grid two">
+          <div class="card compact">
+            <div class="title"><i class="fa-solid fa-list-check"></i> ¿Cómo funciona?</div>
+            <ol class="steps">
+              <li>Seleccionás <b>Mascota 1</b> (obligatoria).</li>
+              <li>Opcional: seleccionás <b>Mascota 2</b> (máximo 2 y <b>no repetidas</b>).</li>
+              <li>Marcás tu <b>ubicación</b> en el mapa (pin) o permitís ubicación del navegador.</li>
+              <li>Elegís <b>fecha</b>, <b>hora</b> y datos del paseo (duración/otros campos si aplica).</li>
+              <li>El sistema propone el paseador más cercano y disponible.</li>
+              <li>Confirmás la solicitud y se envía al paseador.</li>
+            </ol>
+          </div>
+
+          <div class="card compact">
+            <div class="title"><i class="fa-solid fa-star"></i> Recompensas y puntos</div>
+            <ul class="steps">
+              <li>Al final, el sistema permite <b>usar recompensa</b> (si el dueño canjeó puntos).</li>
+              <li>La recompensa se valida desde <b>Mis Puntos</b>.</li>
+              <li>Las recompensas aplican al total y cambian según la promoción canjeada.</li>
+            </ul>
+
+            <div class="note info" style="margin-top:10px;">
+              <b>Regla clave del sistema:</b> si seleccionás <b>2 mascotas</b>,
+              se aplica automáticamente un <b>30% de descuento</b>.
+            </div>
+          </div>
+        </div>
+
+        <div class="note warn">
+          <b>Requisito:</b> para solicitar un paseo debés tener al menos <b>1 mascota registrada</b>.
+          Si no aparecen mascotas, primero ingresá a <b>Mascotas → Agregar Mascota</b>.
+        </div>
+      </div>
+
+      <div class="shotgrid">
+        <figure class="shot">
+          <div class="shot-tag">Dueño</div>
+          <img src="img/dueno-solicitar-paseo.jpg" alt="Solicitar Paseo Dueño">
+          <figcaption>Figura D2. Solicitar Paseo: selección de mascota(s), ubicación, fecha/hora y confirmación.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- 6.3 Mis Paseos -->
+    <section class="page" id="dueno-mis-paseos">
+      <div class="page-head">
+        <h2><i class="fa-solid fa-clipboard-list"></i> 6.3 Mis Paseos</h2>
+        <p class="muted">
+          Permite al dueño ver el historial completo de solicitudes y paseos. Incluye cuadros de resumen,
+          filtros y acciones para ver detalle, cancelar o calificar según el estado.
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="title">
+          <span class="badge green"><i class="fa-solid fa-dog"></i> Dueño</span>
+          Historial y seguimiento
+        </div>
+
+        <div class="grid two">
+          <div class="card compact">
+            <div class="title"><i class="fa-solid fa-circle-info"></i> ¿Qué muestra?</div>
+            <ul class="steps">
+              <li>Cuadros de resumen: cantidad de paseos, pendientes, completados, cancelados (según tu UI).</li>
+              <li>Lista/tabla con paseos del dueño y su <b>estado</b>.</li>
+              <li>Filtros para buscar por fecha/estado (según implementación).</li>
+              <li>Acción <b>Ver</b> para abrir el detalle del paseo.</li>
+            </ul>
+          </div>
+
+          <div class="card compact">
+            <div class="title"><i class="fa-solid fa-bolt"></i> Acciones según estado</div>
+            <ul class="steps">
+              <li><b>Pendiente/Asignado:</b> se puede <b>cancelar</b> (si tu regla lo permite).</li>
+              <li><b>En curso:</b> seguimiento del estado (según tu flujo).</li>
+              <li><b>Completado:</b> permite <b>calificar</b> al paseador.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="note info">
+          <b>Detalle del paseo:</b> desde el botón “Ver” se ingresa a una pantalla con mapa,
+          información completa y acciones disponibles.
+        </div>
+      </div>
+
+      <!-- Ver Paseo Dueño -->
+      <div class="card" style="margin-top:12px;">
+        <div class="title">
+          <span class="badge green"><i class="fa-solid fa-location-dot"></i> Dueño</span>
+          Ver Paseo (Detalle)
+        </div>
+
+        <div class="grid two">
+          <div class="card compact">
+            <div class="title"><i class="fa-solid fa-map"></i> ¿Qué contiene?</div>
+            <ul class="steps">
+              <li>Mapa con la ubicación del paseo.</li>
+              <li>Datos del dueño, mascota(s) y paseador asignado.</li>
+              <li>Estado del paseo (pendiente, en curso, completado, cancelado).</li>
+            </ul>
+          </div>
+
+          <div class="card compact">
+            <div class="title"><i class="fa-solid fa-hand-pointer"></i> ¿Qué se puede hacer?</div>
+            <ul class="steps">
+              <li><b>Cancelar paseo</b> (si aún no fue completado y cumple reglas).</li>
+              <li><b>Calificar paseo</b> cuando finaliza.</li>
+              <li>Visualizar un resumen claro para respaldo.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="shotgrid">
+        <figure class="shot">
+          <div class="shot-tag">Dueño</div>
+          <img src="img/dueno-mis-paseos.jpg" alt="Mis Paseos Dueño">
+          <figcaption>Figura D3. Mis Paseos: filtros, estados y acciones.</figcaption>
+        </figure>
+
+        <figure class="shot">
+          <div class="shot-tag">Dueño</div>
+          <img src="img/dueno-ver-paseo.jpg" alt="Ver Paseo Dueño">
+          <figcaption>Figura D4. Ver Paseo: mapa, detalle completo y acciones (cancelar/calificar).</figcaption>
+        </figure>
+      </div>
+    </section>
+    <!-- 6.4 Buscar Paseadores -->
+    <section class="page" id="dueno-buscar-paseadores">
+      <div class="page-head">
+        <h2><i class="fa-solid fa-magnifying-glass-location"></i> 6.4 Buscar Paseadores</h2>
+        <p class="muted">
+          En esta pantalla el dueño puede ver paseadores disponibles por zona y revisar su perfil antes de solicitar un paseo.
+          Es ideal para comparar reputación, comentarios y experiencia.
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="title">
+          <span class="badge green"><i class="fa-solid fa-user"></i> Dueño</span>
+          Paseadores disponibles por zona
+        </div>
+
+        <div class="grid two">
+          <div class="card compact">
+            <div class="title"><i class="fa-solid fa-circle-info"></i> ¿Qué contiene?</div>
+            <ul class="steps">
+              <li>Listado/tabla o tarjetas con paseadores cercanos (según tu diseño).</li>
+              <li>Datos resumidos: nombre, zona, reputación promedio, disponibilidad.</li>
+              <li>Botón <b>Ver perfil</b> para ver información completa.</li>
+            </ul>
+          </div>
+
+          <div class="card compact">
+            <div class="title"><i class="fa-solid fa-check-double"></i> ¿Para qué sirve?</div>
+            <ul class="steps">
+              <li>Permite elegir un paseador con mejor reputación o más cercano.</li>
+              <li>Ayuda a verificar opiniones antes de reservar.</li>
+              <li>Reduce riesgos al contratar, porque se muestra historial y comentarios.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="note tip">
+          <b>Tip:</b> si no aparecen paseadores, probá seleccionar una ubicación válida o mover el pin del mapa
+          al solicitar paseo (esto ayuda a detectar la zona correctamente).
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:12px;">
+        <div class="title">
+          <span class="badge green"><i class="fa-solid fa-id-card"></i> Dueño</span>
+          Ver Paseador (Perfil)
+        </div>
+
+        <div class="grid two">
+          <div class="card compact">
+            <div class="title"><i class="fa-solid fa-star"></i> Información relevante</div>
+            <ul class="steps">
+              <li>Reputación (promedio de estrellas).</li>
+              <li>Opiniones y comentarios de otros dueños.</li>
+              <li>Zona de trabajo y disponibilidad (si tu vista lo incluye).</li>
+            </ul>
+          </div>
+
+          <div class="card compact">
+            <div class="title"><i class="fa-solid fa-dog"></i> ¿Qué se puede hacer?</div>
+            <ul class="steps">
+              <li>Evaluar al paseador antes de reservar.</li>
+              <li>Volver a la solicitud y confirmar el paseo con más confianza.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="shotgrid">
+        <figure class="shot">
+          <div class="shot-tag">Dueño</div>
+          <img src="img/dueno-buscar-paseadores.jpg" alt="Buscar Paseadores">
+          <figcaption>Figura D5. Buscar Paseadores: listado por zona y reputación.</figcaption>
+        </figure>
+
+        <figure class="shot">
+          <div class="shot-tag">Dueño</div>
+          <img src="img/dueno-ver-paseador.jpg" alt="Ver Paseador">
+          <figcaption>Figura D6. Ver Paseador: perfil completo con opiniones y datos relevantes.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- 6.5 Gastos Totales -->
+    <section class="page" id="dueno-gastos-totales">
+      <div class="page-head">
+        <h2><i class="fa-solid fa-chart-line"></i> 6.5 Gastos Totales</h2>
+        <p class="muted">
+          Muestra el acumulado de pagos realizados por el dueño logueado. Sirve para control financiero,
+          seguimiento de consumo y respaldo para reportes.
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="title">
+          <span class="badge green"><i class="fa-solid fa-wallet"></i> Dueño</span>
+          Resumen financiero del dueño
+        </div>
+
+        <div class="grid two">
+          <div class="card compact">
+            <div class="title"><i class="fa-solid fa-circle-info"></i> ¿Qué contiene?</div>
+            <ul class="steps">
+              <li>Resumen del total gastado (por periodo o total general según tu UI).</li>
+              <li>Listado de pagos asociados a paseos.</li>
+              <li>Opción de <b>descargar/exportar</b> si está habilitada.</li>
+            </ul>
+          </div>
+
+          <div class="card compact">
+            <div class="title"><i class="fa-solid fa-bullseye"></i> ¿Para qué sirve?</div>
+            <ul class="steps">
+              <li>Controlar cuánto se invirtió en paseos.</li>
+              <li>Verificar pagos y evitar confusiones en transferencias.</li>
+              <li>Generar reportes para uso personal o respaldo de tesis.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="shotgrid">
+        <figure class="shot">
+          <div class="shot-tag">Dueño</div>
+          <img src="img/dueno-gastos-totales.jpg" alt="Gastos Totales">
+          <figcaption>Figura D7. Gastos Totales: total gastado y detalle de pagos.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- 6.6 Pagos -->
+    <section class="page" id="dueno-pagos">
+      <div class="page-head">
+        <h2><i class="fa-solid fa-money-bill-transfer"></i> 6.6 Pagos</h2>
+        <p class="muted">
+          Lista todos los pagos realizados por el dueño, incluyendo comprobantes cuando se paga por transferencia.
+          Desde aquí se puede acceder al comprobante detallado.
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="title">
+          <span class="badge green"><i class="fa-solid fa-receipt"></i> Dueño</span>
+          Historial de pagos y comprobantes
+        </div>
+
+        <div class="grid two">
+          <div class="card compact">
+            <div class="title"><i class="fa-solid fa-circle-info"></i> ¿Qué contiene?</div>
+            <ul class="steps">
+              <li>Tabla/listado de pagos con datos principales (monto, fecha, estado, método).</li>
+              <li>Indicador de comprobante adjunto cuando es transferencia.</li>
+              <li>Acción para abrir detalle del comprobante.</li>
+            </ul>
+          </div>
+
+          <div class="card compact">
+            <div class="title"><i class="fa-solid fa-shield-heart"></i> ¿Para qué sirve?</div>
+            <ul class="steps">
+              <li>Verificar que el pago fue registrado correctamente.</li>
+              <li>Guardar evidencia y evitar rechazos por comprobantes incompletos.</li>
+              <li>Respaldar cada pago con su archivo adjunto.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="note warn">
+          <b>Importante:</b> si el comprobante está borroso o incompleto, el pago puede quedar en revisión.
+          Siempre subí una imagen clara o PDF legible.
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:12px;">
+        <div class="title">
+          <span class="badge green"><i class="fa-solid fa-file-arrow-down"></i> Dueño</span>
+          Comprobante de pago (Detalle)
+        </div>
+
+        <div class="grid two">
+          <div class="card compact">
+            <div class="title"><i class="fa-solid fa-circle-info"></i> ¿Qué se ve?</div>
+            <ul class="steps">
+              <li>Datos del pago: monto, fecha, método y estado.</li>
+              <li>Archivo adjunto (comprobante) para abrir o descargar.</li>
+              <li>Relación con el paseo/pedido asociado (si tu vista lo muestra).</li>
+            </ul>
+          </div>
+
+          <div class="card compact">
+            <div class="title"><i class="fa-solid fa-download"></i> Acciones</div>
+            <ul class="steps">
+              <li><b>Abrir</b> el comprobante en una nueva pestaña.</li>
+              <li><b>Descargar</b> el archivo adjunto para respaldo.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="shotgrid">
+        <figure class="shot">
+          <div class="shot-tag">Dueño</div>
+          <img src="img/dueno-pagos.jpg" alt="Pagos Dueño">
+          <figcaption>Figura D8. Pagos: listado de pagos y acceso a comprobantes.</figcaption>
+        </figure>
+
+        <figure class="shot">
+          <div class="shot-tag">Dueño</div>
+          <img src="img/dueno-comprobante.jpg" alt="Comprobante pago Dueño">
+          <figcaption>Figura D9. Comprobante: detalle del pago y archivo adjunto.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- 6.7 Mascotas Dueño -->
+    <section class="page" id="dueno-mis-mascotas">
+      <div class="page-head">
+        <h2><i class="fa-solid fa-paw"></i> 6.7 Mis Mascotas</h2>
+        <p class="muted">
+          Permite administrar las mascotas del dueño. Se pueden ver en lista o tarjetas, exportar reporte,
+          ingresar al perfil de la mascota, editar datos y (solo si no tiene paseos asociados) eliminarla.
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="title">
+          <span class="badge green"><i class="fa-solid fa-dog"></i> Dueño</span>
+          Registro y control de mascotas
+        </div>
+
+        <div class="grid two">
+          <div class="card compact">
+            <div class="title"><i class="fa-solid fa-circle-info"></i> ¿Qué contiene?</div>
+            <ul class="steps">
+              <li>Listado de mascotas registradas por el dueño.</li>
+              <li>Vista tipo tarjetas o tabla (según tu pantalla).</li>
+              <li>Acciones: <b>Ver perfil</b>, <b>Editar</b> y opciones adicionales.</li>
+              <li>Botón para <b>exportar</b> (reporte de mascotas).</li>
+            </ul>
+          </div>
+
+          <div class="card compact">
+            <div class="title"><i class="fa-solid fa-bullseye"></i> ¿Para qué sirve?</div>
+            <ul class="steps">
+              <li>Centraliza datos de cada mascota (foto, raza, observaciones).</li>
+              <li>Permite usar una mascota al solicitar paseo.</li>
+              <li>Mantiene historial asociado (paseos recientes de la mascota).</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="note warn">
+          <b>Restricción:</b> solo se puede eliminar una mascota si <b>no tiene paseos asociados</b>,
+          para preservar la trazabilidad del sistema.
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:12px;">
+        <div class="title">
+          <span class="badge green"><i class="fa-solid fa-id-badge"></i> Dueño</span>
+          Perfil Mascota
+        </div>
+
+        <div class="grid two">
+          <div class="card compact">
+            <div class="title"><i class="fa-solid fa-notes-medical"></i> ¿Qué se ve?</div>
+            <ul class="steps">
+              <li>Datos completos de la mascota: foto, edad, raza, observaciones.</li>
+              <li>Tarjetas con <b>paseos recientes</b> y datos del paseo.</li>
+              <li>Botón para <b>Solicitar Paseo</b> rápidamente con esa mascota.</li>
+            </ul>
+          </div>
+
+          <div class="card compact">
+            <div class="title"><i class="fa-solid fa-route"></i> ¿Para qué sirve?</div>
+            <ul class="steps">
+              <li>Consultar historial y comportamiento del animal.</li>
+              <li>Acelerar la reserva con la mascota ya seleccionada.</li>
+              <li>Guardar observaciones importantes para paseadores.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:12px;">
+        <div class="title">
+          <span class="badge green"><i class="fa-solid fa-pen-to-square"></i> Dueño</span>
+          Editar Mascota
+        </div>
+
+        <div class="note info">
+          <b>Función:</b> permite actualizar los datos de la mascota (nombre, raza, edad, observaciones)
+          y cambiar la foto de perfil.
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:12px;">
+        <div class="title">
+          <span class="badge green"><i class="fa-solid fa-circle-plus"></i> Dueño</span>
+          Agregar Mascota
+        </div>
+
+        <div class="note tip">
+          <b>Consejo:</b> agregá una foto clara y completá observaciones (si es nervioso, si tira de la correa, etc.).
+          Esto ayuda a que el paseador realice un paseo más seguro.
+        </div>
+      </div>
+
+      <div class="shotgrid">
+        <figure class="shot">
+          <div class="shot-tag">Dueño</div>
+          <img src="img/dueno-mis-mascotas.jpg" alt="Mis Mascotas">
+          <figcaption>Figura D10. Mis Mascotas: listado o tarjetas con acciones.</figcaption>
+        </figure>
+
+        <figure class="shot">
+          <div class="shot-tag">Dueño</div>
+          <img src="img/dueno-perfil-mascota.jpg" alt="Perfil Mascota">
+          <figcaption>Figura D11. Perfil Mascota: observaciones, datos y paseos recientes.</figcaption>
+        </figure>
+
+        <figure class="shot">
+          <div class="shot-tag">Dueño</div>
+          <img src="img/dueno-editar-mascota.jpg" alt="Editar Mascota">
+          <figcaption>Figura D12. Editar Mascota: actualización de datos y foto.</figcaption>
+        </figure>
+
+        <figure class="shot">
+          <div class="shot-tag">Dueño</div>
+          <img src="img/dueno-agregar-mascota.jpg" alt="Agregar Mascota">
+          <figcaption>Figura D13. Agregar Mascota: registro de una nueva mascota.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- 6.8 Notificaciones Dueño -->
+    <section class="page" id="dueno-notificaciones">
+      <div class="page-head">
+        <h2><i class="fa-solid fa-bell"></i> 6.8 Notificaciones</h2>
+        <p class="muted">
+          Aquí se visualizan los avisos emitidos por el Administrador: promociones, comunicados,
+          cambios del sistema o mensajes importantes.
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="title">
+          <span class="badge green"><i class="fa-solid fa-bell"></i> Dueño</span>
+          Centro de avisos
+        </div>
+
+        <div class="note info">
+          <b>¿Para qué sirve?</b> Mantener informado al usuario sobre promociones, cambios o mensajes de soporte.
+          Se recomienda revisar esta sección cuando se ingresa al sistema.
+        </div>
+      </div>
+
+      <div class="shotgrid">
+        <figure class="shot">
+          <div class="shot-tag">Dueño</div>
+          <img src="img/dueno-notificaciones.jpg" alt="Notificaciones Dueño">
+          <figcaption>Figura D14. Notificaciones del Dueño: mensajes enviados por el Administrador.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- 6.9 Mi Perfil Dueño -->
+    <section class="page" id="dueno-mi-perfil">
+      <div class="page-head">
+        <h2><i class="fa-solid fa-user-circle"></i> 6.9 Mi Perfil</h2>
+        <p class="muted">
+          Muestra la información completa del dueño logueado y su reputación. También expone el total de puntos acumulados
+          y ofrece acceso directo para editar datos.
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="title">
+          <span class="badge green"><i class="fa-solid fa-user"></i> Dueño</span>
+          Datos del usuario
+        </div>
+
+        <div class="grid two">
+          <div class="card compact">
+            <div class="title"><i class="fa-solid fa-id-card"></i> Datos que se visualizan</div>
+            <ul class="steps">
+              <li>Nombre, teléfono, dirección y otros datos de contacto.</li>
+              <li>Información general del perfil (cumpleaños si aplica).</li>
+              <li>Reputación del usuario (si tu sistema lo muestra).</li>
+              <li>Total de <b>puntos acumulados</b> en un recuadro destacado.</li>
+            </ul>
+          </div>
+
+          <div class="card compact">
+            <div class="title"><i class="fa-solid fa-pen"></i> Acciones</div>
+            <ul class="steps">
+              <li>Botón para <b>Editar Perfil</b>.</li>
+              <li>Acceso indirecto a configuración/cambio de contraseña.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:12px;">
+        <div class="title">
+          <span class="badge green"><i class="fa-solid fa-user-pen"></i> Dueño</span>
+          Editar Perfil
+        </div>
+
+        <div class="note info">
+          <b>Función:</b> permite actualizar datos del dueño (foto, teléfono, dirección, etc.),
+          manteniendo la cuenta segura y actualizada.
+        </div>
+      </div>
+
+      <div class="shotgrid">
+        <figure class="shot">
+          <div class="shot-tag">Dueño</div>
+          <img src="img/dueno-mi-perfil.jpg" alt="Mi Perfil Dueño">
+          <figcaption>Figura D15. Mi Perfil: datos personales, reputación y puntos acumulados.</figcaption>
+        </figure>
+
+        <figure class="shot">
+          <div class="shot-tag">Dueño</div>
+          <img src="img/dueno-editar-perfil.jpg" alt="Editar Perfil Dueño">
+          <figcaption>Figura D16. Editar Perfil: modificación de datos del dueño.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- 6.10 Mis Puntos -->
+    <section class="page" id="dueno-mis-puntos">
+      <div class="page-head">
+        <h2><i class="fa-solid fa-star"></i> 6.10 Mis Puntos</h2>
+        <p class="muted">
+          En esta pantalla el dueño consulta su saldo de puntos, visualiza el historial y canjea recompensas.
+          Las recompensas se aplican luego en la pantalla de <b>Solicitar Paseo</b>.
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="title">
+          <span class="badge green"><i class="fa-solid fa-gift"></i> Dueño</span>
+          Puntos y recompensas
+        </div>
+
+        <div class="grid two">
+          <div class="card compact">
+            <div class="title"><i class="fa-solid fa-circle-info"></i> ¿Qué contiene?</div>
+            <ul class="steps">
+              <li>Tarjetas con resumen: <b>puntos disponibles</b> y movimientos recientes.</li>
+              <li>Historial de puntos ganados por paseos.</li>
+              <li>Sección de <b>canje</b> con recompensas disponibles.</li>
+            </ul>
+          </div>
+
+          <div class="card compact">
+            <div class="title"><i class="fa-solid fa-ticket"></i> Recompensas disponibles</div>
+            <ul class="steps">
+              <li><b>50 puntos:</b> 10% de descuento.</li>
+              <li><b>80 puntos:</b> 20% OFF (solo 1 mascota).</li>
+              <li><b>150 puntos:</b> Paseo gratis (promo).</li>
+            </ul>
+
+            <div class="note warn" style="margin-top:10px;">
+              <b>Regla:</b> el canje se puede realizar <b>solo 1 vez por día</b>.
+            </div>
+          </div>
+        </div>
+
+        <div class="note tip">
+          <b>Cómo se usa:</b> una vez canjeada la recompensa, al solicitar un paseo
+          se habilita la opción de <b>aplicarla</b> en el total (validación automática).
+        </div>
+      </div>
+
+      <div class="shotgrid">
+        <figure class="shot">
+          <div class="shot-tag">Dueño</div>
+          <img src="img/dueno-puntos.jpg" alt="Mis Puntos Dueño">
+          <figcaption>Figura D17. Mis Puntos: saldo, historial y canje de recompensas.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- 6.11 Configuración Dueño -->
+    <section class="page" id="dueno-configuracion">
+      <div class="page-head">
+        <h2><i class="fa-solid fa-gear"></i> 6.11 Configuración</h2>
+        <p class="muted">
+          Permite al dueño gestionar ajustes de la cuenta, principalmente seguridad (cambio de contraseña) y datos básicos.
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="title">
+          <span class="badge green"><i class="fa-solid fa-lock"></i> Dueño</span>
+          Ajustes de cuenta
+        </div>
+
+        <div class="grid two">
+          <div class="card compact">
+            <div class="title"><i class="fa-solid fa-key"></i> ¿Qué se puede hacer?</div>
+            <ul class="steps">
+              <li>Cambiar contraseña.</li>
+              <li>Actualizar datos de la cuenta (si tu pantalla lo permite).</li>
+            </ul>
+          </div>
+
+          <div class="card compact">
+            <div class="title"><i class="fa-solid fa-shield"></i> Recomendaciones</div>
+            <ul class="steps">
+              <li>Usá contraseñas seguras (mínimo 8 caracteres).</li>
+              <li>No compartas tu clave con terceros.</li>
+              <li>Cerrá sesión si usás equipos públicos.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="shotgrid">
+        <figure class="shot">
+          <div class="shot-tag">Dueño</div>
+          <img src="img/dueno-configuracion.jpg" alt="Configuración Dueño">
+          <figcaption>Figura D18. Configuración: ajustes y seguridad de cuenta.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- =========================================================
+         7. ROL PASEADOR
+         ========================================================= -->
     <section class="page" id="paseador">
       <div class="page-head">
-        <h2>9. Rol Paseador</h2>
+        <h2><i class="fa-solid fa-person-walking"></i> 7. Rol Paseador</h2>
         <p class="muted">
-          El Paseador recibe solicitudes, confirma o rechaza, gestiona la ejecución del paseo,
-          administra su disponibilidad, visualiza remuneraciones y gestiona su perfil/suscripción (si aplica).
+          El Paseador recibe solicitudes de paseo, las acepta o rechaza, realiza el paseo (inicio y finalización),
+          administra sus remuneraciones, revisa notificaciones del sistema y mantiene actualizado su perfil.
+          Para operar con normalidad, el paseador debe tener su cuenta aprobada por el Administrador y,
+          si corresponde, contar con <b>Suscripción PRO</b> activa.
         </p>
       </div>
 
-      <div class="note info compact">
-        <b>Módulos disponibles (menú Paseador):</b>
-        Dashboard, Estadísticas, Solicitudes, Mis Paseos, Pagos (remuneraciones),
-        Notificaciones, Perfil (Mi Perfil / Editar Perfil), Disponibilidad, Configuraciones.
+      <div class="note info">
+        <b>Módulos del Paseador:</b> Dashboard, Solicitudes, Mis Paseos, Remuneraciones (Pagos),
+        Notificaciones, Suscripción PRO, Perfil y Configuración.
       </div>
-
-      <h3 style="margin:14px 0 6px;">9.1 Solicitudes (entrantes)</h3>
-      <ol style="margin:0; padding-left:18px; line-height:1.75;">
-        <li>Ingresá a <b>Solicitudes</b> para ver pedidos pendientes.</li>
-        <li>Revisá detalle: dueño, mascota(s), ubicación, fecha/hora y duración.</li>
-        <li>Elegí una acción: <b>Aceptar</b> o <b>Rechazar</b> según corresponda.</li>
-      </ol>
-
-      <div class="note warn compact">
-        <b>Bloqueo por estado/suscripción:</b> si la cuenta no está aprobada o si la suscripción está vencida (si aplica),
-        algunas acciones pueden quedar restringidas.
-      </div>
-
-      <h3 style="margin:14px 0 6px;">9.2 Mis Paseos (gestión operativa)</h3>
-      <ul style="margin:0; padding-left:18px; line-height:1.65;">
-        <li>Visualización de paseos activos, pendientes y completados.</li>
-        <li>Acceso a <b>Detalle</b> del paseo.</li>
-        <li>Acciones típicas: iniciar, completar o cancelar (según reglas del sistema).</li>
-      </ul>
-
-      <h3 style="margin:14px 0 6px;">9.3 Pagos y remuneraciones</h3>
-      <ul style="margin:0; padding-left:18px; line-height:1.65;">
-        <li>Resumen de ganancias por período.</li>
-        <li>Detalle por paseo completado (si está habilitado).</li>
-      </ul>
-
-      <h3 style="margin:14px 0 6px;">9.4 Disponibilidad</h3>
-      <ol style="margin:0; padding-left:18px; line-height:1.75;">
-        <li>Ingresá a <b>Disponibilidad</b>.</li>
-        <li>Marcá días activos y horarios (inicio/fin).</li>
-        <li>Guardá cambios para que el sistema te muestre como disponible.</li>
-      </ol>
-
-      <h3 style="margin:14px 0 6px;">9.5 Perfil</h3>
-      <ul style="margin:0; padding-left:18px; line-height:1.65;">
-        <li><b>Mi Perfil:</b> consulta de datos y estado.</li>
-        <li><b>Editar Perfil:</b> actualización de información personal y datos de pago (si aplica).</li>
-      </ul>
-
-      <h3 style="margin:14px 0 6px;">9.6 Notificaciones</h3>
-      <ul style="margin:0; padding-left:18px; line-height:1.65;">
-        <li>Eventos: nuevas solicitudes, cambios de estado, confirmaciones y avisos del sistema.</li>
-      </ul>
-
-      <h3 style="margin:14px 0 6px;">9.7 Suscripción (si aplica)</h3>
-      <ul style="margin:0; padding-left:18px; line-height:1.65;">
-        <li>Estado: activa / vencida / pendiente.</li>
-        <li>Cuando está activa, puede habilitar funcionalidades según configuración del sistema.</li>
-      </ul>
-
-      <!-- =========================
-           9.8 CAPTURAS PASEADOR
-           ========================= -->
-      <h3 style="margin:18px 0 6px;">9.8 Capturas de pantallas (Paseador)</h3>
-      <p class="muted" style="margin-top:0;">A continuación se presentan las pantallas principales del rol Paseador.</p>
 
       <div class="shotgrid">
         <figure class="shot">
           <div class="shot-tag">Paseador</div>
-          <img src="img/paseador-dashboard.jpg" alt="Paseador - Dashboard">
-          <figcaption>Figura P1. Dashboard del Paseador.</figcaption>
-        </figure>
-
-        <figure class="shot">
-          <div class="shot-tag">Paseador</div>
-          <img src="img/paseador-solicitudes.jpg" alt="Paseador - Solicitudes">
-          <figcaption>Figura P3. Solicitudes entrantes.</figcaption>
-        </figure>
-
-        <figure class="shot">
-          <div class="shot-tag">Paseador</div>
-          <img src="img/paseador-mis-paseos.jpg" alt="Paseador - Mis Paseos">
-          <figcaption>Figura P4. Mis Paseos (listado).</figcaption>
-        </figure>
-
-        <figure class="shot">
-          <div class="shot-tag">Paseador</div>
-          <img src="img/paseador-detalle-paseo.jpg" alt="Paseador - Detalle Paseo">
-          <figcaption>Figura P5. Detalle del paseo.</figcaption>
-        </figure>
-
-        <figure class="shot">
-          <div class="shot-tag">Paseador</div>
-          <img src="img/paseador-pagos.jpg" alt="Paseador - Pagos">
-          <figcaption>Figura P6. Pagos y remuneraciones.</figcaption>
-        </figure>
-
-        <figure class="shot">
-          <div class="shot-tag">Paseador</div>
-          <img src="img/paseador-notificaciones.jpg" alt="Paseador - Notificaciones">
-          <figcaption>Figura P7. Notificaciones.</figcaption>
-        </figure>
-
-        <figure class="shot">
-          <div class="shot-tag">Paseador</div>
-          <img src="img/paseador-perfil.jpg" alt="Paseador - Perfil">
-          <figcaption>Figura P8. Mi Perfil.</figcaption>
-        </figure>
-
-        <figure class="shot">
-          <div class="shot-tag">Paseador</div>
-          <img src="img/paseador-editar-perfil.jpg" alt="Paseador - Editar Perfil">
-          <figcaption>Figura P9. Editar Perfil.</figcaption>
-        </figure>
-
-        <figure class="shot">
-          <div class="shot-tag">Paseador</div>
-          <img src="img/paseador-disponibilidad.jpg" alt="Paseador - Disponibilidad">
-          <figcaption>Figura P10. Disponibilidad.</figcaption>
-        </figure>
-
-        <figure class="shot">
-          <div class="shot-tag">Paseador</div>
-          <img src="img/paseador-suscripcion.jpg" alt="Paseador - Suscripción">
-          <figcaption>Figura P11. Suscripción.</figcaption>
+          <img src="img/paseador-dashboard.jpg" alt="Dashboard Paseador">
+          <figcaption>Figura P1. Dashboard del Paseador: resumen general de actividad.</figcaption>
         </figure>
       </div>
     </section>
 
+    <!-- 7.1 Dashboard Paseador -->
+    <section class="page" id="paseador-dashboard">
+      <div class="page-head">
+        <h2><i class="fa-solid fa-house"></i> 7.1 Dashboard</h2>
+        <p class="muted">
+          Es la primera pantalla al ingresar como Paseador. Resume tu desempeño y el estado de tus paseos,
+          ingresos, calificaciones y notificaciones recientes.
+        </p>
+      </div>
 
-    <!-- 10 FAQ -->
+      <div class="card">
+        <div class="title">
+          <span class="badge blue"><i class="fa-solid fa-person-walking"></i> Paseador</span>
+          Inicio y resumen del paseador
+        </div>
+
+        <div class="grid two">
+          <div class="card compact">
+            <div class="title"><i class="fa-solid fa-chart-simple"></i> ¿Qué se ve?</div>
+            <ul class="steps">
+              <li>Tarjetas con <b>resumen de paseos</b> (pendientes / en curso / completados).</li>
+              <li>Resumen de <b>ingresos</b> o remuneraciones.</li>
+              <li>Panel de <b>calificaciones</b> (reputación promedio, estrellas).</li>
+              <li>Sección de <b>paseos recientes</b>.</li>
+              <li>Panel de <b>notificaciones</b> recientes.</li>
+            </ul>
+          </div>
+
+          <div class="card compact">
+            <div class="title"><i class="fa-solid fa-bullseye"></i> ¿Para qué sirve?</div>
+            <ul class="steps">
+              <li>Control rápido del trabajo del día (solicitudes y paseos).</li>
+              <li>Ver ingresos y rendimiento sin entrar a cada módulo.</li>
+              <li>Identificar avisos del admin o cambios importantes del sistema.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="note tip">
+          <b>Tip:</b> si ves alertas en notificaciones, entrá primero allí para evitar rechazos, suspensiones o avisos de soporte.
+        </div>
+      </div>
+
+      <div class="shotgrid">
+        <figure class="shot">
+          <div class="shot-tag">Paseador</div>
+          <img src="img/paseador-dashboard.jpg" alt="Dashboard Paseador">
+          <figcaption>Figura P2. Dashboard: resumen de paseos, ingresos y calificaciones.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- 7.2 Solicitudes -->
+    <section class="page" id="paseador-solicitudes">
+      <div class="page-head">
+        <h2><i class="fa-solid fa-envelope-open-text"></i> 7.2 Solicitudes</h2>
+        <p class="muted">
+          Aquí llegan las solicitudes enviadas por los dueños. En esta pantalla el paseador revisa los detalles
+          del pedido y decide si <b>acepta</b> o <b>rechaza</b> el paseo.
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="title">
+          <span class="badge blue"><i class="fa-solid fa-envelope"></i> Paseador</span>
+          Bandeja de solicitudes entrantes
+        </div>
+
+        <div class="grid two">
+          <div class="card compact">
+            <div class="title"><i class="fa-solid fa-circle-info"></i> ¿Qué información trae?</div>
+            <ul class="steps">
+              <li>Datos del dueño y de la(s) mascota(s).</li>
+              <li>Fecha/hora, duración y ubicación.</li>
+              <li>Estado de la solicitud y acciones disponibles.</li>
+            </ul>
+          </div>
+
+          <div class="card compact">
+            <div class="title"><i class="fa-solid fa-hand-pointer"></i> Acciones</div>
+            <ul class="steps">
+              <li><b>Aceptar</b>: confirma que realizarás el paseo.</li>
+              <li><b>Rechazar</b>: declina el pedido (por distancia, horario, etc.).</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="note warn">
+          <b>Importante:</b> revisá bien la ubicación y el horario antes de aceptar. Si aceptás, luego el sistema
+          puede permitir iniciar el paseo desde “Mis Paseos”.
+        </div>
+      </div>
+
+      <div class="shotgrid">
+        <figure class="shot">
+          <div class="shot-tag">Paseador</div>
+          <img src="img/paseador-solicitudes.jpg" alt="Solicitudes Paseador">
+          <figcaption>Figura P3. Solicitudes: lista de pedidos entrantes y acciones de aceptar/rechazar.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- 7.3 Mis Paseos -->
+    <section class="page" id="paseador-mis-paseos">
+      <div class="page-head">
+        <h2><i class="fa-solid fa-dog"></i> 7.3 Mis Paseos</h2>
+        <p class="muted">
+          Pantalla operativa principal del Paseador. Presenta un resumen de paseos e indicadores,
+          filtros, y un listado con acciones rápidas.
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="title">
+          <span class="badge blue"><i class="fa-solid fa-route"></i> Paseador</span>
+          Gestión de paseos y estados
+        </div>
+
+        <div class="grid two">
+          <div class="card compact">
+            <div class="title"><i class="fa-solid fa-filter"></i> ¿Qué contiene?</div>
+            <ul class="steps">
+              <li>Tarjetas con resumen: paseos totales, completados, pendientes (según tu UI).</li>
+              <li>Filtros (por estado, fecha, búsqueda) como el resto de pantallas.</li>
+              <li>Listado de paseos con acciones: <b>Ver</b>, <b>Iniciar</b>, <b>Cancelar</b> (según estado).</li>
+            </ul>
+          </div>
+
+          <div class="card compact">
+            <div class="title"><i class="fa-solid fa-gears"></i> ¿Cómo funciona?</div>
+            <ul class="steps">
+              <li>Un paseo aceptado pasa a tu lista.</li>
+              <li>Según el estado, el sistema habilita botones (iniciar/cancelar).</li>
+              <li>Al finalizar, se habilita el paso de <b>calificación</b>.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="note tip">
+          <b>Tip:</b> si necesitás ver ubicación exacta, entrá a “Ver Paseo” para ver el mapa y el estado en tiempo real.
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:12px;">
+        <div class="title">
+          <span class="badge blue"><i class="fa-solid fa-map-location-dot"></i> Paseador</span>
+          Ver Paseo (Detalle)
+        </div>
+
+        <div class="grid two">
+          <div class="card compact">
+            <div class="title"><i class="fa-solid fa-circle-info"></i> ¿Qué se ve?</div>
+            <ul class="steps">
+              <li><b>Mapa</b> con ubicación del paseo.</li>
+              <li>Estado actual del paseo (pendiente/en curso/completado/cancelado).</li>
+              <li>Datos del dueño y mascota(s).</li>
+            </ul>
+          </div>
+
+          <div class="card compact">
+            <div class="title"><i class="fa-solid fa-hand-pointer"></i> Acciones por estado</div>
+            <ul class="steps">
+              <li>Si está pendiente: puede aparecer <b>Iniciar Paseo</b>.</li>
+              <li>En curso: opciones según reglas (por ejemplo finalizar/cancelar).</li>
+              <li>Al terminar: aparece pantalla/flujo de <b>calificación</b>.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="note warn">
+          <b>Importante:</b> los botones cambian según el estado del paseo. Si no aparece “Iniciar”, revisá
+          que el paseo esté confirmado y dentro del horario permitido.
+        </div>
+      </div>
+
+      <div class="shotgrid">
+        <figure class="shot">
+          <div class="shot-tag">Paseador</div>
+          <img src="img/paseador-mis-paseos.jpg" alt="Mis Paseos Paseador">
+          <figcaption>Figura P4. Mis Paseos: resumen, filtros y listado con acciones.</figcaption>
+        </figure>
+
+        <figure class="shot">
+          <div class="shot-tag">Paseador</div>
+          <img src="img/paseador-detalle-paseo.jpg" alt="Ver Paseo Paseador">
+          <figcaption>Figura P5. Ver Paseo: mapa, estado y acciones (iniciar/cancelar/finalizar).</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- 7.4 Pagos -->
+    <section class="page" id="paseador-pagos">
+      <div class="page-head">
+        <h2><i class="fa-solid fa-wallet"></i> 7.4 Remuneraciones (Pagos)</h2>
+        <p class="muted">
+          Esta pantalla muestra el resumen de ingresos del paseador: total recibido, pendiente de cobro y total de paseos.
+          También incluye el detalle de ganancias y un historial donde se visualiza el comprobante.
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="title">
+          <span class="badge blue"><i class="fa-solid fa-money-bill-wave"></i> Paseador</span>
+          Resumen de ingresos y cobros
+        </div>
+
+        <div class="grid two">
+          <div class="card compact">
+            <div class="title"><i class="fa-solid fa-chart-pie"></i> Resumen</div>
+            <ul class="steps">
+              <li><b>Total recibido</b>: pagos ya confirmados.</li>
+              <li><b>Pendiente de cobro</b>: pagos en proceso o por confirmar.</li>
+              <li><b>Total de paseos</b>: cantidad total asociada.</li>
+            </ul>
+          </div>
+
+          <div class="card compact">
+            <div class="title"><i class="fa-solid fa-list"></i> Detalle e historial</div>
+            <ul class="steps">
+              <li>Detalle de ganancias (por paseo o por periodo).</li>
+              <li>Historial con opción de ver comprobante.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="note tip">
+          <b>Tip:</b> mantené actualizados tus datos de transferencia en “Perfil” para evitar demoras en cobros.
+        </div>
+      </div>
+
+      <div class="shotgrid">
+        <figure class="shot">
+          <div class="shot-tag">Paseador</div>
+          <img src="img/paseador-pagos.jpg" alt="Pagos Paseador">
+          <figcaption>Figura P6. Pagos: resumen de recibido, pendiente y detalle de ingresos.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- 7.5 Notificaciones -->
+    <section class="page" id="paseador-notificaciones">
+      <div class="page-head">
+        <h2><i class="fa-solid fa-bell"></i> 7.5 Notificaciones</h2>
+        <p class="muted">
+          En esta sección se reciben las notificaciones que el Administrador envía a paseadores y dueños:
+          avisos del sistema, recordatorios, cambios de configuración o comunicados importantes.
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="title">
+          <span class="badge blue"><i class="fa-solid fa-bell"></i> Paseador</span>
+          Centro de avisos
+        </div>
+
+        <div class="note info">
+          <b>¿Para qué sirve?</b> Mantener informado al paseador sobre cambios del sistema, novedades y comunicaciones de soporte.
+          Se recomienda revisarlo con frecuencia.
+        </div>
+      </div>
+
+      <div class="shotgrid">
+        <figure class="shot">
+          <div class="shot-tag">Paseador</div>
+          <img src="img/paseador-notificaciones.jpg" alt="Notificaciones Paseador">
+          <figcaption>Figura P7. Notificaciones: mensajes emitidos por el Administrador.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- 7.6 Suscripción -->
+    <section class="page" id="paseador-suscripcion">
+      <div class="page-head">
+        <h2><i class="fa-solid fa-crown"></i> 7.6 Suscripción PRO</h2>
+        <p class="muted">
+          El Paseador puede suscribirse para que su cuenta sea aprobada/activa por un mes.
+          El costo definido es <b>50.000 Gs.</b> y el pago se realiza por transferencia.
+          El Administrador verifica el comprobante: si es correcto aprueba, si no, rechaza.
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="title">
+          <span class="badge blue"><i class="fa-solid fa-crown"></i> Paseador</span>
+          Gestión de suscripción mensual
+        </div>
+
+        <div class="kv">
+          <div class="row">
+            <span class="k">Costo</span>
+            <span class="v"><b>50.000 Gs.</b> (mensual)</span>
+          </div>
+          <div class="row">
+            <span class="k">Duración</span>
+            <span class="v">1 mes (vence automáticamente)</span>
+          </div>
+        </div>
+
+        <div class="grid two">
+          <div class="card compact">
+            <div class="title"><i class="fa-solid fa-list-check"></i> ¿Cómo funciona?</div>
+            <ol class="steps">
+              <li>El paseador carga/completa datos de suscripción.</li>
+              <li>Realiza transferencia a la cuenta indicada.</li>
+              <li>Adjunta el comprobante (imagen/PDF).</li>
+              <li>El Administrador revisa y cambia el estado: <b>aprobada</b> o <b>rechazada</b>.</li>
+            </ol>
+          </div>
+
+          <div class="card compact">
+            <div class="title"><i class="fa-solid fa-triangle-exclamation"></i> Si se rechaza</div>
+            <ul class="steps">
+              <li>Puede deberse a comprobante ilegible o pago no recibido.</li>
+              <li>El paseador debe comunicarse por <b>Contacto</b> para soporte.</li>
+              <li>Contacto abre WhatsApp con consultas predefinidas.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="note warn">
+          <b>Importante:</b> subí comprobantes claros. Si el comprobante no coincide con el monto/fecha,
+          el Administrador puede rechazar para proteger la seguridad del sistema.
+        </div>
+      </div>
+
+      <div class="shotgrid">
+        <figure class="shot">
+          <div class="shot-tag">Paseador</div>
+          <img src="img/paseador-suscripcion.jpg" alt="Suscripción Paseador">
+          <figcaption>Figura P8. Suscripción PRO: carga de comprobante y estado (pendiente/aprobada/rechazada).</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- 7.7 Perfil Paseador -->
+    <section class="page" id="paseador-perfil">
+      <div class="page-head">
+        <h2><i class="fa-solid fa-id-card"></i> 7.7 Mi Perfil</h2>
+        <p class="muted">
+          Pantalla del perfil del paseador: muestra datos personales, reputación, domicilio, teléfono y otros.
+          Además, aquí se cargan la <b>disponibilidad</b> y los <b>datos de transferencia</b> para pagos.
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="title">
+          <span class="badge blue"><i class="fa-solid fa-user"></i> Paseador</span>
+          Perfil, reputación y datos de pago
+        </div>
+
+        <div class="grid two">
+          <div class="card compact">
+            <div class="title"><i class="fa-solid fa-star"></i> ¿Qué se visualiza?</div>
+            <ul class="steps">
+              <li>Datos personales (nombre, teléfono, dirección, cumpleaños si aplica).</li>
+              <li>Reputación/calificaciones del paseador.</li>
+              <li>Información de contacto y zonas de trabajo (según tu sistema).</li>
+            </ul>
+          </div>
+
+          <div class="card compact">
+            <div class="title"><i class="fa-solid fa-calendar-check"></i> Datos obligatorios</div>
+            <ul class="steps">
+              <li><b>Disponibilidad</b>: días y horarios de trabajo.</li>
+              <li><b>Datos de transferencia</b>: necesarios para remuneraciones.</li>
+              <li>Guardar cambios para que el sistema te muestre como disponible.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="note tip">
+          <b>Tip:</b> si no cargás disponibilidad, es posible que el dueño no te vea como “disponible” al buscar paseadores.
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:12px;">
+        <div class="title">
+          <span class="badge blue"><i class="fa-solid fa-user-pen"></i> Paseador</span>
+          Editar Perfil
+        </div>
+
+        <div class="note info">
+          <b>Función:</b> permite modificar foto, datos personales y otros campos habilitados por tu sistema,
+          manteniendo el perfil actualizado para aumentar confianza y reputación.
+        </div>
+      </div>
+
+      <div class="shotgrid">
+        <figure class="shot">
+          <div class="shot-tag">Paseador</div>
+          <img src="img/paseador-perfil.jpg" alt="Perfil Paseador">
+          <figcaption>Figura P9. Perfil del Paseador: datos personales, reputación y disponibilidad.</figcaption>
+        </figure>
+
+        <figure class="shot">
+          <div class="shot-tag">Paseador</div>
+          <img src="img/paseador-editar-perfil.jpg" alt="Editar Perfil Paseador">
+          <figcaption>Figura P10. Editar Perfil: actualización de datos del paseador.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- 7.8 Configuración Paseador -->
+    <section class="page" id="paseador-configuracion">
+      <div class="page-head">
+        <h2><i class="fa-solid fa-gear"></i> 7.8 Configuración</h2>
+        <p class="muted">
+          Ajustes de cuenta del paseador: seguridad (cambio de contraseña) y datos de la cuenta.
+          También puede incluir zonas de trabajo según la configuración del sistema.
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="title">
+          <span class="badge blue"><i class="fa-solid fa-lock"></i> Paseador</span>
+          Ajustes y seguridad
+        </div>
+
+        <div class="grid two">
+          <div class="card compact">
+            <div class="title"><i class="fa-solid fa-key"></i> ¿Qué se puede hacer?</div>
+            <ul class="steps">
+              <li>Cambiar contraseña.</li>
+              <li>Actualizar datos de cuenta (si tu pantalla lo permite).</li>
+              <li>Gestionar zonas de trabajo (si está habilitado).</li>
+            </ul>
+          </div>
+
+          <div class="card compact">
+            <div class="title"><i class="fa-solid fa-shield"></i> Recomendaciones</div>
+            <ul class="steps">
+              <li>Usá una contraseña segura.</li>
+              <li>No compartas tu clave.</li>
+              <li>Cerrá sesión en equipos públicos.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="shotgrid">
+        <figure class="shot">
+          <div class="shot-tag">Paseador</div>
+          <img src="img/paseador-configuracion.jpg" alt="Configuración Paseador">
+          <figcaption>Figura P11. Configuración: ajustes de cuenta y seguridad del paseador.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- 8 FAQ -->
     <section class="page" id="faq">
       <div class="page-head">
-        <h2>10. Preguntas frecuentes</h2>
-        <p class="muted">Respuestas rápidas a problemas comunes.</p>
+        <h2><i class="fa-solid fa-circle-question"></i> 8. Preguntas frecuentes</h2>
+        <p class="muted">
+          Respuestas rápidas a dudas comunes de Dueños, Paseadores y Administrador.
+        </p>
       </div>
 
-      <h3 style="margin:10px 0 6px;">No puedo solicitar un paseo</h3>
-      <ul style="margin:0; padding-left:18px; line-height:1.65;">
-        <li>Verificá que tu cuenta esté <b>aprobada</b>.</li>
-        <li>Confirmá que tenés al menos <b>1 mascota registrada</b>.</li>
-        <li>Probá seleccionar ubicación en el mapa para cargar paseadores cercanos.</li>
-      </ul>
+      <div class="grid two">
+        <div class="card">
+          <div class="title"><i class="fa-solid fa-user-plus"></i> Registro y acceso</div>
+          <ul class="steps">
+            <li><b>¿Por qué no puedo iniciar sesión?</b> La cuenta puede estar <b>pendiente</b>, <b>rechazada</b> o <b>suspendida</b>.</li>
+            <li><b>¿Cuándo se habilita mi cuenta?</b> Cuando el <b>Administrador</b> revisa y aprueba la solicitud.</li>
+            <li><b>¿Qué pasa si soy paseador?</b> Debés cargar documentos y esperar validación. Además, si tu sistema lo exige, necesitás <b>Suscripción PRO</b>.</li>
+          </ul>
+        </div>
 
-      <h3 style="margin:14px 0 6px;">No me aparecen paseadores disponibles</h3>
-      <ul style="margin:0; padding-left:18px; line-height:1.65;">
-        <li>Definí una ubicación válida (pin en el mapa).</li>
-        <li>Probá mover el pin o permitir ubicación del navegador.</li>
-        <li>Verificá fecha/hora y duración según disponibilidad.</li>
-      </ul>
-
-      <h3 style="margin:14px 0 6px;">¿Puedo elegir 2 mascotas?</h3>
-      <p class="muted" style="margin-top:0;">
-        Sí. El sistema permite <b>hasta 2 mascotas</b>, no repetidas. Si son 2, aplica <b>30% de descuento</b>.
-      </p>
-
-      <h3 style="margin:14px 0 6px;">No puedo ingresar al panel</h3>
-      <ul style="margin:0; padding-left:18px; line-height:1.65;">
-        <li>Revisá credenciales (email/contraseña).</li>
-        <li>Si está pendiente/suspendida/inactiva, contactá al administrador.</li>
-        <li>Si olvidaste la contraseña, usá recuperación.</li>
-      </ul>
-    </section>
-
-
-    <!-- 11 SOPORTE -->
-    <section class="page" id="soporte">
-      <div class="page-head">
-        <h2>11. Soporte y buenas prácticas</h2>
-        <p class="muted">Recomendaciones para un uso seguro y ordenado del sistema.</p>
+        <div class="card">
+          <div class="title"><i class="fa-solid fa-route"></i> Paseos y estados</div>
+          <ul class="steps">
+            <li><b>¿Qué estados puede tener un paseo?</b> Pendiente / Aceptado / En curso / Completado / Cancelado (según tu flujo).</li>
+            <li><b>¿Por qué no aparece “Iniciar paseo”?</b> Puede depender del estado, horario permitido o confirmación del pedido.</li>
+            <li><b>¿Puedo cancelar un paseo?</b> Sí, si tu regla lo permite y el paseo no fue completado (depende del estado).</li>
+          </ul>
+        </div>
       </div>
 
-      <h3 style="margin:10px 0 6px;">Buenas prácticas</h3>
-      <ul style="margin:0; padding-left:18px; line-height:1.65;">
-        <li>Usá contraseñas seguras y no las compartas.</li>
-        <li>Verificá la información del paseo antes de confirmar (fecha, ubicación, mascotas).</li>
-        <li>Subí comprobantes claros (si se solicita) para evitar rechazos.</li>
-        <li>Calificá con responsabilidad: las calificaciones ayudan a la reputación del sistema.</li>
-      </ul>
+      <div class="grid two">
+        <div class="card">
+          <div class="title"><i class="fa-solid fa-star"></i> Puntos y recompensas</div>
+          <ul class="steps">
+            <li><b>¿Cómo gano puntos?</b> Al completar paseos (según la regla del sistema).</li>
+            <li><b>¿Cuántas veces puedo canjear?</b> En tu manual: <b>1 vez por día</b>.</li>
+            <li><b>¿Dónde aplico la recompensa?</b> En <b>Solicitar Paseo</b>, al final del proceso.</li>
+          </ul>
 
-      <h3 style="margin:14px 0 6px;">Contacto soporte</h3>
-      <ul style="margin:0; padding-left:18px; line-height:1.65;">
-        <li><b>Email:</b> soporte@jaguata.com (o el correo definido en configuración del sistema)</li>
-        <li><b>Horario:</b> 08:00 a 18:00 (referencial)</li>
-      </ul>
+          <div class="note warn">
+            <b>Regla clave:</b> si seleccionás <b>2 mascotas</b> se aplica automáticamente <b>30% de descuento</b>.
+          </div>
+        </div>
 
-      <div class="note info compact">
-        <b>Para anexos de tesis:</b> podés agregar capturas de: Solicitar Paseo (mapa),
-        Pagos/Comprobantes, Usuarios (Admin), Auditoría, Suscripción del Paseador.
+        <div class="card">
+          <div class="title"><i class="fa-solid fa-money-bill-transfer"></i> Pagos y comprobantes</div>
+          <ul class="steps">
+            <li><b>¿Qué pasa si el comprobante es ilegible?</b> Puede quedar en revisión o rechazo.</li>
+            <li><b>¿Dónde veo mi comprobante?</b> Dueño → <b>Pagos</b> → <b>Comprobante</b>.</li>
+            <li><b>¿Cómo evita errores?</b> Subí imágenes claras o PDF legible, con monto y fecha visibles.</li>
+          </ul>
+        </div>
       </div>
-    </section>
 
-    <!-- FIN -->
-    <section class="page">
       <div class="end">
-        <div class="line"></div>
-        <div class="muted small">Fin del Manual de Usuario — Jaguata</div>
-        <div class="muted small">© 2025</div>
+      <div class="end">
+        <p>
+          El correcto envío de comprobantes garantiza que los pagos sean validados
+          rápidamente y evita demoras en la confirmación de los paseos.
+        </p>
       </div>
     </section>
 
-  </main>
-</body>
-</html>
+    <!-- ========================= -->
+    <!-- SOPORTE Y AYUDA -->
+    <!-- ========================= -->
+    <section id="soporte" class="section">
+      <h2>9. Soporte y ayuda</h2>
+
+      <div class="grid two">
+        <div class="card">
+          <div class="title">
+            <i class="fa-solid fa-headset"></i> Atención al usuario
+          </div>
+          <ul class="steps">
+            <li>Canal disponible para dueños, paseadores y administradores.</li>
+            <li>Resuelve problemas técnicos, pagos y dudas sobre el uso del sistema.</li>
+            <li>Permite reportar comportamientos inapropiados o errores del sistema.</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <div class="title">
+            <i class="fa-solid fa-triangle-exclamation"></i> Reporte de incidentes
+          </div>
+          <ul class="steps">
+            <li>Accedé desde el menú <b>Soporte</b> o <b>Contacto</b>.</li>
+            <li>Describí claramente el problema ocurrido.</li>
+            <li>Adjuntá capturas si es necesario para una mejor atención.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="end">
+        <p>
+          Jaguata prioriza la seguridad y la correcta experiencia de uso,
+          ofreciendo canales de comunicación claros y accesibles.
+        </p>
+      </div>
+    </section>
+
+    <!-- ========================= -->
+    <!-- BUENAS PRÁCTICAS -->
+    <!-- ========================= -->
+    <section id="buenas-practicas" class="section">
+      <h2>10. Buenas prácticas de uso</h2>
+
+      <div class="grid two">
+        <div class="card">
+          <div class="title">
+            <i class="fa-solid fa-shield-dog"></i> Seguridad
+          </div>
+          <ul class="steps">
+            <li>No compartas tus credenciales con terceros.</li>
+            <li>Revisá perfiles y calificaciones antes de contratar.</li>
+            <li>Utilizá siempre los canales oficiales de la plataforma.</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <div class="title">
+            <i class="fa-solid fa-thumbs-up"></i> Uso responsable
+          </div>
+          <ul class="steps">
+            <li>Registrá información real y actualizada.</li>
+            <li>Calificá los paseos de forma objetiva.</li>
+            <li>Respetá horarios y condiciones acordadas.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="end">
+        <p>
+          El uso responsable de Jaguata contribuye a una comunidad confiable,
+          segura y beneficiosa para todos los usuarios.
+        </p>
+      </div>
+    </section>
+
+    <!-- ========================= -->
+    <!-- CIERRE DEL MANUAL -->
+    <!-- ========================= -->
+    <section id="cierre" class="section">
+      <h2>11. Consideraciones finales</h2>
+
+      <div class="card">
+        <p>
+          Jaguata es una plataforma diseñada para facilitar la contratación
+          de servicios de paseo de mascotas, promoviendo la confianza,
+          la transparencia y la seguridad.
+        </p>
+        <p>
+          Este manual sirve como guía de referencia para comprender
+          el funcionamiento del sistema y aprovechar al máximo sus funcionalidades.
+        </p>
+      </div>
+
+      <div class="end">
+        <p>
+          © 2026 — Jaguata. Paseos seguros, personas confiables y mascotas felices.
+        </p>
+      </div>
+    </section>

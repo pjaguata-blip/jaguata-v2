@@ -14,8 +14,6 @@ use Jaguata\Helpers\Session;
 use Jaguata\Services\PagoViewService;
 
 AppConfig::init();
-
-/* 🔒 Solo dueño */
 (new AuthController())->checkRole('dueno');
 
 /* Helpers */

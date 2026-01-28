@@ -18,8 +18,6 @@ use Jaguata\Controllers\ConfiguracionController;
 use Jaguata\Models\Usuario;
 
 AppConfig::init();
-
-/* 🔒 Verificación de sesión y rol (DUEÑO) */
 $auth = new AuthController();
 $auth->checkRole('dueno');
 
@@ -34,7 +32,6 @@ if (!$usuarioId) {
     exit;
 }
 
-/* 🔹 Cargar datos actuales desde BD */
 $usuarioRow = $usuarioModel->find((int)$usuarioId);
 
 if (!$usuarioRow) {
@@ -131,14 +128,11 @@ function h(?string $v): string
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
 
-    <!-- ✅ CSS unificado -->
     <link href="<?= BASE_URL; ?>/public/assets/css/jaguata-theme.css" rel="stylesheet">
 
     <style>
         html, body { height: 100%; }
         body { background: var(--gris-fondo, #f4f6f9); }
-
-        /* ✅ igual que tus otras pantallas */
         main.main-content{
             margin-left: 260px;
             min-height: 100vh;

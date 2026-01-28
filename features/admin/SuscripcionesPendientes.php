@@ -17,8 +17,6 @@ use Jaguata\Helpers\Validaciones;
 use Jaguata\Models\Suscripcion;
 
 AppConfig::init();
-
-/* 🔒 solo admin */
 $auth = new AuthController();
 $auth->checkRole('admin');
 
@@ -94,7 +92,7 @@ $comprobantesBaseUrl = BASE_URL . '/uploads/suscripciones/';
 
         main.main-content{
             margin-left: var(--sidebar-w);
-            width: calc(100% - var(--sidebar-w)); /* ✅ evita scroll horizontal */
+            width: calc(100% - var(--sidebar-w)); 
             min-height: 100vh;
             padding: 24px;
             overflow-x: hidden;
@@ -174,8 +172,6 @@ $comprobantesBaseUrl = BASE_URL . '/uploads/suscripciones/';
                                     <?php
                                         $id = (int)($s['id'] ?? 0);
                                         $archivo = trim((string)($s['comprobante_path'] ?? ''));
-
-                                        // ✅ FIX: construir link comprobante
                                         $linkComp = null;
                                         if ($archivo !== '') {
                                             $linkComp = $comprobantesBaseUrl . rawurlencode($archivo);

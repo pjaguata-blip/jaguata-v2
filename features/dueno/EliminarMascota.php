@@ -13,8 +13,6 @@ use Jaguata\Controllers\AuthController;
 use Jaguata\Controllers\MascotaController;
 
 AppConfig::init();
-
-/* 🔒 Solo dueño */
 $auth = new AuthController();
 $auth->checkRole('dueno');
 $controller = new MascotaController();

@@ -1,10 +1,4 @@
-/**
- * =========================
- * JAVASCRIPT PRINCIPAL - JAGUATA
- * =========================
- */
 
-// Configuración global
 const Jaguata = {
     config: {
         baseUrl: window.location.origin + '/jaguata',

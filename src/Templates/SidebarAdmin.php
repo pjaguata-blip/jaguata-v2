@@ -9,7 +9,6 @@ $baseFeatures        = BASE_URL . "/features/{$rolSesion}";
 $currentFile         = basename($_SERVER['PHP_SELF']);
 ?>
 
-<!-- ✅ TOPBAR MOBILE -->
 <div class="topbar-mobile d-lg-none">
   <div class="d-flex align-items-center gap-2 fw-semibold">
     <i class="fas fa-paw"></i> Jaguata
@@ -19,7 +18,6 @@ $currentFile         = basename($_SERVER['PHP_SELF']);
   </button>
 </div>
 
-<!-- ✅ OVERLAY -->
 <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 
 <aside id="sidebar" class="sidebar">
@@ -78,8 +76,6 @@ $currentFile         = basename($_SERVER['PHP_SELF']);
             <i class="fas fa-wallet me-2"></i>Pagos
           </a>
         </li>
-
-        <!-- ✅ SUSCRIPCIONES -->
         <li class="nav-item">
           <a href="<?= $baseFeatures; ?>/SuscripcionesPendientes.php"
              class="nav-link <?= $currentFile === 'SuscripcionesPendientes.php' ? 'active' : '' ?>">
@@ -97,7 +93,7 @@ $currentFile         = basename($_SERVER['PHP_SELF']);
         <li class="nav-item">
           <a href="<?= $baseFeatures; ?>/ReporteGanancias.php"
              class="nav-link <?= $currentFile === 'ReporteGanancias.php' ? 'active' : '' ?>">
-            <i class="fas fa-chart-pie me-2"></i>Reporte de Ganancias
+            <i class="fas fa-chart-pie me-2"></i>Reporte/Suscrpciones
           </a>
         </li>
 

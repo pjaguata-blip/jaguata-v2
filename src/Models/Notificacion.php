@@ -18,8 +18,6 @@ class Notificacion extends BaseModel
         parent::__construct();
     }
 
-    /* =================== Helpers =================== */
-
     private function getUserCreatedAt(int $usuId): string
     {
         $stmt = $this->db->prepare("SELECT created_at FROM usuarios WHERE usu_id = :id LIMIT 1");
@@ -27,19 +25,9 @@ class Notificacion extends BaseModel
         return (string)($stmt->fetchColumn() ?: '1970-01-01 00:00:00');
     }
 
-    /**
-     * Filtro base:
-     * - personales: usu_id = :usu_id
-     * - masivas: usu_id IS NULL y rol_destinatario coincide con rol o 'todos'
-     * - NO archivadas
-     * - NO ocultas (notificaciones_ocultas)
-     * - masivas solo desde created_at del usuario
-     */
     private function buildWhereUserRolTodos(int $usuId, string $rol, string $userCreatedAt): array
     {
         $rol = strtolower(trim($rol));
-
-        // ✅ soportar dueno/dueño (por consistencia)
         $rolAlt = $rol;
         if ($rol === 'dueno') $rolAlt = 'dueño';
         if ($rol === 'dueño') $rolAlt = 'dueno';
@@ -72,8 +60,6 @@ class Notificacion extends BaseModel
 
         return [$where, $params];
     }
-
-    /* =================== Listado =================== */
 
     public function listByUser(
         int $usuId,
@@ -182,8 +168,6 @@ class Notificacion extends BaseModel
         return (int)$stmt->fetchColumn();
     }
 
-    /* =================== Leído =================== */
-
     public function markRead(int $notiId, int $usuId): bool
     {
         $sql = "
@@ -201,7 +185,6 @@ class Notificacion extends BaseModel
         $userCreatedAt = $this->getUserCreatedAt($usuId);
         $rol = strtolower(trim($rol));
 
-        // ✅ alt
         $rolAlt = $rol;
         if ($rol === 'dueno') $rolAlt = 'dueño';
         if ($rol === 'dueño') $rolAlt = 'dueno';
@@ -240,14 +223,6 @@ class Notificacion extends BaseModel
         return (int)$stmt->rowCount();
     }
 
-    /* =================== ELIMINAR / LIMPIAR =================== */
-
-    /**
-     * Devuelve:
-     * - 'personal' si usu_id = usuario
-     * - 'masiva' si usu_id IS NULL (rol/todos)
-     * - null si no pertenece / no existe / expirada / archivada
-     */
     public function tipoParaUsuario(int $notiId, int $usuId, string $rol): ?string
     {
         $userCreatedAt = $this->getUserCreatedAt($usuId);
